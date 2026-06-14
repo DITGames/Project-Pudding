@@ -32,4 +32,24 @@ public class PusherTableController : MonoBehaviour
 
         rb.MovePosition(targetPos);
     }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        Rigidbody hitRb = collision.collider.attachedRigidbody;
+
+        if (hitRb != null && hitRb.CompareTag("Coin"))
+        {
+            hitRb.transform.parent = transform;
+        }
+    }
+
+    private void OnCollisionExit(Collision collision)
+    {
+        Rigidbody hitRb = collision.collider.attachedRigidbody;
+
+        if (hitRb != null && hitRb.CompareTag("Coin"))
+        {
+            hitRb.transform.parent = null;
+        }
+    }
 }

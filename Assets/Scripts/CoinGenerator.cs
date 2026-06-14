@@ -7,18 +7,25 @@ public class CoinGenerator : MonoBehaviour
     [SerializeField]
     GameObject coin;
 
-    [SerializeField]
+    [SerializeField, Header("初期生成数")]
     int genarateNum = 100;
+
+    [SerializeField, Header("開始から生成までのオフセット時間")]
+    float genarateOffsetTime = 1.0f;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        //オブジェクトのレンダーを無効
+        this.GetComponent<MeshRenderer>().enabled = false;
+
+        //初期コイン生成
         StartCoroutine(generateCoin());
     }
 
     IEnumerator generateCoin()
     {
-        yield return new WaitForSeconds(3);
+        yield return new WaitForSeconds(genarateOffsetTime);
 
         for (int i = 0; i < genarateNum; i++)
         {

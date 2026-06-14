@@ -8,7 +8,7 @@ PhysicsMaterial:
   m_PrefabAsset: {fileID: 0}
   m_Name: Coin
   serializedVersion: 2
-  m_DynamicFriction: 0
+  m_DynamicFriction: 0.15
   m_StaticFriction: 0
   m_Bounciness: 0
   m_FrictionCombine: 0
