@@ -26,7 +26,7 @@ public class PusherTableController : MonoBehaviour
 
         Vector3 targetPos = new Vector3(
             0.0f,
-            0.0f,
+            rb.position.y,
             moveValue + intensity
         );
 
