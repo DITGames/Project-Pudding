@@ -6,7 +6,6 @@
  * @brief バトル進行のコアクラス
  * =====================================*/
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -34,9 +33,10 @@ namespace CommandBattleCore
         public ITurnOrderResolver TurnOrderResolver { get; set; } = new SpeedTurnOrderResolver();
         // 1イベント当たりのリアクション上限
         public int MaxReactionPerEvent { get; set; } = 1;
-        // トリガー処理で予約済みのリアクション総数
-        private int mReactionsThisEvent = 0;
-        private bool mInReactionDispatch = false;
+        // コマンドが誘発したリアクション総数
+        private int mReactionsThisCommand = 0;
+        // リアクション実行中はtrue
+        private bool mIsSuppressReactions = false;
         
         // ステート変更時(バトル状態)
         public event Action<BattleState> OnStateChanged;
@@ -218,6 +218,16 @@ namespace CommandBattleCore
         {
             if (StateMachine.Current == BattleState.BattleEnd) return;
             if(!ActionQueue.TryDequeue(out var command)) return;
+
+            bool isReaction = command.IsReaction;
+            if (isReaction)
+            {
+                mIsSuppressReactions = true;
+            }
+            else
+            {
+                mReactionsThisCommand = 0;
+            }
             
             StateMachine.TransitionTo(BattleState.ActionExecution);
             
@@ -226,20 +236,27 @@ namespace CommandBattleCore
             
             if (command.Source.IsAlive && (command.Source.CurrentRestrictions & ActionRestriction.CannotAct) == 0)
             {
-                // コマンド実行前演出
-                if (Presenter != null)
+                try
                 {
-                    await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
-                }
+                    // コマンド実行前演出
+                    if (Presenter != null)
+                    {
+                        await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
+                    }
                 
-                // 実際のコマンド実行
-                command.Execute(Context);
-                OnCommandExecuted?.Invoke(command.Source, command);
+                    // 実際のコマンド実行
+                    command.Execute(Context);
+                    OnCommandExecuted?.Invoke(command.Source, command);
 
-                // コマンド実行後演出
-                if (Presenter != null)
+                    // コマンド実行後演出
+                    if (Presenter != null)
+                    {
+                        await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
+                    }
+                }
+                finally
                 {
-                    await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
+                    if (isReaction) mIsSuppressReactions = false;
                 }
             }
             
@@ -272,7 +289,7 @@ namespace CommandBattleCore
             {
                 await aPlay;
             }
-            catch (System.OperationCanceledException)
+            catch (OperationCanceledException)
             {
                 // スキップされた場合。演出は中断
             }
@@ -281,33 +298,25 @@ namespace CommandBattleCore
         // リアクショントリガー発生
         private void DispatchReactions(ReactionContext aContext)
         {
-            bool outermost = !mInReactionDispatch;
-            mInReactionDispatch = true;
-            try
-            {
-                foreach (var unit in EnumerateAllAliveUnits())
-                {
-                    if (mReactionsThisEvent >= MaxReactionPerEvent) break;
-                    foreach (var reaction in unit.Reactions.ToArray())
-                    {
-                        if (reaction.Trigger != aContext.Trigger) continue;
-                        if (!unit.IsAlive) break;
-                        if (!reaction.ShouldReact(unit, aContext, Context)) continue; // ユニットのリアクションが条件を満たすのかセルフチェック
+            // 反撃の実行中には新たな反撃は起こさないようにする
+            if(mIsSuppressReactions) return;
 
-                        var cmd = reaction.BuildReaction(unit, aContext, Context);
-                        if (cmd == null) continue;
-
-                        ActionQueue.EnqueueFront(cmd); // 先頭に割り込み
-                        mReactionsThisEvent++;
-                    }
-                }
-            }
-            finally
+            foreach (var unit in EnumerateAllAliveUnits())
             {
-                if (outermost)
+                if (mReactionsThisCommand >= MaxReactionPerEvent) break;
+                foreach (var reaction in unit.Reactions)
                 {
-                    mInReactionDispatch = false;
-                    mReactionsThisEvent = 0;
+                    if (mReactionsThisCommand >= MaxReactionPerEvent) break;
+                    if (reaction.Trigger != aContext.Trigger) continue;
+                    if (!unit.IsAlive) break;
+                    if (!reaction.ShouldReact(unit, aContext, Context)) continue;
+                    
+                    var cmd = reaction.BuildReaction(unit, aContext, Context);
+                    if (cmd == null) continue;
+
+                    cmd.IsReaction = true;
+                    ActionQueue.EnqueueFront(cmd);
+                    mReactionsThisCommand++;
                 }
             }
         }
