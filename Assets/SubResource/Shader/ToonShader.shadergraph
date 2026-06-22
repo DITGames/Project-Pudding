@@ -3911,7 +3911,7 @@
     "m_Hidden": false,
     "m_PerRendererData": false,
     "m_customAttributes": [],
-    "m_Value": 1.0,
+    "m_Value": 3.0,
     "m_FloatType": 0,
     "m_LiteralFloatMode": false,
     "m_RangeValues": {
@@ -3985,10 +3985,10 @@
         "m_Expanded": true,
         "m_Position": {
             "serializedVersion": "2",
-            "x": -3614.0,
-            "y": 613.0,
+            "x": -3565.0,
+            "y": 649.0,
             "width": 208.0,
-            "height": 335.99993896484377
+            "height": 336.0
         }
     },
     "m_Slots": [
@@ -4346,8 +4346,8 @@
     "m_ObjectId": "d2538e0ddb334e469726629ea95c515d",
     "m_Title": "ToonBase",
     "m_Position": {
-        "x": -4097.0,
-        "y": 276.0
+        "x": -4096.99951171875,
+        "y": 276.0001220703125
     }
 }
 
@@ -4363,8 +4363,8 @@
         "m_Expanded": true,
         "m_Position": {
             "serializedVersion": "2",
-            "x": -2633.000244140625,
-            "y": 1883.000244140625,
+            "x": -2633.0,
+            "y": 1883.0,
             "width": 121.0,
             "height": 34.0
         }
