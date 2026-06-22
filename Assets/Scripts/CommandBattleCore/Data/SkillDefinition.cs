@@ -21,28 +21,28 @@ namespace CommandBattleCore
 
         [Header("スキル")]
         [Label("スキルID")]
-        [SerializeField] private string mSkillId;
+        [SerializeField] protected string mSkillId;
         [Label("表示名")]
-        [SerializeField] private string mDisplayName;
+        [SerializeField] protected string mDisplayName;
         [TextArea]
         [Label("説明")]
-        [SerializeField] private string mDescription;
+        [SerializeField] protected string mDescription;
 
         [Header("詳細")]
         [Label("ターゲット選択")]
-        [SerializeField] private TargetScope mTargetScope = TargetScope.SingleEnemy;
+        [SerializeField] protected TargetScope mTargetScope = TargetScope.SingleEnemy;
         [Label("スキルタイプ")]
-        [SerializeField] private SkillEffectType mSkillEffectType = SkillEffectType.Damage;
+        [SerializeField] protected SkillEffectType mSkillEffectType = SkillEffectType.Damage;
         [Label("ダメージタグ")]
-        [SerializeField] private DamageTags mDamageTags = DamageTags.None;
+        [SerializeField] protected DamageTags mDamageTags = DamageTags.None;
         [Label("スキルパワー")]
-        [SerializeField] private float mPower = 10f;
+        [SerializeField] protected float mPower = 10f;
         [Label("クールタイム")]
-        [SerializeField] private int mMaxCooldown = 0;
+        [SerializeField] protected int mMaxCooldown = 0;
         [Label("最大使用回数")]
-        [SerializeField] private int mMaxUsesPerBattle = 0;
+        [SerializeField] protected int mMaxUsesPerBattle = 0;
         [Label("クリティカル発生?")]
-        [SerializeField] private bool mIsOccurCritical = false;
+        [SerializeField] protected bool mIsOccurCritical = false;
 
         public string SkillId => mSkillId;
         public string DisplayName => mDisplayName;

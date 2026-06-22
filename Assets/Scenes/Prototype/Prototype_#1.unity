@@ -880,6 +880,55 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 1078938770}
   m_SourcePrefab: {fileID: 100100000, guid: 29a591f3c8cc64e4b9d0704b276ed372, type: 3}
+--- !u!1 &829383973
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 829383975}
+  - component: {fileID: 829383974}
+  m_Layer: 0
+  m_Name: BattleRunner
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &829383974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 829383973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37b64a5a5244d1646aadb5334753675b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SampleBattleRunner
+  mCoinCounter: {fileID: 1652698682}
+  mAttackCost: 8
+  mAllyUnit: {fileID: 11400000, guid: 7c3ada2342a19cb45b126e46610976bf, type: 2}
+  mEnemyUnit: {fileID: 11400000, guid: f0d878742a2b7224487fdd6429e2cf1e, type: 2}
+  mEnemyAttackInterval: 10
+--- !u!4 &829383975
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 829383973}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.78402, y: 3.83192, z: 6.8917}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &893501237 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6733500431098832757, guid: 6d8b144ded6cc1c428130ae9fe05c285, type: 3}
@@ -2234,3 +2283,4 @@ SceneRoots:
   - {fileID: 1975109494}
   - {fileID: 1336733889}
   - {fileID: 1495912094}
+  - {fileID: 829383975}
