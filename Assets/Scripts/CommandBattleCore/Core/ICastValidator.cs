@@ -4,6 +4,9 @@
  * @author hqrse
  * @date 2026/06/13
  * @brief スキル使用可否の判定インターフェース
+ *
+ * @update
+ * 6/21 CastFailReasonの追加
  * =====================================*/
 using UnityEngine;
 
@@ -16,6 +19,9 @@ namespace CommandBattleCore
         MaxUses,
         InvalidTarget,
         // コア実装のデフォルトはここまで
+        InvalidDefinition,  // スキル定義の未解決
+        InvalidParty,       // パーティが不正
+        NotEnoughResource,  // リソース不足
     }
 
     public readonly struct CastValidation
