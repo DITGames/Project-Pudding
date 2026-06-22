@@ -20,7 +20,7 @@ public class PusherTableController : MonoBehaviour
     }
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         float moveValue = Mathf.Sin(Time.time * speed) * intensity;
 
