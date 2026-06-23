@@ -30,8 +30,6 @@ namespace PusherBattle
 
         public override void Execute(BattleContext aContext)
         {
-            var hitResolver = aContext.Rules.HitResolver;
-
             if (aContext.GetParty(Source.Side) is not PusherBattleParty party)
             {
                 Debug.Log("パーティがプロジェクトと一致しません");
@@ -45,16 +43,16 @@ namespace PusherBattle
                 float raw = DamageFormula(Source, target);
                 var damageInfo = new DamageInfo(Source, target, raw, DamageTags.Physical, this);
 
-                var hitInfo = hitResolver.Resolve(Source, target, damageInfo, aContext);
+                var hitInfo = aContext.ResolveHit(Source, target, damageInfo);
 
-                if (hitInfo == HitResult.Miss)
+                if (hitInfo.mResult == HitResult.Miss)
                 {
                     damageInfo.IsMiss = true;
                 }
-                if(hitInfo == HitResult.Critical)
+                if(hitInfo.mCriticalInfo.IsCritical)
                 {
                     damageInfo.IsCritical = true;
-                    damageInfo.Amount *= aContext.Rules.CriticalMultiplier;
+                    damageInfo.Amount *= hitInfo.mCriticalInfo.CriticalMultiplier;
                 }
                 
                 damages.Add(damageInfo);

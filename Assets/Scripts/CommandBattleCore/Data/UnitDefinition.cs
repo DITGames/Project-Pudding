@@ -16,15 +16,15 @@ namespace CommandBattleCore
     {
         [Header("ユニット")]
         [Label("ユニットID")]
-        [SerializeField] private string mUnitId;
+        [SerializeField] protected string mUnitId;
         [Label("表示名")]
-        [SerializeField] private string mDisplayName;
+        [SerializeField] protected string mDisplayName;
 
         [Header("詳細")]
         [Label("ステータス")]
-        [SerializeField] private StatBlock mBaseStatBlock;
+        [SerializeField] protected StatBlock mBaseStatBlock;
         [Label("使用可能スキル", true)]
-        [SerializeField] private List<SkillDefinition> mSkills = new();
+        [SerializeField] protected List<SkillDefinition> mSkills = new();
 
         public string UnitId => mUnitId;
         public string DisplayName => mDisplayName;

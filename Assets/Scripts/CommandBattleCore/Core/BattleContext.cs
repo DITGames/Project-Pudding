@@ -7,6 +7,7 @@
  * =====================================*/
 using System;
 using System.Collections.Generic;
+using System.Data;
 
 namespace CommandBattleCore
 {
@@ -59,6 +60,17 @@ namespace CommandBattleCore
             foreach (var filter in Rules.TargetFilters)
                 result = filter.Filter(aSource, result, this);
             return result;
+        }
+
+        public HitInfo ResolveHit(BattleUnit aSource, BattleUnit aTarget, DamageInfo aDamageInfo)
+        {
+            HitInfo info = new();
+            info.mResult = Rules.HitResolver.Resolve(aSource, aTarget, aDamageInfo, this);
+            if (info.mResult == HitResult.Hit)
+            {
+                info.mCriticalInfo = Rules.CriticalResolver.Resolve(aSource, aTarget, aDamageInfo, this);
+            }
+            return info;
         }
     }
 }

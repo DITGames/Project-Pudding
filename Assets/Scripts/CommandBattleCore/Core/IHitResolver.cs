@@ -9,11 +9,22 @@ using UnityEngine;
 
 namespace CommandBattleCore
 {
+    public struct HitInfo
+    {
+        public HitResult mResult;
+        public CriticalInfo mCriticalInfo;
+    }
+    
     public enum HitResult
     {
         Hit,
         Miss,
-        Critical,
+    }
+
+    public struct CriticalInfo
+    {
+        public bool IsCritical;
+        public float CriticalMultiplier; 
     }
     
     public interface IHitResolver
@@ -32,10 +43,26 @@ namespace CommandBattleCore
         public HitResult Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
         {
             float hitChance = 0.95f;
-            if(aContext.Rules.RandomProvider.NextFloat() > hitChance) return HitResult.Miss;
+            if (aContext.Rules.RandomProvider.NextFloat() > hitChance) return HitResult.Miss;
+            else return HitResult.Hit;
+        }
+    }
+    
+    public interface ICriticalResolver
+    {
+        CriticalInfo Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext);
+    }
 
-            float critChance = 0.1f;
-            return aContext.Rules.RandomProvider.NextFloat() < critChance ? HitResult.Critical : HitResult.Hit;
+    public class StandardCriticalResolver : ICriticalResolver
+    {
+        public CriticalInfo Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
+        {
+            CriticalInfo info = new CriticalInfo();
+            info.IsCritical = false;
+            info.CriticalMultiplier = 1.2f;
+            float criticalChance = 0.1f;
+            if (aContext.Rules.RandomProvider.NextFloat() < criticalChance) info.IsCritical = true;
+            return info;
         }
     }
 }
