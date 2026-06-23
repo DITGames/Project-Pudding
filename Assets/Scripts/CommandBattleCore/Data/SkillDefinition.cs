@@ -41,8 +41,6 @@ namespace CommandBattleCore
         [SerializeField] protected int mMaxCooldown = 0;
         [Label("最大使用回数")]
         [SerializeField] protected int mMaxUsesPerBattle = 0;
-        [Label("クリティカル発生?")]
-        [SerializeField] protected bool mIsOccurCritical = false;
 
         public string SkillId => mSkillId;
         public string DisplayName => mDisplayName;
@@ -77,18 +75,18 @@ namespace CommandBattleCore
                                                  - t.Parameters.Defense.CurrentValue * 0.5f);
                         
                         var damageInfo = new DamageInfo(src,t, dmg, mDamageTags, this);
-                        var hit = ctx.Rules.HitResolver.Resolve(src, t, damageInfo, ctx);
+                        var hit = ctx.ResolveHit(src, t, damageInfo);
 
-                        if (hit == HitResult.Miss)
+                        if (hit.mResult == HitResult.Miss)
                         {
                             damageInfo.IsMiss = true;
                             damageInfo.Amount = 0f;
                         }
 
-                        if (hit == HitResult.Critical && mIsOccurCritical)
+                        if (hit.mCriticalInfo.IsCritical)
                         {
                             damageInfo.IsCritical = true;
-                            damageInfo.Amount *= ctx.Rules.CriticalMultiplier;
+                            damageInfo.Amount *= hit.mCriticalInfo.CriticalMultiplier;
                         }
                         
                         t.ApplyDamage(damageInfo);

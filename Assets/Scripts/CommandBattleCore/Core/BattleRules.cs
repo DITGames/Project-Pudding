@@ -14,7 +14,7 @@ namespace CommandBattleCore
     public class BattleRules
     {
         public IHitResolver HitResolver { get; set; } = new StandardHitResolver();
-        public float CriticalMultiplier { get; set; } = 1.5f;
+        public ICriticalResolver CriticalResolver { get; set; } = new StandardCriticalResolver();
         public IRandomProvider RandomProvider { get; set; } = new DefaultRandomProvider();
         public ICastValidator CastValidator { get; set; } = new DefaultCastValidator();
         public List<ITargetFilter> TargetFilters { get; } = new();

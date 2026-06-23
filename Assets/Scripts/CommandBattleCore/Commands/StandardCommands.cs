@@ -21,23 +21,22 @@ namespace CommandBattleCore
         
         public override void Execute(BattleContext aContext)
         {
-            var resolver = aContext.Rules.HitResolver;
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
             {
                 float raw = DamageFormula(Source, target);
                 var info = new DamageInfo(Source, target, raw, DamageTags.Physical, this);
                 
-                var hit = resolver.Resolve(Source, target, info, aContext);
+                var hit = aContext.ResolveHit(Source, target, info);
 
-                if (hit == HitResult.Miss)
+                if (hit.mResult == HitResult.Miss)
                 {
                     info.IsMiss = true;
                     info.Amount = 0f;
                 }
-                if (hit == HitResult.Critical)
+                if (hit.mCriticalInfo.IsCritical)
                 {
                     info.IsCritical = true;
-                    info.Amount *= aContext.Rules.CriticalMultiplier;
+                    info.Amount *= hit.mCriticalInfo.CriticalMultiplier;
                 }
                 
                 target.ApplyDamage(info);
