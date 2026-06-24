@@ -7,14 +7,14 @@
  * =====================================*/
 using UnityEngine;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    public interface ICoinResourceConverter
+    public interface IPPCoinResourceConverter
     {
         float Convert(int aCoinCount);
     }
 
-    public class LinearCoinResourceConverter : ICoinResourceConverter
+    public class PPLinearCoinResourceConverter : IPPCoinResourceConverter
     {
         public float Rate { get; set; } = 1f;
 

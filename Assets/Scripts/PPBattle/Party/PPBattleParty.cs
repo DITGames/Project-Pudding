@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright hqrse. All rights reserved.
- * @file PusherBattleParty.cs
+ * @file PPBattleParty.cs
  * @author hqrse
  * @date 2026/06/21
  * @brief Pusherのバトルパーティベース
@@ -9,17 +9,17 @@
 using System.Collections.Generic;
 using CommandBattleCore;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    public class PusherBattleParty : BattleParty
+    public class PPBattleParty : BattleParty
     {
-        public PusherBattleResourcePool ResourcePool { get; }
+        public PPBattleResourcePool ResourcePool { get; }
 
-        public PusherBattleParty(int aMaxCoin, BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
+        public PPBattleParty(int aMaxCoin, BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
             IEnumerable<BattleUnit> aReserveMembers = null)
             : base(aSide, aActiveMembers, aReserveMembers)
         {
-            ResourcePool = new PusherBattleResourcePool(aMaxCoin);
+            ResourcePool = new PPBattleResourcePool(aMaxCoin);
         }
     }
 }

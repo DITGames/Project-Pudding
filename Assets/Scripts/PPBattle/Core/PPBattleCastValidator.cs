@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright hqrse. All rights reserved.
- * @file PusherBattleCastValidator.cs
+ * @file PPBattleCastValidator.cs
  * @author hqrse
  * @date 2026/06/21
  * @brief Pusherのキャストチェッカー
@@ -9,9 +9,9 @@
 using CommandBattleCore;
 using UnityEngine;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    public class PusherBattleCastValidator : DefaultCastValidator
+    public class PPBattleCastValidator : DefaultCastValidator
     {
         public override CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext)
         {
@@ -23,12 +23,12 @@ namespace PusherBattle
                 return result;
             }
             // スキル定義の未解決
-            if (aSkill.SourceDefinition is not PusherBattleSkillDefinition def)
+            if (aSkill.SourceDefinition is not PPBattleSkillDefinition def)
             {
                 return CastValidation.Fail(CastFailReason.InvalidDefinition);
             }
             // パーティの不一致
-            if (aContext.GetParty(aUser.Side) is not PusherBattleParty party)
+            if (aContext.GetParty(aUser.Side) is not PPBattleParty party)
             {
                 return CastValidation.Fail(CastFailReason.InvalidParty);
             }

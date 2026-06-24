@@ -1,20 +1,20 @@
 /* =====================================
  * Copyright hqrse. All rights reserved.
- * @file BattleResourcePool.cs
+ * @file PPBattleResourcePool.cs
  * @author hqrse
  * @date 2026/06/21
  * @brief バトルで使用されるリソース定義
  * =====================================*/
 using CommandBattleCore;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    public class PusherBattleResourcePool
+    public class PPBattleResourcePool
     {
         // コイン
         public ResourceParameter CoinResource;
 
-        public PusherBattleResourcePool(int aMax)
+        public PPBattleResourcePool(int aMax)
         {
             CoinResource = new ResourceParameter(aMax);
             CoinResource.Damage(aMax);  // 0にリセット
