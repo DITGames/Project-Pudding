@@ -1,3 +1,10 @@
+/* =====================================
+ * Copyright hqrse. All rights reserved.
+ * @file SampleBattleRunner.cs
+ * @author hqrse
+ * @date 2026/06/21
+ * @brief バトルのフロー制御サンプル
+ * =====================================*/
 using System.Collections;
 using System.Collections.Generic;
 using CommandBattleCore;

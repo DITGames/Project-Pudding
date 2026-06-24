@@ -1,15 +1,15 @@
 /* =====================================
  * Copyright hqrse. All rights reserved.
- * @file ICoinGainNotifier.cs
+ * @file IPPCoinGainNotifier.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief プッシャーが実装するインターフェース
+ * @brief プッシャーが実装するコイン取得通知インターフェース
  * =====================================*/
 using System;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    public interface ICoinGainNotifier
+    public interface IPPCoinGainNotifier
     {
         event Action<int> OnCainGained;
     }

@@ -1,19 +1,18 @@
 /* =====================================
  * Copyright hqrse. All rights reserved.
- * @file PusherBattleSkillDefinition.cs
+ * @file PPBattleSkillDefinition.cs
  * @author hqrse
  * @date 2026/06/21
  * @brief Pusherのスキルデータベース
  * =====================================*/
 using CommandBattleCore;
-using UnityEditor;
 using UnityEngine;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    [CreateAssetMenu(fileName = "PusherBattleSkillDefinition",
-        menuName = "Scriptable Objects/PusherBattleSkillDefinition")]
-    public class PusherBattleSkillDefinition : SkillDefinition
+    [CreateAssetMenu(fileName = "PPBattleSkillDefinition",
+        menuName = "Project Pudding/PPBattleSkillDefinition")]
+    public class PPBattleSkillDefinition : SkillDefinition
     {
         [Header("Pusher")]
         [Label("消費コイン")]
@@ -23,9 +22,9 @@ namespace PusherBattle
         public int RequiredCoin => mRequiredCoin;
 
         // 一旦ベースと同じ 拡張があれば追加する
-        public virtual PusherBattleSkill CreatePusherBattleSkill()
+        public virtual PPBattleSkill CreatePusherBattleSkill()
         {
-            var skill = new PusherBattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffect());
+            var skill = new PPBattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffect());
             skill.SourceDefinition = this;
             skill.MaxCooldown = mMaxCooldown;
             skill.MaxUsesPerBattle = mMaxUsesPerBattle;

@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright hqrse. All rights reserved.
- * @file IPusherBattleCommand.cs
+ * @file IPPBattleCommand.cs
  * @author hqrse
  * @date 2026/06/21
  * @brief Pusherのコマンドインターフェース
@@ -10,19 +10,19 @@ using System.Collections.Generic;
 using CommandBattleCore;
 using UnityEngine;
 
-namespace PusherBattle
+namespace PPBattle
 {
-    public interface IPusherBattleCommand
+    public interface IPPBattleCommand
     {
         public int CoinCost { get; }
     }
 
     // Pusherの通常攻撃コマンドベース
-    public class PusherBattleAttackCommand : AttackCommand, IPusherBattleCommand
+    public class PPBattleAttackCommand : AttackCommand, IPPBattleCommand
     {
         public int CoinCost {get; private set;}
         
-        public PusherBattleAttackCommand(BattleUnit aSource, ITargetResolver aResolver, int aCost)
+        public PPBattleAttackCommand(BattleUnit aSource, ITargetResolver aResolver, int aCost)
             : base(aSource, aResolver)
         {
             CoinCost = aCost;
@@ -30,7 +30,7 @@ namespace PusherBattle
 
         public override void Execute(BattleContext aContext)
         {
-            if (aContext.GetParty(Source.Side) is not PusherBattleParty party)
+            if (aContext.GetParty(Source.Side) is not PPBattleParty party)
             {
                 Debug.Log("パーティがプロジェクトと一致しません");
                 return;
