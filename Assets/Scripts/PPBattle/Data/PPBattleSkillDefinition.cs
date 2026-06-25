@@ -11,7 +11,7 @@ using UnityEngine;
 namespace PPBattle
 {
     [CreateAssetMenu(fileName = "PPBattleSkillDefinition",
-        menuName = "Project Pudding/PPBattleSkillDefinition")]
+        menuName = "Project-Pudding/PPBattleSkillDefinition")]
     public class PPBattleSkillDefinition : SkillDefinition
     {
         [Header("Pusher")]

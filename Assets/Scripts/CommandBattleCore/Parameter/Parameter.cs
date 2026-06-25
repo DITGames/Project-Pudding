@@ -119,25 +119,25 @@ namespace CommandBattleCore
         public void Damage(float aAmount)
         {
             if (aAmount <= 0f) return;
-            SetCurrent(Current - aAmount);
+            SetCurrent(Mathf.RoundToInt(Current - aAmount));
         }
 
         public void Recover(float aAmount)
         {
             if (aAmount <= 0f) return;
-            SetCurrent(Current + aAmount);
+            SetCurrent(Mathf.RoundToInt(Current + aAmount));
         }
 
         public bool TryConsume(float aAmount)
         {
             if (Current < aAmount) return false;
-            SetCurrent(Current - aAmount);
+            SetCurrent(Mathf.Round(Current - aAmount));
             return true;
         }
 
         public void SetCurrent(float aValue)
         {
-            Current = Mathf.Clamp(aValue, 0f, Max.CurrentValue);
+            Current = Mathf.RoundToInt(Mathf.Clamp(aValue, 0f, Max.CurrentValue));
             OnValueChanged?.Invoke(this);
         }
     }
