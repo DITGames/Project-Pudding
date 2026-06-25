@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de27464d551ab2e42a5356a16a30f18e, type: 3}
+  m_Name: UVD_Hero
+  m_EditorClassIdentifier: Assembly-CSharp::PPUnitVisualDefinition
+  UnitId: Hero
+  UnitIcon: {fileID: 705052327, guid: 6d9eab3de771c714faf5227348812bee, type: 3}
+  UnitPortrait: {fileID: 0}
+  ViewPrefab: {fileID: 0}
+  Animator: {fileID: 9100000, guid: 19768bfdfe69f7144b164c49c7906178, type: 2}
+  SpawnOffset: {x: 0, y: 0, z: 0}

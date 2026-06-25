@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5c02c070e2bd00642bfb6a224c0ebb7f, type: 3}
-  m_Name: TestAlly
+  m_Name: Monster
   m_EditorClassIdentifier: Assembly-CSharp::CommandBattleCore.UnitDefinition
-  mUnitId: Player01
-  mDisplayName: Hero
+  mUnitId: Monster
+  mDisplayName: Monster
   mBaseStatBlock:
-    MaxHP: 100
-    Attack: 10
-    Defense: 10
-    Speed: 10
+    MaxHP: 80
+    Attack: 12
+    Defense: 12
+    Speed: 12
   mSkills: []

@@ -8,17 +8,23 @@
 using System.Collections;
 using System.Collections.Generic;
 using CommandBattleCore;
+using PPBattle;
 using UnityEngine;
 
 public class SampleBattleRunner : MonoBehaviour
 {
-    [Label("コインカウンター")] [SerializeField] private CoinDropCounter mCoinCounter;
-    [Label("攻撃コスト")] [SerializeField] private int mAttackCost;
-    
-    [Label("味方ユニット")] [SerializeField] private UnitDefinition mAllyUnit;
-    [Label("敵ユニット")] [SerializeField] private UnitDefinition mEnemyUnit;
-
-    [Label("敵攻撃間隔")] [SerializeField] private float mEnemyAttackInterval = 10f;
+    [Label("コインカウンター")]
+    [SerializeField] private CoinDropCounter mCoinCounter;
+    [Label("攻撃コスト")]
+    [SerializeField] private int mAttackCost;
+    [Label("味方ユニット")]
+    [SerializeField] private UnitDefinition mAllyUnit;
+    [Label("敵ユニット")]
+    [SerializeField] private UnitDefinition mEnemyUnit;
+    [Label("敵攻撃間隔")]
+    [SerializeField] private float mEnemyAttackInterval = 10f;
+    [Label("バトルビューバインダー")]
+    [SerializeField] private PPBattleUnitViewBinder mBattleUnitViewBinder;
     
     private BattleManager mBattleManager = new();
     
@@ -61,8 +67,8 @@ public class SampleBattleRunner : MonoBehaviour
                 mBattleCoroutine = null;
             }
         };
-        
         mBattleManager.StartBattle(context);
+        mBattleUnitViewBinder.Bind(mBattleManager);
 
         mBattleCoroutine = StartCoroutine(StartAttack());
     }
