@@ -3,16 +3,16 @@
  * @file PPSkillCatalog.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief スキルのカタログ
+ * @brief PPスキルのカタログ
  * =====================================*/
-using PPBattle;
+using PPCore;
 using UnityEngine;
 
 namespace PPCore
 {
     [CreateAssetMenu(menuName = "Project-Pudding/PPUnitSkillCatalog")]
-    public class PPSkillCatalog : PPCatalogAsset<PPBattleSkillDefinition>
+    public class PPSkillCatalog : PPCatalogAsset<PPSkillDefinition>
     {
-        protected override string IdOf(PPBattleSkillDefinition aItem) => aItem.SkillId;
+        protected override string IdOf(PPSkillDefinition aItem) => aItem.SkillId;
     }
 }

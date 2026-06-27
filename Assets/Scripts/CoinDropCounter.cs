@@ -1,7 +1,8 @@
 using System;
+using PPCore;
 using UnityEngine;
 
-public class CoinDropCounter : MonoBehaviour
+public class CoinDropCounter : MonoBehaviour, IPPCoinGainNotifier
 {
     [SerializeField, Header("CoinSpawner")]
     CoinSpawner coinSpawner;
@@ -9,7 +10,7 @@ public class CoinDropCounter : MonoBehaviour
     [SerializeField, Header("�����R�C��")]
     int dropCoinCounter = 0;
 
-    public event Action<int> OnCoinDropped;
+    public event Action<int> OnCoinGained;
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -18,7 +19,7 @@ public class CoinDropCounter : MonoBehaviour
             dropCoinCounter++;
             coinSpawner.AddCoin(1);
             Destroy(collision.gameObject);
-            OnCoinDropped?.Invoke(1);
+            OnCoinGained?.Invoke(1);
         }
     }
 }
