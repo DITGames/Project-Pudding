@@ -16,7 +16,7 @@ namespace CommandBattleCore
 
     public class RandomAICommandDecider : AICommandDeciderBase
     {
-        private static readonly System.Random Rng = new();
+        protected static readonly System.Random Rng = new();
 
         public override BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext)
         {

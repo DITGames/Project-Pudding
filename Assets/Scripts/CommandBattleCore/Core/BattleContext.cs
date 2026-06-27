@@ -45,7 +45,7 @@ namespace CommandBattleCore
         public int TurnCount { get; set; }
 
         public event Action<BattleUnit, BattleSkill, CastFailReason> OnCastFailed;
-        internal void NotifyCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason) 
+        protected internal virtual void NotifyCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)
             => OnCastFailed?.Invoke(aUnit, aSkill, aReason);
 
         public BattleParty GetParty(BattleSide aSide) =>

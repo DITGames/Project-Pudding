@@ -22,8 +22,8 @@ namespace CommandBattleCore
     public class Parameter : IReadableParameter
     {
         // 恒久的な値
-        private float mBaseValue;
-        private readonly List<ParameterModifier> mModifiers;
+        protected float mBaseValue;
+        protected readonly List<ParameterModifier> mModifiers = new();
 
         public event Action<IReadableParameter> OnValueChanged;
 
@@ -34,7 +34,7 @@ namespace CommandBattleCore
         }
 
         // バフなどの修飾子で変更される現在値
-        public float CurrentValue { get; private set; }
+        public float CurrentValue { get; protected set; }
 
         public IReadOnlyList<ParameterModifier> Modifiers => mModifiers;
 
@@ -77,17 +77,17 @@ namespace CommandBattleCore
             var overrides = mModifiers.Where(m => m.Type == ParameterModifierType.Override).ToList();
             if (overrides.Count == 0)
             {
-                // 優先度が最も高いものを適用
-                CurrentValue = overrides.OrderByDescending(m => m.Priority).First().Value;
-            }
-            else
-            {
                 // 加算の合計値
                 float add = mModifiers.Where(m => m.Type == ParameterModifierType.Add).Sum(m => m.Value);
                 // 乗算
                 float mul = mModifiers.Where(m => m.Type == ParameterModifierType.Multiply)
                     .Aggregate(1f, (acc, m) => acc * m.Value);
                 CurrentValue = (mBaseValue + add) + mul;
+            }
+            else
+            {
+                // 優先度が最も高いものを適用
+                CurrentValue = overrides.OrderByDescending(m => m.Priority).First().Value;
             }
 
             OnValueChanged?.Invoke(this);
@@ -98,7 +98,7 @@ namespace CommandBattleCore
     public class ResourceParameter : IReadableParameter
     {
         public Parameter Max { get; }
-        public float Current { get; private set; }
+        public float Current { get; protected set; }
 
         public float CurrentValue => Current;
 
@@ -119,25 +119,25 @@ namespace CommandBattleCore
         public void Damage(float aAmount)
         {
             if (aAmount <= 0f) return;
-            SetCurrent(Mathf.RoundToInt(Current - aAmount));
+            SetCurrent(Current - aAmount);
         }
 
         public void Recover(float aAmount)
         {
             if (aAmount <= 0f) return;
-            SetCurrent(Mathf.RoundToInt(Current + aAmount));
+            SetCurrent(Current + aAmount);
         }
 
         public bool TryConsume(float aAmount)
         {
             if (Current < aAmount) return false;
-            SetCurrent(Mathf.Round(Current - aAmount));
+            SetCurrent(Current - aAmount);
             return true;
         }
 
         public void SetCurrent(float aValue)
         {
-            Current = Mathf.RoundToInt(Mathf.Clamp(aValue, 0f, Max.CurrentValue));
+            Current = Mathf.Clamp(aValue, 0f, Max.CurrentValue);
             OnValueChanged?.Invoke(this);
         }
     }

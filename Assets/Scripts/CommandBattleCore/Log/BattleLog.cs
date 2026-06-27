@@ -16,11 +16,11 @@ namespace CommandBattleCore
 
     public record BattleLogEntry
     {
-        public BattleLogType LogType { get; private set; }
-        public BattleUnit Unit { get; private set; }
-        public BattleUnit Target { get; private set; }
-        public string Description { get; private set; }
-        public float TimeStamp { get; private set; }
+        public BattleLogType LogType { get; protected set; }
+        public BattleUnit Unit { get; protected set; }
+        public BattleUnit Target { get; protected set; }
+        public string Description { get; protected set; }
+        public float TimeStamp { get; protected set; }
 
         public BattleLogEntry(BattleLogType aType, BattleUnit aSource, BattleUnit aTarget, string aDescription,
             float aTimeStamp)
@@ -40,8 +40,8 @@ namespace CommandBattleCore
 
     public class DefaultBattleLogger : IBattleLogger
     {
-        private readonly List<BattleLogEntry> mHistory = new();
+        protected readonly List<BattleLogEntry> mHistory = new();
         public IReadOnlyList<BattleLogEntry> History => mHistory;
-        public void Log(BattleLogEntry entry) => mHistory.Add(entry);
+        public virtual void Log(BattleLogEntry entry) => mHistory.Add(entry);
     }
 }

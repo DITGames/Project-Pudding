@@ -18,7 +18,7 @@ namespace CommandBattleCore
         public List<ParameterModifier> Modifiers { get; } = new();
         public StatusEffectStackPolicy StackPolicy { get; set; } = StatusEffectStackPolicy.Stack;
         public int MaxStacks { get; set; } = 1;
-        public int CurrentStacks { get; internal set; } = 1;
+        public int CurrentStacks { get; protected internal set; } = 1;
         public IDurationCondition DurationCondition { get; set; }
         public ActionRestriction Restriction { get; set; } = ActionRestriction.None;
         
@@ -48,9 +48,9 @@ namespace CommandBattleCore
             return this;
         }
 
-        private readonly List<string> mModifierTargets = new();
+        protected readonly List<string> mModifierTargets = new();
 
-        internal void ApplyTo(BattleUnit aUnit)
+        protected internal virtual void ApplyTo(BattleUnit aUnit)
         {
             for (int i = 0; i < Modifiers.Count; i++)
             {
@@ -59,7 +59,7 @@ namespace CommandBattleCore
             OnApply?.Invoke(aUnit);
         }
 
-        internal void RemoveFrom(BattleUnit aUnit)
+        protected internal virtual void RemoveFrom(BattleUnit aUnit)
         {
             aUnit.Parameters.RemoveModifiersFromSource(this);
             OnRemove?.Invoke(aUnit);
