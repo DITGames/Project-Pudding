@@ -22,7 +22,7 @@ namespace CommandBattleCore
         public Parameter Defense { get; }
         public Parameter Speed { get; }
         
-        private readonly Dictionary<string, Parameter> mParameters = new();
+        protected readonly Dictionary<string, Parameter> mParameters = new();
 
         public ParameterSet(float aMaxHp, float aAttack, float aDefense, float aSpeed)
         {

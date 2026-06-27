@@ -38,11 +38,11 @@ namespace CommandBattleCore
 
         // クールダウン
         public int MaxCooldown { get; set; } = 0; // クールダウンなし
-        public int RemainingCooldown { get; internal set; } = 0;
+        public int RemainingCooldown { get; protected internal set; } = 0;
         
         // 1戦闘あたりの最大使用可能回数
         public int MaxUsesPerBattle { get; set; } = 0; // 無制限
-        public int UsesRemaining { get; internal set; } = 0;
+        public int UsesRemaining { get; protected internal set; } = 0;
 
         // クールダウンと使用回数でまとめて使用可能かチェック
         public bool IsReady =>

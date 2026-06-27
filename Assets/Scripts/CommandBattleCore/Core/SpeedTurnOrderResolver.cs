@@ -15,7 +15,7 @@ namespace CommandBattleCore
     {
         public float SpeedJitter { get; set; } = 0f;
 
-        private readonly Random mRng;
+        protected readonly Random mRng;
         
         public SpeedTurnOrderResolver(Random aRng = null) => mRng = aRng ?? new Random();
 

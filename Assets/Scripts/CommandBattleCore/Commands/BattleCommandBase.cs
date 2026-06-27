@@ -20,7 +20,7 @@ namespace CommandBattleCore
         // 優先度キュー拡張用の差し込み口
         public virtual int Priority => 0;
         // リアクションコマンドのフラグ
-        public bool IsReaction { get; internal set; }
+        public bool IsReaction { get; protected internal set; }
         
         protected BattleCommandBase(BattleUnit source, ITargetResolver targetResolver)
         {

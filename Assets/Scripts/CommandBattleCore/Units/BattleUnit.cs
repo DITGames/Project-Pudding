@@ -18,7 +18,7 @@ namespace CommandBattleCore
         // UI表示名
         public string DisplayName { get; }
         // 味方か敵か
-        public BattleSide Side { get; internal set; }
+        public BattleSide Side { get; protected internal set; }
         // 生存中?
         public bool IsAlive => Parameters.Hp.CurrentValue > 0;
         

@@ -59,7 +59,7 @@ namespace CommandBattleCore
     // 敵ランダム
     public class RandomEnemyResolver : ITargetResolver
     {
-        private static readonly Random Rng = new();
+        protected static readonly Random Rng = new();
 
         public List<BattleUnit> Resolve(BattleUnit aSource, BattleContext aContext)
         {

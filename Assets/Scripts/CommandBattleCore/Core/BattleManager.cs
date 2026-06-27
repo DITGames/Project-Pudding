@@ -16,7 +16,7 @@ namespace CommandBattleCore
     public class BattleManager
     {
         // 1バトル当たりの情報を持つコンテキスト
-        public BattleContext Context { get; private set; }
+        public BattleContext Context { get; protected set; }
         // バトルステート
         public BattleStateMachine StateMachine { get; } = new();
         // 行動キュー
@@ -24,7 +24,7 @@ namespace CommandBattleCore
         // スキル演出プレゼンター
         public IBattlePresenter Presenter { get; set; }
         // 進行中の演出スキップ用。各コマンド演出ごとに作り直す
-        public CancellationTokenSource PresentationCts { get; private set; }
+        public CancellationTokenSource PresentationCts { get; protected set; }
         // リザルトチェッククラス
         public IBattleResultChecker ResultChecker { get; set; } = new DefaultBattleResultChecker();
         // バトルログクラス
@@ -34,9 +34,9 @@ namespace CommandBattleCore
         // 1イベント当たりのリアクション上限
         public int MaxReactionPerEvent { get; set; } = 1;
         // コマンドが誘発したリアクション総数
-        private int mReactionsThisCommand = 0;
+        protected int mReactionsThisCommand = 0;
         // リアクション実行中はtrue
-        private bool mIsSuppressReactions = false;
+        protected bool mIsSuppressReactions = false;
         
         // ステート変更時(バトル状態)
         public event Action<BattleState> OnStateChanged;
@@ -97,14 +97,14 @@ namespace CommandBattleCore
         }
 
         // パーティイベントのサブスクライブ
-        private void SubscribeParty(BattleParty aParty)
+        protected virtual void SubscribeParty(BattleParty aParty)
         {
             foreach (var unit in aParty.ActiveMembers) SubscribeUnit(unit);
             foreach (var unit in aParty.ReserveMembers) SubscribeUnit(unit);
         }
 
         // ユニットイベントのサブスクライブ
-        private void SubscribeUnit(BattleUnit aUnit)
+        protected virtual void SubscribeUnit(BattleUnit aUnit)
         {
             aUnit.OnDamaged += (u, dmg) =>
             {
@@ -152,7 +152,7 @@ namespace CommandBattleCore
         }
 
         // 入れ替えイベント
-        private void HandleSwap(BattleUnit aOut, BattleUnit aIn)
+        protected virtual void HandleSwap(BattleUnit aOut, BattleUnit aIn)
         {
             OnUnitSwapped?.Invoke(aOut, aIn);
             Log(BattleLogType.Swap, aOut, aIn, $"{aOut.DisplayName} swapped out for {aIn.DisplayName}.");
@@ -283,7 +283,7 @@ namespace CommandBattleCore
         public void SkipCurrentPresentation() => PresentationCts?.Cancel();
 
         // スキル演出実行
-        private static async ValueTask SafePlaySkillPresentation(ValueTask aPlay)
+        protected static async ValueTask SafePlaySkillPresentation(ValueTask aPlay)
         {
             try
             {
@@ -296,7 +296,7 @@ namespace CommandBattleCore
         }
         
         // リアクショントリガー発生
-        private void DispatchReactions(ReactionContext aContext)
+        protected virtual void DispatchReactions(ReactionContext aContext)
         {
             // 反撃の実行中には新たな反撃は起こさないようにする
             if(mIsSuppressReactions) return;
@@ -321,7 +321,7 @@ namespace CommandBattleCore
             }
         }
 
-        private IEnumerable<BattleUnit> EnumerateAllAliveUnits()
+        protected virtual IEnumerable<BattleUnit> EnumerateAllAliveUnits()
         {
             foreach (var unit in Context.AllyParty.GetAliveActiveMembers()) yield return unit;
             foreach (var unit in Context.EnemyParty.GetAliveActiveMembers()) yield return unit;
@@ -348,7 +348,7 @@ namespace CommandBattleCore
         }
 
         // パーティの状態更新
-        private void TickParty(BattleParty aParty)
+        protected virtual void TickParty(BattleParty aParty)
         {
             foreach(var unit in aParty.GetAliveActiveMembers())
             {
@@ -379,7 +379,7 @@ namespace CommandBattleCore
         }
 
         // バトル終了
-        private void EndBattle(BattleResult aResult)
+        protected virtual void EndBattle(BattleResult aResult)
         {
             ActionQueue.Clear();
             StateMachine.TransitionTo(BattleState.BattleEnd);
@@ -389,7 +389,7 @@ namespace CommandBattleCore
         }
 
         // ログヘルパー
-        private void Log(BattleLogType aType, BattleUnit aUnit, BattleUnit aTarget, string aDescription)
+        protected virtual void Log(BattleLogType aType, BattleUnit aUnit, BattleUnit aTarget, string aDescription)
         {
             Logger?.Log(new BattleLogEntry(aType, aUnit, aTarget, aDescription, TimeProvider()));
         }

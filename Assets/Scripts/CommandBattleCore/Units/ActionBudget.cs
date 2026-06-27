@@ -14,9 +14,9 @@ namespace CommandBattleCore
         // 基本行動回数
         public int Max { get; set; } = 1;
         // このターンの残り行動回数
-        public int Remaining { get; private set; } = 1;
+        public int Remaining { get; protected set; } = 1;
         // 一時的に付与された追加行動
-        public int ExtraActions { get; private set; } = 0;
+        public int ExtraActions { get; protected set; } = 0;
         // まだ行動可能?
         public bool CanAction => Remaining + ExtraActions > 0;
 

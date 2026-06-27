@@ -20,7 +20,7 @@ namespace CommandBattleCore
 
     public class DefaultRandomProvider : IRandomProvider
     {
-        private readonly System.Random mRng;
+        protected readonly System.Random mRng;
         
         public DefaultRandomProvider(int? aSeed = null)
             => mRng = aSeed.HasValue ? new System.Random(aSeed.Value) : new System.Random();

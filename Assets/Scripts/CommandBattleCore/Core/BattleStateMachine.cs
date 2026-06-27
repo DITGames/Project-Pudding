@@ -11,7 +11,7 @@ namespace CommandBattleCore
 {
     public class BattleStateMachine
     {
-        public BattleState Current { get; private set; } = BattleState.None;
+        public BattleState Current { get; protected set; } = BattleState.None;
 
         // ステート変更デリゲート（遷移前、遷移後）
         public event Action<BattleState, BattleState> OnStateChanged;
