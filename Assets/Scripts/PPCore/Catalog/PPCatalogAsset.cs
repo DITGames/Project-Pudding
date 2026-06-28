@@ -3,7 +3,7 @@
  * @file PPCatalogAsset.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief アセット解決の共通基底
+ * @brief PPアセット解決の共通基底クラス
  * =====================================*/
 using UnityEngine;
 using System.Collections.Generic;
