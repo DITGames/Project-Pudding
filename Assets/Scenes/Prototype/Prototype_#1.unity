@@ -890,6 +890,8 @@ GameObject:
   m_Component:
   - component: {fileID: 829383975}
   - component: {fileID: 829383974}
+  - component: {fileID: 829383977}
+  - component: {fileID: 829383976}
   m_Layer: 0
   m_Name: BattleRunner
   m_TagString: Untagged
@@ -909,10 +911,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37b64a5a5244d1646aadb5334753675b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SampleBattleRunner
-  mCoinCounter: {fileID: 1652698682}
-  mAttackCost: 8
-  mAllyUnit: {fileID: 11400000, guid: 7c3ada2342a19cb45b126e46610976bf, type: 2}
-  mEnemyUnit: {fileID: 11400000, guid: f0d878742a2b7224487fdd6429e2cf1e, type: 2}
+  mCoinResourceBridge: {fileID: 829383977}
+  mMaxCoin: 100
+  mBaseCoinConversionRate: 1
+  mAllyUnit: {fileID: 11400000, guid: 1094bf7bd86055b4bad38234592a1c86, type: 2}
+  mEnemyUnit: {fileID: 11400000, guid: f660413af9c34e34c95b30d5543030d9, type: 2}
+  mBattleUnitViewBinder: {fileID: 829383976}
+  mAllyAttackInterval: 3
   mEnemyAttackInterval: 10
 --- !u!4 &829383975
 Transform:
@@ -929,6 +934,70 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &829383976
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 829383973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f016abfdeea4e604f917abc018fd66f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleUnitViewBinder
+  mUnitViewPrefab: {fileID: 3918442982555849818, guid: 4bf19e9ac8287c146a617b075df7b66a, type: 3}
+  mAllyAnchorRoot: {fileID: 1917104531}
+  mEnemyAnchorRoot: {fileID: 850145643}
+  mUnitVisualCatalog: {fileID: 11400000, guid: f7175a8729fe38843938b32f92c4f399, type: 2}
+--- !u!114 &829383977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 829383973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cb717ab454e23664980d334132dec328, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPCoinResourceBridge
+  mCoinNotifierSource: {fileID: 1652698682}
+--- !u!1 &850145642
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 850145643}
+  m_Layer: 5
+  m_Name: EnemyRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &850145643
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 850145642}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.75, y: 0.75, z: 0.75}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 1975109494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 300, y: 100}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &893501237 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6733500431098832757, guid: 6d8b144ded6cc1c428130ae9fe05c285, type: 3}
@@ -2134,6 +2203,41 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.044800006, y: 0.28517222, z: 0.22044072}
   m_Center: {x: 0.000000019557774, y: -0.000000007450581, z: -0.000000007450581}
+--- !u!1 &1917104530
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1917104531}
+  m_Layer: 5
+  m_Name: AllyRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1917104531
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1917104530}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.74999994, y: 0.74999994, z: 0.74999994}
+  m_ConstrainProportionsScale: 1
+  m_Children: []
+  m_Father: {fileID: 1975109494}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: -300, y: 100}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &1975109490
 GameObject:
   m_ObjectHideFlags: 0
@@ -2229,6 +2333,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1860137820}
+  - {fileID: 1917104531}
+  - {fileID: 850145643}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

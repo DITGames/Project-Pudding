@@ -31,10 +31,13 @@ namespace PPCore
             SpawnViews(aManager.Context.AllyParty, mAllyAnchorRoot, BattleSide.Ally);
             SpawnViews(aManager.Context.EnemyParty, mEnemyAnchorRoot, BattleSide.Enemy);
 
-            aManager.OnCommandExecuted += (u, command) =>
+            aManager.OnDamageResolved += (d) =>
             {
-                mViews.TryGetValue(u, out var view);
-                view?.CommandExecuted(command);
+                if (d.Amount > 0)
+                {
+                    mViews.TryGetValue(d.Source, out var view);
+                    view?.CommandExecuted(d.SourceAbility as BattleCommandBase);
+                }
             };
             aManager.OnDamageTaken += (u, dmg) =>
             {

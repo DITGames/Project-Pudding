@@ -21,8 +21,6 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [SerializeField] private float mBaseCoinConversionRate = 1f;
     
     [Header("バトル設定")]
-    [Label("攻撃コスト")]
-    [SerializeField] private int mAttackCost;
     [Label("味方ユニット")]
     [SerializeField] private UnitDefinition mAllyUnit;
     [Label("敵ユニット")]
@@ -40,7 +38,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
     
     private BattleManager mBattleManager = new();
     
-    private Coroutine mBattleCoroutine;
+    private Coroutine mAllyActionCoroutine;
+    private Coroutine mEnemyActionCoroutine;
     
     void Start()
     {
@@ -67,16 +66,24 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mBattleManager.OnBattleEnded += r =>
         {
             Debug.Log($"Battle Ended! {r.Type}");
-            if (mBattleCoroutine != null)
+            if (mEnemyActionCoroutine != null)
             {
-                StopCoroutine(mBattleCoroutine);
-                mBattleCoroutine = null;
+                StopCoroutine(mEnemyActionCoroutine);
+                mEnemyActionCoroutine = null;
+            }
+
+            if (mAllyActionCoroutine != null)
+            {
+                StopCoroutine(mAllyActionCoroutine);
+                mAllyActionCoroutine = null;
             }
         };
         mBattleManager.StartBattle(context);
         mBattleUnitViewBinder.Bind(mBattleManager);
+        mCoinResourceBridge.Bind(mBattleManager, BattleSide.Ally);
 
-        mBattleCoroutine = StartCoroutine(StartEnemyAction());
+        mAllyActionCoroutine = StartCoroutine(StartAllyAction());
+        mEnemyActionCoroutine = StartCoroutine(StartEnemyAction());
     }
     
     IEnumerator StartAllyAction()
