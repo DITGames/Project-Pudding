@@ -335,8 +335,8 @@ namespace CommandBattleCore
             DispatchReactions(new ReactionContext(
                 ReactionTrigger.OnTurnEnded, null, null, null, Context));
             
-            TickParty(Context.AllyParty);
-            TickParty(Context.EnemyParty);
+            Context.AllyParty.PartyTick(Context);
+            Context.EnemyParty.PartyTick(Context);
             
             CheckBattleResult();
             if (StateMachine.Current == BattleState.BattleEnd) return;
@@ -345,20 +345,6 @@ namespace CommandBattleCore
             OnTickStarted?.Invoke(Context.TurnCount);
             DispatchReactions(new ReactionContext(
                 ReactionTrigger.OnTurnStarted, null, null, null, Context));
-        }
-
-        // パーティの状態更新
-        protected virtual void TickParty(BattleParty aParty)
-        {
-            foreach(var unit in aParty.GetAliveActiveMembers())
-            {
-                unit.TickStatusEffects(Context);
-                unit.Actions.ResetForTurn();   // ゲーム性によって呼び出しタイミングを変えるべき
-                foreach (var skill in unit.Skills)
-                {
-                    skill.TickCooldown();
-                }
-            }
         }
         
         // 行動準取得
