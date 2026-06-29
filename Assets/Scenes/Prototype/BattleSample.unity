@@ -712,12 +712,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37b64a5a5244d1646aadb5334753675b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SampleBattleRunner
-  mCoinCounter: {fileID: 0}
-  mAttackCost: 0
-  mAllyUnit: {fileID: 11400000, guid: 7c3ada2342a19cb45b126e46610976bf, type: 2}
-  mEnemyUnit: {fileID: 11400000, guid: f0d878742a2b7224487fdd6429e2cf1e, type: 2}
-  mEnemyAttackInterval: 10
+  mCoinResourceBridge: {fileID: 0}
+  mMaxCoin: 100
+  mBaseCoinConversionRate: 1
+  mAllyUnit: {fileID: 11400000, guid: 1094bf7bd86055b4bad38234592a1c86, type: 2}
+  mEnemyUnit: {fileID: 11400000, guid: f660413af9c34e34c95b30d5543030d9, type: 2}
   mBattleUnitViewBinder: {fileID: 1143428440}
+  mAllyAttackInterval: 3
+  mEnemyAttackInterval: 10
 --- !u!4 &1769493751
 Transform:
   m_ObjectHideFlags: 0
