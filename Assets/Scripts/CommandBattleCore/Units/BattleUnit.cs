@@ -193,5 +193,16 @@ namespace CommandBattleCore
                 }
             }
         }
+        
+        // 1ターン分の更新処理
+        public virtual void UnitTick(BattleContext aContext)
+        {
+            TickStatusEffects(aContext);
+            Actions.ResetForTurn();
+            foreach (var skill in Skills)
+            {
+                skill.TickCooldown();
+            }
+        }
     }
 }

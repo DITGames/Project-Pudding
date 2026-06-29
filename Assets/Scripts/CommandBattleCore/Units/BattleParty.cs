@@ -57,5 +57,13 @@ namespace CommandBattleCore
         
         // 全滅判定。アクティブ全員をチェック
         public virtual bool IsWiped() => ActiveMembers.All(u => !u.IsAlive);
+
+        public virtual void PartyTick(BattleContext aContext)
+        {
+            foreach (var unit in ActiveMembers)
+            {
+                unit.UnitTick(aContext);
+            }
+        }
     }
 }
