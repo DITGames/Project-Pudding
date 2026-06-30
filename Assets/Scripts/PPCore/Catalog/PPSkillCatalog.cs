@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(menuName = "Project-Pudding/PPUnitSkillCatalog")]
+    [CreateAssetMenu(menuName = "Project-Pudding/Catalog/PPSkillCatalog")]
     public class PPSkillCatalog : PPCatalogAsset<PPSkillDefinition>
     {
         protected override string IdOf(PPSkillDefinition aItem) => aItem.SkillId;

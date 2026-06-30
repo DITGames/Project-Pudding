@@ -3,15 +3,14 @@
  * @file PPSkillDefinition.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief PPのスキル定義のベースクラス
+ * @brief PPスキル定義
  * =====================================*/
 using CommandBattleCore;
 using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPBattleSkillDefinition",
-        menuName = "Project-Pudding/PPSkillDefinition")]
+    [CreateAssetMenu(fileName = "PPBattleSkillDefinition", menuName = "Project-Pudding/Definition/PPSkillDefinition")]
     public class PPSkillDefinition : SkillDefinition
     {
         [Header("Pusher")]

@@ -9,7 +9,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(menuName = "Project-Pudding/PPUnitCatalog")]
+    [CreateAssetMenu(menuName = "Project-Pudding/Catalog/PPUnitCatalog")]
     public class PPUnitCatalog : PPCatalogAsset<PPUnitDefinition>
     {
         protected override string IdOf(PPUnitDefinition aItem) => aItem.UnitId;
