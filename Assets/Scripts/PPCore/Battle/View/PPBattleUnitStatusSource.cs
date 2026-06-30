@@ -3,7 +3,7 @@
  * @file PPBattleUnitStatusSource.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPバトル側ユニット情報読み取りアダプタ
+ * @brief PPバトルユニット情報読み取りアダプタ
  * =====================================*/
 using CommandBattleCore;
 using System;

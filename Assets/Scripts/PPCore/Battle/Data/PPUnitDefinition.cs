@@ -3,14 +3,14 @@
  * @file PPUnitDefinition.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニット定義のベースクラス
+ * @brief PPユニット定義
  * =====================================*/
 using CommandBattleCore;
 using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/PPUnitDefinition")]
+    [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
     public class PPUnitDefinition : UnitDefinition
     {
         [Header("PPユニット")]

@@ -3,16 +3,16 @@
  * @file PPUnitVisualDefinition.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニットのビジュアル定義
+ * @brief PPユニットビジュアル定義
  * =====================================*/
 
 using CommandBattleCore;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "PPUnitVisualDefinition", menuName = "Project-Pudding/PPUnitVisualDefinition")]
+[CreateAssetMenu(fileName = "PPUnitVisualDefinition", menuName = "Project-Pudding/Definition/PPUnitVisualDefinition")]
 public class PPUnitVisualDefinition : ScriptableObject
 {
-    [Label("ユニットId")]
+    [Label("ユニットID")]
     public string UnitId;
     [Label("アイコン")]
     public Sprite UnitIcon;

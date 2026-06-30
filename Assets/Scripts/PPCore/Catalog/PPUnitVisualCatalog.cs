@@ -3,13 +3,13 @@
  * @file PPUnitVisualCatalog.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニットビジュアルのカタログ
+ * @brief PPユニットビジュアルカタログ
  * =====================================*/
 using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(menuName = "Project-Pudding/PPUnitVisualCatalog")]
+    [CreateAssetMenu(menuName = "Project-Pudding/Catalog/PPUnitVisualCatalog")]
     public class PPUnitVisualCatalog : PPCatalogAsset<PPUnitVisualDefinition>
     {
         protected override string IdOf(PPUnitVisualDefinition aItem) => aItem.UnitId;
