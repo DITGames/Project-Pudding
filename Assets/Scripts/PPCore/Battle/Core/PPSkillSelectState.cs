@@ -3,12 +3,9 @@
  * @file PPSkillSelectState.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPスキル選択コマンド
+ * @brief スキル選択ステート
  * =====================================*/
-
 using CommandBattleCore;
-using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace PPCore
 {
@@ -28,12 +25,18 @@ namespace PPCore
 
         private void HandleSkillSelected(BattleSkill aSkill)
         {
+            var unit = mOwner.Context.Unit;
+            var scope = (aSkill.SourceDefinition as SkillDefinition)?.TargetScope ?? TargetScope.SingleEnemy;
             mOwner.Context.Skill = aSkill;
+            mOwner.Context.TargetScope = scope;
+            mOwner.Context.CommandBuilder = tgt =>
+                new SkillCommand(unit, aSkill, mOwner.BuildResolver(aSkill.DefaultTargetResolver, tgt));
 
             // スキルの効果対象によってターゲット選択と行動決定を分岐
-            bool needsTarget = aSkill.DefaultTargetResolver is SingleEnemyResolver or SingleAllyResolver;
-            if(needsTarget) mOwner.Push(new PPTargetSelectState(mOwner));
-            else mOwner.Confirm();
+            if(PPTargeting.NeedsManualTarget(scope))
+                mOwner.Push(new PPTargetSelectState(mOwner));
+            else
+                mOwner.Confirm();
         }
 
         private void HandleBack() => mOwner.Back(); // ユニット選択へ戻る
@@ -46,7 +49,7 @@ namespace PPCore
 
         public void Resume()
         {
-            mOwner.Context.Skill = null;
+            mOwner.Context.ClearSelectionKeepingUnit();
             Enter();
         }
 

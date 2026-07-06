@@ -3,7 +3,7 @@
  * @file PPBattleSkillMenuView.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPバトル中のスキル一覧表示ビュー
+ * @brief バトル中のスキル一メニュー
  * =====================================*/
 using System;
 using System.Collections.Generic;
@@ -19,7 +19,7 @@ namespace PPCore
         [Label("スキルボタンプレハブ")] [SerializeField] private PPBattleSkillButton mButtonPrefab;
         [Label("スクロール")] [SerializeField] private ScrollRect mScrollRect;
         [Label("戻るボタン")] [SerializeField] private Button mBackButton;
-        [Label("スキルアイコン")] [SerializeField] private PPSkillVisualCatalog mIconCatalog;
+        [Label("スキルカタログ")] [SerializeField] private PPSkillVisualCatalog mIconCatalog;
 
         public event Action<BattleSkill> OnSkillSelected;
         public event Action OnBackRequested;

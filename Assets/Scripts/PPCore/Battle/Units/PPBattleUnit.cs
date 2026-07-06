@@ -3,7 +3,7 @@
  * @file PPBattleUnit.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPバトルユニットのベースクラス
+ * @brief バトルユニットのベースクラス
  * =====================================*/
 using CommandBattleCore;
 

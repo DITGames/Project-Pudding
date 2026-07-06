@@ -3,7 +3,7 @@
  * @file IPPUnitStatusSource.cs
  * @author hqrse
  * @date 2026/06/2５
- * @brief PPユニット情報読み取りインターフェース
+ * @brief ユニット情報読み取りインターフェース
  * =====================================*/
 using System;
 

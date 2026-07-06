@@ -3,9 +3,8 @@
  * @file PPUnitVisualDefinition.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニットビジュアル定義
+ * @brief ユニットビジュアル定義
  * =====================================*/
-
 using CommandBattleCore;
 using UnityEngine;
 

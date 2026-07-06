@@ -3,12 +3,10 @@
  * @file PPTargetSelectState.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPターゲット選択コマンド
+ * @brief ターゲット選択ステート
  * =====================================*/
-
 using System.Collections.Generic;
 using CommandBattleCore;
-using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace PPCore
@@ -18,13 +16,16 @@ namespace PPCore
         private readonly PPBattleCommandInputController mOwner;
         public PPTargetSelectState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
 
+        // 対象の取得
         private IEnumerable<BattleUnit> Candidates()
         {
             var ctx = mOwner.Manager.Context;
-            var actor = mOwner.Context.Unit;
-            return mOwner.Context.Skill.DefaultTargetResolver is SingleAllyResolver
-                ? ctx.GetParty(actor.Side).GetAliveActiveMembers()
-                : ctx.GetOpponentParty(actor.Side).GetAliveActiveMembers();
+            var unit = mOwner.Context.Unit;
+            var scope = mOwner.Context.TargetScope ?? TargetScope.SingleEnemy;
+            // TargetScopeをもとに選択対象を変更する
+            return PPTargeting.IsAllySide(scope)
+                ? ctx.GetParty(unit.Side).GetAliveActiveMembers()
+                : ctx.GetOpponentParty(unit.Side).GetAliveActiveMembers();
         }
 
         public void Enter()

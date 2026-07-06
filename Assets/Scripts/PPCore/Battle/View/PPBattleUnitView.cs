@@ -3,7 +3,7 @@
  * @file PPBattleUnitView.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPバトル中のユニット表示コンポーネント
+ * @brief バトル中のユニット表示コンポーネント
  * =====================================*/
 using System;
 using CommandBattleCore;

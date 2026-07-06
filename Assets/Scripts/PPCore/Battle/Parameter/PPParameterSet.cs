@@ -3,7 +3,7 @@
  * @file PPParameterSet.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニットが持つパラメータのセット
+ * @brief ユニットが持つパラメータのセット
  * =====================================*/
 using System.Collections.Generic;
 using CommandBattleCore;

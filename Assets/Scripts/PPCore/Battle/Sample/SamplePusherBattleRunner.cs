@@ -6,6 +6,7 @@
  * @brief バトルのフロー制御サンプル
  * =====================================*/
 using System.Collections;
+using System.Collections.Generic;
 using CommandBattleCore;
 using PPCore;
 using UnityEngine;
@@ -50,8 +51,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
         
         var context = new BattleContext()
         {
-            AllyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Ally, new[]{allyUnit}),
-            EnemyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Enemy, new[]{enemyUnit}),
+            AllyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Ally, new[]{allyUnit}, null, new Dictionary<PPItemDefinition, int>()),
+            EnemyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Enemy, new[]{enemyUnit}, null , new Dictionary<PPItemDefinition, int>()),
         };
         context.Rules.CastValidator = new PPBattleCastValidator();
 

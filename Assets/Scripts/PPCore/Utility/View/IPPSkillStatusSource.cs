@@ -3,7 +3,7 @@
  * @file IPPSkillStatusSource.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPスキル情報読み取りインターフェース
+ * @brief スキル情報読み取りインターフェース
  * =====================================*/
 using System;
 

@@ -3,7 +3,7 @@
  * @file PPBattleResourcePool.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief PPバトルで使用されるリソース定義
+ * @brief バトルで使用されるリソース定義
  * =====================================*/
 using CommandBattleCore;
 
@@ -26,12 +26,12 @@ namespace PPCore
             CoinResource.Recover(aAmount);
         }
         // 攻撃前にカウント数を満たしているかチェック
-        public bool CanConsumeAttackResource(float aCount)
+        public bool CanConsumeResource(float aCount)
         {
             return CoinResource.Current >= aCount;
         }
         // コイン消費の試行 消費に成功すれば攻撃可能
-        public bool TryConsumeAttackResource(float aCount)
+        public bool TryConsumeResource(float aCount)
         {
             return CoinResource.TryConsume(aCount);
         }

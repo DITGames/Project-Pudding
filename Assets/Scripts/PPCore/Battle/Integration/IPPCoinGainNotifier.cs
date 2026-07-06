@@ -3,7 +3,7 @@
  * @file IPPCoinGainNotifier.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief PPプッシャーが実装するコイン取得通知インターフェース
+ * @brief プッシャーが実装するコイン取得通知インターフェース
  * =====================================*/
 using System;
 

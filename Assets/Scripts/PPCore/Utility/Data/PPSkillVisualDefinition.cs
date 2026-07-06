@@ -3,9 +3,8 @@
  * @file PPSkillVisualDefinition.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPスキルビジュアル定義
+ * @brief スキルビジュアル定義
  * =====================================*/
-
 using CommandBattleCore;
 using UnityEngine;
 
