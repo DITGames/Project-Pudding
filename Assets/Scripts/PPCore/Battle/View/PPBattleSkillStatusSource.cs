@@ -3,12 +3,10 @@
  * @file PPBattleSkillStatusSource.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPバトルスキル情報アダプタ
+ * @brief バトルスキル情報アダプタ
  * =====================================*/
-
 using System;
 using CommandBattleCore;
-using UnityEngine.UIElements;
 
 namespace PPCore
 {

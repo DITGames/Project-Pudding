@@ -3,12 +3,10 @@
  * @file PPUnitSelectState.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPユニット選択コマンド
+ * @brief ユニット選択ステート
  * =====================================*/
-
 using System.Collections.Generic;
 using CommandBattleCore;
-using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace PPCore

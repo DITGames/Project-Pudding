@@ -3,9 +3,8 @@
  * @file PPBattleSkill.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief PPバトルスキル定義のベースクラス
+ * @brief バトルスキル定義のベースクラス
  * =====================================*/
-
 using System;
 using System.Collections.Generic;
 using CommandBattleCore;

@@ -3,7 +3,7 @@
  * @file PPBattleSkillButton.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPスキルボタンコンポーネント
+ * @brief スキルボタンコンポーネント
  * =====================================*/
 using System;
 using CommandBattleCore;

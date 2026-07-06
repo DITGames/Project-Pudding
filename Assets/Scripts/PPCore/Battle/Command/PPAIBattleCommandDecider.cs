@@ -3,7 +3,7 @@
  * @file PPAIBattleCommandDecider.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPバトルユニットコマンド選択ベース
+ * @brief バトルユニットコマンド選択ベース
  * =====================================*/
 
 using System.Collections.Generic;

@@ -3,9 +3,8 @@
  * @file PPSkillCatalog.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPスキルのカタログ
+ * @brief スキルのカタログ
  * =====================================*/
-using PPCore;
 using UnityEngine;
 
 namespace PPCore

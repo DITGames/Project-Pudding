@@ -3,9 +3,8 @@
  * @file ICoinResourceConverter.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief PPコインのリソース化コンバーター
+ * @brief コインのリソース化コンバーター
  * =====================================*/
-using UnityEngine;
 
 namespace PPCore
 {

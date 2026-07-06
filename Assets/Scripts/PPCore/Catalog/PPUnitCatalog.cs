@@ -3,7 +3,7 @@
  * @file PPUnitCatalog.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニットのカタログ
+ * @brief ユニットのカタログ
  * =====================================*/
 using UnityEngine;
 

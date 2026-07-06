@@ -3,7 +3,7 @@
  * @file PPUnitStatusWidget.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPユニットのステータス表示共通ウィジェット
+ * @brief ユニットのステータス表示共通ウィジェット
  * =====================================*/
 using CommandBattleCore;
 using TMPro;

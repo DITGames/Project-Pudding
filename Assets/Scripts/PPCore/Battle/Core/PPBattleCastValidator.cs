@@ -3,7 +3,7 @@
  * @file PPBattleCastValidator.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief PP攻撃キャストチェッカー
+ * @brief 攻撃キャストチェッカー
  * =====================================*/
 
 using CommandBattleCore;
@@ -33,7 +33,7 @@ namespace PPCore
                 return CastValidation.Fail(CastFailReason.InvalidParty);
             }
             // コスト不足
-            if (!party.ResourcePool.CanConsumeAttackResource(def.RequiredCoin))
+            if (!party.ResourcePool.CanConsumeResource(def.RequiredCoin))
             {
                 return CastValidation.Fail(CastFailReason.NotEnoughResource);
             }

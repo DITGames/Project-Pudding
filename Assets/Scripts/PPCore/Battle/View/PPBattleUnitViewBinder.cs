@@ -3,13 +3,12 @@
  * @file PPBattleUnitViewBinder.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PPバトルユニット表示のバインディングコンポーネント
+ * @brief バトルユニット表示のバインディングコンポーネント
  * =====================================*/
-
 using System.Collections.Generic;
 using CommandBattleCore;
-using PPCore;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace PPCore
 {
@@ -18,9 +17,9 @@ namespace PPCore
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
         [Label("味方表示ルート")]
-        [SerializeField] private Transform mAllyAnchorRoot;
+        [SerializeField] private HorizontalLayoutGroup mAllyAnchorRoot;
         [Label("敵表示ルート")]
-        [SerializeField] private Transform mEnemyAnchorRoot;
+        [SerializeField] private HorizontalLayoutGroup mEnemyAnchorRoot;
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
@@ -67,11 +66,11 @@ namespace PPCore
             aManager.OnUnitSwapped += (o, i) => HandleSwap(o, i);
         }
 
-        private void SpawnViews(PPBattleParty aParty, Transform aRoot, BattleSide aSide)
+        private void SpawnViews(PPBattleParty aParty, HorizontalLayoutGroup aRoot, BattleSide aSide)
         {
             foreach (var unit in aParty.ActiveMembers)
             {
-                var view = Instantiate(mUnitViewPrefab, aRoot);
+                var view = Instantiate(mUnitViewPrefab, aRoot.transform);
 
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
@@ -79,11 +78,11 @@ namespace PPCore
             }
         }
 
-        private void SpawnViews(BattleParty aParty, Transform aRoot, BattleSide aSide)
+        private void SpawnViews(BattleParty aParty, HorizontalLayoutGroup aRoot, BattleSide aSide)
         {
             foreach (var unit in aParty.ActiveMembers)
             {
-                var view = Instantiate(mUnitViewPrefab, aRoot);
+                var view = Instantiate(mUnitViewPrefab, aRoot.transform);
 
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);

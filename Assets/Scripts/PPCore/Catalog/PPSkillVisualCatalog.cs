@@ -3,7 +3,7 @@
  * @file PPSkillVisualCatalog.cs
  * @author hqrse
  * @date 2026/06/30
- * @brief PPスキルビジュアルカタログ
+ * @brief スキルビジュアルカタログ
  * =====================================*/
 using UnityEngine;
 

@@ -3,7 +3,7 @@
  * @file PPStatBlock.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief PP専用スタータスブロック
+ * @brief スタータスブロック
  * =====================================*/
 using System;
 using CommandBattleCore;
