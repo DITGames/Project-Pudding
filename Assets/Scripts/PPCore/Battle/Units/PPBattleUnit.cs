@@ -18,5 +18,17 @@ namespace PPCore
         {
             PPParameters = aPPParameterSet;
         }
+
+        public bool CanValidateSkill(BattleContext aContext)
+        {
+            foreach (var skill in Skills)
+            {
+                var result = aContext.Rules.CastValidator.Validate(this, skill, aContext);
+                if (result.CanCast)
+                    return true;
+            }
+
+            return false;
+        }
     }
 }

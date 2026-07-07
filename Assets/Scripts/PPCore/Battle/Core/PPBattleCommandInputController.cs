@@ -22,8 +22,6 @@ namespace PPCore
         [SerializeField] private PPBattleCommandMenuView mCommandMenu;
         [Label("スキルメニュー")]
         [SerializeField] private PPBattleSkillMenuView mSKillMenu;
-        [Label("アイテムメニュー")]
-        [SerializeField] private PPBattleItemMenuView mItemMenu;
         [Label("戻る")]
         [SerializeField] private Button mBackButton;
 
@@ -38,7 +36,6 @@ namespace PPCore
         public PPBattleUnitViewBinder ViewBinder => mViewBinder;
         public PPBattleCommandMenuView CommandMenu => mCommandMenu;
         public PPBattleSkillMenuView SkillMenu => mSKillMenu;
-        public PPBattleItemMenuView ItemMenu => mItemMenu;
         public PPBattleSelectionContext Context => mContext;
 
         public void Bind(BattleManager aManager)
@@ -51,13 +48,13 @@ namespace PPCore
         }
 
         // ユニット選択から開始
-        public void BeginCommandInput(IPPBattleInputState aInitial = null)
+        public void BeginCommandInput()
         {
             if (mManager == null || mManager.StateMachine.Current == BattleState.BattleEnd)
                 return;
             mContext.Clear();
             ClearStack();
-            Push(aInitial ?? new PPUnitSelectState(this));
+            Push(new PPUnitSelectState(this));
         }
 
         // ユニットが選択された状態でコマンド選択から開始
@@ -69,6 +66,7 @@ namespace PPCore
             mContext.Unit = aUnit;
             ClearStack();
             Push(new PPCommandSelectState(this));
+            Time.timeScale = 0;
         }
 
         // 入力の中断処理(バトル終了・対象の消滅・キャンセルなど)
@@ -105,7 +103,9 @@ namespace PPCore
                     return;
                 }
             }
-            BeginUnitSelect();
+
+            ClearStack();
+            Time.timeScale = 1;
         }
 
         public void Confirm()

@@ -36,7 +36,7 @@ namespace PPCore
                 var view = mOwner.ViewBinder.GetView(unit);
                 if (view == null) continue;
                 view.SetSelectable(true);
-                view.OnClicked += HandleClicked;
+                view.OnDecided += HandleDecided;
                 first ??= view;
             }
 
@@ -46,7 +46,7 @@ namespace PPCore
             }
         }
 
-        private void HandleClicked(PPBattleUnitView aView)
+        private void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Target = aView.BattleUnit;
             mOwner.Confirm();
@@ -63,7 +63,7 @@ namespace PPCore
                 var view = mOwner.ViewBinder.GetView(unit);
                 if(view == null) continue;
                 view.SetSelectable(false);
-                view.OnClicked -= HandleClicked;
+                view.OnDecided -= HandleDecided;
             }
         }
     }

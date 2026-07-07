@@ -28,13 +28,13 @@ namespace PPCore
                 if (view == null) continue;
                 // 選択不可の条件があれば選択可能かチェックしてから設定する
                 view.SetSelectable(true);
-                view.OnClicked += HandleClicked;
+                view.OnDecided += HandleDecided;
                 first ??= view;
             }
             if(first != null) EventSystem.current.SetSelectedGameObject(first.SelectableObject);
         }
 
-        private void HandleClicked(PPBattleUnitView aView)
+        private void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Unit = aView.BattleUnit;
             mOwner.Push(new PPSkillSelectState(mOwner));
@@ -51,7 +51,7 @@ namespace PPCore
                 var view = mOwner.ViewBinder.GetView(unit);
                 if(view == null) continue;
                 view.SetSelectable(false);
-                view.OnClicked -= HandleClicked;
+                view.OnDecided -= HandleDecided;
             }
         }
     }

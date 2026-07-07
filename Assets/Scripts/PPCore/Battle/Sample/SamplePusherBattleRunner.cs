@@ -31,16 +31,22 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Label("バトルビューバインダー")]
     [SerializeField] private PPBattleUnitViewBinder mBattleUnitViewBinder;
 
+    [Header("インプット")]
+    [Label("コマンド入力コントローラ")]
+    [SerializeField] private PPBattleCommandInputController mController;
+
+    [Header("バトル設定")]
+    [Label("ターン更新間隔")]
+    [SerializeField] private float mTurnTickInterval = 1f;
+    
     [Header("サンプル")]
-    [Label("味方攻撃間隔")]
-    [SerializeField] private float mAllyAttackInterval = 3f;
     [Label("敵攻撃間隔")]
     [SerializeField] private float mEnemyAttackInterval = 10f;
     
     private BattleManager mBattleManager = new();
     
-    private Coroutine mAllyActionCoroutine;
     private Coroutine mEnemyActionCoroutine;
+    private Coroutine mTickCoroutine;
     
     void Start()
     {
@@ -73,35 +79,49 @@ public class SamplePusherBattleRunner : MonoBehaviour
                 mEnemyActionCoroutine = null;
             }
 
-            if (mAllyActionCoroutine != null)
+            if (mTickCoroutine != null)
             {
-                StopCoroutine(mAllyActionCoroutine);
-                mAllyActionCoroutine = null;
+                StopCoroutine(mTickCoroutine);
+                mTickCoroutine = null;
             }
         };
         mBattleManager.StartBattle(context);
         mBattleUnitViewBinder.Bind(mBattleManager);
         mCoinResourceBridge.Bind(mBattleManager, BattleSide.Ally);
+        
+        mController.Bind(mBattleManager);
+        mController.OnCommandFlushed += HandleCommandFlushed;
 
-        mAllyActionCoroutine = StartCoroutine(StartAllyAction());
         mEnemyActionCoroutine = StartCoroutine(StartEnemyAction());
     }
-    
-    IEnumerator StartAllyAction()
+
+    void Update()
     {
-        while (true)
+        if (Input.GetKeyDown(KeyCode.C))
         {
-            if(mBattleManager == null) yield break;
-            if (mBattleManager.StateMachine.Current == BattleState.BattleEnd) yield break;
-            yield return new WaitForSeconds(mAllyAttackInterval);
-            
-            var units = mBattleManager.Context.GetParty(BattleSide.Ally);
-            foreach (var unit in units.ActiveMembers)
+            if (CanSelectAnyCommand())
             {
-                mBattleManager.EnqueueCommand(unit.CommandDecider.DecideCommand(unit, mBattleManager.Context));
+                mController.BeginCommandInput();   
             }
-            mBattleManager.ExecuteNextCommand();
         }
+    }
+
+    private bool CanSelectAnyCommand()
+    {
+        if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
+            return false;
+        
+        var allyParty = mBattleManager.Context.GetParty(BattleSide.Ally);
+        foreach (var unit in allyParty.ActiveMembers)
+        {
+            if (unit is PPBattleUnit ppUnit)
+            {
+                // 何らかの発動可能なスキルがあるか?
+                if (ppUnit.CanValidateSkill(mBattleManager.Context))
+                    return true;
+            }
+        }
+        return false;
     }
 
     IEnumerator StartEnemyAction()
@@ -121,5 +141,22 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
             mBattleManager.ExecuteNextCommand();
         }
+    }
+
+    IEnumerator AdvanceTick()
+    {
+        while (true)
+        {
+            if(mBattleManager == null) yield break;
+            if(mBattleManager.StateMachine.Current == BattleState.BattleEnd) yield break;
+            yield return new WaitForSeconds(mTurnTickInterval);
+            
+            mBattleManager.AdvanceTick();
+        }
+    }
+
+    private void HandleCommandFlushed()
+    {
+        mBattleManager.ExecuteNextCommand();
     }
 }

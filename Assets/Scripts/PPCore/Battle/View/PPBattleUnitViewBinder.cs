@@ -16,10 +16,10 @@ namespace PPCore
     {
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
-        [Label("味方表示ルート")]
-        [SerializeField] private HorizontalLayoutGroup mAllyAnchorRoot;
-        [Label("敵表示ルート")]
-        [SerializeField] private HorizontalLayoutGroup mEnemyAnchorRoot;
+        [Label("味方表示スロット")]
+        [SerializeField] private SlotListComponent mAllyAnchorRoot;
+        [Label("敵表示スロット")]
+        [SerializeField] private SlotListComponent mEnemyAnchorRoot;
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
@@ -66,27 +66,57 @@ namespace PPCore
             aManager.OnUnitSwapped += (o, i) => HandleSwap(o, i);
         }
 
-        private void SpawnViews(PPBattleParty aParty, HorizontalLayoutGroup aRoot, BattleSide aSide)
+        private void SpawnViews(PPBattleParty aParty, SlotListComponent aSlotList, BattleSide aSide)
         {
+            if (aSlotList == null)
+            {
+                Debug.LogWarning("SlotList is null");
+                return;
+            }
+            
+            int idx = 0;
             foreach (var unit in aParty.ActiveMembers)
             {
-                var view = Instantiate(mUnitViewPrefab, aRoot.transform);
+                var slot = aSlotList.GetSlot(idx);
+                if (slot == null)
+                {
+                    Debug.LogWarning($"Invalid slot: {idx}");
+                    continue;
+                }
+                var view = Instantiate(mUnitViewPrefab, slot.mTransform);
+                slot.AddAttachedObject(view.gameObject);
 
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
                 mViews.Add(unit, view);
+                idx++;
             }
         }
 
-        private void SpawnViews(BattleParty aParty, HorizontalLayoutGroup aRoot, BattleSide aSide)
+        private void SpawnViews(BattleParty aParty, SlotListComponent aSlotList, BattleSide aSide)
         {
+            if (aSlotList == null)
+            {
+                Debug.LogWarning("SlotList is null");
+                return;
+            }
+            
+            int idx = 0;
             foreach (var unit in aParty.ActiveMembers)
             {
-                var view = Instantiate(mUnitViewPrefab, aRoot.transform);
+                var slot = aSlotList.GetSlot(idx);
+                if (slot == null)
+                {
+                    Debug.LogWarning($"Invalid slot: {idx}");
+                    continue;
+                }
+                var view = Instantiate(mUnitViewPrefab, slot.mTransform);
+                slot.AddAttachedObject(view.gameObject);
 
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
                 mViews.Add(unit, view);
+                idx++;
             }
         }
 

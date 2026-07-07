@@ -26,8 +26,6 @@ namespace PPCore
             mOwner.CommandMenu.Show(canSkill, canItem, canSwap);
             mOwner.CommandMenu.OnAttack += HandleAttack;
             mOwner.CommandMenu.OnSkill += HandleSkill;
-            mOwner.CommandMenu.OnItem += HandleItem;
-            mOwner.CommandMenu.OnSwap += HandleSwap;
             mOwner.CommandMenu.OnBackRequested += mOwner.Back;
         }
 
@@ -41,8 +39,6 @@ namespace PPCore
         }
         
         private void HandleSkill() => mOwner.Push(new PPSkillSelectState(mOwner));
-        private void HandleItem() => mOwner.Push(new PPItemSelectState(mOwner));
-        private void HandleSwap() => mOwner.Push(new PPSkillSelectState(mOwner));
 
         public void Suspend() => Detach();
 
@@ -62,8 +58,6 @@ namespace PPCore
         {
             mOwner.CommandMenu.OnAttack -= HandleAttack;
             mOwner.CommandMenu.OnSkill -= HandleSkill;
-            mOwner.CommandMenu.OnItem -= HandleItem;
-            mOwner.CommandMenu.OnSwap -= HandleSwap;
             mOwner.CommandMenu.OnBackRequested -= mOwner.Back;
             mOwner.CommandMenu.Hide();
         }
