@@ -18,14 +18,18 @@ namespace PPCore
         {
             var unit = mOwner.Context.Unit;
             var party = (PPBattleParty)mOwner.Manager.Context.GetParty(unit.Side);
+            var view = mOwner.ViewBinder.GetView(unit);
 
             bool canSkill = unit.Skills.Count > 0;
-            bool canItem = party.Inventory.HasAny;
-            bool canSwap = party.ReserveMembers.Count > 0 && (unit.CurrentRestrictions & ActionRestriction.CannotSwap) == 0;
-            
-            mOwner.CommandMenu.Show(canSkill, canItem, canSwap);
+
+            if (view != null)
+            {
+                mOwner.CommandMenu.AttachTo(view.MenuAnchor);
+            }
+            mOwner.CommandMenu.Show(canSkill);
             mOwner.CommandMenu.OnAttack += HandleAttack;
             mOwner.CommandMenu.OnSkill += HandleSkill;
+            mOwner.CommandMenu.OnDetail += HandleDetail;
             mOwner.CommandMenu.OnBackRequested += mOwner.Back;
         }
 
@@ -39,6 +43,8 @@ namespace PPCore
         }
         
         private void HandleSkill() => mOwner.Push(new PPSkillSelectState(mOwner));
+        
+        private void HandleDetail() => mOwner.Push(new PPUnitDetailViewState(mOwner));
 
         public void Suspend() => Detach();
 
@@ -58,6 +64,7 @@ namespace PPCore
         {
             mOwner.CommandMenu.OnAttack -= HandleAttack;
             mOwner.CommandMenu.OnSkill -= HandleSkill;
+            mOwner.CommandMenu.OnDetail -= HandleDetail;
             mOwner.CommandMenu.OnBackRequested -= mOwner.Back;
             mOwner.CommandMenu.Hide();
         }

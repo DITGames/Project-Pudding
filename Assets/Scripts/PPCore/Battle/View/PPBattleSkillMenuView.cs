@@ -26,6 +26,13 @@ namespace PPCore
 
         private readonly List<PPBattleSkillButton> mSkillButtons = new();
 
+        public void AttachTo(RectTransform aAnchor)
+        {
+            var rt = (RectTransform)transform;
+            rt.SetParent(aAnchor, false);
+            rt.anchoredPosition = Vector2.zero;
+        }
+
         public void Show(BattleUnit aUnit, BattleContext aContext)
         {
             if (mSlotList == null)

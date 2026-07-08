@@ -1074,6 +1074,9 @@ MonoBehaviour:
     mAttachedObjects: []
   - mTransform: {fileID: 1191059206}
     mAttachedObjects: []
+  mOffset: {x: 0, y: 0, z: 0}
+  mScale: {x: 1, y: 1, z: 1}
+  mRotation: {x: 0, y: 0, z: 0, w: 0}
 --- !u!1 &893501237 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6733500431098832757, guid: 6d8b144ded6cc1c428130ae9fe05c285, type: 3}
@@ -2512,6 +2515,9 @@ MonoBehaviour:
     mAttachedObjects: []
   - mTransform: {fileID: 150213597}
     mAttachedObjects: []
+  mOffset: {x: 0, y: 0, z: 0}
+  mScale: {x: 1, y: 1, z: 1}
+  mRotation: {x: 0, y: 0, z: 0, w: 0}
 --- !u!1 &1975109490
 GameObject:
   m_ObjectHideFlags: 0

@@ -21,13 +21,17 @@ namespace PPCore
         [SerializeField] private Image mUnitIcon;
         [Label("アニメーター")]
         [SerializeField] private Animator mAnimator;
-
-        [Label("選択ボタン")] [SerializeField] private Button mSelectButton;
-        [Label("フォーカス枠")] [SerializeField] private GameObject mFocusFrame;
+        [Label("選択ボタン")]
+        [SerializeField] private Button mSelectButton;
+        [Label("フォーカス枠")]
+        [SerializeField] private GameObject mFocusFrame;
+        [Label("メニューアンカー")]
+        [SerializeField] private RectTransform mMenuAnchor;
         
         private BattleUnit mBattleUnit;
         public BattleUnit BattleUnit => mBattleUnit;
         public GameObject SelectableObject => mSelectButton.gameObject;
+        public RectTransform MenuAnchor => mMenuAnchor;
 
         // ユニットが選択されたことの通知
         public event Action<PPBattleUnitView> OnDecided;

@@ -17,6 +17,12 @@ namespace PPCore
         public void Enter()
         {
             var unit = mOwner.Context.Unit;
+            var view = mOwner.ViewBinder.GetView(unit);
+            if (view != null)
+            {
+                mOwner.SkillMenu.AttachTo(view.MenuAnchor);    
+            }
+            
             // スキルボタン一覧の生成
             mOwner.SkillMenu.Show(unit, mOwner.Manager.Context);
             mOwner.SkillMenu.OnSkillSelected += HandleSkillSelected;
@@ -39,7 +45,7 @@ namespace PPCore
                 mOwner.Confirm();
         }
 
-        private void HandleBack() => mOwner.Back(); // ユニット選択へ戻る
+        private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
 
         public void Suspend()
         {

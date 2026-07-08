@@ -37,7 +37,7 @@ namespace PPCore
         private void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Unit = aView.BattleUnit;
-            mOwner.Push(new PPSkillSelectState(mOwner));
+            mOwner.Push(new PPCommandSelectState(mOwner));
         }
 
         public void Suspend() => DetachInteraction();
