@@ -7,36 +7,38 @@
  * =====================================*/
 using System;
 using CommandBattleCore;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace PPCore
 {
-    public class PPBattleSkillButton : MonoBehaviour, ISelectHandler
+    public class PPBattleSkillButton : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
         [Label("ボタン")] [SerializeField] private Button mButton;
         [Label("アイコン")] [SerializeField] private Image mIcon;
-        [Label("スキル名")] [SerializeField] private Text mNameLabel;
-        [Label("消費コイン")] [SerializeField] private Text mCostLabel;
+        [Label("スキル名")] [SerializeField] private TMP_Text mNameLabel;
+        [Label("消費コイン")] [SerializeField] private TMP_Text mCostLabel;
 
         private BattleSkill mSkill;
         private IPPSkillStatusSource mSource;
-        private Action<BattleSkill> mOnSelected;
+        private Action<BattleSkill> mOnDecided;
 
         // 初期フォーカス設定
         public GameObject FocusTarget => mButton.gameObject;
         public RectTransform Rect => (RectTransform)transform;
         
         // フォーカスが乗ったことをの通知(ゲームパッドのリストスクロールに使用)
-        public event Action<PPBattleSkillButton> OnFocused;
+        public event Action<PPBattleSkillButton> OnSelected;
+        public event Action<PPBattleSkillButton> OnDeselected;
 
         public void Setup(BattleSkill aSkill, IPPSkillStatusSource aSource, Sprite aIcon,
             Action<BattleSkill> aOnSelected)
         {
             mSkill = aSkill;
             mSource = aSource;
-            mOnSelected = aOnSelected;
+            mOnDecided = aOnSelected;
 
             if (mIcon != null)
             {
@@ -50,9 +52,10 @@ namespace PPCore
             Refresh();
         }
         
-        private void HandleClick() => mOnSelected?.Invoke(mSkill);
+        private void HandleClick() => mOnDecided?.Invoke(mSkill);
 
-        public void OnSelect(BaseEventData _) => OnFocused?.Invoke(this);
+        public void OnSelect(BaseEventData _) => OnSelected?.Invoke(this);
+        public void OnDeselect(BaseEventData _) => OnDeselected?.Invoke(this);
 
         private void Refresh()
         {

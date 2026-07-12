@@ -11,60 +11,24 @@ using UnityEngine.EventSystems;
 
 namespace PPCore
 {
-    public class PPTargetSelectState : IPPBattleInputState
+    public class PPTargetSelectState : PPBattleUnitPickerStateBase
     {
-        private readonly PPBattleCommandInputController mOwner;
-        public PPTargetSelectState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
-
-        // 対象の取得
-        private IEnumerable<BattleUnit> Candidates()
+        public PPTargetSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
+        {
+        }
+        protected override IEnumerable<BattleUnit> Candidates()
         {
             var ctx = mOwner.Manager.Context;
             var unit = mOwner.Context.Unit;
-            var scope = mOwner.Context.TargetScope ?? TargetScope.SingleEnemy;
-            // TargetScopeをもとに選択対象を変更する
+            var scope = mOwner.Context.TargetScope ?? TargetScope.SingleAlly;
             return PPTargeting.IsAllySide(scope)
                 ? ctx.GetParty(unit.Side).GetAliveActiveMembers()
                 : ctx.GetOpponentParty(unit.Side).GetAliveActiveMembers();
         }
-
-        public void Enter()
-        {
-            PPBattleUnitView first = null;
-            foreach (var unit in Candidates())
-            {
-                var view = mOwner.ViewBinder.GetView(unit);
-                if (view == null) continue;
-                view.SetSelectable(true);
-                view.OnClicked += HandleClicked;
-                first ??= view;
-            }
-
-            if (first != null)
-            {
-                EventSystem.current.SetSelectedGameObject(first.SelectableObject);
-            }
-        }
-
-        private void HandleClicked(PPBattleUnitView aView)
+        protected override void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Target = aView.BattleUnit;
             mOwner.Confirm();
-        }
-
-        public void Suspend() => Detach();
-        public void Resume() => Enter();
-        public void Exit() => Detach();
-
-        private void Detach()
-        {
-            foreach (var unit in Candidates())
-            {
-                var view = mOwner.ViewBinder.GetView(unit);
-                if(view == null) continue;
-                view.SetSelectable(false);
-                view.OnClicked -= HandleClicked;
-            }
         }
     }
 }

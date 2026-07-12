@@ -16,10 +16,10 @@ namespace PPCore
     {
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
-        [Label("味方表示ルート")]
-        [SerializeField] private HorizontalLayoutGroup mAllyAnchorRoot;
-        [Label("敵表示ルート")]
-        [SerializeField] private HorizontalLayoutGroup mEnemyAnchorRoot;
+        [Label("味方表示エリア")]
+        [SerializeField] private RectTransform mAllyRow;
+        [Label("敵表示エリア")]
+        [SerializeField] private RectTransform mEnemyRow;
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
@@ -27,8 +27,8 @@ namespace PPCore
 
         public void Bind(BattleManager aManager)
         {
-            SpawnViews(aManager.Context.AllyParty, mAllyAnchorRoot, BattleSide.Ally);
-            SpawnViews(aManager.Context.EnemyParty, mEnemyAnchorRoot, BattleSide.Enemy);
+            SpawnViews(aManager.Context.AllyParty, mAllyRow, BattleSide.Ally);
+            SpawnViews(aManager.Context.EnemyParty, mEnemyRow, BattleSide.Enemy);
 
             aManager.OnDamageResolved += (d) =>
             {
@@ -63,36 +63,42 @@ namespace PPCore
                 mViews.TryGetValue(u, out var view);
                 view?.RemoveStatusIcon(e);
             };
-            aManager.OnUnitSwapped += (o, i) => HandleSwap(o, i);
         }
 
-        private void SpawnViews(PPBattleParty aParty, HorizontalLayoutGroup aRoot, BattleSide aSide)
+        private void SpawnViews(PPBattleParty aParty, RectTransform aRow, BattleSide aSide)
         {
-            foreach (var unit in aParty.ActiveMembers)
+            if (aRow == null)
             {
-                var view = Instantiate(mUnitViewPrefab, aRoot.transform);
-
-                var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
-                view.Initialize(unit, visual, aSide);
-                mViews.Add(unit, view);
+                Debug.LogWarning("Row is null");
+                return;
             }
-        }
-
-        private void SpawnViews(BattleParty aParty, HorizontalLayoutGroup aRoot, BattleSide aSide)
-        {
-            foreach (var unit in aParty.ActiveMembers)
-            {
-                var view = Instantiate(mUnitViewPrefab, aRoot.transform);
-
-                var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
-                view.Initialize(unit, visual, aSide);
-                mViews.Add(unit, view);
-            }
-        }
-
-        private void HandleSwap(BattleUnit aOut, BattleUnit aIn)
-        {
             
+            foreach (var unit in aParty.ActiveMembers)
+            {
+                var view = Instantiate(mUnitViewPrefab, aRow);
+                var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
+                view.Initialize(unit, visual, aSide);
+                mViews.Add(unit, view);
+            }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
+        }
+
+        private void SpawnViews(BattleParty aParty, RectTransform aRow, BattleSide aSide)
+        {
+            if (aRow == null)
+            {
+                Debug.LogWarning("Row is null");
+                return;
+            }
+            
+            foreach (var unit in aParty.ActiveMembers)
+            {
+                var view = Instantiate(mUnitViewPrefab, aRow);
+                var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
+                view.Initialize(unit, visual, aSide);
+                mViews.Add(unit, view);
+            }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
         }
         
         public PPBattleUnitView GetView(BattleUnit aUnit) => mViews.GetValueOrDefault(aUnit);

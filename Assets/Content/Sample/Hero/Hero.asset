@@ -19,6 +19,7 @@ MonoBehaviour:
     Attack: 16
     Defense: 12
     Speed: 10
-  mSkills: []
+  mSkills:
+  - {fileID: 0}
   mPpStatBlock:
     AttackCost: 5

@@ -22,8 +22,8 @@ namespace PPCore
         [SerializeField] private PPBattleCommandMenuView mCommandMenu;
         [Label("スキルメニュー")]
         [SerializeField] private PPBattleSkillMenuView mSKillMenu;
-        [Label("アイテムメニュー")]
-        [SerializeField] private PPBattleItemMenuView mItemMenu;
+        [Label("詳細ビュー")]
+        [SerializeField] private PPBattleDetailMenuView mDetailMenu;
         [Label("戻る")]
         [SerializeField] private Button mBackButton;
 
@@ -38,7 +38,7 @@ namespace PPCore
         public PPBattleUnitViewBinder ViewBinder => mViewBinder;
         public PPBattleCommandMenuView CommandMenu => mCommandMenu;
         public PPBattleSkillMenuView SkillMenu => mSKillMenu;
-        public PPBattleItemMenuView ItemMenu => mItemMenu;
+        public PPBattleDetailMenuView DetailMenu => mDetailMenu;
         public PPBattleSelectionContext Context => mContext;
 
         public void Bind(BattleManager aManager)
@@ -51,24 +51,13 @@ namespace PPCore
         }
 
         // ユニット選択から開始
-        public void BeginCommandInput(IPPBattleInputState aInitial = null)
+        public void BeginCommandInput()
         {
             if (mManager == null || mManager.StateMachine.Current == BattleState.BattleEnd)
                 return;
             mContext.Clear();
             ClearStack();
-            Push(aInitial ?? new PPUnitSelectState(this));
-        }
-
-        // ユニットが選択された状態でコマンド選択から開始
-        public void BeginCommandInputFor(BattleUnit aUnit)
-        {
-            if (mManager == null || mManager.StateMachine.Current == BattleState.BattleEnd)
-                return;
-            mContext.Clear();
-            mContext.Unit = aUnit;
-            ClearStack();
-            Push(new PPCommandSelectState(this));
+            Push(new PPUnitSelectState(this));
         }
 
         // 入力の中断処理(バトル終了・対象の消滅・キャンセルなど)
@@ -77,13 +66,6 @@ namespace PPCore
             ClearStack();
             if (EventSystem.current != null)
                 EventSystem.current.SetSelectedGameObject(null);
-        }
-
-        public void BeginUnitSelect()
-        {
-            mContext.Clear();
-            ClearStack();
-            Push(new PPUnitSelectState(this));
         }
 
         public void Push(IPPBattleInputState aNext)
@@ -105,7 +87,8 @@ namespace PPCore
                     return;
                 }
             }
-            BeginUnitSelect();
+
+            Abort();
         }
 
         public void Confirm()

@@ -21,18 +21,25 @@ namespace PPCore
         [SerializeField] private Image mUnitIcon;
         [Label("アニメーター")]
         [SerializeField] private Animator mAnimator;
-
-        [Label("選択ボタン")] [SerializeField] private Button mSelectButton;
-        [Label("フォーカス枠")] [SerializeField] private GameObject mFocusFrame;
+        [Label("選択ボタン")]
+        [SerializeField] private Button mSelectButton;
+        [Label("フォーカス枠")]
+        [SerializeField] private GameObject mFocusFrame;
+        [Label("メニューアンカー")]
+        [SerializeField] private RectTransform mMenuAnchor;
         
         private BattleUnit mBattleUnit;
         public BattleUnit BattleUnit => mBattleUnit;
         public GameObject SelectableObject => mSelectButton.gameObject;
+        public RectTransform MenuAnchor => mMenuAnchor;
 
         // ユニットが選択されたことの通知
-        public event Action<PPBattleUnitView> OnClicked;
+        public event Action<PPBattleUnitView> OnDecided;
+        
+        public event Action<PPBattleUnitView> OnSelected;
+        public event Action<PPBattleUnitView> OnDeselected;
 
-        private void Awake() => mSelectButton.onClick.AddListener(() => OnClicked?.Invoke(this));
+        private void Awake() => mSelectButton.onClick.AddListener(() => OnDecided?.Invoke(this));
 
         public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisualDefinition, BattleSide aSide)
         {
@@ -52,9 +59,17 @@ namespace PPCore
         {
             if (mFocusFrame != null) mFocusFrame.SetActive(aFocused);
         }
-        
-        public void OnSelect(BaseEventData _) =>SetFocused(true);
-        public void OnDeselect(BaseEventData _) =>SetFocused(false);
+
+        public void OnSelect(BaseEventData _)
+        {
+            SetFocused(true);
+            OnSelected?.Invoke(this);
+        }
+        public void OnDeselect(BaseEventData _)
+        {
+            SetFocused(false);
+            OnDeselected?.Invoke(this);
+        }
 
         public void CommandExecuted(BattleCommandBase aCommand)
         {

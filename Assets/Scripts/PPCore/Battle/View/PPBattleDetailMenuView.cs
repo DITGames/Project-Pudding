@@ -1,0 +1,81 @@
+/* =====================================
+ * Copyright hqrse. All rights reserved.
+ * @file PPBattleDetailMenuView.cs
+ * @author hqrse
+ * @date 2026/07/08
+ * @brief バトル中のユニット詳細ビュー
+ * =====================================*/
+
+using System;
+using System.Linq;
+using CommandBattleCore;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
+using UnityEngine.UI;
+
+namespace PPCore
+{
+    public class PPBattleDetailMenuView : MonoBehaviour
+    {
+        [Label("ユニット名")]
+        [SerializeField] private TMP_Text mNameLabel;
+        [FormerlySerializedAs("mHPLabel")]
+        [Label("HP")]
+        [SerializeField] private TMP_Text mHpLabel;
+        [Label("攻撃力")]
+        [SerializeField] private TMP_Text mAttackLabel;
+        [Label("防御力")]
+        [SerializeField] private TMP_Text mDefenseLabel;
+        [Label("素早さ")]
+        [SerializeField] private TMP_Text mSpeedLabel;
+        [Label("スキル一覧")]
+        [SerializeField]private TMP_Text mSkillListLabel;
+        [Label("状態異常一覧")]
+        [SerializeField] private TMP_Text mStatusEffectListLabel;
+        [Label("戻るボタン")]
+        [SerializeField] private Button mBackButton;
+        
+        public event Action OnBackRequested;
+
+        public void AttachTo(RectTransform aAnchor)
+        {
+            var rt = (RectTransform)transform;
+            rt.SetParent(aAnchor, false);
+            rt.anchoredPosition = Vector2.zero;
+        }
+
+        public void Show(BattleUnit aUnit)
+        {
+            gameObject.SetActive(true);
+            
+            mNameLabel.text = aUnit.DisplayName;
+            mHpLabel.text = $"{aUnit.Parameters.Hp.CurrentValue}/{aUnit.Parameters.Hp.Max.CurrentValue:0}";
+            mAttackLabel.text = aUnit.Parameters.Attack.CurrentValue.ToString("0");
+            mDefenseLabel.text = aUnit.Parameters.Defense.CurrentValue.ToString("0");
+            mSpeedLabel.text = aUnit.Parameters.Speed.CurrentValue.ToString("0");
+            
+            // アイコン実装でアイコンを出す形に変更する？
+            mSkillListLabel.text = aUnit.Skills.Count > 0
+                ? string.Join("\n", aUnit.Skills.Select(s => s.DisplayName))
+                : "-";
+            
+            // 状態異常アイコン実装時にアイコンと残りターン数を出す形に変更する？　
+            mStatusEffectListLabel.text = aUnit.ActiveStatusEffects.Count > 0
+                ? string.Join("\n", aUnit.ActiveStatusEffects.Select(s => s.DisplayName))
+                : "なし";
+            
+            mBackButton.onClick.AddListener(RaiseBack);
+            EventSystem.current.SetSelectedGameObject(mBackButton.gameObject);
+        }
+
+        public void Hide()
+        {
+            mBackButton.onClick.RemoveListener(RaiseBack);
+            gameObject.SetActive(false);
+        }
+        
+        private void RaiseBack() => OnBackRequested?.Invoke();
+    }
+}
