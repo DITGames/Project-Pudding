@@ -12,13 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
   m_Name: HeroSlash
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: 
-  mDisplayName: 
+  mSkillId: HeroSlash
+  mDisplayName: HeroSlash
   mDescription: 
   mTargetScope: 0
   mSkillEffectType: 0
-  mDamageTags: 0
-  mPower: 10
+  mDamageTags: 1
+  mPower: 20
   mMaxCooldown: 0
   mMaxUsesPerBattle: 0
   mRequiredCoin: 10
