@@ -16,10 +16,14 @@ namespace PPCore
 {
     public class PPBattleSkillMenuView : MonoBehaviour
     {
-        [Label("スキルボタンプレハブ")] [SerializeField] private PPBattleSkillButton mButtonPrefab;
-        [Label("スクロール")] [SerializeField] private SlotListComponent mSlotList;
-        [Label("戻るボタン")] [SerializeField] private Button mBackButton;
-        [Label("スキルカタログ")] [SerializeField] private PPSkillVisualCatalog mIconCatalog;
+        [Label("スキルボタンプレハブ")]
+        [SerializeField] private PPBattleSkillButton mButtonPrefab;
+        [Label("スキルリスト表示領域")]
+        [SerializeField] private RectTransform mContent;
+        [Label("戻るボタン")]
+        [SerializeField] private Button mBackButton;
+        [Label("スキルカタログ")]
+        [SerializeField] private PPSkillVisualCatalog mIconCatalog;
 
         public event Action<BattleSkill> OnSkillSelected;
         public event Action OnBackRequested;
@@ -35,9 +39,9 @@ namespace PPCore
 
         public void Show(BattleUnit aUnit, BattleContext aContext)
         {
-            if (mSlotList == null)
+            if (mContent == null)
             {
-                Debug.LogWarning("mSlotList is null");
+                Debug.LogWarning("mContent is null");
                 return;
             }
             
@@ -45,16 +49,9 @@ namespace PPCore
             gameObject.SetActive(true);
             
             PPBattleSkillButton firstBtn = null;
-            int idx = 0;
             foreach (var skill in aUnit.Skills)
             {
-                var slot = mSlotList.GetSlot(idx);
-                if (slot == null)
-                {
-                    Debug.LogWarning($"Invalid slot: {idx}");
-                    continue;
-                }
-                var btn = Instantiate(mButtonPrefab, slot.mTransform);
+                var btn = Instantiate(mButtonPrefab, mContent);
                 var src = new PPBattleSkillStatusSource(skill, aUnit, aContext);
                 var icon = mIconCatalog != null
                     ? mIconCatalog.Resolve(skill.SkillId).SkillIcon
@@ -63,10 +60,10 @@ namespace PPCore
                 mSkillButtons.Add(btn);
                 
                 // 初期フォーカス設定
-                firstBtn = firstBtn == null 
-                    ? btn
-                    : firstBtn;
+                firstBtn ??= btn;
             }
+            
+            LayoutRebuilder.ForceRebuildLayoutImmediate(mContent);
             
             mBackButton.onClick.AddListener(RaiseBack);
             

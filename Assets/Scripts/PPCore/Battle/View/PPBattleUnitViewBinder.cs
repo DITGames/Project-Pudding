@@ -16,10 +16,10 @@ namespace PPCore
     {
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
-        [Label("味方表示スロット")]
-        [SerializeField] private SlotListComponent mAllyAnchorRoot;
-        [Label("敵表示スロット")]
-        [SerializeField] private SlotListComponent mEnemyAnchorRoot;
+        [Label("味方表示エリア")]
+        [SerializeField] private RectTransform mAllyRow;
+        [Label("敵表示エリア")]
+        [SerializeField] private RectTransform mEnemyRow;
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
@@ -27,8 +27,8 @@ namespace PPCore
 
         public void Bind(BattleManager aManager)
         {
-            SpawnViews(aManager.Context.AllyParty, mAllyAnchorRoot, BattleSide.Ally);
-            SpawnViews(aManager.Context.EnemyParty, mEnemyAnchorRoot, BattleSide.Enemy);
+            SpawnViews(aManager.Context.AllyParty, mAllyRow, BattleSide.Ally);
+            SpawnViews(aManager.Context.EnemyParty, mEnemyRow, BattleSide.Enemy);
 
             aManager.OnDamageResolved += (d) =>
             {
@@ -63,66 +63,42 @@ namespace PPCore
                 mViews.TryGetValue(u, out var view);
                 view?.RemoveStatusIcon(e);
             };
-            aManager.OnUnitSwapped += (o, i) => HandleSwap(o, i);
         }
 
-        private void SpawnViews(PPBattleParty aParty, SlotListComponent aSlotList, BattleSide aSide)
+        private void SpawnViews(PPBattleParty aParty, RectTransform aRow, BattleSide aSide)
         {
-            if (aSlotList == null)
+            if (aRow == null)
             {
-                Debug.LogWarning("SlotList is null");
+                Debug.LogWarning("Row is null");
                 return;
             }
             
-            int idx = 0;
             foreach (var unit in aParty.ActiveMembers)
             {
-                var slot = aSlotList.GetSlot(idx);
-                if (slot == null)
-                {
-                    Debug.LogWarning($"Invalid slot: {idx}");
-                    continue;
-                }
-                var view = Instantiate(mUnitViewPrefab, slot.mTransform);
-                slot.AddAttachedObject(view.gameObject);
-
+                var view = Instantiate(mUnitViewPrefab, aRow);
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
                 mViews.Add(unit, view);
-                idx++;
             }
+            LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
         }
 
-        private void SpawnViews(BattleParty aParty, SlotListComponent aSlotList, BattleSide aSide)
+        private void SpawnViews(BattleParty aParty, RectTransform aRow, BattleSide aSide)
         {
-            if (aSlotList == null)
+            if (aRow == null)
             {
-                Debug.LogWarning("SlotList is null");
+                Debug.LogWarning("Row is null");
                 return;
             }
             
-            int idx = 0;
             foreach (var unit in aParty.ActiveMembers)
             {
-                var slot = aSlotList.GetSlot(idx);
-                if (slot == null)
-                {
-                    Debug.LogWarning($"Invalid slot: {idx}");
-                    continue;
-                }
-                var view = Instantiate(mUnitViewPrefab, slot.mTransform);
-                slot.AddAttachedObject(view.gameObject);
-
+                var view = Instantiate(mUnitViewPrefab, aRow);
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
                 mViews.Add(unit, view);
-                idx++;
             }
-        }
-
-        private void HandleSwap(BattleUnit aOut, BattleUnit aIn)
-        {
-            
+            LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
         }
         
         public PPBattleUnitView GetView(BattleUnit aUnit) => mViews.GetValueOrDefault(aUnit);

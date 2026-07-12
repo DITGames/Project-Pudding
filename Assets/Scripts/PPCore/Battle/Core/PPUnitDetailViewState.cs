@@ -5,39 +5,31 @@
  * @date 2026/07/08
  * @brief ユニット詳細ビューチェックステート
  * =====================================*/
+
+using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    public class PPUnitDetailViewState : IPPBattleInputState
+    public class PPUnitDetailViewState : PPBattleMenuStateBase
     {
-        private readonly PPBattleCommandInputController mOwner;
-        public PPUnitDetailViewState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
-
-        public void Enter()
+        public PPUnitDetailViewState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
-            var unit = mOwner.Context.Unit;
-            var view = mOwner.ViewBinder.GetView(unit);
-            if (view != null)
+        }
+
+        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
+        {
+            if (aAnchor != null)
             {
-                mOwner.DetailMenu.AttachTo(view.MenuAnchor);
+                mOwner.DetailMenu.AttachTo(aAnchor);
             }
-            mOwner.DetailMenu.Show(unit);
-            mOwner.DetailMenu.OnBackRequested += HandleBack;
+            mOwner.DetailMenu.Show(aUnit);
         }
-        
-        private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
-        
-        public void Suspend() => Detach();
-        public void Resume() => Enter();
-        public void Exit() => Detach();
 
-        private void Detach()
-        {
-            mOwner.DetailMenu.OnBackRequested -= HandleBack;
-            mOwner.DetailMenu.Hide();
-        }
-        
+        protected override void HideView() => mOwner.DetailMenu.Hide();
+        protected override void Subscribe() => mOwner.DetailMenu.OnBackRequested += HandleBack;
+        protected override void Unsubscribe() => mOwner.DetailMenu.OnBackRequested -= HandleBack;
+        private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
     }
 }

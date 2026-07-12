@@ -6,27 +6,37 @@
  * @brief スキル選択ステート
  * =====================================*/
 using CommandBattleCore;
+using UnityEngine;
 
 namespace PPCore
 {
-    public class PPSkillSelectState : IPPBattleInputState
+    public class PPSkillSelectState : PPBattleMenuStateBase
     {
-        private PPBattleCommandInputController mOwner;
-        public PPSkillSelectState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
-
-        public void Enter()
+        public PPSkillSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
-            var unit = mOwner.Context.Unit;
-            var view = mOwner.ViewBinder.GetView(unit);
-            if (view != null)
+        }
+
+        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
+        {
+            if (aAnchor != null)
             {
-                mOwner.SkillMenu.AttachTo(view.MenuAnchor);    
+                mOwner.SkillMenu.AttachTo(aAnchor);
             }
-            
-            // スキルボタン一覧の生成
-            mOwner.SkillMenu.Show(unit, mOwner.Manager.Context);
+            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context);
+        }
+
+        protected override void HideView() => mOwner.SkillMenu.Hide();
+
+        protected override void Subscribe()
+        {
             mOwner.SkillMenu.OnSkillSelected += HandleSkillSelected;
             mOwner.SkillMenu.OnBackRequested += HandleBack;
+        }
+
+        protected override void Unsubscribe()
+        {
+            mOwner.SkillMenu.OnSkillSelected -= HandleSkillSelected;
+            mOwner.SkillMenu.OnBackRequested -= HandleBack;
         }
 
         private void HandleSkillSelected(BattleSkill aSkill)
@@ -46,29 +56,5 @@ namespace PPCore
         }
 
         private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
-
-        public void Suspend()
-        {
-            Detach();
-            mOwner.SkillMenu.Hide();
-        }
-
-        public void Resume()
-        {
-            mOwner.Context.ClearSelectionKeepingUnit();
-            Enter();
-        }
-
-        public void Exit()
-        {
-            Detach();
-            mOwner.SkillMenu.Hide();
-        }
-
-        private void Detach()
-        {
-            mOwner.SkillMenu.OnSkillSelected -= HandleSkillSelected;
-            mOwner.SkillMenu.OnBackRequested -= HandleBack;
-        }
     }
 }

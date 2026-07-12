@@ -7,6 +7,7 @@
  * =====================================*/
 using System;
 using CommandBattleCore;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -17,8 +18,8 @@ namespace PPCore
     {
         [Label("ボタン")] [SerializeField] private Button mButton;
         [Label("アイコン")] [SerializeField] private Image mIcon;
-        [Label("スキル名")] [SerializeField] private Text mNameLabel;
-        [Label("消費コイン")] [SerializeField] private Text mCostLabel;
+        [Label("スキル名")] [SerializeField] private TMP_Text mNameLabel;
+        [Label("消費コイン")] [SerializeField] private TMP_Text mCostLabel;
 
         private BattleSkill mSkill;
         private IPPSkillStatusSource mSource;

@@ -6,34 +6,44 @@
  * @brief コマンド選択ステート
  * =====================================*/
 using CommandBattleCore;
+using UnityEngine;
 
 namespace PPCore
 {
-    public class PPCommandSelectState : IPPBattleInputState
+    public class PPCommandSelectState : PPBattleMenuStateBase
     {
-        private readonly PPBattleCommandInputController mOwner;
-        public PPCommandSelectState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
-
-        public void Enter()
+        public PPCommandSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
-            var unit = mOwner.Context.Unit;
-            var party = (PPBattleParty)mOwner.Manager.Context.GetParty(unit.Side);
-            var view = mOwner.ViewBinder.GetView(unit);
+        }
 
-            bool canSkill = unit.Skills.Count > 0;
-
-            if (view != null)
+        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
+        {
+            if (aAnchor != null)
             {
-                mOwner.CommandMenu.AttachTo(view.MenuAnchor);
+                mOwner.CommandMenu.AttachTo(aAnchor);
             }
-            mOwner.CommandMenu.Show(canSkill);
+            mOwner.CommandMenu.Show(aUnit.Skills.Count > 0);
+        }
+        
+        protected override void HideView() => mOwner.CommandMenu.Hide();
+
+        protected override void Subscribe()
+        {
             mOwner.CommandMenu.OnAttack += HandleAttack;
             mOwner.CommandMenu.OnSkill += HandleSkill;
             mOwner.CommandMenu.OnDetail += HandleDetail;
             mOwner.CommandMenu.OnBackRequested += mOwner.Back;
         }
 
-        void HandleAttack()
+        protected override void Unsubscribe()
+        {
+            mOwner.CommandMenu.OnAttack -= HandleAttack;
+            mOwner.CommandMenu.OnSkill -= HandleSkill;
+            mOwner.CommandMenu.OnDetail -= HandleDetail;
+            mOwner.CommandMenu.OnBackRequested -= mOwner.Back;
+        }
+
+        private void HandleAttack()
         {
             var unit = (PPBattleUnit)mOwner.Context.Unit;
             mOwner.Context.TargetScope = TargetScope.SingleEnemy;
@@ -45,28 +55,5 @@ namespace PPCore
         private void HandleSkill() => mOwner.Push(new PPSkillSelectState(mOwner));
         
         private void HandleDetail() => mOwner.Push(new PPUnitDetailViewState(mOwner));
-
-        public void Suspend() => Detach();
-
-        public void Resume()
-        {
-            mOwner.Context.ClearSelectionKeepingUnit();
-            Enter();
-        }
-
-        public void Exit()
-        {
-            Detach();
-            mOwner.CommandMenu.Hide();
-        }
-
-        private void Detach()
-        {
-            mOwner.CommandMenu.OnAttack -= HandleAttack;
-            mOwner.CommandMenu.OnSkill -= HandleSkill;
-            mOwner.CommandMenu.OnDetail -= HandleDetail;
-            mOwner.CommandMenu.OnBackRequested -= mOwner.Back;
-            mOwner.CommandMenu.Hide();
-        }
     }
 }

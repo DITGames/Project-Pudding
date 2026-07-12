@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using CommandBattleCore;
 using PPCore;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 public class SamplePusherBattleRunner : MonoBehaviour
 {
@@ -97,7 +98,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.C))
+        if (Keyboard.current.cKey.wasPressedThisFrame)
         {
             if (CanSelectAnyCommand())
             {
