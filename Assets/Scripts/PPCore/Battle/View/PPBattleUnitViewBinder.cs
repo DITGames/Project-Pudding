@@ -78,6 +78,7 @@ namespace PPCore
                 var view = Instantiate(mUnitViewPrefab, aRow);
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
+                view.SetSelectable(false);
                 mViews.Add(unit, view);
             }
             LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
@@ -96,6 +97,7 @@ namespace PPCore
                 var view = Instantiate(mUnitViewPrefab, aRow);
                 var visual = mUnitVisualCatalog.Resolve(unit.UnitId);
                 view.Initialize(unit, visual, aSide);
+                view.SetSelectable(false);
                 mViews.Add(unit, view);
             }
             LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
