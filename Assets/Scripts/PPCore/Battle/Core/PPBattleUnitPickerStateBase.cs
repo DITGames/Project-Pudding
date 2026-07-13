@@ -20,7 +20,7 @@ namespace PPCore
         protected abstract IEnumerable<BattleUnit> Candidates();
         protected abstract void HandleDecided(PPBattleUnitView aView);
 
-        public void Enter()
+        public virtual void Enter()
         {
             PPBattleUnitView first = null;
             foreach (var unit in Candidates())
@@ -38,9 +38,9 @@ namespace PPCore
             }
         }
         
-        public void Suspend() => Detach();
-        public void Resume() => Enter();
-        public void Exit() => Detach();
+        public virtual void Suspend() => Detach();
+        public virtual void Resume() => Enter();
+        public virtual void Exit() => Detach();
 
         private void Detach()
         {

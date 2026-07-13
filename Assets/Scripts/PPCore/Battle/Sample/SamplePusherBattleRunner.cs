@@ -98,7 +98,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     void Update()
     {
-        if (Keyboard.current.cKey.wasPressedThisFrame)
+        if (Keyboard.current.cKey.wasPressedThisFrame || Gamepad.current.triangleButton.wasPressedThisFrame)
         {
             if (CanSelectAnyCommand())
             {

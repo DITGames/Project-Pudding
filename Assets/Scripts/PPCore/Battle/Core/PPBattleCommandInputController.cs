@@ -10,6 +10,8 @@ using System.Collections.Generic;
 using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 namespace PPCore
@@ -26,6 +28,10 @@ namespace PPCore
         [SerializeField] private PPBattleDetailMenuView mDetailMenu;
         [Label("戻る")]
         [SerializeField] private Button mBackButton;
+        [Label("UI入力モジュール")]
+        [SerializeField] private InputSystemUIInputModule mUIInputModule;
+        [Label("入力ステートボーダー")]
+        [SerializeField] private Image mInputStateBorder;
 
         private BattleManager mManager;
         private readonly Stack<IPPBattleInputState> mStateStack = new();
@@ -48,6 +54,27 @@ namespace PPCore
             {
                 mBackButton.onClick.AddListener(Back);
             }
+
+            if (mUIInputModule != null)
+            {
+                mUIInputModule.cancel.action.performed += HandleCancelPerformed;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (mUIInputModule != null)
+            {
+                mUIInputModule.cancel.action.performed -= HandleCancelPerformed;
+            }
+        }
+
+        private void HandleCancelPerformed(InputAction.CallbackContext ctx)
+        {
+            if (mStateStack.Count > 0)
+            {
+                Back();
+            }
         }
 
         // ユニット選択から開始
@@ -57,7 +84,12 @@ namespace PPCore
                 return;
             mContext.Clear();
             ClearStack();
+            if (mInputStateBorder != null)
+            {
+                mInputStateBorder.gameObject.SetActive(true);
+            }
             Push(new PPUnitSelectState(this));
+            Time.timeScale = 0;
         }
 
         // 入力の中断処理(バトル終了・対象の消滅・キャンセルなど)
@@ -113,6 +145,13 @@ namespace PPCore
             {
                 mStateStack.Pop().Exit();
             }
+
+            if (mInputStateBorder != null)
+            {
+                mInputStateBorder.gameObject.SetActive(false);
+            }
+            
+            Time.timeScale = 1;
         }
 
         public ITargetResolver BuildResolver(ITargetResolver aDefault, BattleUnit aTarget)
