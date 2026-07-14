@@ -11,7 +11,7 @@ namespace CommandBattleCore
 {
     public enum BattleLogType
     {
-        Action, Damage, Heal, StatusEffect, UnitDefeated, Swap, Escape, Custom,
+        Action, Damage, Heal, StatusEffect, UnitDefeated, Swap, Escape, ActionBlocked, Custom,
     }
 
     public record BattleLogEntry

@@ -74,6 +74,26 @@ namespace CommandBattleCore
             }
         }
 
+        public bool RollActionBlocked(BattleContext aContext)
+        {
+            bool blocked = false;
+            foreach (var eff in ActiveStatusEffects)
+            {
+                if((eff.Restriction & ActionRestriction.CannotAct) == 0)
+                    continue;
+                if (eff.ActionFailChange is float chance)
+                {
+                    if (aContext.Rules.RandomProvider.NextBool(chance))
+                        blocked = true;
+                }
+                else
+                {
+                    blocked = true;
+                }
+            }
+            return blocked;
+        }
+
         // ダメージ適用 スキルのコンテキストを引数で渡してダメージ計算をする拡張もあり、もしくは事前計算
         public void ApplyDamage(float aAmount)
         {
@@ -93,7 +113,7 @@ namespace CommandBattleCore
             // ステータスエフェクトによるダメージ適用前の耐性や無効などを適用する
             foreach (var ef in ActiveStatusEffects)
             {
-                ef.ModifyIncomingDamage(this, aDamageInfo);
+                ef.ModifyIncomingDamage?.Invoke(this, aDamageInfo);
             }
             
             // 実装先でのダメージ適用前介入

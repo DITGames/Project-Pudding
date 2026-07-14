@@ -82,7 +82,7 @@ namespace CommandBattleCore
                 // 乗算
                 float mul = mModifiers.Where(m => m.Type == ParameterModifierType.Multiply)
                     .Aggregate(1f, (acc, m) => acc * m.Value);
-                CurrentValue = (mBaseValue + add) + mul;
+                CurrentValue = (mBaseValue + add) * mul;
             }
             else
             {
