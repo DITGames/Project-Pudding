@@ -44,6 +44,8 @@ namespace CommandBattleCore
         public event Action<int> OnTickStarted;
         // ターン終了時など(ターン番号)
         public event Action<int> OnTickEnded;
+        // 行動が状態異常により失敗したとき
+        public event Action<BattleUnit, BattleCommandBase> OnActionBlocked;
         // コマンド実行直前(行動ユニット, 実行コマンド)
         public event Action<BattleUnit, BattleCommandBase> OnPreCommand;
         // コマンド実行直後(行動ユニット, 実行コマンド)
@@ -181,8 +183,17 @@ namespace CommandBattleCore
             // 麻痺などの確率による行動制限がある場合は別で判別する必要がありそう
             if (command.Source.IsAlive && (command.Source.CurrentRestrictions & ActionRestriction.CannotAct) == 0)
             {
-                command.Execute(Context);
-                OnCommandExecuted?.Invoke(command.Source, command);
+                if (command.Source.RollActionBlocked(Context))
+                {
+                    OnActionBlocked?.Invoke(command.Source, command);
+                    Log(BattleLogType.ActionBlocked, command.Source, null, 
+                        $"{command.Source.DisplayName}'s action was blocked by a status effect.");
+                }
+                else
+                {
+                    command.Execute(Context);
+                    OnCommandExecuted?.Invoke(command.Source, command);
+                }
             }
             
             // 行動回数の消費
@@ -233,31 +244,40 @@ namespace CommandBattleCore
             
             // コマンド実行前イベントの通知
             OnPreCommand?.Invoke(command.Source, command);
-            
-            if (command.Source.IsAlive && (command.Source.CurrentRestrictions & ActionRestriction.CannotAct) == 0)
-            {
-                try
-                {
-                    // コマンド実行前演出
-                    if (Presenter != null)
-                    {
-                        await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
-                    }
-                
-                    // 実際のコマンド実行
-                    command.Execute(Context);
-                    OnCommandExecuted?.Invoke(command.Source, command);
 
-                    // コマンド実行後演出
-                    if (Presenter != null)
+            try
+            {
+                if (command.Source.IsAlive)
+                {
+                    if (command.Source.RollActionBlocked(Context))
                     {
-                        await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
+                        OnActionBlocked?.Invoke(command.Source, command);
+                        Log(BattleLogType.ActionBlocked, command.Source, null, 
+                            $"{command.Source.DisplayName}'s action was blocked by a status effect.");
+                    }
+                    else
+                    {
+                        // コマンド実行前演出
+                        if (Presenter != null)
+                        {
+                            await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
+                        }
+                        
+                        // 実際のコマンド実行
+                        command.Execute(Context);
+                        OnCommandExecuted?.Invoke(command.Source, command);
+
+                        // コマンド実行後演出
+                        if (Presenter != null)
+                        {
+                            await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
+                        }
                     }
                 }
-                finally
-                {
-                    if (isReaction) mIsSuppressReactions = false;
-                }
+            }
+            finally
+            {
+                if(isReaction) mIsSuppressReactions = false;
             }
             
             // コマンド実行後イベントの通知

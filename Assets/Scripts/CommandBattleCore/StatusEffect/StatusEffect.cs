@@ -21,6 +21,7 @@ namespace CommandBattleCore
         public int CurrentStacks { get; protected internal set; } = 1;
         public IDurationCondition DurationCondition { get; set; }
         public ActionRestriction Restriction { get; set; } = ActionRestriction.None;
+        public float? ActionFailChange {get; set; }
         
         // 被ダメージ前介入
         public Action<BattleUnit, DamageInfo> ModifyIncomingDamage { get; set; }
