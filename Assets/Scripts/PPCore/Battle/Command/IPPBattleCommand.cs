@@ -18,11 +18,11 @@ namespace PPCore
     }
 
     // Pusherの通常攻撃コマンドベース
-    public class PPBattleAttackCommand : AttackCommand, IPPBattleCommand
+    public class PPAttackCommand : AttackCommand, IPPBattleCommand
     {
         public float AttackCost {get; private set;}
         
-        public PPBattleAttackCommand(PPBattleUnit aSource, ITargetResolver aResolver)
+        public PPAttackCommand(PPBattleUnit aSource, ITargetResolver aResolver)
             : base(aSource, aResolver)
         {
             // バフ・デバフ込みでの攻撃コストを適用(時間経過でバフ切れたときに消費できず失敗する可能性がありそう)

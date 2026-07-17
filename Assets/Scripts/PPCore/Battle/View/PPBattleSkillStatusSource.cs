@@ -19,7 +19,7 @@ namespace PPCore
         public event Action Changed;
 
         public string DisplayName => mSkill.DisplayName;
-        public int Cost => (mSkill.SourceDefinition as PPSkillDefinition)?.RequiredCoin ?? 0;
+        public float Cost => (mSkill.SourceDefinition as PPSkillDefinition)?.RequiredResource ?? 0;
         public int CooldownRemaining => mSkill.RemainingCooldown;
         public bool IsCastable => mContext.Rules.CastValidator.Validate(mOwner, mSkill, mContext).CanCast;
 

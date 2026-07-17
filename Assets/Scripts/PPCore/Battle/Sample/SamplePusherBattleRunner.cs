@@ -38,11 +38,15 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     [Header("バトル設定")]
     [Label("ターン更新間隔")]
-    [SerializeField] private float mTurnTickInterval = 1f;
+    [SerializeField] private float mTurnTickInterval = 5f;
     
-    [Header("サンプル")]
-    [Label("敵攻撃間隔")]
-    [SerializeField] private float mEnemyAttackInterval = 10f;
+    [Header("パーティAI")]
+    [Label("敵AIプロファイル")]
+    [SerializeField] private PPPartyAIProfileDefinition mEnemyAIProfile;
+    [Label("デフォルト思考間隔")][EditCondition("HasEnemyAIProfile", true, true)]
+    [SerializeField] private float mDefaultEnemyThinkDuration = 0.5f;
+    private PPEnemyAIDriver mEnemyAIDriver;
+    private bool HasEnemyAIProfile => mEnemyAIProfile != null;
     
     private BattleManager mBattleManager = new();
     
@@ -62,6 +66,9 @@ public class SamplePusherBattleRunner : MonoBehaviour
             EnemyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Enemy, new[]{enemyUnit}, null , new Dictionary<PPItemDefinition, int>()),
         };
         context.Rules.CastValidator = new PPBattleCastValidator();
+        
+        var enemyStrategist = new PPPartyAIStrategistBase(mEnemyAIProfile);
+        ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
 
         mBattleManager.OnDamageTaken += (u, d) =>
         {
@@ -92,8 +99,11 @@ public class SamplePusherBattleRunner : MonoBehaviour
         
         mController.Bind(mBattleManager);
         mController.OnCommandFlushed += HandleCommandFlushed;
-
-        mEnemyActionCoroutine = StartCoroutine(StartEnemyAction());
+        
+        float think = mEnemyAIProfile != null ? mEnemyAIProfile.ThinkInterval : mDefaultEnemyThinkDuration;
+        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, think);
+        mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
+        mTickCoroutine = StartCoroutine(AdvanceTick());
     }
 
     void Update()
@@ -123,25 +133,6 @@ public class SamplePusherBattleRunner : MonoBehaviour
             }
         }
         return false;
-    }
-
-    IEnumerator StartEnemyAction()
-    {
-        while (true)
-        {
-            if(mBattleManager == null) yield break;
-            if (mBattleManager.StateMachine.Current == BattleState.BattleEnd) yield break;
-            yield return new WaitForSeconds(mEnemyAttackInterval);
-
-            var units = mBattleManager.Context.GetParty(BattleSide.Enemy);
-
-            foreach (var unit in units.ActiveMembers)
-            {
-                mBattleManager.EnqueueCommand(unit.CommandDecider.DecideCommand(unit, mBattleManager.Context));
-            }
-
-            mBattleManager.ExecuteNextCommand();
-        }
     }
 
     IEnumerator AdvanceTick()

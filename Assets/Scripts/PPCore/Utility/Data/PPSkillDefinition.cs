@@ -10,15 +10,25 @@ using UnityEngine;
 
 namespace PPCore
 {
+    public enum PPSkillType
+    {
+        Attack,
+        Support,
+        Heal,
+        Special,
+    }
+    
     [CreateAssetMenu(fileName = "PPBattleSkillDefinition", menuName = "Project-Pudding/Definition/PPSkillDefinition")]
     public class PPSkillDefinition : SkillDefinition
     {
-        [Header("Pusher")]
-        [Label("消費コイン")]
-        [SerializeField]
-        protected int mRequiredCoin = 10;
+        [Header("PPSkill")]
+        [Label("スキルタイプ")]
+        [SerializeField] protected PPSkillType mSkillType;
+        [Label("消費リソース")]
+        [SerializeField] protected float mRequiredResource = 10;
         
-        public int RequiredCoin => mRequiredCoin;
+        public PPSkillType SkillType => mSkillType;
+        public float RequiredResource => mRequiredResource;
 
         // 一旦ベースと同じ 拡張があれば追加する
         public virtual PPBattleSkill CreatePusherBattleSkill()

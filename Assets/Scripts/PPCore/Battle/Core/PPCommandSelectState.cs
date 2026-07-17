@@ -48,7 +48,7 @@ namespace PPCore
             var unit = (PPBattleUnit)mOwner.Context.Unit;
             mOwner.Context.TargetScope = TargetScope.SingleEnemy;
             mOwner.Context.CommandBuilder = tgt =>
-                new PPBattleAttackCommand(unit, mOwner.BuildResolver(new SingleEnemyResolver(), tgt));
+                new PPAttackCommand(unit, mOwner.BuildResolver(new SingleEnemyResolver(), tgt));
             mOwner.Push(new PPTargetSelectState(mOwner));
         }
         

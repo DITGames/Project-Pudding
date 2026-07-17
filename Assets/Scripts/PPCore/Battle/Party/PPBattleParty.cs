@@ -17,6 +17,8 @@ namespace PPCore
         public PPItemInventory Inventory { get; }
         
         public Parameter CoinConversionRate { get; }
+        
+        public IPPPartyCommandStrategist Strategist { get; set; }
 
         public PPBattleParty(int aMaxCoin, float aBaseCoinRate, BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
             IEnumerable<BattleUnit> aReserveMembers = null, IReadOnlyDictionary<PPItemDefinition, int> aItems = null)
