@@ -14,19 +14,19 @@ namespace PPCore
 {
     public interface IPPBattleCommand
     {
-        public float AttackCost { get; }
+        public PPResourceCost AttackCost { get; }
     }
 
     // Pusherの通常攻撃コマンドベース
     public class PPAttackCommand : AttackCommand, IPPBattleCommand
     {
-        public float AttackCost {get; private set;}
+        public PPResourceCost AttackCost {get; private set;}
         
         public PPAttackCommand(PPBattleUnit aSource, ITargetResolver aResolver)
             : base(aSource, aResolver)
         {
             // バフ・デバフ込みでの攻撃コストを適用(時間経過でバフ切れたときに消費できず失敗する可能性がありそう)
-            AttackCost = aSource.PPParameters.Get(PPParameterSet.ParameterIdAttackCost).CurrentValue;
+            AttackCost = PPResourceCost.BaseCost(aSource.PPParameters.Get(PPParameterSet.ParameterIdAttackCost).CurrentValue);
         }
 
         public override void Execute(BattleContext aContext)
@@ -60,7 +60,7 @@ namespace PPCore
             }
 
             // CastValidatorを通して実行可能かチェックされるが念のためコスト消費ができた場合のみ攻撃実行
-            if (party.ResourcePool.TryConsumeResource(AttackCost))
+            if (party.ResourcePool.TryPay(AttackCost))
             {
                 foreach (var damageInfo in damages) damageInfo.Target?.ApplyDamage(damageInfo);
             }

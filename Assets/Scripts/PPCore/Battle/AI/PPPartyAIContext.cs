@@ -7,6 +7,7 @@
  * =====================================*/
 using System.Collections.Generic;
 using CommandBattleCore;
+using Mono.Cecil;
 
 namespace PPCore
 {
@@ -18,7 +19,8 @@ namespace PPCore
         public List<PPBattleUnit> AliveMembers { get; } = new();
         public List<PPBattleUnit> AliveEnemies { get; } = new();
         
-        public float CurrentResources { get; private set; }
+        public PPBattleResourcePool ResourcePool { get; private set; }
+        public float Current(PPResourceType aType) => ResourcePool.Current(aType);
         
         public PPBattleUnit LowestHpEnemy { get; private set; }
         public PPBattleUnit LowestHpRatioAlly { get; private set; }
@@ -27,7 +29,7 @@ namespace PPCore
         public static PPPartyAIContext Capture(PPBattleParty aParty, BattleContext aContext)
         {
             var snap = new PPPartyAIContext { Party = aParty, Context = aContext };
-            snap.CurrentResources = aParty.ResourcePool.CoinResource.Current;
+            snap.ResourcePool = aParty.ResourcePool;
             
             // 味方パーティの集計
             foreach (var u in aParty.ActiveMembers)

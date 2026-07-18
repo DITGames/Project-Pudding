@@ -10,7 +10,7 @@ public class CoinDropCounter : MonoBehaviour, IPPCoinGainNotifier
     [SerializeField, Header("�����R�C��")]
     int dropCoinCounter = 0;
 
-    public event Action<int> OnCoinGained;
+    public event Action<PPResourceType, int> OnCoinGained;
 
     private void OnCollisionEnter(Collision collision)
     {
@@ -19,7 +19,7 @@ public class CoinDropCounter : MonoBehaviour, IPPCoinGainNotifier
             dropCoinCounter++;
             coinSpawner.AddCoin(1);
             Destroy(collision.gameObject);
-            OnCoinGained?.Invoke(1);
+            OnCoinGained?.Invoke(PPResourceType.Normal, 1);
         }
     }
 }

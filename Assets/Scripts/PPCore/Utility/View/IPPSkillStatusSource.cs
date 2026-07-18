@@ -12,7 +12,7 @@ namespace PPCore
     public interface IPPSkillStatusSource
     {
         string DisplayName { get; }
-        float Cost { get; }
+        PPResourceCost Cost { get; }
         bool IsCastable { get; }
         int CooldownRemaining { get; }
         event Action Changed;

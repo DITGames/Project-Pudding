@@ -8,6 +8,7 @@
 using System;
 using CommandBattleCore;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace PPCore
 {
@@ -58,7 +59,7 @@ namespace PPCore
     public sealed class PPAISupportScore
     {
         [Label("基礎スコア")] public float BaseScore = 0.4f;
-        [Label("メンバー数評価値")] public float MemberCountSocre = 3f;
+        [Label("メンバー数評価値")] public float MemberCountScore = 3f;
         [Label("メンバー数バイアス")] public float MemberCountBias = 0.6f;
     }
 
@@ -73,7 +74,9 @@ namespace PPCore
     public sealed class PPCostScore
     {
         [Label("最低スコア")] public float MinScore = 0.3f;
-        [Label("高コスト時スコア減少率")] public float HighCostDecreaseRate = 8.0f;
+        [Label("効率ベース")] public float Efficiency = 1.15f;
+        [Label("最小単価")] public float MinUnitPrice = 0.35f;
+        [Label("最大単価")] public float MaxUnitPrice = 1.0f;
     }
 
     [Serializable]
@@ -92,7 +95,11 @@ namespace PPCore
         [Label("溜め傾向のバイアス (0-1)")] public float WaitBias = 0.4f;
         
         [Header("リソース")]
-        [Label("温存するリソースの下限")] public float ReserveResources = 0f;
+        [Label("ベース温存量")] public float BaseReserve = 0f;
+        [Label("ベースコスト重み")] public float BaseCostWeight = 1.1f;
+        [Label("コスト感度")] public float CostSensitivity = 0.6f;
+        [Label("オーバーフロー閾値")] public float OverflowThreshold = 0.85f;
+        [Label("オーバーフロー重み")] public float OverflowWeight = 0.5f;
         [Label("スキル発動の閾値倍率")] public float SkillThreshold = 1.2f;
         
         [Header("行動")]

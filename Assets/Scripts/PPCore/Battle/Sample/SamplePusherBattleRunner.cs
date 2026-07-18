@@ -22,12 +22,6 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Label("コイン獲得レート初期値")]
     [SerializeField] private float mBaseCoinConversionRate = 1f;
     
-    [Header("バトル設定")]
-    [Label("味方ユニット")]
-    [SerializeField] private UnitDefinition mAllyUnit;
-    [Label("敵ユニット")]
-    [SerializeField] private UnitDefinition mEnemyUnit;
-    
     [Header("UI")]
     [Label("バトルビューバインダー")]
     [SerializeField] private PPBattleUnitViewBinder mBattleUnitViewBinder;
@@ -40,12 +34,21 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Label("ターン更新間隔")]
     [SerializeField] private float mTurnTickInterval = 5f;
     
-    [Header("パーティAI")]
+    [Header("味方")]
+    [Label("ユニット")]
+    [SerializeField] private UnitDefinition mAllyUnit;
+    
+    [Header("敵")]
+    [Label("ユニット")]
+    [SerializeField] private UnitDefinition mEnemyUnit;
     [Label("敵AIプロファイル")]
     [SerializeField] private PPPartyAIProfileDefinition mEnemyAIProfile;
     [Label("デフォルト思考間隔")][EditCondition("HasEnemyAIProfile", true, true)]
     [SerializeField] private float mDefaultEnemyThinkDuration = 0.5f;
     private PPEnemyAIDriver mEnemyAIDriver;
+    [Label("コイン取得")]
+    [SerializeField] private Vector2Int mEnemyResourcePerTick = new Vector2Int(5, 10);
+    
     private bool HasEnemyAIProfile => mEnemyAIProfile != null;
     
     private BattleManager mBattleManager = new();
@@ -64,6 +67,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
         {
             AllyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Ally, new[]{allyUnit}, null, new Dictionary<PPItemDefinition, int>()),
             EnemyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Enemy, new[]{enemyUnit}, null , new Dictionary<PPItemDefinition, int>()),
+            Rules = new PPBattleRules(),
         };
         context.Rules.CastValidator = new PPBattleCastValidator();
         
@@ -108,7 +112,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     void Update()
     {
-        if (Keyboard.current.cKey.wasPressedThisFrame || Gamepad.current.triangleButton.wasPressedThisFrame)
+        if (IsCommandInputPressed())
         {
             if (CanSelectAnyCommand())
             {
@@ -143,6 +147,12 @@ public class SamplePusherBattleRunner : MonoBehaviour
             if(mBattleManager.StateMachine.Current == BattleState.BattleEnd) yield break;
             yield return new WaitForSeconds(mTurnTickInterval);
             
+            var enemyParty = (PPBattleParty)mBattleManager.Context.GetParty(BattleSide.Enemy);
+            if (enemyParty != null)
+            {
+                enemyParty.ResourcePool.Add(PPResourceType.Normal, mBattleManager.Context.Rules.RandomProvider.NextInt(mEnemyResourcePerTick.x, mEnemyResourcePerTick.y));
+            }
+            
             mBattleManager.AdvanceTick();
         }
     }
@@ -150,5 +160,12 @@ public class SamplePusherBattleRunner : MonoBehaviour
     private void HandleCommandFlushed()
     {
         mBattleManager.ExecuteNextCommand();
+    }
+
+    bool IsCommandInputPressed()
+    {
+        return 
+            (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame)
+            || (Gamepad.current != null && Gamepad.current.triangleButton.wasPressedThisFrame);
     }
 }

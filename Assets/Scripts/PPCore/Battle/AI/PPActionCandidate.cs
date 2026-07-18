@@ -14,7 +14,7 @@ namespace PPCore
     {
         public PPBattleUnit Unit;
         public PPBattleRole Role;
-        public float Cost;
+        public PPResourceCost Cost;
         public PPBattleSkill Skill;
         public PPBattleUnit Target;
         

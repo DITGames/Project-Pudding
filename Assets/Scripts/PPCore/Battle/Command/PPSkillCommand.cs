@@ -32,11 +32,11 @@ namespace PPCore
                 return;
             }
             
-            var cost = (Skill.SourceDefinition as PPSkillDefinition)?.RequiredResource ?? 0f;
-            if (cost > 0f)
+            var cost = (Skill.SourceDefinition as PPSkillDefinition)?.Cost ?? PPResourceCost.Free;
+            if (!cost.IsFree)
             {
                 if (aContext.GetParty(Source.Side) is not PPBattleParty party ||
-                    !party.ResourcePool.TryConsumeResource(cost))
+                    !party.ResourcePool.TryPay(cost))
                 {
                     aContext.NotifyCastFailed(Source, Skill, CastFailReason.NotEnoughResource);
                     return;

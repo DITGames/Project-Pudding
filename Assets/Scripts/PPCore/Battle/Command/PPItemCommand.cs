@@ -21,7 +21,7 @@ namespace PPCore
         public override void Execute(BattleContext aContext)
         {
             if (aContext.GetParty(Source.Side) is not PPBattleParty party) return;
-            if (!party.ResourcePool.CanConsumeResource(mDefinition.Cost)) return;
+            if (!party.ResourcePool.CanPay(mDefinition.Cost)) return;
             if (!party.Inventory.TryConsume(mDefinition))
             {
                 Debug.Log("アイテムが足りません");

@@ -25,13 +25,14 @@ namespace PPCore
         [Label("スキルタイプ")]
         [SerializeField] protected PPSkillType mSkillType;
         [Label("消費リソース")]
-        [SerializeField] protected float mRequiredResource = 10;
+        [SerializeField] protected PPResourceAmount[] mCost;
+        private PPResourceCost mCachedCost;
         
         public PPSkillType SkillType => mSkillType;
-        public float RequiredResource => mRequiredResource;
+        public PPResourceCost Cost => mCachedCost ??= PPResourceCost.From(mCost);
 
         // 一旦ベースと同じ 拡張があれば追加する
-        public virtual PPBattleSkill CreatePusherBattleSkill()
+        public override BattleSkill CreateRuntimeSkill()
         {
             var skill = new PPBattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffect());
             skill.SourceDefinition = this;

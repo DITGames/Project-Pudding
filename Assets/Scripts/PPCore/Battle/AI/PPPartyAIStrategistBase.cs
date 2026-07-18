@@ -19,6 +19,7 @@ namespace PPCore
     public class PPPartyAIStrategistBase : IPPPartyCommandStrategist
     {
         private readonly PPPartyAIProfileDefinition mProfile;
+        private PPResourceBudget mScoreBudget;
 
         public PPPartyAIStrategistBase(PPPartyAIProfileDefinition aProfile)
         {
@@ -30,13 +31,14 @@ namespace PPCore
         public PPPartyPlan PlanActions(BattleParty aSelf, BattleContext aContext)
         {
             if (aSelf is not PPBattleParty party)
-                return null;
+                return PPPartyPlan.Wait;
 
             var snap = PPPartyAIContext.Capture(party, aContext);
             if (snap.AliveMembers.Count == 0 || snap.AliveEnemies.Count == 0)
                 return PPPartyPlan.Wait;
 
-            var budget = new PPResourceBudget(snap.CurrentResources, mProfile.ReserveResources);
+            var budget = new PPResourceBudget(party.ResourcePool, mProfile.BaseReserve);
+            mScoreBudget = budget;
 
             // 候補の生成
             var candidates = GenerateCandidates(snap, aContext);
@@ -49,7 +51,7 @@ namespace PPCore
                 candidate.Score = Evaluate(candidate, snap);
             }
 
-            float waitScore = EvaluateWait(snap);
+            float waitScore = EvaluateWait(snap, mScoreBudget);
 
             candidates.Sort((x, y) => y.Score.CompareTo(x.Score));
 
@@ -104,7 +106,7 @@ namespace PPCore
                     {
                         Unit = u,
                         Role = PPBattleRole.Attacker,
-                        Cost = atkCost,
+                        Cost = PPResourceCost.BaseCost(atkCost),
                         Skill = null,
                         Target = tgt,
                         BuildCommand = _ => new PPAttackCommand(u, new SingleEnemyResolver(tgt)),
@@ -130,7 +132,7 @@ namespace PPCore
                     {
                         Unit = u,
                         Role = role,
-                        Cost = def.RequiredResource,
+                        Cost = def.Cost,
                         Skill = s,
                         Target = chosen,
                         BuildCommand = _ => new PPSkillCommand(u, s, BuildSkillResolver(scope, chosen)),
@@ -215,21 +217,33 @@ namespace PPCore
             float finishBias = aCandidate.Target != null
                 ? 1f - PPPartyAIContext.HpRatio(aCandidate.Target)
                 : skillScore.RangeSkillScore;
-            float aggr = mProfile.Aggression;
-            float value = mProfile.Weights.Skill * (skillScore.BaseScore + skillScore.HpRatioBias * finishBias) * aggr;
+            float value = mProfile.Weights.Skill * (skillScore.BaseScore + skillScore.HpRatioBias * finishBias) * mProfile.Aggression;
 
-            float threshold = aCandidate.Cost + Mathf.Max(1f, mProfile.SkillThreshold);
-            if (aSnap.CurrentResources < threshold)
+            if (!IsSkillResourceReady(aCandidate.Cost, aSnap))
+            {
                 value *= skillScore.ResourceRatioBias;
+            }
             return value * CostEfficiency(aCandidate.Cost);
+        }
+
+        protected bool IsSkillResourceReady(PPResourceCost aCost, PPPartyAIContext aSnap)
+        {
+            float mult = Mathf.Max(1f, mProfile.SkillThreshold);
+            for (int i = 0; i < PPResource.TypeCount; i++)
+            {
+                float need = aCost.Get(i);
+                if(need > 0f && aSnap.Current((PPResourceType)i) < need * mult)
+                    return false;
+            }
+            return true;
         }
 
         // サポートスコア評価
         protected float ScoreSupport(PPActionCandidate aCandidate, PPPartyAIContext aSnap)
         {
             var supportScore = mProfile.SupportScore;
-            float allies = Mathf.Clamp01(aSnap.AliveEnemies.Count / supportScore.MemberCountSocre);
-            return mProfile.Weights.Support * (supportScore.BaseScore + supportScore.MemberCountBias + allies) *
+            float allies = Mathf.Clamp01(aSnap.AliveMembers.Count / supportScore.MemberCountScore);
+            return mProfile.Weights.Support * (supportScore.BaseScore + supportScore.MemberCountBias * allies) *
                    CostEfficiency(aCandidate.Cost);
         }
 
@@ -244,21 +258,40 @@ namespace PPCore
         }
 
         // コストによるスコア減少率
-        protected float CostEfficiency(float aCost)
+        protected float CostEfficiency(PPResourceCost aCost)
         {
-            var costScore = mProfile.CostScore;
-            return aCost <= 0f
-                ? 1f
-                : Mathf.Clamp(costScore.HighCostDecreaseRate / (costScore.HighCostDecreaseRate + aCost),
-                    costScore.MinScore, 1f);
+            if(aCost == null || aCost.IsFree)
+                return 1f;
+            if(!mScoreBudget.CanAfford(aCost))
+                return 0f;
+            
+            var cs = mProfile.CostScore;
+            float oc = 0f;
+            float of = 0f;
+            for (int i = 0; i < PPResource.TypeCount; i++)
+            {
+                float paid = aCost.Get(i);
+                if (paid <= 0f)
+                    continue;
+                var t = (PPResourceType)i;
+                float fill = mScoreBudget.Fill(t);
+                float weight = (t == PPResourceType.Normal) ? mProfile.BaseCostWeight : 1f;
+                float unitPrice = Mathf.Lerp(cs.MinUnitPrice, cs.MaxUnitPrice, 1f - fill) * weight;
+                oc += paid * unitPrice;
+                oc += paid * Mathf.Max(0f, fill - mProfile.OverflowThreshold);
+            }
+            float avg = aCost.Total > 0f ? oc / aCost.Total : 0f;
+            float efficiency = Mathf.Clamp(cs.Efficiency - mProfile.CostSensitivity * avg, cs.MinScore, cs.Efficiency);
+            float overflowBonus = 1f + mProfile.OverflowWeight * (aCost.Total > 0f ? of / aCost.Total : 0f);
+            return efficiency * overflowBonus;
         }
 
         // 溜めスコア
-        protected float EvaluateWait(PPPartyAIContext aSnap)
+        protected float EvaluateWait(PPPartyAIContext aSnap, PPResourceBudget aBudget)
         {
             // パーティの傾向が温存型のほど評価を高くする
             float patience = mProfile.WaitBias * (1f - mProfile.Aggression);
-
+            float mult = Mathf.Max(1f, mProfile.SkillThreshold);
             float saveUrge = 0f;
             foreach (var unit in aSnap.AliveMembers)
             {
@@ -266,15 +299,23 @@ namespace PPCore
                 {
                     if (skill.SourceDefinition is not PPSkillDefinition def)
                         continue;
+                    // 攻撃以外は溜め対象に入れない
                     if (RoleOf(def) != PPBattleRole.Attacker)
                         continue;
-
-                    float threshold = def.RequiredResource * Mathf.Max(1f, mProfile.SkillThreshold);
-                    if (threshold <= 0f || aSnap.CurrentResources >= threshold)
+                    var cost = def.Cost;
+                    // すでに発動可能ならスルー
+                    if(cost.IsFree || aBudget.CanAfford(cost))
                         continue;
 
-                    float fill = aSnap.CurrentResources / threshold;
-                    saveUrge = Mathf.Max(saveUrge, fill);
+                    float worst = 1f;
+                    for (int i = 0; i < PPResource.TypeCount; i++)
+                    {
+                        float need = cost.Get(i) * mult;
+                        if(need < 0f)
+                            continue;
+                        worst = Mathf.Min(worst, Mathf.Clamp01(aBudget.Remaining((PPResourceType)i) / need));
+                    }
+                    saveUrge = Mathf.Max(saveUrge, worst);
                 }
             }
 
