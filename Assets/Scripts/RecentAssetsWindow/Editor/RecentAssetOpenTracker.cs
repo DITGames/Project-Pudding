@@ -14,8 +14,10 @@ namespace RecentAssetsWindow.Editor
     public static class RecentAssetOpenTracker
     {
         // Unityがアセットを「開く」動作(ダブルクリック等)を行うたびに呼び出される。
-        // falseを返すことでUnity標準のオープン処理はそのまま継続させ、記録のみを行う
-        [OnOpenAsset(0)]
+        // falseを返すことでUnity標準のオープン処理はそのまま継続させ、記録のみを行う。
+        // ShaderGraph等、order=0で登録されたうえtrueを返す(=以降のコールバックを打ち切る)
+        // OnOpenAssetが存在するため、それより確実に先に呼ばれるよう小さいorder値にしている
+        [OnOpenAsset(-100)]
         private static bool OnOpenAsset(int aInstanceID, int aLine)
         {
             // GetAssetPath(int)はUnity6でEntityId版に置き換えられ非推奨警告(CS0618)が出るため、

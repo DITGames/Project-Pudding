@@ -54,6 +54,16 @@ namespace RecentAssetsWindow.Editor
             OnChanged?.Invoke();
         }
 
+        // 指定GUIDのエントリのみを履歴から取り除く(コンテキストメニューの「履歴から削除」用)
+        public static void Remove(string aGuid)
+        {
+            if (Entries.RemoveAll(aEntry => aEntry.Guid == aGuid) > 0)
+            {
+                Save();
+                OnChanged?.Invoke();
+            }
+        }
+
         // 削除・移動されて実体が存在しないアセットを履歴から取り除く
         public static void RemoveMissing()
         {
