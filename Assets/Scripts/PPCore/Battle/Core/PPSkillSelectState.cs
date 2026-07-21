@@ -46,7 +46,7 @@ namespace PPCore
             mOwner.Context.Skill = aSkill;
             mOwner.Context.TargetScope = scope;
             mOwner.Context.CommandBuilder = tgt =>
-                new SkillCommand(unit, aSkill, mOwner.BuildResolver(aSkill.DefaultTargetResolver, tgt));
+                new PPSkillCommand(unit, aSkill, mOwner.BuildResolver(aSkill.DefaultTargetResolver, tgt));
 
             // スキルの効果対象によってターゲット選択と行動決定を分岐
             if(PPTargeting.NeedsManualTarget(scope))

@@ -11,6 +11,6 @@ namespace PPCore
 {
     public interface IPPCoinGainNotifier
     {
-        event Action<int> OnCoinGained;
+        event Action<PPResourceType, int> OnCoinGained;
     }
 }

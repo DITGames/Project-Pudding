@@ -19,7 +19,7 @@ namespace PPCore
         public event Action Changed;
 
         public string DisplayName => mSkill.DisplayName;
-        public int Cost => (mSkill.SourceDefinition as PPSkillDefinition)?.RequiredCoin ?? 0;
+        public PPResourceCost Cost => (mSkill.SourceDefinition as PPSkillDefinition)?.Cost ?? PPResourceCost.Free;
         public int CooldownRemaining => mSkill.RemainingCooldown;
         public bool IsCastable => mContext.Rules.CastValidator.Validate(mOwner, mSkill, mContext).CanCast;
 
@@ -31,16 +31,26 @@ namespace PPCore
             
             mParty = aContext.GetParty(aOwner.Side) as PPBattleParty;
             if (mParty != null)
-                mParty.ResourcePool.CoinResource.OnValueChanged += HandleCoinChanged;
+            {
+                foreach(var t in Cost.RelevantTypes())
+                {
+                    mParty.ResourcePool.Pool(t).OnValueChanged += HandleChanged;
+                }
+            }
         }
         
-        private void HandleCoinChanged(IReadableParameter _) => Changed?.Invoke();
+        private void HandleChanged(IReadableParameter _) => Changed?.Invoke();
 
         // メニュー破棄時に呼び出す(購読によるメモリリーク防止用)
         public void Dispose()
         {
-            if(mParty != null)
-                mParty.ResourcePool.CoinResource.OnValueChanged -= HandleCoinChanged;
+            if (mParty != null)
+            {
+                foreach(var t in Cost.RelevantTypes())
+                {
+                    mParty.ResourcePool.Pool(t).OnValueChanged -= HandleChanged;
+                }
+            }
         }
         
     }

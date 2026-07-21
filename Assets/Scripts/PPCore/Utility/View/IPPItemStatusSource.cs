@@ -13,7 +13,7 @@ namespace PPCore
     {
         string DisplayName { get; }
         int Count { get; }
-        int Cost { get; }
+        PPResourceCost Cost { get; }
         bool IsUsable { get; }
         event Action Changed;
     }

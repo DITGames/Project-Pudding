@@ -33,7 +33,7 @@ namespace PPCore
                 return CastValidation.Fail(CastFailReason.InvalidParty);
             }
             // コスト不足
-            if (!party.ResourcePool.CanConsumeResource(def.RequiredCoin))
+            if (!party.ResourcePool.CanPay(def.Cost))
             {
                 return CastValidation.Fail(CastFailReason.NotEnoughResource);
             }

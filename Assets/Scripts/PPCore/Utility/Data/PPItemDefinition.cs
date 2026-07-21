@@ -18,13 +18,13 @@ namespace PPCore
         [Label("表示名")][SerializeField] private string mDisplayName;
         [Label("アイコン")][SerializeField] private Sprite mIcon;
         [Label("対象")][SerializeField] private TargetScope mTarget = TargetScope.SingleAlly;
-        [Label("消費コイン")] [SerializeField] private int mCost;
+        [Label("コスト")] [SerializeField] private PPResourceCost mCost;
         
         public string ItemId => mItemId;
         public string DisplayName => mDisplayName;
         public Sprite Icon => mIcon;
         public TargetScope Target => mTarget;
-        public int Cost => mCost;
+        public PPResourceCost Cost => mCost;
         
         public abstract void Use(BattleUnit aSource, List<BattleUnit> aTargets, BattleContext aContext);
     }

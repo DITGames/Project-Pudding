@@ -18,11 +18,11 @@ namespace PPCore
         public event Action Changed;
         
         public string DisplayName => mDefinition.DisplayName;
-        public int Cost => mDefinition.Cost;
+        public PPResourceCost Cost => mDefinition.Cost;
         public int Count => mParty.Inventory.CountOf(mDefinition);
 
         public bool IsUsable =>
-            mParty.ResourcePool.CanConsumeResource(mDefinition.Cost) && Count > 0;
+            mParty.ResourcePool.CanPay(mDefinition.Cost) && Count > 0;
         
 
         public PPItemStatusSource(PPItemDefinition aDefinition, PPBattleParty aParty)

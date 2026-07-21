@@ -20,7 +20,7 @@ namespace PPCore
             // PP専用の攻撃コマンドをベースで追加
             var options = new List<BattleCommandBase>
             {
-                new PPBattleAttackCommand(aSelf as PPBattleUnit, new RandomEnemyResolver())
+                new PPAttackCommand(aSelf as PPBattleUnit, new RandomEnemyResolver())
             };
 
             foreach (var skill in aSelf.Skills)
@@ -28,7 +28,7 @@ namespace PPCore
                 if (aContext.Rules.CastValidator.Validate(aSelf, skill, aContext).CanCast)
                 {
                     // 継承クラスを追加する予定
-                    options.Add(new SkillCommand(aSelf, skill));
+                    options.Add(new PPSkillCommand(aSelf, skill));
                 }
             }
             
