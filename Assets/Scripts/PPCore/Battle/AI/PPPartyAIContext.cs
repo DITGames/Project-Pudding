@@ -25,11 +25,16 @@ namespace PPCore
         public PPBattleUnit LowestHpEnemy { get; private set; }
         public PPBattleUnit LowestHpRatioAlly { get; private set; }
         public float LowestAllyHpRatio { get; private set; } = 1f;
+        
+        public float PartyHpRatio { get; private set; } = 0f;
 
         public static PPPartyAIContext Capture(PPBattleParty aParty, BattleContext aContext)
         {
             var snap = new PPPartyAIContext { Party = aParty, Context = aContext };
             snap.ResourcePool = aParty.ResourcePool;
+            
+            float sumCur = 0f;
+            float sumMax = 0f;
             
             // 味方パーティの集計
             foreach (var u in aParty.ActiveMembers)
@@ -38,6 +43,9 @@ namespace PPCore
                     continue;
                 snap.AliveMembers.Add(pp);
                 
+                sumCur += pp.Parameters.Hp.CurrentValue;
+                sumMax += pp.Parameters.Hp.Max.CurrentValue;
+                
                 float ratio = HpRatio(pp);
                 if (ratio < snap.LowestAllyHpRatio)
                 {
@@ -45,6 +53,10 @@ namespace PPCore
                     snap.LowestHpRatioAlly = pp;
                 }
             }
+            
+            // %変換
+            snap.PartyHpRatio = sumMax > 0f ? sumCur / sumMax : 0f;
+            snap.PartyHpRatio *= 100;
             
             // 敵パーティの集計
             var opponent = ReferenceEquals(aParty, aContext.EnemyParty)
