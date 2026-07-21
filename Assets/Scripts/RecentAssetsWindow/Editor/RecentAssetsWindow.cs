@@ -5,7 +5,8 @@
  * @date 2026/07/10
  * @brief 最近開いたアセットの履歴を表示するウィンドウ
  * 種類によるフィルタリングと文字列検索に対応し、
- * 一覧のダブルクリックでアセットを開くことができる
+ * 一覧のダブルクリックでアセットを開くことができる。
+ * 右クリックで「表示」「フォルダに移動」「履歴から削除」のコンテキストメニューを表示する
  * =====================================*/
 using System.Collections.Generic;
 using System.IO;
@@ -157,6 +158,18 @@ namespace RecentAssetsWindow.Editor
                 return;
             }
 
+            if (Event.current.button == 1)
+            {
+                ShowContextMenu(aEntry);
+                Event.current.Use();
+                return;
+            }
+
+            if (Event.current.button != 0)
+            {
+                return;
+            }
+
             var obj = AssetDatabase.LoadMainAssetAtPath(aEntry.Path);
             if (obj == null)
             {
@@ -173,6 +186,37 @@ namespace RecentAssetsWindow.Editor
                 Selection.activeObject = obj;
                 EditorGUIUtility.PingObject(obj);
             }
+        }
+
+        private void ShowContextMenu(DisplayEntry aEntry)
+        {
+            var menu = new GenericMenu();
+            menu.AddItem(new GUIContent("表示"), false, () => OpenEntry(aEntry));
+            menu.AddItem(new GUIContent("フォルダに移動"), false, () => ShowEntryInProjectView(aEntry));
+            menu.AddItem(new GUIContent("履歴から削除"), false, () => RecentAssetsHistory.Remove(aEntry.Guid));
+            menu.ShowAsContext();
+        }
+
+        private static void OpenEntry(DisplayEntry aEntry)
+        {
+            var obj = AssetDatabase.LoadMainAssetAtPath(aEntry.Path);
+            if (obj != null)
+            {
+                AssetDatabase.OpenAsset(obj);
+            }
+        }
+
+        // ProjectビューでアセットをハイライトさせるためSelection変更後にPingObjectを呼ぶ
+        private static void ShowEntryInProjectView(DisplayEntry aEntry)
+        {
+            var obj = AssetDatabase.LoadMainAssetAtPath(aEntry.Path);
+            if (obj == null)
+            {
+                return;
+            }
+
+            Selection.activeObject = obj;
+            EditorGUIUtility.PingObject(obj);
         }
 
         private void RebuildDisplayEntries()
