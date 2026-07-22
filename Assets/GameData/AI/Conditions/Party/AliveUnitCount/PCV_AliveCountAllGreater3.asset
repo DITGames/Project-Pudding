@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7ee673a0c7a8e4e4280b79e983668cd3, type: 3}
-  m_Name: PCV_AliveCountAllyLess1 2
+  m_Name: PCV_AliveCountAllGreater3
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPAliveUnitCountCondition
-  mDescription: "\u5473\u65B9\u306E\u751F\u5B58\u30E6\u30CB\u30C3\u30C8\u6570\u304C2\u4F53\u4EE5\u4E0B"
-  ConditionType: 0
-  Op: 3
-  Threshold: 2
+  mDescription: "\u5168\u4F53\u306E\u751F\u5B58\u30E6\u30CB\u30C3\u30C8\u6570\u304C3\u4F53\u4EE5\u4E0A"
+  ConditionType: 2
+  Op: 2
+  Threshold: 3

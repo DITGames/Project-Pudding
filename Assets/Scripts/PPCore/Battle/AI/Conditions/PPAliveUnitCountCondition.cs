@@ -40,7 +40,7 @@ namespace PPCore
         };
         
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var tgt = GetTargetString();
             var op = GetOpString(Op);

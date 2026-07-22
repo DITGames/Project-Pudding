@@ -28,7 +28,7 @@ namespace PPCore
          => PPConditionMath.Compare(aSnapShot.Current(ResourceType), Op, Threshold, Tolerance);
 
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var resource = GetResourceTypeString(ResourceType) + $"リソースが{Threshold}";
             var op = GetOpString(Op);

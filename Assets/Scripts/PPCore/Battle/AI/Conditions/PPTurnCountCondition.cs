@@ -23,7 +23,7 @@ namespace PPCore
          => PPConditionMath.Compare(aSnapShot.Context.TurnCount, Op, Threshold);
 
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var prefix = $"経過ターン数が{Threshold}ターン";
             var op = GetOpString(Op);

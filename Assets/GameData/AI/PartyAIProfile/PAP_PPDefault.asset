@@ -33,7 +33,22 @@ MonoBehaviour:
     Support: 0
     Heal: 2
     Default: 3
-  Rules: []
+  Rules:
+  - Name: "\u30B9\u30AD\u30EB&\u653B\u6483\u512A\u5148"
+    Conditions:
+    - {fileID: 11400000, guid: deabd6d39626b264b811a2dcba109fcc, type: 2}
+    Score:
+      Attack: 1.5
+      Skill: 2
+      Support: 1
+      Heal: 1
+      Wait: 1
+  DefaultScore:
+    Attack: 1
+    Skill: 1
+    Support: 1
+    Heal: 1
+    Wait: 1
   AttackScore:
     BaseScore: 0.6
     HpRatioBias: 0.8
