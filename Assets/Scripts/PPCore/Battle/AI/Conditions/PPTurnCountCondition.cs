@@ -11,7 +11,9 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPTurnCountCondition", menuName = "Project-Pudding/AI/Conditions/経過ターン数")]
+    [PPConditionMenu("進行/経過ターン数", "Progress/TurnCount")]
+    [CreateAssetMenu(fileName = "PPTurnCountCondition",
+        menuName = "Project-Pudding/AI/Conditions/経過ターン数")]
     public sealed class PPTurnCountCondition : PPPartyConditionValidator
     {
         [Label("比較")] public PPCompareOp Op = PPCompareOp.Equal;

@@ -6,6 +6,7 @@
  * @brief 敵パーティAIの性格定義
  * =====================================*/
 using System;
+using System.Collections.Generic;
 using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -85,6 +86,24 @@ namespace PPCore
         [Label("基礎スコア")] public float BaseScore = 0.4f;
         [Label("温存バイアス")] public float SaveBias = 0.8f;
     }
+
+    [Serializable]
+    public sealed class PPAISituationScore
+    {
+        [Label("攻撃倍率")] [Range(0f, 10f)] public float Attack = 1f;
+        [Label("スキル倍率")] [Range(0f, 10f)] public float Skill = 1f;
+        [Label("サポート倍率")] [Range(0f, 10f)] public float Support = 1f;
+        [Label("回復倍率")] [Range(0f, 10f)] public float Heal = 1f;
+        [Label("待機倍率")] [Range(0f, 10f)] public float Wait = 1f;
+    }
+
+    [Serializable]
+    public sealed class PPPartyAISituationRule
+    {
+        [Label("ルール名")] public string Name = "New Situation";
+        [Label("条件リスト", true)] public List<PPPartyConditionValidator> Conditions = new();
+        [Label("成立時スコア")] public PPAISituationScore Score = new();
+    }
     
     
     [CreateAssetMenu(fileName = "PPPartyAIProfileDefinition", menuName = "Project-Pudding/AI/PPPartyAIProfileDefinition")]
@@ -110,6 +129,13 @@ namespace PPCore
         [Header("ロール")]
         [Label("重み")] public PPRoleWeights Weights = new PPRoleWeights();
         [Label("行動順")] public PPRoleOrder Order = new PPRoleOrder();
+        
+        [Header("状況")]
+        [Label("状況リスト (上のほうが評価優先度が高い)", true)]
+        public List<PPPartyAISituationRule> Rules = new();
+        [Label("デフォルト行動スコア")]
+        public PPAISituationScore DefaultScore = new();
+        
         
         [Header("スコア")]
         [Label("攻撃スコア")] public PPAIAttackScore AttackScore = new PPAIAttackScore();

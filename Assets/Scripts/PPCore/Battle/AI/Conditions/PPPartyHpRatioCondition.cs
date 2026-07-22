@@ -11,6 +11,7 @@ using UnityEngine;
 
 namespace PPCore
 {
+    [PPConditionMenu("パーティ状態/HP割合", "Party/HpRatio")]
     [CreateAssetMenu(fileName = "PPPartyHpRatioCondition",
         menuName = "Project-Pudding/AI/Conditions/パーティHP割合")]
     public sealed class PPPartyHpRatioCondition : PPPartyConditionValidator

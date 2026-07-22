@@ -11,7 +11,9 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPResourceAmountCondition", menuName = "Project-Pudding/AI/Conditions/リソース残量(絶対値)")]
+    [PPConditionMenu("リソース/残量(絶対値)", "Resources/Amount")]
+    [CreateAssetMenu(fileName = "PPResourceAmountCondition",
+        menuName = "Project-Pudding/AI/Conditions/リソース残量(絶対値)")]
     public sealed class PPResourceAmountCondition : PPPartyConditionValidator
     {
         [Label("対象リソース")] public PPResourceType ResourceType = PPResourceType.Normal;

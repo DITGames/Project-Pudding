@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.ExceptionServices;
 using CommandBattleCore;
+using CustomConsole;
 using UnityEngine;
 using UnityEngine.Accessibility;
 using UnityEngine.Analytics;
@@ -20,6 +21,8 @@ namespace PPCore
     {
         private readonly PPPartyAIProfileDefinition mProfile;
         private PPResourceBudget mScoreBudget;
+        
+        public string LastResolvedRuleName {get; private set;} = "Default";
 
         public PPPartyAIStrategistBase(PPPartyAIProfileDefinition aProfile)
         {
@@ -39,6 +42,8 @@ namespace PPCore
 
             var budget = new PPResourceBudget(party.ResourcePool, mProfile.BaseReserve);
             mScoreBudget = budget;
+            
+            var situation = ResolveSituation(snap);
 
             // 候補の生成
             var candidates = GenerateCandidates(snap, aContext);
@@ -84,6 +89,35 @@ namespace PPCore
             }
 
             return picks.Count == 0 ? PPPartyPlan.Wait : new PPPartyPlan(picks);
+        }
+
+        protected PPAISituationScore ResolveSituation(PPPartyAIContext aSnap)
+        {
+            var resolved = mProfile.DefaultScore;
+            LastResolvedRuleName = "Default";
+            foreach (var rule in mProfile.Rules)
+            {
+                if(rule == null || rule.Conditions == null || rule.Conditions.Count == 0)
+                    continue;
+                
+                bool allMath = true;
+                foreach (var condition in rule.Conditions)
+                {
+                    if (condition == null || !condition.Evaluate(aSnap))
+                    {
+                        allMath = false;
+                        break;
+                    }
+                }
+
+                if (allMath)
+                {
+                    LastResolvedRuleName = string.IsNullOrEmpty(rule.Name) ? "(Unnamed)" : rule.Name;
+                    resolved = rule.Score;
+                }
+            }
+            CustomConsoleLog.Log("AISituation", $"SelectedRuleName: {LastResolvedRuleName}");
+            return resolved;
         }
 
         // 行動の候補生成
