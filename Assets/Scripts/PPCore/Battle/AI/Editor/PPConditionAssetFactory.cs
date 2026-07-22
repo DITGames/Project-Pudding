@@ -47,7 +47,7 @@ namespace PPCore
             
             string[] parts = aPath.Split('/');
             string current = parts[0];
-            for (int i = 0; i < parts.Length; i++)
+            for (int i = 1; i < parts.Length; i++)
             {
                 string next = $"{current}/{parts[i]}";
                 if (!AssetDatabase.IsValidFolder(next))

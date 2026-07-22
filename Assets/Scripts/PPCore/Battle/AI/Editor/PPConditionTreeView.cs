@@ -16,14 +16,17 @@ namespace PPCore
 {
     internal sealed class PPConditionTreeView : TreeView<int>
     {
-        private readonly Action<Type> mOnPick;
+        private readonly Action<Type> mOnPickType;
+        private readonly Action<PPPartyConditionValidator> mOnPickAsset;
         private readonly Dictionary<int, Type> mIdToType = new();
+        private readonly Dictionary<int, PPPartyConditionValidator> mIdToAsset = new();
         private int mNextFolderId = -2;
 
-        public PPConditionTreeView(TreeViewState<int> aState, Action<Type> aOnPick)
+        public PPConditionTreeView(TreeViewState<int> aState, Action<Type> aOnPickType, Action<PPPartyConditionValidator> aOnPickAsset)
             : base(aState)
         {
-            mOnPick = aOnPick;
+            mOnPickType = aOnPickType;
+            mOnPickAsset = aOnPickAsset;
             showAlternatingRowBackgrounds = true;
             Reload();
         }
@@ -33,6 +36,7 @@ namespace PPCore
             var root = new TreeViewItem<int>(-1, -1, "root");
             var folders = new Dictionary<string, TreeViewItem<int>>();
             mIdToType.Clear();
+            mIdToAsset.Clear();
             int nextLeafId = 0;
 
             foreach (var type in TypeCache.GetTypesDerivedFrom<PPPartyConditionValidator>())
@@ -67,6 +71,23 @@ namespace PPCore
                 };
                 parent.AddChild(leaf);
                 mIdToType[leafId] = type;
+
+                // 既に作成済みのアセットがあれば子として一覧表示し、既存アセットの再利用を選べるようにする
+                foreach (var guid in AssetDatabase.FindAssets($"t:{type.Name}"))
+                {
+                    string assetPath = AssetDatabase.GUIDToAssetPath(guid);
+                    var asset = AssetDatabase.LoadAssetAtPath<PPPartyConditionValidator>(assetPath);
+                    if (asset == null || asset.GetType() != type) continue;
+
+                    int assetId = nextLeafId++;
+                    string label = !string.IsNullOrEmpty(asset.Description) ? asset.Description : asset.name;
+                    var assetLeaf = new TreeViewItem<int>(assetId, 0, label)
+                    {
+                        icon = LoadIcon("ScriptableObject On Icon")
+                    };
+                    leaf.AddChild(assetLeaf);
+                    mIdToAsset[assetId] = asset;
+                }
             }
             
             if (!root.hasChildren)
@@ -78,8 +99,14 @@ namespace PPCore
         
         protected override void DoubleClickedItem(int aId)
         {
+            if (mIdToAsset.TryGetValue(aId, out var asset))
+            {
+                mOnPickAsset?.Invoke(asset);
+                return;
+            }
+
             if (mIdToType.TryGetValue(aId, out var type))
-                mOnPick?.Invoke(type);
+                mOnPickType?.Invoke(type);
         }
 
         private static Texture2D LoadIcon(string aName)

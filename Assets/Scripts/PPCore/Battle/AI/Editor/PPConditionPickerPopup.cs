@@ -14,19 +14,20 @@ namespace PPCore
 {
     public sealed class PPConditionPickerPopup : PopupWindowContent
     {
-        private readonly Action<Type> mOnSelected;
+        private readonly Action<PPPartyConditionValidator> mOnSelected;
         private readonly PPConditionTreeView mTreeView;
         private readonly TreeViewState<int> mTreeViewState = new();
         private readonly SearchField mSearchField = new();
 
-        private PPConditionPickerPopup(Action<Type> aOnSelected)
+        private PPConditionPickerPopup(Action<PPPartyConditionValidator> aOnSelected)
         {
             mOnSelected = aOnSelected;
-            mTreeView = new PPConditionTreeView(mTreeViewState, OnTypePicked);
+            mTreeView = new PPConditionTreeView(mTreeViewState, OnTypePicked, OnAssetPicked);
             mTreeView.ExpandAll();
         }
 
-        public static void Show(Rect aActivatorRect, Action<Type> aOnSelected)
+        // 型を選んだ場合は新規アセットを作成し、既存アセットを選んだ場合はそれをそのまま使う
+        public static void Show(Rect aActivatorRect, Action<PPPartyConditionValidator> aOnSelected)
             => PopupWindow.Show(aActivatorRect, new PPConditionPickerPopup(aOnSelected));
 
         public override Vector2 GetWindowSize() => new Vector2(320f, 360f);
@@ -43,7 +44,15 @@ namespace PPCore
 
         private void OnTypePicked(Type aType)
         {
-            mOnSelected?.Invoke(aType);
+            var asset = PPConditionAssetFactory.CreateAndSave(aType);
+            if (asset != null)
+                mOnSelected?.Invoke(asset);
+            editorWindow.Close();
+        }
+
+        private void OnAssetPicked(PPPartyConditionValidator aAsset)
+        {
+            mOnSelected?.Invoke(aAsset);
             editorWindow.Close();
         }
     }
