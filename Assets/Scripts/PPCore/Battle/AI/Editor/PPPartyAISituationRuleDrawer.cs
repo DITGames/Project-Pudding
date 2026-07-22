@@ -88,9 +88,8 @@ namespace PPCore
             {
                 var anchor = mAddButtonRectCache.TryGetValue(aKey, out var rect) ? rect : new Rect(0, 0, 1, 1);
 
-                PPConditionPickerPopup.Show(anchor, selectedType =>
+                PPConditionPickerPopup.Show(anchor, asset =>
                 {
-                    var asset = PPConditionAssetFactory.CreateAndSave(selectedType);
                     if (asset == null) return;
 
                     int index = aConditionsProp.arraySize;
