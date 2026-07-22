@@ -11,7 +11,9 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPResourceRatioCondition", menuName = "Project-Pudding/AI/Conditions/リソース割合")]
+    [PPConditionMenu("リソース/残量(割合)", "Resources/Ratio")]
+    [CreateAssetMenu(fileName = "PPResourceRatioCondition",
+        menuName = "Project-Pudding/AI/Conditions/リソース割合")]
     public sealed class PPResourceRatioCondition : PPPartyConditionValidator
     {
         [Label("対象リソース")] public PPResourceType ResourceType = PPResourceType.Normal;
@@ -30,7 +32,7 @@ namespace PPCore
         }
         
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var resource = GetResourceTypeString(ResourceType) + $"リソースが{Threshold}%";
             var op = GetOpString(Op);

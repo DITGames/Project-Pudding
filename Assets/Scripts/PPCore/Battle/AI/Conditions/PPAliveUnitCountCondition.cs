@@ -21,7 +21,9 @@ namespace PPCore
         All,
     }
     
-    [CreateAssetMenu(fileName = "PPAllyAliveCountCondition", menuName = "Project-Pudding/AI/Conditions/ユニット生存数")]
+    [PPConditionMenu("パーティ状態/ユニット生存数", "Party/AliveUnitCount")]
+    [CreateAssetMenu(fileName = "PPAllyAliveCountCondition",
+        menuName = "Project-Pudding/AI/Conditions/ユニット生存数")]
     public sealed class PPAliveUnitCountCondition : PPPartyConditionValidator
     {
         [Label("対象")] public PPAliveUnitCountConditionType ConditionType = PPAliveUnitCountConditionType.Ally; 
@@ -38,7 +40,7 @@ namespace PPCore
         };
         
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var tgt = GetTargetString();
             var op = GetOpString(Op);

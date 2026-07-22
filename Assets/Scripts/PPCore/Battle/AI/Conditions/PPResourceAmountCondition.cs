@@ -11,7 +11,9 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPResourceAmountCondition", menuName = "Project-Pudding/AI/Conditions/リソース残量(絶対値)")]
+    [PPConditionMenu("リソース/残量(絶対値)", "Resources/Amount")]
+    [CreateAssetMenu(fileName = "PPResourceAmountCondition",
+        menuName = "Project-Pudding/AI/Conditions/リソース残量(絶対値)")]
     public sealed class PPResourceAmountCondition : PPPartyConditionValidator
     {
         [Label("対象リソース")] public PPResourceType ResourceType = PPResourceType.Normal;
@@ -26,7 +28,7 @@ namespace PPCore
          => PPConditionMath.Compare(aSnapShot.Current(ResourceType), Op, Threshold, Tolerance);
 
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var resource = GetResourceTypeString(ResourceType) + $"リソースが{Threshold}";
             var op = GetOpString(Op);

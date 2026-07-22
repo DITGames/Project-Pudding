@@ -11,7 +11,9 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPTurnCountCondition", menuName = "Project-Pudding/AI/Conditions/経過ターン数")]
+    [PPConditionMenu("進行/経過ターン数", "Progress/TurnCount")]
+    [CreateAssetMenu(fileName = "PPTurnCountCondition",
+        menuName = "Project-Pudding/AI/Conditions/経過ターン数")]
     public sealed class PPTurnCountCondition : PPPartyConditionValidator
     {
         [Label("比較")] public PPCompareOp Op = PPCompareOp.Equal;
@@ -21,7 +23,7 @@ namespace PPCore
          => PPConditionMath.Compare(aSnapShot.Context.TurnCount, Op, Threshold);
 
         [ContextMenu("説明文を生成")]
-        protected override void BuildString()
+        protected override void BuildDescription()
         {
             var prefix = $"経過ターン数が{Threshold}ターン";
             var op = GetOpString(Op);

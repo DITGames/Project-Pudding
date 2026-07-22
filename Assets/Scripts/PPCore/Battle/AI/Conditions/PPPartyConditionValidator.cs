@@ -35,7 +35,7 @@ namespace PPCore
                 _ => ""
             };
 
-        protected virtual void BuildString()
+        protected virtual void BuildDescription()
         {
         }
         

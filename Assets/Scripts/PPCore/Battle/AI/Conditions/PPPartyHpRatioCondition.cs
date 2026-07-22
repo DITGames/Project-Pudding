@@ -11,6 +11,7 @@ using UnityEngine;
 
 namespace PPCore
 {
+    [PPConditionMenu("パーティ状態/HP割合", "Party/HpRatio")]
     [CreateAssetMenu(fileName = "PPPartyHpRatioCondition",
         menuName = "Project-Pudding/AI/Conditions/パーティHP割合")]
     public sealed class PPPartyHpRatioCondition : PPPartyConditionValidator
@@ -26,7 +27,8 @@ namespace PPCore
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         => PPConditionMath.Compare(aSnapShot.PartyHpRatio, Op, Threshold, Tolerance);
 
-        protected override void BuildString()
+        [ContextMenu("説明文を生成")]
+        protected override void BuildDescription()
         {
             var prefix = "HPが";
             var ratio = Threshold + "%";
@@ -35,7 +37,7 @@ namespace PPCore
 
             if (Op == PPCompareOp.Equal || Op == PPCompareOp.NotEqual)
             {
-                mDescription += $" 許容値({Tolerance}%))";
+                mDescription += $" 許容値({Tolerance}%)";
             }
         }
         
