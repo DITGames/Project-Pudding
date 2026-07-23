@@ -53,7 +53,7 @@ namespace PPCore
             // スコア集計
             foreach (var candidate in candidates)
             {
-                candidate.Score = Evaluate(candidate, snap);
+                candidate.Score = Evaluate(candidate, snap, situation);
             }
 
             float waitScore = EvaluateWait(snap, mScoreBudget);
@@ -221,43 +221,48 @@ namespace PPCore
         }
 
         // スコア評価
-        protected float Evaluate(PPActionCandidate aCandidate, PPPartyAIContext aSnap)
+        protected float Evaluate(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aScore)
             => aCandidate.Role switch
             {
-                PPBattleRole.Attacker when aCandidate.Skill == null => ScoreBasicAttack(aCandidate, aSnap),
-                PPBattleRole.Attacker => ScoreSkillAttack(aCandidate, aSnap),
-                PPBattleRole.Supporter => ScoreSupport(aCandidate, aSnap),
-                PPBattleRole.Healer => ScoreHeal(aCandidate, aSnap),
+                PPBattleRole.Attacker when aCandidate.Skill == null => ScoreBasicAttack(aCandidate, aSnap, aScore),
+                PPBattleRole.Attacker => ScoreSkillAttack(aCandidate, aSnap, aScore),
+                PPBattleRole.Supporter => ScoreSupport(aCandidate, aSnap, aScore),
+                PPBattleRole.Healer => ScoreHeal(aCandidate, aSnap, aScore),
                 _ => 0f
             };
 
-        // 通常攻撃スコア評価
-        protected float ScoreBasicAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap)
+        protected float ScoreWeighted(float aWeight, float aSituationMul, float aBaseScore, float aBias, float aFactor,
+            bool aUseAggression, PPResourceCost aCost)
         {
-            var attackScore = mProfile.AttackScore;
+            float raw = aBaseScore + aBias * aFactor;
+            float aggr = aUseAggression ? mProfile.Aggression : 1f;
+            return aWeight * aSituationMul * raw * aggr * CostEfficiency(aCost);
+        }
 
-            // HPが削れている敵ほど高スコアとして扱う
+        // 通常攻撃スコア評価
+        protected float ScoreBasicAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
+        {
+            var s = mProfile.AttackScore;
             float finishBias = 1f - PPPartyAIContext.HpRatio(aCandidate.Target);
-            float aggr = mProfile.Aggression;
-            return mProfile.Weights.Attack * (attackScore.BaseScore + attackScore.HpRatioBias * finishBias) * aggr *
-                   CostEfficiency(aCandidate.Cost);
+            return ScoreWeighted(mProfile.Weights.Attack, aSituation.Attack, s.BaseScore, s.HpRatioBias, finishBias, true, aCandidate.Cost);
         }
 
         // スキルスコア評価
-        protected float ScoreSkillAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap)
+        protected float ScoreSkillAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
-            var skillScore = mProfile.SkillScore;
+            var s = mProfile.SkillScore;
 
             float finishBias = aCandidate.Target != null
                 ? 1f - PPPartyAIContext.HpRatio(aCandidate.Target)
-                : skillScore.RangeSkillScore;
-            float value = mProfile.Weights.Skill * (skillScore.BaseScore + skillScore.HpRatioBias * finishBias) * mProfile.Aggression;
+                : s.RangeSkillScore;
+            
+            float score = ScoreWeighted(mProfile.Weights.Skill, aSituation.Skill, s.BaseScore, s.HpRatioBias, finishBias, true, aCandidate.Cost);
 
             if (!IsSkillResourceReady(aCandidate.Cost, aSnap))
             {
-                value *= skillScore.ResourceRatioBias;
+                score *= s.ResourceRatioBias;
             }
-            return value * CostEfficiency(aCandidate.Cost);
+            return score;
         }
 
         protected bool IsSkillResourceReady(PPResourceCost aCost, PPPartyAIContext aSnap)
@@ -273,22 +278,22 @@ namespace PPCore
         }
 
         // サポートスコア評価
-        protected float ScoreSupport(PPActionCandidate aCandidate, PPPartyAIContext aSnap)
+        protected float ScoreSupport(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
-            var supportScore = mProfile.SupportScore;
-            float allies = Mathf.Clamp01(aSnap.AliveMembers.Count / supportScore.MemberCountScore);
-            return mProfile.Weights.Support * (supportScore.BaseScore + supportScore.MemberCountBias * allies) *
-                   CostEfficiency(aCandidate.Cost);
+            var s = mProfile.SupportScore;
+            float allies = Mathf.Clamp01(aSnap.AliveMembers.Count / s.MemberCountScore);
+            return ScoreWeighted(mProfile.Weights.Support, aSituation.Support, s.BaseScore, s.MemberCountBias, allies, false, aCandidate.Cost);
         }
 
         // 回復スコア評価
-        protected float ScoreHeal(PPActionCandidate aCandidate, PPPartyAIContext aSnap)
+        protected float ScoreHeal(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
-            var healScore = mProfile.HealScore;
+            var s = mProfile.HealScore;
             float severity = 1f - aSnap.LowestAllyHpRatio;
-            if (severity < healScore.Threshold) return 0f;
-            float urgency = severity * severity * healScore.HpRatioBias;
-            return mProfile.Weights.Heal * urgency * CostEfficiency(aCandidate.Cost);
+            if (severity < s.Threshold) return 0f;
+            
+            float urgency = severity * severity;
+            return ScoreWeighted(mProfile.Weights.Heal, aSituation.Heal, 0f, s.HpRatioBias, urgency, false, aCandidate.Cost);
         }
 
         // コストによるスコア減少率
@@ -300,24 +305,10 @@ namespace PPCore
                 return 0f;
             
             var cs = mProfile.CostScore;
-            float oc = 0f;
-            float of = 0f;
-            for (int i = 0; i < PPResource.TypeCount; i++)
-            {
-                float paid = aCost.Get(i);
-                if (paid <= 0f)
-                    continue;
-                var t = (PPResourceType)i;
-                float fill = mScoreBudget.Fill(t);
-                float weight = (t == PPResourceType.Normal) ? mProfile.BaseCostWeight : 1f;
-                float unitPrice = Mathf.Lerp(cs.MinUnitPrice, cs.MaxUnitPrice, 1f - fill) * weight;
-                oc += paid * unitPrice;
-                oc += paid * Mathf.Max(0f, fill - mProfile.OverflowThreshold);
-            }
-            float avg = aCost.Total > 0f ? oc / aCost.Total : 0f;
-            float efficiency = Mathf.Clamp(cs.Efficiency - mProfile.CostSensitivity * avg, cs.MinScore, cs.Efficiency);
-            float overflowBonus = 1f + mProfile.OverflowWeight * (aCost.Total > 0f ? of / aCost.Total : 0f);
-            return efficiency * overflowBonus;
+            
+            // コストの重い行動は評価を下げる
+            float discount = Mathf.Clamp01(mProfile.CostSensitivity * (aCost.Total / cs.ReferenceCost));
+            return Mathf.Max(cs.MinScore, 1f - discount);
         }
 
         // 溜めスコア

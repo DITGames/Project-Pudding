@@ -75,9 +75,7 @@ namespace PPCore
     public sealed class PPCostScore
     {
         [Label("最低スコア")] public float MinScore = 0.3f;
-        [Label("効率ベース")] public float Efficiency = 1.15f;
-        [Label("最小単価")] public float MinUnitPrice = 0.35f;
-        [Label("最大単価")] public float MaxUnitPrice = 1.0f;
+        [Label("基準コスト")] public float ReferenceCost = 30f;
     }
 
     [Serializable]
@@ -115,10 +113,7 @@ namespace PPCore
         
         [Header("リソース")]
         [Label("ベース温存量")] public float BaseReserve = 0f;
-        [Label("ベースコスト重み")] public float BaseCostWeight = 1.1f;
         [Label("コスト感度")] public float CostSensitivity = 0.6f;
-        [Label("オーバーフロー閾値")] public float OverflowThreshold = 0.85f;
-        [Label("オーバーフロー重み")] public float OverflowWeight = 0.5f;
         [Label("スキル発動の閾値倍率")] public float SkillThreshold = 1.2f;
         
         [Header("行動")]
