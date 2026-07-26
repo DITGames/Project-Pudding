@@ -101,6 +101,7 @@ namespace PPCore
         [Header("性能")]
         [Label("積極性")][Range(0,100)] public float Aggression = 50f;
         [Label("警戒度")][Range(0, 100)] public float Caution = 50f;
+        [Label("知能")][Range(0, 100)] public float Intelligence = 50f;
         
         [Header("リソース")]
         [Label("コスト感度")] public float CostSensitivity = 0.6f;
@@ -109,7 +110,7 @@ namespace PPCore
         [Header("行動")]
         [Label("思考間隔(秒)")] public float ThinkInterval = 0.5f;
         [Label("同時行動数上限")] public int MaxActionsPerTick = 3;
-        [Label("ターゲット集中度")][Range(0, 1)] public float FocusFire = 0.5f;
+        [Label("行動選択ノイズ最大比率")][Range(0, 1)] public float ActionNoiseAmplitude = 0.6f;
         
         [Header("ロール")]
         [Label("重み")] public PPRoleWeights Weights = new();

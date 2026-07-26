@@ -18,8 +18,9 @@ namespace PPCore
         [SerializeField] protected PPStatBlock mExpandStatBlock;
         
         [Header("パーティAI")]
-        [Label("既定ロール")] [SerializeField] protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
-        [Label("既定の行動スコア補正")] [SerializeField] protected PPUnitActionScoreModifier mDefaultActionScore = new();
+        [Label("既定ロール")][SerializeField] protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
+        [Label("既定の行動スコア補正")][SerializeField] protected PPUnitActionScoreModifier mDefaultActionScore = new();
+        [Label("既定の知能")][SerializeField][Range(-1,100)] protected float mDefaultIntelligence = 50f;
         
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
         [Label("HP成長曲線")][SerializeField] protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
@@ -30,6 +31,7 @@ namespace PPCore
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPUnitRole DefaultRole => mDefaultRole;
         public PPUnitActionScoreModifier ActionScoreModifier => mDefaultActionScore;
+        public float DefaultIntelligence => mDefaultIntelligence;
 
         public override BattleUnit CreateRuntimeUnit(ICommandDecider aDecider = null)
             => CreateRuntimeUnit(1, aDecider);

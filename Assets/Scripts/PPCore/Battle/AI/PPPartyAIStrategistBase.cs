@@ -58,7 +58,6 @@ namespace PPCore
             
             // シチュエーション判断
             var situation = ResolveSituationRule(snap);
-            var focusTarget = ChooseAttackTarget(snap, aContext);
 
             // 各ユニットの行動願望の収集(温存を考慮しない)
             var fullPoolBudget = new PPResourceBudget(party.ResourcePool, 0f);
@@ -69,6 +68,9 @@ namespace PPCore
                 // 行動できないならスルー
                 if((unit.CurrentRestrictions & ActionRestriction.CannotAct) != 0)
                     continue;
+                
+                float intelligence = ResolveIntelligence(unit);
+                var focusTarget = ChooseAttackTargetForUnit(unit, snap, intelligence, aContext);
                 
                 // ユニットごとに行動候補を収集する
                 var candidates = GenerateCandidatesForUnit(unit, snap, focusTarget, aContext);
@@ -83,10 +85,11 @@ namespace PPCore
                 
                 // 待ちに対する評価
                 float waitScore = EvaluateWaitForUnit(unit, snap, candidates, fullPoolBudget, situation);
-                var best = candidates
-                    .Where(c => fullPoolBudget.CanAfford(c.Cost))
-                    .OrderByDescending(c => c.Score)
-                    .FirstOrDefault();
+                
+                // 実行不可なものは除外
+                var affordable = candidates.Where(c => fullPoolBudget.CanAfford(c.Cost)).ToList();
+                // ノイズ入りでベスト選択を出す
+                var best = SelectBestCandidate(affordable, intelligence, aContext);
 
                 if (best != null && best.Score > waitScore)
                 {
@@ -162,12 +165,48 @@ namespace PPCore
             return resolved;
         }
         
+        /* 実行時知能の解決 */
+        protected float ResolveIntelligence(PPBattleUnit aUnit)
+            => aUnit.Intelligence > 0f ? Mathf.Clamp(aUnit.Intelligence, 0f, 100f) : mProfile.Intelligence;
+        
+        /* ノイズを考慮したベスト候補選択 */
+        protected PPActionCandidate SelectBestCandidate(List<PPActionCandidate> aCandidates, float aIntelligence,
+            BattleContext aContext)
+        {
+            if(aCandidates.Count == 0)
+                return null;
+            if(aCandidates.Count == 1)
+                return aCandidates[0];
+            
+            float maxScore = aCandidates.Max(c => c.Score);
+            float noiseRatio = 1f - Mathf.Clamp01(aIntelligence / 100f);
+            float amplitude = maxScore * mProfile.ActionNoiseAmplitude * noiseRatio;
+            
+            PPActionCandidate best = null;
+            float bestPerceived = float.NegativeInfinity;
+            foreach (var c in aCandidates)
+            {
+                float perceived = c.Score + RandomSigned(aContext) * amplitude;
+                if (perceived > bestPerceived)
+                {
+                    bestPerceived = perceived;
+                    best = c;
+                }
+            }
+            return best;
+        }
+        
+        protected static float RandomSigned(BattleContext aContext)
+            => aContext.Rules.RandomProvider.NextFloat(-1f, 1f);
+        
         /* 攻撃対象の抽選 */
-        protected PPBattleUnit ChooseAttackTarget(PPPartyAIContext aSnap, BattleContext aContext)
+        protected PPBattleUnit ChooseAttackTargetForUnit(PPBattleUnit aUnit, PPPartyAIContext aSnap, float aIntelligence, BattleContext aContext)
         {
             if (aSnap.AliveEnemies.Count == 0)
                 return null;
-            if (Chance(mProfile.FocusFire, aContext))
+            // 知能が高いほど最低ターゲットを選択しやすい
+            float optimalChance = Mathf.Clamp01(aIntelligence / 100f);
+            if(Chance(optimalChance, aContext))
                 return aSnap.LowestHpEnemy;
             int idx = aContext.Rules.RandomProvider.NextInt(aSnap.AliveEnemies.Count);
             return aSnap.AliveEnemies[idx];
@@ -300,7 +339,7 @@ namespace PPCore
             bool aUseAggression, PPResourceCost aCost, float aAggressionMultiplier = 1f)
         {
             float raw = aBaseScore + aBias * aFactor;
-            float aggr = aUseAggression ? mProfile.Aggression * aAggressionMultiplier : 1f;
+            float aggr = aUseAggression ? (mProfile.Aggression / 100f) * aAggressionMultiplier : 1f;
             return aWeight * aSituationMul * raw * aggr * CostEfficiency(aCost);
         }
 
@@ -403,7 +442,7 @@ namespace PPCore
             
             // AIプロファイルの警戒度が高いほど短いTick数でしか待たない(溜められると判断しない)
             // パーティ種別の忍耐係数とシチュエーションによる補正を掛けて待つことに意味があるか判断する
-            float allowedTicks = Mathf.Lerp(6f, 1f, mProfile.Caution) * aSnap.PatienceCoefficient * aSituation.PatienceMultiplier;
+            float allowedTicks = Mathf.Lerp(6f, 1f, (mProfile.Caution /100f)) * aSnap.PatienceCoefficient * aSituation.PatienceMultiplier;
             
             return ticksNeeded > allowedTicks ? 0f : upcoming.Score;
         }

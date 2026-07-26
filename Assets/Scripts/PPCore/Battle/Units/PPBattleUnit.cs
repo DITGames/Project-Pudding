@@ -15,6 +15,9 @@ namespace PPCore
         
         public PPUnitRole AssignedRole { get; set; } = PPUnitRole.Inherit;
         public PPUnitActionScoreModifier ScoreModifier { get; set; } = new PPUnitActionScoreModifier();
+        
+        // -1はパーティのIntelligenceを継承
+        public float Intelligence { get; set; } = -1f;
 
         public PPBattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameterSet,
             PPParameterSet aPPParameterSet)  : base(aUnitId, aDisplayName, aParameterSet)

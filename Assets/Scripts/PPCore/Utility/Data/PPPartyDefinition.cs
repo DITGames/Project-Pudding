@@ -30,6 +30,8 @@ namespace PPCore
         [Label("ロール上書き")] public PPUnitRole RoleOverride = PPUnitRole.Inherit;
         [Label("行動スコアを上書きする?")] public bool IsOverrideActionScore = false;
         [Label("行動スコア上書き値")]public PPUnitActionScoreModifier ActionScoreOverride = new();
+        [Label("知能を上書きする?")] public bool IsOverrideIntelligence = false;
+        [Label("知能上書き値")]public float IntelligenceOverride = 50f;
     }
     
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
@@ -71,6 +73,7 @@ namespace PPCore
                 var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
                 unit.AssignedRole = ResolveRole(entry);
                 unit.ScoreModifier = entry.IsOverrideActionScore ? entry.ActionScoreOverride : entry.Unit.ActionScoreModifier;
+                unit.Intelligence = ResolveIntelligence(entry);
                 units.Add(unit);
             }
             
@@ -85,6 +88,12 @@ namespace PPCore
         {
             if(aEntry.RoleOverride != PPUnitRole.Inherit) return aEntry.RoleOverride;
             return aEntry.Unit.DefaultRole;
+        }
+
+        private static float ResolveIntelligence(PPPartyMemberEntry aEntry)
+        {
+            if(aEntry.IsOverrideIntelligence) return Mathf.Clamp(aEntry.IntelligenceOverride, 0f, 100f);
+            return aEntry.Unit.DefaultIntelligence;
         }
     }
 }
