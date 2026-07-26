@@ -28,7 +28,7 @@ namespace CommandBattleCore
         public int NextInt(int aMaxExclusive) => mRng.Next(aMaxExclusive);
         public int NextInt(int aMinInclusive, int aMaxExclusive)  => mRng.Next(aMinInclusive, aMaxExclusive);
         public float NextFloat() => (float)mRng.NextDouble();
-        public float NextFloat(float aMinInclusive, float aMaxExclusive) => aMinInclusive + (float)mRng.NextDouble() * (aMinInclusive - aMinInclusive);
+        public float NextFloat(float aMinInclusive, float aMaxExclusive) => aMinInclusive + (float)mRng.NextDouble() * (aMaxExclusive - aMinInclusive);
         public bool NextBool(float aTrueChance) => mRng.NextDouble() < aTrueChance;
     }
 }
