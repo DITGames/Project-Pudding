@@ -13,7 +13,7 @@ namespace PPCore
     public sealed class PPActionCandidate
     {
         public PPBattleUnit Unit;
-        public PPBattleRole Role;
+        public PPBattleActionRole Role;
         public PPResourceCost Cost;
         public PPBattleSkill Skill;
         public PPBattleUnit Target;

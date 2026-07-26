@@ -27,6 +27,8 @@ namespace PPCore
         public float LowestAllyHpRatio { get; private set; } = 1f;
         
         public float PartyHpRatio { get; private set; } = 0f;
+        public bool IsCrisis { get; private set; } = false;
+        public float PatienceCoefficient { get; private set; } = 0f;
 
         public static PPPartyAIContext Capture(PPBattleParty aParty, BattleContext aContext)
         {
@@ -76,6 +78,13 @@ namespace PPCore
                     snap.LowestHpEnemy = pp;
                 }
             }
+
+            if (aContext.Rules is PPBattleRules rule)
+            {
+                snap.IsCrisis = snap.LowestAllyHpRatio <= rule.CrisisHpRatio;
+            }
+            snap.PatienceCoefficient = aParty.PatienceCoefficient;
+
             return snap;
         }
 

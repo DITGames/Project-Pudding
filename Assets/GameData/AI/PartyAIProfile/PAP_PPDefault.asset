@@ -12,20 +12,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
   m_Name: PAP_PPDefault
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
-  Aggression: 0.5
-  WaitBias: 0.4
-  BaseReserve: 0
-  BaseCostWeight: 1.1
+  Aggression: 50
+  Caution: 50
+  Intelligence: 50
   CostSensitivity: 0.6
-  OverflowThreshold: 0.85
-  OverflowWeight: 0.5
-  SkillThreshold: 1.2
-  MaxActionsPerTick: 1
+  TrendSampleCount: 4
   ThinkInterval: 2
-  FocusFire: 0.5
+  MaxActionsPerTick: 1
+  ActionNoiseAmplitude: 0.6
   Weights:
     Attack: 1
-    Skill: 1
     Support: 1
     Heal: 1
   Order:
@@ -33,22 +29,6 @@ MonoBehaviour:
     Support: 0
     Heal: 2
     Default: 3
-  Rules:
-  - Name: "\u30B9\u30AD\u30EB&\u653B\u6483\u512A\u5148"
-    Conditions:
-    - {fileID: 11400000, guid: deabd6d39626b264b811a2dcba109fcc, type: 2}
-    Score:
-      Attack: 1.5
-      Skill: 2
-      Support: 1
-      Heal: 1
-      Wait: 1
-  DefaultScore:
-    Attack: 1
-    Skill: 1
-    Support: 1
-    Heal: 1
-    Wait: 1
   AttackScore:
     BaseScore: 0.6
     HpRatioBias: 0.8
@@ -56,19 +36,28 @@ MonoBehaviour:
     BaseScore: 0.9
     RangeSkillScore: 0.4
     HpRatioBias: 0.9
-    ResourceRatioBias: 0.15
-  HealScore:
-    Threshold: 0.1
-    HpRatioBias: 1.8
   SupportScore:
     BaseScore: 0.4
     MemberCountScore: 3
     MemberCountBias: 0.6
+  HealScore:
+    Threshold: 0.1
+    HpRatioBias: 1.8
   CostScore:
-    MinScore: 0.3
-    Efficiency: 1.15
-    MinUnitPrice: 0.35
-    MaxUnitPrice: 1
-  WaitScore:
-    BaseScore: 0.4
-    SaveBias: 0.8
+    ReferenceCost: 30
+  DefaultScore:
+    Attack: 1
+    Support: 1
+    Heal: 1
+    AggressionMultiplier: 1
+    PatienceMultiplier: 1
+  Rules:
+  - Name: "\u30B9\u30AD\u30EB&\u653B\u6483\u512A\u5148"
+    Conditions:
+    - {fileID: 11400000, guid: deabd6d39626b264b811a2dcba109fcc, type: 2}
+    Score:
+      Attack: 1.5
+      Support: 1
+      Heal: 1
+      AggressionMultiplier: 1
+      PatienceMultiplier: 1
