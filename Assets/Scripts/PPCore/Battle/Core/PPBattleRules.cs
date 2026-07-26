@@ -11,6 +11,6 @@ namespace PPCore
 {
     public class PPBattleRules : BattleRules
     {
-
+        public float CrisisHpRatio = 0.25f;
     }
 }

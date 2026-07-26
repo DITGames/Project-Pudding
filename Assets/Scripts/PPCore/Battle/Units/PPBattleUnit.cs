@@ -12,6 +12,9 @@ namespace PPCore
     public class PPBattleUnit : BattleUnit
     {
         public PPParameterSet PPParameters { get; }
+        
+        public PPUnitRole AssignedRole { get; set; } = PPUnitRole.Inherit;
+        public PPUnitActionScoreModifier ScoreModifier { get; set; } = new PPUnitActionScoreModifier();
 
         public PPBattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameterSet,
             PPParameterSet aPPParameterSet)  : base(aUnitId, aDisplayName, aParameterSet)
