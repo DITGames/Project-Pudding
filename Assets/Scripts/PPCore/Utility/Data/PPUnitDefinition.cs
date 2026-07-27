@@ -15,21 +15,24 @@ namespace PPCore
     {
         [Header("ユニット拡張")]
         [Label("ステータス")] // スキル前提なら消す
-        [SerializeField] protected PPStatBlock mExpandStatBlock;
+        [SerializeField]protected PPStatBlock mExpandStatBlock;
+        [Label("属性")]
+        [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
         
         [Header("パーティAI")]
-        [Label("既定ロール")][SerializeField] protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
-        [Label("既定の行動スコア補正")][SerializeField] protected PPUnitActionScoreModifier mDefaultActionScore = new();
-        [Label("既定の知能")][SerializeField][Range(-1,100)] protected float mDefaultIntelligence = 50f;
+        [Label("既定ロール")][SerializeField]protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
+        [Label("既定の行動スコア補正")][SerializeField]protected PPUnitActionScoreModifier mDefaultActionScore = new();
+        [Label("既定の知能")][SerializeField][Range(-1,100)]protected float mDefaultIntelligence = 50f;
         
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
-        [Label("HP成長曲線")][SerializeField] protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("攻撃力成長曲線")][SerializeField] protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("防御力成長曲線")][SerializeField] protected AnimationCurve mDefenseGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("素早さ成長曲線")][SerializeField] protected AnimationCurve mSpeedGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label("HP成長曲線")][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label("攻撃力成長曲線")][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label("防御力成長曲線")][SerializeField]protected AnimationCurve mDefenseGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label("素早さ成長曲線")][SerializeField]protected AnimationCurve mSpeedGrowth = AnimationCurve.Linear(1, 1, 50, 3);
         
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPUnitRole DefaultRole => mDefaultRole;
+        public PPTypeAttribute TypeAttribute => mTypeAttribute;
         public PPUnitActionScoreModifier ActionScoreModifier => mDefaultActionScore;
         public float DefaultIntelligence => mDefaultIntelligence;
 
@@ -38,7 +41,7 @@ namespace PPCore
 
         public virtual BattleUnit CreateRuntimeUnit(int aLevel, ICommandDecider aDecider = null)
         {
-            var unit = new PPBattleUnit(mUnitId, DisplayName, CreateParameterSet(aLevel), CreatePPParameterSet())
+            var unit = new PPBattleUnit(mUnitId, DisplayName, CreateParameterSet(aLevel), CreatePPParameterSet(), mTypeAttribute)
             {
                 CommandDecider = aDecider ?? new PPRandomAICommandDecider(),
                 SourceDefinition = this,

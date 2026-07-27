@@ -39,15 +39,15 @@ namespace PPCore
         {
         }
         
-        protected string GetResourceTypeString(PPResourceType aType) 
-            => aType switch
+        protected string GetResourceTypeString(PPTypeAttribute a) 
+            => a switch
             {
-                PPResourceType.Normal => PPResource.TypeNormal,
-                PPResourceType.Fire => PPResource.TypeFire,
-                PPResourceType.Water => PPResource.TypeWater,
-                PPResourceType.Earth => PPResource.TypeEarth,
-                PPResourceType.Shine => PPResource.TypeShine,
-                PPResourceType.Dark => PPResource.TypeDark,
+                PPTypeAttribute.Normal => PPTypeAttributeDefinition.TypeNormal,
+                PPTypeAttribute.Fire => PPTypeAttributeDefinition.TypeFire,
+                PPTypeAttribute.Water => PPTypeAttributeDefinition.TypeWater,
+                PPTypeAttribute.Earth => PPTypeAttributeDefinition.TypeEarth,
+                PPTypeAttribute.Shine => PPTypeAttributeDefinition.TypeShine,
+                PPTypeAttribute.Dark => PPTypeAttributeDefinition.TypeDark,
                 _ => ""
             };
     }

@@ -18,7 +18,7 @@ namespace PPCore
     public struct PPResourceAmount
     {
         [Label("リソース種別")]
-        public PPResourceType Type;
+        public PPTypeAttribute Type;
         [Label("必要量")]
         public float Amount;
     }
@@ -36,21 +36,21 @@ namespace PPCore
         }
         
         public float Get(int aIndex) => mAmounts[aIndex];
-        public float Get(PPResourceType aType) => mAmounts[(int)aType];
+        public float Get(PPTypeAttribute a) => mAmounts[(int)a];
 
-        public bool CanPay(PPResourceType aType, float aAmount)
+        public bool CanPay(PPTypeAttribute a, float aAmount)
         {
-            return mAmounts[(int)aType] >= aAmount;
+            return mAmounts[(int)a] >= aAmount;
         }
 
-        public IReadOnlyList<PPResourceType> RelevantTypes()
+        public IReadOnlyList<PPTypeAttribute> RelevantTypes()
         {
-            List<PPResourceType> res = new List<PPResourceType>();
+            List<PPTypeAttribute> res = new List<PPTypeAttribute>();
             for (int i = 0; i < mAmounts.Length; i++)
             {
                 if (mAmounts[i] > 0)
                 {
-                    res.Add((PPResourceType)i);
+                    res.Add((PPTypeAttribute)i);
                 }
             }
             return res;
@@ -59,7 +59,7 @@ namespace PPCore
         // コスト作成
         public static PPResourceCost From(IEnumerable<PPResourceAmount> aEntries)
         {
-            var arr = new float[PPResource.TypeCount];
+            var arr = new float[PPTypeAttributeDefinition.TypeCount];
             float total = 0;
             if (aEntries != null)
             {
@@ -73,14 +73,14 @@ namespace PPCore
         }
         
         // 単一属性コスト
-        public static PPResourceCost Single(PPResourceType aType, float aAmount)
-        => From(new[]{new PPResourceAmount{Type = aType, Amount = aAmount}});
+        public static PPResourceCost Single(PPTypeAttribute a, float aAmount)
+        => From(new[]{new PPResourceAmount{Type = a, Amount = aAmount}});
         
         // ノーマルコスト
         public static PPResourceCost BaseCost(float aAmount)
-        => Single(PPResourceType.Normal, aAmount);
+        => Single(PPTypeAttribute.Normal, aAmount);
         
         // フリー
-        public static readonly PPResourceCost Free = new PPResourceCost(new float[PPResource.TypeCount], 0f);
+        public static readonly PPResourceCost Free = new PPResourceCost(new float[PPTypeAttributeDefinition.TypeCount], 0f);
     }
 }

@@ -16,7 +16,7 @@ namespace PPCore
         menuName = "Project-Pudding/AI/Conditions/リソース割合")]
     public sealed class PPResourceRatioCondition : PPPartyConditionValidator
     {
-        [Label("対象リソース")] public PPResourceType ResourceType = PPResourceType.Normal;
+        [Label("対象リソース")] public PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
         [Label("比較")] public PPCompareOp Op = PPCompareOp.GreaterOrEqual;
         [Label("割合")] [Range(0f, 100f)] public float Threshold = 100;
         [Label("許容値")] [EditCondition("IsEqualOp", true, false)] public float Tolerance = 1f;
@@ -26,15 +26,15 @@ namespace PPCore
 
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         {
-            float max = aSnapShot.ResourcePool.Max(ResourceType);
-            float ratio = max > 0f ? aSnapShot.Current(ResourceType) / max : 0f;
+            float max = aSnapShot.ResourcePool.Max(mTypeAttribute);
+            float ratio = max > 0f ? aSnapShot.Current(mTypeAttribute) / max : 0f;
             return PPConditionMath.Compare(ratio, Op, Threshold, Tolerance);
         }
         
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
         {
-            var resource = GetResourceTypeString(ResourceType) + $"リソースが{Threshold}%";
+            var resource = GetResourceTypeString(mTypeAttribute) + $"リソースが{Threshold}%";
             var op = GetOpString(Op);
             mDescription = resource + op;
 

@@ -53,13 +53,13 @@ namespace PPCore
             mTargetParty = null;
         }
 
-        private void HandleCoinGained(PPResourceType aType, int aCoinCount)
+        private void HandleCoinGained(PPTypeAttribute a, int aCoinCount)
         {
             if (mTargetParty == null) return;
 
             float rate = mTargetParty.CoinConversionRate.CurrentValue;
             float amount = mConverter.Convert(aCoinCount, rate);
-            mTargetParty.ResourcePool.Add(aType, amount);
+            mTargetParty.ResourcePool.Add(a, amount);
         }
 
         private void OnDestroy() => Unbind();

@@ -20,7 +20,7 @@ namespace PPCore
         public List<PPBattleUnit> AliveEnemies { get; } = new();
         
         public PPBattleResourcePool ResourcePool { get; private set; }
-        public float Current(PPResourceType aType) => ResourcePool.Current(aType);
+        public float Current(PPTypeAttribute a) => ResourcePool.Current(a);
         
         public PPBattleUnit LowestHpEnemy { get; private set; }
         public PPBattleUnit LowestHpRatioAlly { get; private set; }

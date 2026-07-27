@@ -16,7 +16,7 @@ namespace PPCore
         menuName = "Project-Pudding/AI/Conditions/リソース残量(絶対値)")]
     public sealed class PPResourceAmountCondition : PPPartyConditionValidator
     {
-        [Label("対象リソース")] public PPResourceType ResourceType = PPResourceType.Normal;
+        [Label("対象リソース")] public PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
         [Label("比較")] public PPCompareOp Op = PPCompareOp.GreaterOrEqual;
         [Label("リソース量")] public float Threshold = 20f;
         [Label("許容値")] [EditCondition("IsEqualOp", true, false)]public float Tolerance = 1f;
@@ -25,12 +25,12 @@ namespace PPCore
             => Op == PPCompareOp.Equal || Op == PPCompareOp.NotEqual;
 
         public override bool Evaluate(PPPartyAIContext aSnapShot)
-         => PPConditionMath.Compare(aSnapShot.Current(ResourceType), Op, Threshold, Tolerance);
+         => PPConditionMath.Compare(aSnapShot.Current(mTypeAttribute), Op, Threshold, Tolerance);
 
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
         {
-            var resource = GetResourceTypeString(ResourceType) + $"リソースが{Threshold}";
+            var resource = GetResourceTypeString(mTypeAttribute) + $"リソースが{Threshold}";
             var op = GetOpString(Op);
             mDescription = resource + op;
 

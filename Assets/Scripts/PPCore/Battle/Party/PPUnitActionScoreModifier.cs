@@ -13,7 +13,7 @@ namespace PPCore
     [Serializable]
     public sealed class PPUnitActionScoreModifier
     {
-        [Label("攻撃倍率")] public float Attack = 1f;
+        [Label("攻撃倍率")]public float Attack = 1f;
         [Label("サポート倍率")] public float Support = 1f;
         [Label("回復倍率")] public float Heal = 1f;
     }

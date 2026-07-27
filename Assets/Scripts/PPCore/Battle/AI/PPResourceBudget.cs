@@ -16,30 +16,30 @@ namespace PPCore
 
         public PPResourceBudget(PPBattleResourcePool aPool, float aBaseReserve = 0f)
         {
-            mRemaining = new float[PPResource.TypeCount];
-            mMax = new float[PPResource.TypeCount];
-            for (int i = 0; i < PPResource.TypeCount; i++)
+            mRemaining = new float[PPTypeAttributeDefinition.TypeCount];
+            mMax = new float[PPTypeAttributeDefinition.TypeCount];
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
-                var t = (PPResourceType)i;
-                float reserve = (i == PPResource.BaseIndex) ? Mathf.Max(0f, aBaseReserve) : 0f;
+                var t = (PPTypeAttribute)i;
+                float reserve = (i == PPTypeAttributeDefinition.BaseIndex) ? Mathf.Max(0f, aBaseReserve) : 0f;
                 mRemaining[i] = Mathf.Max(0f, aPool.Current(t) - reserve);
                 mMax[i] = aPool.Max(t);
             }
         }
         
-        public float Remaining(PPResourceType aType)
-        => mRemaining[(int)aType];
+        public float Remaining(PPTypeAttribute a)
+        => mRemaining[(int)a];
         
-        public float Fill(PPResourceType aType)
-        => mMax[(int)aType] > 0f ? mRemaining[(int)aType] / mMax[(int)aType] : 0f;
+        public float Fill(PPTypeAttribute a)
+        => mMax[(int)a] > 0f ? mRemaining[(int)a] / mMax[(int)a] : 0f;
 
         public bool CanAfford(PPResourceCost aCost)
         {
             if(aCost == null || aCost.IsFree)
                 return true;
-            for (int i = 0; i < PPResource.TypeCount; i++)
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
-                if (!aCost.CanPay((PPResourceType)i, mRemaining[i] + 0.0001f))
+                if (!aCost.CanPay((PPTypeAttribute)i, mRemaining[i] + 0.0001f))
                 {
                     return false;
                 }
@@ -54,7 +54,7 @@ namespace PPCore
                 return true;
             if(!CanAfford(aCost))
                 return false;
-            for (int i = 0; i < PPResource.TypeCount; i++)
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
                 mRemaining[i] = Mathf.Max(0f, mRemaining[i] - aCost.Get(i));
             }

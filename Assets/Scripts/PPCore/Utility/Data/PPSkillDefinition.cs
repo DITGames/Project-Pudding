@@ -10,20 +10,25 @@ using UnityEngine;
 
 namespace PPCore
 {
-    [CreateAssetMenu(fileName = "PPBattleSkillDefinition", menuName = "Project-Pudding/Definition/PPSkillDefinition")]
-    public class PPSkillDefinition : SkillDefinition
+    public abstract class PPSkillDefinition : SkillDefinition
     {
-        [Header("PPSkill")]
+        [Header("拡張")]
         [Label("スキルタイプ")]
-        [SerializeField] protected PPBattleSkillRole mBattleSkillRole;
+        [SerializeField]protected PPBattleSkillRole mBattleSkillRole;
+        [Label("種別")]
+        [SerializeField]protected PPSkillCategory mCategory = PPSkillCategory.Physical;
+        [Label("属性")]
+        [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
         [Label("消費リソース")]
         [SerializeField] protected PPResourceAmount[] mCost;
         private PPResourceCost mCachedCost;
         
+        public float Power => mPower;
         public PPBattleSkillRole BattleSkillRole => mBattleSkillRole;
+        public PPSkillCategory Category => mCategory;
+        public PPTypeAttribute Attribute => mAttribute;
         public PPResourceCost Cost => mCachedCost ??= PPResourceCost.From(mCost);
-
-        // 一旦ベースと同じ 拡張があれば追加する
+        
         public override BattleSkill CreateRuntimeSkill()
         {
             var skill = new PPBattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffect());
