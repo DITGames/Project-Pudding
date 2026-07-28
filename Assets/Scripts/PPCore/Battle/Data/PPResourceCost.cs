@@ -66,7 +66,8 @@ namespace PPCore
                 foreach (var e in aEntries)
                 {
                     float v = Mathf.Max(0f, e.Amount);
-                    arr[(int)e.Type] = v;
+                    arr[(int)e.Type] += v;
+                    total += v;
                 }
             }
             return new PPResourceCost(arr, total);

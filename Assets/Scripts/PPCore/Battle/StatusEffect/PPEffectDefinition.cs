@@ -6,6 +6,7 @@
  * @brief PPCore固有のエフェクトデータ定義
  * =====================================*/
 using CommandBattleCore;
+using UnityEditor.Build.Profile;
 using UnityEngine;
 
 namespace PPCore
@@ -21,7 +22,8 @@ namespace PPCore
         [SerializeField]protected int mDuration = 3;
         [Label("スタックポリシー")]
         [SerializeField]protected StatusEffectStackPolicy mStackPolicy = StatusEffectStackPolicy.Refresh;
-        [Label("最大スタック")] protected int mMaxStack = 1;
+        [Label("最大スタック")]
+        [SerializeField]protected int mMaxStack = 1;
         
         public string EffectId => mEffectId;
         public string DisplayName => mDisplayName;
@@ -30,5 +32,13 @@ namespace PPCore
         
         public abstract StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext);
         protected abstract void ConfigureEffect(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext);
+        
+        protected abstract string BuildAutoEffectId();
+
+        private void OnValidate()
+        {
+            var autoId = BuildAutoEffectId();
+            mEffectId = autoId;
+        }
     }
 }

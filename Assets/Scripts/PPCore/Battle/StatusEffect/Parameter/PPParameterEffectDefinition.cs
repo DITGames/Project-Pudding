@@ -57,7 +57,7 @@ namespace PPCore
                 (PPModifierTargetParam.Attack, PPModifierDirection.Increase) => PPParameterEffectCategory.AttackBuff,
                 (PPModifierTargetParam.Attack, PPModifierDirection.Decrease) => PPParameterEffectCategory.AttackDebuff,
                 (PPModifierTargetParam.Defense, PPModifierDirection.Increase) => PPParameterEffectCategory.DefenseBuff,
-                (PPModifierTargetParam.Defense, PPModifierDirection.Decrease) => PPParameterEffectCategory.AttackDebuff,
+                (PPModifierTargetParam.Defense, PPModifierDirection.Decrease) => PPParameterEffectCategory.DefenseDebuff,
                 (PPModifierTargetParam.Speed, PPModifierDirection.Increase) => PPParameterEffectCategory.SpeedBuff,
                 (PPModifierTargetParam.Speed, PPModifierDirection.Decrease) => PPParameterEffectCategory.SpeedDebuff,
                 (PPModifierTargetParam.Hp, PPModifierDirection.Increase) => PPParameterEffectCategory.HpBuff,
@@ -106,9 +106,11 @@ namespace PPCore
         {
             if (aEffect is PPParameterEffect effect)
             {
-                effect.Category |= ResolveCategory();
                 aEffect.AddModifier(ParamId, mModifierType, ResolveModifier());
             }
         }
+
+        protected override string BuildAutoEffectId()
+            => $"Param_{mTargetParam}_{mDirection}_{mModifierType}_{mValue}_{mDuration}";
     }
 }

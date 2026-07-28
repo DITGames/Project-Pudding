@@ -56,5 +56,28 @@ namespace PPCore
         {
             
         }
+
+        protected internal override void ApplyTo(BattleUnit aUnit)
+        {
+            if (aUnit is PPBattleUnit ppUnit)
+            {
+                for (int i = 0; i < Modifiers.Count; i++)
+                {
+                    var param = ppUnit.ResolveParameter(mModifierTargets[i]);
+                    param?.AddModifier(Modifiers[i]);
+                }
+            }
+            OnApply?.Invoke(aUnit);
+        }
+
+        protected internal override void RemoveFrom(BattleUnit aUnit)
+        {
+            aUnit.Parameters.RemoveModifiersFromSource(this);
+            if (aUnit is PPBattleUnit ppUnit)
+            {
+                ppUnit.ExtraParameters.RemoveModifiesFromSource(this);                
+            }
+            OnRemove?.Invoke(aUnit);
+        }
     }
 }
