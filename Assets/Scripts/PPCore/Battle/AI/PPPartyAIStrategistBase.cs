@@ -54,7 +54,7 @@ namespace PPCore
                 return PPPartyPlan.Wait;
             
             // リソース推移のサンプリング
-            mTrend.Sample(snap.Current(PPResourceType.Normal), mProfile.TrendSampleCount);
+            mTrend.Sample(snap.Current(PPTypeAttribute.Normal), mProfile.TrendSampleCount);
             
             // シチュエーション判断
             var situation = ResolveSituationRule(snap);
@@ -220,7 +220,7 @@ namespace PPCore
             // 通常攻撃
             if (aFocusTarget != null)
             {
-                float atkCost = aUnit.PPParameters.Get(PPParameterSet.ParameterIdAttackCost)?.CurrentValue ?? 0f;
+                float atkCost = aUnit.ExtraParameters.Get(PPParameterSet.ParameterIdAttackCost)?.CurrentValue ?? 0f;
                 var u = aUnit;
                 var tgt = aFocusTarget;
                 list.Add(new PPActionCandidate
@@ -436,7 +436,7 @@ namespace PPCore
                 return 0f;
             
             // リソース推移からもう少しで撃てるスキルがどのタイミングで撃てるのか予想する
-            float shortfall = upcoming.Cost.Get(PPResource.BaseIndex) - aBudget.Remaining(PPResourceType.Normal);
+            float shortfall = upcoming.Cost.Get(PPTypeAttributeDefinition.BaseIndex) - aBudget.Remaining(PPTypeAttribute.Normal);
             float gainPerTick = mTrend.AverageRecentGainPerTick;
             float ticksNeeded = gainPerTick > 0f ? shortfall / gainPerTick : float.PositiveInfinity;
             

@@ -11,14 +11,8 @@ using UnityEngine;
 
 namespace CommandBattleCore
 {
-    [CreateAssetMenu(menuName = "CommandBattleCore/SkillDefinition", fileName = "NewSkill")]
     public class SkillDefinition : ScriptableObject
     {
-        public enum SkillEffectType
-        {
-            Damage, Heal,
-        }
-
         [Header("スキル")]
         [Label("スキルID")]
         [SerializeField] protected string mSkillId;
@@ -31,10 +25,6 @@ namespace CommandBattleCore
         [Header("詳細")]
         [Label("ターゲット選択")]
         [SerializeField] protected TargetScope mTargetScope = TargetScope.SingleEnemy;
-        [Label("スキルタイプ")]
-        [SerializeField] protected SkillEffectType mSkillEffectType = SkillEffectType.Damage;
-        [Label("ダメージタグ")]
-        [SerializeField] protected DamageTags mDamageTags = DamageTags.None;
         [Label("スキルパワー")]
         [SerializeField] protected float mPower = 10f;
         [Label("クールタイム")]
@@ -46,7 +36,6 @@ namespace CommandBattleCore
         public string DisplayName => mDisplayName;
         public string Description => mDescription;
         public TargetScope TargetScope => mTargetScope;
-        public SkillEffectType SkillEffect => mSkillEffectType;
 
         public virtual BattleSkill CreateRuntimeSkill()
         {
@@ -61,38 +50,7 @@ namespace CommandBattleCore
         // スキル実行時のエフェクト生成
         protected virtual Action<BattleUnit, List<BattleUnit>, BattleContext> BuildEffect()
         {
-            return mSkillEffectType switch
-            {
-                SkillEffectType.Heal => (src, targets, ctx) =>
-                {
-                    foreach (var t in targets) t.ApplyHeal(mPower);
-                },
-                _ => (src, targets, ctx) =>
-                {
-                    foreach (var t in targets)
-                    {
-                        float dmg = Math.Max(1f, src.Parameters.Attack.CurrentValue + mPower
-                                                 - t.Parameters.Defense.CurrentValue * 0.5f);
-                        
-                        var damageInfo = new DamageInfo(src,t, dmg, mDamageTags, this);
-                        var hit = ctx.ResolveHit(src, t, damageInfo);
-
-                        if (hit.mResult == HitResult.Miss)
-                        {
-                            damageInfo.IsMiss = true;
-                            damageInfo.Amount = 0f;
-                        }
-
-                        if (hit.mCriticalInfo.IsCritical)
-                        {
-                            damageInfo.IsCritical = true;
-                            damageInfo.Amount *= hit.mCriticalInfo.CriticalMultiplier;
-                        }
-                        
-                        t.ApplyDamage(damageInfo);
-                    }
-                },
-            };
+            return null;
         }
     }
 }

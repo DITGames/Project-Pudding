@@ -150,7 +150,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
             var enemyParty = (PPBattleParty)mBattleManager.Context.GetParty(BattleSide.Enemy);
             if (enemyParty != null)
             {
-                enemyParty.ResourcePool.Add(PPResourceType.Normal, mBattleManager.Context.Rules.RandomProvider.NextInt(mEnemyResourcePerTick.x, mEnemyResourcePerTick.y));
+                enemyParty.ResourcePool.Add(PPTypeAttribute.Normal, mBattleManager.Context.Rules.RandomProvider.NextInt(mEnemyResourcePerTick.x, mEnemyResourcePerTick.y));
             }
             
             mBattleManager.AdvanceTick();

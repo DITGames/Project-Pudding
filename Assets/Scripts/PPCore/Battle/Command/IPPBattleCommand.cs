@@ -26,7 +26,7 @@ namespace PPCore
             : base(aSource, aResolver)
         {
             // バフ・デバフ込みでの攻撃コストを適用(時間経過でバフ切れたときに消費できず失敗する可能性がありそう)
-            AttackCost = PPResourceCost.BaseCost(aSource.PPParameters.Get(PPParameterSet.ParameterIdAttackCost).CurrentValue);
+            AttackCost = PPResourceCost.BaseCost(aSource.ExtraParameters.Get(PPParameterSet.ParameterIdAttackCost).CurrentValue);
         }
 
         public override void Execute(BattleContext aContext)
@@ -37,25 +37,13 @@ namespace PPCore
                 return;
             }
 
-            List<DamageInfo> damages = new();
+            List<PPDamageInfo> damages = new();
+            var sourceAttribute = PPDamageUtility.ResolveAttribute(Source);
             
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
             {
-                float raw = DamageFormula(Source, target);
-                var damageInfo = new DamageInfo(Source, target, raw, DamageTags.Physical, this);
-
-                var hitInfo = aContext.ResolveHit(Source, target, damageInfo);
-
-                if (hitInfo.mResult == HitResult.Miss)
-                {
-                    damageInfo.IsMiss = true;
-                }
-                if(hitInfo.mCriticalInfo.IsCritical)
-                {
-                    damageInfo.IsCritical = true;
-                    damageInfo.Amount *= hitInfo.mCriticalInfo.CriticalMultiplier;
-                }
-                
+                float raw = PPDamageUtility.ResolveAttackDamage(Source, target);
+                var damageInfo = PPDamageUtility.CreateDamageInfo(Source, target, raw, PPSkillCategory.Physical, sourceAttribute, this, aContext);
                 damages.Add(damageInfo);
             }
 

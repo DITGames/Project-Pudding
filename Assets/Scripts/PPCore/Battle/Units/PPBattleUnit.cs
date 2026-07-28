@@ -11,18 +11,22 @@ namespace PPCore
 {
     public class PPBattleUnit : BattleUnit
     {
-        public PPParameterSet PPParameters { get; }
+        public PPParameterSet ExtraParameters { get; }
         
         public PPUnitRole AssignedRole { get; set; } = PPUnitRole.Inherit;
         public PPUnitActionScoreModifier ScoreModifier { get; set; } = new PPUnitActionScoreModifier();
         
         // -1はパーティのIntelligenceを継承
         public float Intelligence { get; set; } = -1f;
+        
+        // ユニットの属性
+        public PPTypeAttribute TypeAttribute { get; }
 
         public PPBattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameterSet,
-            PPParameterSet aPPParameterSet)  : base(aUnitId, aDisplayName, aParameterSet)
+            PPParameterSet aExtraParameterSet, PPTypeAttribute aTypeAttribute)  : base(aUnitId, aDisplayName, aParameterSet)
         {
-            PPParameters = aPPParameterSet;
+            ExtraParameters = aExtraParameterSet;
+            TypeAttribute = aTypeAttribute;
         }
 
         public bool CanValidateSkill(BattleContext aContext)
@@ -35,6 +39,21 @@ namespace PPCore
             }
 
             return false;
+        }
+
+        public Parameter ResolveParameter(string aId)
+        {
+            if(Parameters.Parameters.TryGetValue(aId, out var paramDef))
+            {
+                return paramDef;
+            }
+            
+            if (ExtraParameters.Parameters.TryGetValue(aId, out var paramEx))
+            {
+                return paramEx;
+            }
+            
+            return null;
         }
     }
 }

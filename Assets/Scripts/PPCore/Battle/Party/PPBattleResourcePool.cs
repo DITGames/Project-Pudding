@@ -16,7 +16,7 @@ namespace PPCore
 
         public PPBattleResourcePool(int aMaxPerType)
         {
-            mResourcePools = new ResourceParameter[PPResource.TypeCount];
+            mResourcePools = new ResourceParameter[PPTypeAttributeDefinition.TypeCount];
             for (int i = 0; i < mResourcePools.Length; i++)
             {
                 var p = new ResourceParameter(aMaxPerType);
@@ -26,20 +26,20 @@ namespace PPCore
         }
         
         // リソース取得
-        public ResourceParameter Pool(PPResourceType aType) => mResourcePools[(int)aType];
+        public ResourceParameter Pool(PPTypeAttribute a) => mResourcePools[(int)a];
         // リソース現在値取得
-        public float Current(PPResourceType aType) => mResourcePools[(int)aType].Current;
+        public float Current(PPTypeAttribute a) => mResourcePools[(int)a].Current;
         // リソース最大値取得
-        public float Max(PPResourceType aType) => mResourcePools[(int)aType].Max.CurrentValue;
+        public float Max(PPTypeAttribute a) => mResourcePools[(int)a].Max.CurrentValue;
         // リソース追加
-        public void Add(PPResourceType aType, float aAmount) => mResourcePools[(int)aType].Recover(aAmount);
+        public void Add(PPTypeAttribute a, float aAmount) => mResourcePools[(int)a].Recover(aAmount);
 
         // 消費可能かのチェック(事前チェックに使用)
         public bool CanPay(PPResourceCost aCost)
         {
             if(aCost == null || aCost.IsFree)
                 return true;
-            for (int i = 0; i < PPResource.TypeCount; i++)
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
                 float need = aCost.Get(i);
                 if(need > 0f && mResourcePools[i].Current + 0.0001f < need)
@@ -55,7 +55,7 @@ namespace PPCore
                 return true;
             if(!CanPay(aCost))
                 return false;
-            for (int i = 0; i < PPResource.TypeCount; i++)
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
                 float need = aCost.Get(i);
                 if (need > 0f)

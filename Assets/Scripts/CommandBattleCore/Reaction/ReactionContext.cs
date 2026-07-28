@@ -17,7 +17,7 @@ namespace CommandBattleCore
         // トリガー対象
         public BattleUnit Subject { get; }
         // ダメージ系トリガーで使用される
-        public DamageInfo Damge { get; }
+        public DamageInfo Damage { get; }
         // トリガーの追加データ
         public object Payload { get; }
 
@@ -27,7 +27,7 @@ namespace CommandBattleCore
             Trigger = aTrigger;
             Instigator = aInstigator;
             Subject = aSubject;
-            Damge = aDamage;
+            Damage = aDamage;
             Payload = aPayload;
         }
     }

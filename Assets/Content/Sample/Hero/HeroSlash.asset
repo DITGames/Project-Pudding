@@ -9,16 +9,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
+  m_Script: {fileID: 11500000, guid: 262673f1fd697394f9e85ab6a3628a3a, type: 3}
   m_Name: HeroSlash
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: HeroSlash
-  mDisplayName: HeroSlash
+  m_EditorClassIdentifier: Assembly-CSharp::CommandBattleCore.AttackSkillDefinition
+  mSkillId: 
+  mDisplayName: 
   mDescription: 
   mTargetScope: 0
-  mSkillEffectType: 0
-  mDamageTags: 1
-  mPower: 20
+  mPower: 10
   mMaxCooldown: 0
   mMaxUsesPerBattle: 0
-  mRequiredCoin: 10
+  mCategory: 0

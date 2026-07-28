@@ -25,7 +25,6 @@ namespace CommandBattleCore
         public BattleUnit Source { get; }
         public BattleUnit Target { get; }
         public float Amount { get; set; }
-        public DamageTags Tag { get; set; }
         // スキル定義やエフェクトなど
         public object SourceAbility { get; set; }
 
@@ -36,12 +35,11 @@ namespace CommandBattleCore
         // ミスフラグ
         public bool IsMiss { get; set; } = false;
 
-        public DamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, DamageTags aTag = DamageTags.None, object aSourceAbility = null)
+        public DamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, object aSourceAbility = null)
         {
             Source = aSource;
             Target = aTarget;
             Amount = aAmount;
-            Tag = aTag;
             SourceAbility = aSourceAbility;
         }
     }
