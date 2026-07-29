@@ -107,3 +107,7 @@ InitTestScene*.unity*
 
 # JetBrains Rider
 .idea/
+
+# AI エージェント作業用の要件定義・実装計画ドキュメント
+SPEC.md
+PLAN.md
