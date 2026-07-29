@@ -10,8 +10,25 @@ using UnityEngine;
 
 namespace CommandBattleCore
 {
+    /// <summary>
+    /// ユニット単体のコマンド決定を担うインターフェース。
+    /// <para>
+    /// 「誰が決めるか」（プレイヤー入力か AI か）を <see cref="BattleUnit"/> から切り離すためのもの。
+    /// バトル側は決め方を問わず、返ってきたコマンドをキューへ積むだけで済む。
+    /// </para>
+    /// <para>
+    /// なお本作の敵はユニット単位ではなくパーティ単位で行動を決めるため、
+    /// 実際には <see cref="IPPPartyCommandStrategist"/> 側が主に使われる。
+    /// </para>
+    /// </summary>
     public interface ICommandDecider
     {
+        /// <summary>
+        /// このユニットが取る行動を決める。
+        /// </summary>
+        /// <param name="aSelf">行動を決めるユニット。</param>
+        /// <param name="aContext">バトルコンテキスト。</param>
+        /// <returns>実行するコマンド。</returns>
         BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext);
     }
 }

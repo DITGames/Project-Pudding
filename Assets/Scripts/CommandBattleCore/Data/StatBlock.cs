@@ -9,15 +9,23 @@ using System;
 
 namespace CommandBattleCore
 {
+    /// <summary>
+    /// ユニット定義がインスペクタ上で基礎ステータスを設定するための構造体。
+    /// ランタイムの <see cref="ParameterSet"/> と違い修飾子の仕組みを持たない、素の数値の入れ物。
+    /// </summary>
     [Serializable]
     public struct StatBlock
     {
+        /// <summary>最大HP。</summary>
         [Label("最大HP")]
         public float MaxHP;
+        /// <summary>攻撃力。</summary>
         [Label("攻撃力")]
         public float Attack;
+        /// <summary>防御力。</summary>
         [Label("防御力")]
         public float Defense;
+        /// <summary>素早さ。行動順の決定に使う。</summary>
         [Label("素早さ")]
         public float Speed;
     }
