@@ -10,18 +10,38 @@ using CommandBattleCore;
 
 namespace PPCore
 {
+    /// <summary>
+    /// Project-Pudding 固有の要素を載せたバトルパーティ。
+    /// <para>
+    /// 汎用の <see cref="BattleParty"/> に対して、パーティ共有の要素を 3 つ追加する。
+    /// 1. 属性別の行動リソースプール（プッシャーから落ちたコインの変換先）
+    /// 2. アイテムインベントリ
+    /// 3. パーティ単位で行動を組み立てる AI ストラテジスト
+    /// </para>
+    /// </summary>
     public class PPBattleParty : BattleParty
     {
+        /// <summary>属性ごとの行動リソースプール。スキルのコストはここから支払う。</summary>
         public PPBattleResourcePool ResourcePool { get; }
-        
+
+        /// <summary>パーティ共有のアイテム所持数。</summary>
         public PPItemInventory Inventory { get; }
-        
+
+        /// <summary>コイン 1 枚あたりのリソース変換係数。<see cref="PPCoinResourceBridge"/> が参照する。</summary>
         public Parameter CoinConversionRate { get; }
-        
+
+        /// <summary>このパーティの行動計画を立てる AI。プレイヤー操作パーティなら null のまま。</summary>
         public IPPPartyCommandStrategist Strategist { get; set; }
-        
+
+        /// <summary>AI の「待ってリソースを溜める」判断に掛かる粘り強さの係数。</summary>
         public float PatienceCoefficient { get; set; }
 
+        /// <param name="aMaxCoin">リソースプールの属性ごとの上限値。</param>
+        /// <param name="aBaseCoinRate">コイン変換係数の初期値。</param>
+        /// <param name="aSide">このパーティの陣営。</param>
+        /// <param name="aActiveMembers">戦場に出すメンバー。</param>
+        /// <param name="aReserveMembers">控えメンバー。不要なら null。</param>
+        /// <param name="aItems">初期所持アイテムと個数。不要なら null。</param>
         public PPBattleParty(int aMaxCoin, float aBaseCoinRate, BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
             IEnumerable<BattleUnit> aReserveMembers = null, IReadOnlyDictionary<PPItemDefinition, int> aItems = null)
             : base(aSide, aActiveMembers, aReserveMembers)
