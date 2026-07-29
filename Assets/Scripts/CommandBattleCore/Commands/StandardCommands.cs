@@ -88,11 +88,9 @@ namespace CommandBattleCore
         /// 対象不在または発動条件を満たさない場合は理由付きで通知して中止する。
         /// </summary>
         /// <remarks>
-        /// 既知の未整理箇所: 冒頭で解決した <c>targets</c> は件数チェックにしか使っておらず、
-        /// 実行時にリゾルバをもう一度直接呼んでいる。
-        /// 2 回目は <see cref="BattleContext.ResolveTargets"/> を経由しないため
-        /// <see cref="ITargetFilter"/> が適用されない点に注意
-        /// （<see cref="PPSkillCommand"/> は解決済みリストをそのまま渡している）。
+        /// 対象は冒頭で 1 回だけ解決し、その結果をそのままスキルへ渡す。
+        /// リゾルバを再度直接呼ぶと <see cref="BattleContext.ResolveTargets"/> を経由せず
+        /// <see cref="ITargetFilter"/> が適用されないため、解決は 1 回に統一すること。
         /// </remarks>
         /// <param name="aContext">実行時のバトルコンテキスト。</param>
         public override void Execute(BattleContext aContext)
@@ -116,7 +114,7 @@ namespace CommandBattleCore
             // プロジェクトに合わせてコストの消費
 
             // スキル実行
-            Skill.Execute(Source, TargetResolver.Resolve(Source, aContext), aContext);
+            Skill.Execute(Source, targets, aContext);
             Skill.NotifyUsed();
         }
     }

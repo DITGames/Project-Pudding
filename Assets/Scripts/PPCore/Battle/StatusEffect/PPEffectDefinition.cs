@@ -6,7 +6,6 @@
  * @brief PPCore固有のエフェクトデータ定義
  * =====================================*/
 using CommandBattleCore;
-using UnityEditor.Build.Profile;
 using UnityEngine;
 
 namespace PPCore

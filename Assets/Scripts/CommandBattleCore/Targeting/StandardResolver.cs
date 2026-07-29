@@ -5,7 +5,6 @@
  * @date 2026/06/13
  * @brief 標準のターゲットリゾルバ実装
  * =====================================*/
-using System;
 using System.Collections.Generic;
 
 namespace CommandBattleCore
@@ -96,25 +95,18 @@ namespace CommandBattleCore
 
     /// <summary>
     /// 敵からランダムに 1 体を対象とするリゾルバ。
+    /// 乱数はシード管理・再現性のため <c>aContext.Rules.RandomProvider</c> を経由する。
     /// </summary>
-    /// <remarks>
-    /// 既知の未整理箇所: ここだけ独自の <see cref="Random"/> を使っており、
-    /// <c>aContext.Rules.RandomProvider</c> を経由していない。
-    /// 乱数のシード管理・リプレイ再現を行う場合はこの実装を差し替える必要がある。
-    /// </remarks>
     public class RandomEnemyResolver : ITargetResolver
     {
-        /// <summary>全インスタンスで共有する乱数。</summary>
-        protected static readonly Random Rng = new();
-
         /// <summary>敵陣営の生存者から 1 体をランダムに返す。生存者が居なければ空リスト。</summary>
         /// <param name="aSource">行動主体のユニット。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
+        /// <param name="aContext">バトルコンテキスト。乱数はここから取る。</param>
         public List<BattleUnit> Resolve(BattleUnit aSource, BattleContext aContext)
         {
             var alive = aContext.GetOpponentParty(aSource.Side).GetAliveActiveMembers();
             return alive.Count > 0
-                ? new List<BattleUnit> { alive[Rng.Next(alive.Count)] }
+                ? new List<BattleUnit> { alive[aContext.Rules.RandomProvider.NextInt(alive.Count)] }
                 : new List<BattleUnit>();
         }
     }

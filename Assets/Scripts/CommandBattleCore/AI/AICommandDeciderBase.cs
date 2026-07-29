@@ -27,16 +27,10 @@ namespace CommandBattleCore
     /// <summary>
     /// 通常攻撃と発動可能なスキルから完全にランダムで選ぶ、最も単純な AI。
     /// <see cref="UnitDefinition.CreateRuntimeUnit"/> で decider を指定しなかった場合の既定値になる。
+    /// 乱数はシード管理・再現性のため <c>aContext.Rules.RandomProvider</c> を経由する。
     /// </summary>
     public class RandomAICommandDecider : AICommandDeciderBase
     {
-        /// <summary>全インスタンスで共有する乱数。</summary>
-        /// <remarks>
-        /// 既知の未整理箇所: 実際の選択では <c>aContext.Rules.RandomProvider</c> を使っており、
-        /// このフィールドは参照されていない。
-        /// </remarks>
-        protected static readonly System.Random Rng = new();
-
         /// <summary>
         /// 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、
         /// その中から等確率で 1 つ選ぶ。候補が必ず 1 件以上あるため選択に失敗しない。
