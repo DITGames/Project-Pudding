@@ -17,17 +17,18 @@ namespace PPCore
     /// 値を保持せず、参照するたびに定義とインベントリから読み直す。
     /// 所持数の変化はインベントリのイベントを中継して UI へ伝える。
     /// </para>
+    /// <para>
+    /// インベントリを購読するため、UI を破棄する際は必ず <see cref="Dispose"/> を呼ぶこと。
+    /// </para>
     /// </summary>
-    /// <remarks>
-    /// <see cref="Dispose"/> を持つが <see cref="IDisposable"/> は実装していないため、
-    /// 破棄は呼び出し側が明示的に行う必要がある。呼び忘れるとインベントリへの購読が残る。
-    /// </remarks>
-    public class PPItemStatusSource : IPPItemStatusSource
+    public class PPItemStatusSource : IPPItemStatusSource, IDisposable
     {
         /// <summary>表示対象のアイテム定義。</summary>
         private readonly PPItemDefinition mDefinition;
         /// <summary>所持数とリソースを引くためのパーティ。</summary>
         private readonly PPBattleParty mParty;
+        /// <summary>購読解除済みかどうか。<see cref="Dispose"/> の多重呼び出しを無害にする。</summary>
+        private bool mIsDisposed;
         /// <summary>表示内容が変化したときに発火する。</summary>
         public event Action Changed;
 
@@ -55,7 +56,13 @@ namespace PPCore
         /// <summary>インベントリの変化を自身のイベントとして中継する。</summary>
         private void Raise() => Changed?.Invoke();
 
-        /// <summary>インベントリへの購読を解除する。UI を閉じる際に必ず呼ぶこと。</summary>
-        public void Dispose() => mParty.Inventory.Changed -= Raise;
+        /// <summary>インベントリへの購読を解除する。UI を閉じる際に必ず呼ぶこと。二度呼ばれても安全。</summary>
+        public void Dispose()
+        {
+            if (mIsDisposed) return;
+            mIsDisposed = true;
+
+            mParty.Inventory.Changed -= Raise;
+        }
     }
 }

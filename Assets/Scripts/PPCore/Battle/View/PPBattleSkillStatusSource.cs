@@ -21,7 +21,7 @@ namespace PPCore
     /// 無関係な属性の増減で UI が再描画されるのを避けている。
     /// </para>
     /// </summary>
-    public class PPBattleSkillStatusSource : IPPSkillStatusSource
+    public class PPBattleSkillStatusSource : IPPSkillStatusSource, IDisposable
     {
         /// <summary>表示対象のスキル。</summary>
         private readonly BattleSkill mSkill;
@@ -31,6 +31,8 @@ namespace PPCore
         private readonly BattleContext mContext;
         /// <summary>リソース変化を購読する対象のパーティ。取得できなければ null。</summary>
         private readonly PPBattleParty mParty;
+        /// <summary>購読解除済みかどうか。<see cref="Dispose"/> の多重呼び出しを無害にする。</summary>
+        private bool mIsDisposed;
         /// <summary>表示内容が変化したときに発火する。</summary>
         public event Action Changed;
 
@@ -67,10 +69,13 @@ namespace PPCore
 
         /// <summary>
         /// メニュー破棄時に呼び出す(購読によるメモリリーク防止用)。
-        /// 購読時と同じ属性集合を辿って解除する。
+        /// 購読時と同じ属性集合を辿って解除する。二度呼ばれても安全。
         /// </summary>
         public void Dispose()
         {
+            if (mIsDisposed) return;
+            mIsDisposed = true;
+
             if (mParty != null)
             {
                 foreach(var t in Cost.RelevantTypes())

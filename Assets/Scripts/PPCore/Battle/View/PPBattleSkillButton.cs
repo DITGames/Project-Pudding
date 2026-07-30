@@ -102,7 +102,7 @@ namespace PPCore
         {
             mButton.onClick.RemoveListener(HandleClick);
             if(mSource != null) mSource.Changed -= Refresh;
-            (mSource as PPBattleSkillStatusSource)?.Dispose();
+            (mSource as IDisposable)?.Dispose();
         }
     }
 }
