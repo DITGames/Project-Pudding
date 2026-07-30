@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
   m_Name: PAP_PPDefault
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
-  Aggression: 50
-  Caution: 50
-  Intelligence: 50
+  Aggression: 0.5
+  Caution: 0.5
+  Intelligence: 0.5
   CostSensitivity: 0.6
   TrendSampleCount: 4
   ThinkInterval: 2

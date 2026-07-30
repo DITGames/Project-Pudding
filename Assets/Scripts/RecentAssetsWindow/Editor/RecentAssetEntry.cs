@@ -5,6 +5,7 @@
  * @date 2026/07/10
  * @brief 最近開いたアセット1件分のデータ
  * =====================================*/
+
 using System;
 
 namespace RecentAssetsWindow.Editor

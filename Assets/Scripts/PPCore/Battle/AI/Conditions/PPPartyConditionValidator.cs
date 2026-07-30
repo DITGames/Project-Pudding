@@ -11,18 +11,31 @@ using UnityEngine;
 
 namespace PPCore
 {
+    // パーティ AI の状況ルールが評価する条件の基底クラス（ScriptableObject）
+    // 「HP が減っている」「リソースが溜まっている」といった判定を 1 つずつアセット化し、
+    // PPPartyAISituationRule が複数を AND で束ねて状況を判断する
+    // 条件をアセットにすることで、AI の性格付けをコードを触らず組み替えられる
+    // 派生クラスを追加するときは PPConditionMenuAttribute と CreateAssetMenu を必ず付けること
+    // ピッカー UI とアセット自動生成がこれに依存する
     public abstract class PPPartyConditionValidator : ScriptableObject
     {
         [Header("表示")]
         [Label("説明")]
         [TextArea]
         [SerializeField] protected string mDescription;
-        
+
+        // 条件の説明文
         public string Description => mDescription;
-        
-        // 現在のスナップショットに対して条件を満たすか判定
+
+        // 現在のスナップショットに対して条件を満たすか判定する
+        // 派生クラスで実装する。状態を変えず判定のみを行うこと
+        // aSnapShot : 評価対象のパーティ状況スナップショット
+        // return : 条件を満たす場合 true
         public abstract bool Evaluate(PPPartyAIContext aSnapShot);
-        
+
+        // 比較演算子を説明文用の日本語へ変換する
+        // aOp : 比較演算子
+        // return : 日本語の表記。未知の値は空文字
         protected virtual string GetOpString(PPCompareOp aOp)
             => aOp switch
             {
@@ -35,11 +48,16 @@ namespace PPCore
                 _ => ""
             };
 
+        // 設定内容から mDescription を組み立てる
+        // 派生クラスでオーバーライドして、インスペクタ上で条件の意味が読めるようにする
         protected virtual void BuildDescription()
         {
         }
-        
-        protected string GetResourceTypeString(PPTypeAttribute a) 
+
+        // 属性を説明文用の日本語へ変換する。表示名は定数から引くためハードコードしない
+        // a : 対象の属性
+        // return : 日本語の表記。未知の値は空文字
+        protected string GetResourceTypeString(PPTypeAttribute a)
             => a switch
             {
                 PPTypeAttribute.Normal => PPTypeAttributeDefinition.TypeNormal,

@@ -6,6 +6,7 @@
  * @brief 最近開いたアセットの履歴を保持・永続化するクラス
  * EditorPrefsにJSON形式で保存し、Unityエディタの再起動をまたいで履歴を保持する
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using UnityEditor;

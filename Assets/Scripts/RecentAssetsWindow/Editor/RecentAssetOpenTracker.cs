@@ -5,6 +5,7 @@
  * @date 2026/07/10
  * @brief アセットが開かれたタイミングを検知し、履歴に記録するクラス
  * =====================================*/
+
 using UnityEditor;
 using UnityEditor.Callbacks;
 using UnityEngine;

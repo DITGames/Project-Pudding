@@ -8,11 +8,22 @@
 
 namespace PPCore
 {
+    // コマンド入力の 1 段階を表すステート
+    // PPBattleCommandInputController がこれをスタックで積み下ろしすることで、
+    // ユニット選択 → コマンド選択 → スキル選択 → 対象選択という多段の入力と、
+    // 任意の段階からの「戻る」を表現する
+    // Suspend と Exit の違いが要点
+    // 先へ進むときは Suspend で退避するだけなので、戻ってきたときに
+    // Resume で状態を復元できる。Exit は破棄で、もう戻ってこない
     public interface IPPBattleInputState
     {
-        void Enter();   // 初めて入る
-        void Resume();  // 一つ先から戻ってきた
-        void Suspend(); // 一つ先へ進むため退避(UIを一時的に隠す)
-        void Exit();    // 完全に破棄
+        // 初めてこのステートに入るときに呼ばれる。UI の表示と購読を行う
+        void Enter();
+        // 一つ先のステートから戻ってきたときに呼ばれる
+        void Resume();
+        // 一つ先へ進むため退避するときに呼ばれる。UI を一時的に隠す
+        void Suspend();
+        // 完全に破棄されるときに呼ばれる。購読解除と後始末を行う
+        void Exit();
     }
 }

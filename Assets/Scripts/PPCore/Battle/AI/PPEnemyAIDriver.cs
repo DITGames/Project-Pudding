@@ -13,13 +13,26 @@ using UnityEngine;
 
 namespace PPCore
 {
+    // パーティ AI を一定間隔で駆動するドライバ
+    // 本作のバトルはターン制ではなくプッシャーと並行してリアルタイムに進むため、
+    // 敵は「自分の番が来たら動く」のではなく、一定秒ごとに思考して動く
+    // その周期を作るのがこのクラスの役割で、思考そのものは IPPPartyCommandStrategist へ完全に委譲する
+    // MonoBehaviour ではないため、RunLoop を呼び出し側のコルーチンとして起動する
     public sealed class PPEnemyAIDriver
     {
+        // コマンドの投入先
         private readonly BattleManager mManager;
+        // 思考対象の陣営
         private readonly BattleSide mSide;
+        // パーティ側に設定が無い場合に使うフォールバックの AI
         private readonly IPPPartyCommandStrategist mPartyCommandStrategist;
+        // 思考間隔（秒）
         private readonly float mThinkInterval;
 
+        // aManager : コマンドの投入先
+        // aSide : 思考対象の陣営
+        // aPartyCommandStrategist : フォールバックの AI
+        // aThinkInterval : 思考間隔（秒）。0.1 秒未満は 0.1 秒に丸められる
         public PPEnemyAIDriver(BattleManager aManager, BattleSide aSide,
             IPPPartyCommandStrategist aPartyCommandStrategist, float aThinkInterval)
         {
@@ -29,6 +42,9 @@ namespace PPCore
             mThinkInterval = Mathf.Max(0.1f, aThinkInterval);
         }
 
+        // バトルが終了するまで、思考間隔ごとに思考と実行を繰り返すコルーチン
+        // 待機オブジェクトを使い回して毎周期の生成を避けている
+        // return : コルーチンの列挙子。呼び出し側で StartCoroutine する
         public IEnumerator RunLoop()
         {
             var wait = new WaitForSeconds(mThinkInterval);
@@ -39,22 +55,27 @@ namespace PPCore
             }
         }
 
+        // 1 回分の思考と実行を行う
+        // 計画を立て、実行順に並べてコマンドを積み、まとめて実行する
+        // バトル終了時と他のコマンド実行中はスキップし、割り込みが起きないようにする
         public void PlanAndExecuteOnce()
         {
             if(mManager == null) return;
-            
+
+            // 実行中に割り込むと行動が入れ子になるため、この 2 状態では思考しない
             var state = mManager.StateMachine.Current;
             if(state == BattleState.BattleEnd || state == BattleState.ActionExecution)
                 return;
-            
+
             var party = mManager.Context.GetParty(mSide) as PPBattleParty;
             if(party == null)
                 return;
-            
+
+            // パーティ個別の AI を優先し、無ければコンストラクタで受けたものを使う
             var strategist = party.Strategist ?? mPartyCommandStrategist;
             if(strategist == null)
                 return;
-            
+
             var plan = strategist.PlanActions(party, mManager.Context);
             if(plan == null || plan.IsWait) return;
 
@@ -62,7 +83,7 @@ namespace PPCore
             {
                 mManager.EnqueueCommand(a.Command);
             }
-            
+
             mManager.ExecuteAllCommands();
         }
     }

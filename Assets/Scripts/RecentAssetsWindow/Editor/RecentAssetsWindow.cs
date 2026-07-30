@@ -8,6 +8,7 @@
  * 一覧のダブルクリックでアセットを開くことができる。
  * 右クリックで「表示」「フォルダに移動」「履歴から削除」のコンテキストメニューを表示する
  * =====================================*/
+
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

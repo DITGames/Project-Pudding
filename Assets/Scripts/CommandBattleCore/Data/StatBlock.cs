@@ -9,6 +9,8 @@ using System;
 
 namespace CommandBattleCore
 {
+    // ユニット定義がインスペクタ上で基礎ステータスを設定するための構造体
+    // ランタイムの ParameterSet と違い修飾子の仕組みを持たない、素の数値の入れ物
     [Serializable]
     public struct StatBlock
     {
@@ -18,6 +20,7 @@ namespace CommandBattleCore
         public float Attack;
         [Label("防御力")]
         public float Defense;
+        // 行動順の決定に使う
         [Label("素早さ")]
         public float Speed;
     }

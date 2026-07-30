@@ -14,6 +14,10 @@ using UnityEngine;
 
 namespace PPCore
 {
+    // 指定した種別のエフェクトを解除するスキルの定義
+    // 状態異常とパラメータ変動でマスクを分けて持つため、
+    // 「毒だけ治す」「デバフだけ打ち消す」「その両方」を 1 つの定義で表現できる
+    // 種別はビットフラグなので複数指定も可能
     [CreateAssetMenu(fileName = "PPEffectCureSkillDefinition",
         menuName = "Project-Pudding/Skill/PPEffectCureSkillDefinition")]
     public class PPEffectCureSkillDefinition : PPSkillDefinition
@@ -25,6 +29,10 @@ namespace PPCore
         [Label("解除するカテゴリ")]
         [SerializeField]protected PPParameterEffectCategory mParameterCureMask = PPParameterEffectCategory.None;
 
+        // 対象のエフェクト一覧からマスクに一致するものを解除する効果を組み立てる
+        // 除去中に BattleUnit.ActiveStatusEffects が変化するため、
+        // 一度 ToList() で確定させてから removal を回している
+        // return : 効果本体のデリゲート
         protected override Action<BattleUnit, List<BattleUnit>, BattleContext> BuildEffect()
         {
             return (src, targets, ctx) =>
@@ -40,7 +48,7 @@ namespace PPCore
                     {
                         tgt.RemoveStatusEffect(eff);
                     }
-                    
+
                     var parameterMatched = tgt.ActiveStatusEffects
                         .OfType<PPParameterEffect>()
                         .Where(e => (e.Category & mParameterCureMask) != 0)
