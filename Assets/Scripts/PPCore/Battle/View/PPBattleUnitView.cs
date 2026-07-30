@@ -47,6 +47,8 @@ namespace PPCore
 
         /// <summary>このビューが表すユニット。</summary>
         private BattleUnit mBattleUnit;
+        /// <summary>ステータスウィジェットへ渡した表示ソース。破棄時に購読を解除するため保持する。</summary>
+        private PPBattleUnitStatusSource mStatusSource;
         /// <summary>このビューが表すユニット。</summary>
         public BattleUnit BattleUnit => mBattleUnit;
         /// <summary>フォーカス対象となるオブジェクト。</summary>
@@ -87,7 +89,23 @@ namespace PPCore
                 Debug.LogWarning($"{aUnit.UnitId} のビジュアル定義が解決できませんでした");
             }
             if(aSide == BattleSide.Ally) mUnitIcon.transform.eulerAngles = new Vector3(0, 180, 0);
-            mStatusWidget.Bind(new PPBattleUnitStatusSource(mBattleUnit));
+
+            // 初期化が繰り返された場合に前回分の購読が残らないよう作り直す
+            mStatusSource?.Dispose();
+            mStatusSource = new PPBattleUnitStatusSource(mBattleUnit);
+            mStatusWidget.Bind(mStatusSource);
+        }
+
+        /// <summary>
+        /// 破棄時にステータス表示の購読を解除する。
+        /// ウィジェット側とソース側で購読先が違うため、両方を明示的に切る。
+        /// </summary>
+        private void OnDestroy()
+        {
+            // 子オブジェクトの破棄順は保証されないため、先に破棄済みの可能性を見る
+            if (mStatusWidget != null) mStatusWidget.Unbind();
+            mStatusSource?.Dispose();
+            mStatusSource = null;
         }
 
         /// <summary>選択できる状態かを切り替える。入力ステートが候補の絞り込みに使う。</summary>
