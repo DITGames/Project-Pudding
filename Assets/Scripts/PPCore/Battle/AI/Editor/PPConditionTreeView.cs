@@ -14,14 +14,33 @@ using UnityEngine;
 
 namespace PPCore
 {
+    /// <summary>
+    /// 条件クラスと既存の条件アセットをカテゴリ別に並べるツリービュー。
+    /// <para>
+    /// 階層は <see cref="PPConditionMenuAttribute"/> の Path から組み立てる。
+    /// 各条件クラスのノードの下に、その型で既に作られているアセットをぶら下げるため、
+    /// 「新規作成」と「既存の再利用」を同じツリーから選べる。
+    /// </para>
+    /// <para>
+    /// ノード ID はフォルダを負値、葉（型とアセット）を 0 以上で採番して衝突を避けている。
+    /// </para>
+    /// </summary>
     internal sealed class PPConditionTreeView : TreeView<int>
     {
+        /// <summary>条件の型が選ばれたときのコールバック。</summary>
         private readonly Action<Type> mOnPickType;
+        /// <summary>既存アセットが選ばれたときのコールバック。</summary>
         private readonly Action<PPPartyConditionValidator> mOnPickAsset;
+        /// <summary>ノード ID から条件クラスの型への対応。</summary>
         private readonly Dictionary<int, Type> mIdToType = new();
+        /// <summary>ノード ID から既存アセットへの対応。</summary>
         private readonly Dictionary<int, PPPartyConditionValidator> mIdToAsset = new();
+        /// <summary>フォルダノードに割り当てる次の ID。葉と衝突しないよう負方向へ進める。</summary>
         private int mNextFolderId = -2;
 
+        /// <param name="aState">ツリーの展開状態を保持する状態オブジェクト。</param>
+        /// <param name="aOnPickType">条件の型が選ばれたときのコールバック。</param>
+        /// <param name="aOnPickAsset">既存アセットが選ばれたときのコールバック。</param>
         public PPConditionTreeView(TreeViewState<int> aState, Action<Type> aOnPickType, Action<PPPartyConditionValidator> aOnPickAsset)
             : base(aState)
         {
@@ -31,6 +50,12 @@ namespace PPCore
             Reload();
         }
 
+        /// <summary>
+        /// ツリーを構築する。
+        /// 条件クラスを走査し、属性のパスに沿ってフォルダノードを掘りながら葉を追加する。
+        /// さらに各型について既存アセットを検索し、その型のノードの子として並べる。
+        /// </summary>
+        /// <returns>構築されたルートノード。</returns>
         protected override TreeViewItem<int> BuildRoot()
         {
             var root = new TreeViewItem<int>(-1, -1, "root");
@@ -42,11 +67,13 @@ namespace PPCore
             foreach (var type in TypeCache.GetTypesDerivedFrom<PPPartyConditionValidator>())
             {
                 if(type.IsAbstract) continue;
-                
+
+                // 属性が無い条件クラスは「未分類」へ逃がす
                 var menu = type.GetCustomAttribute<PPConditionMenuAttribute>();
                 string path = menu != null ? menu.Path : $"未分類/{type.Name}";
                 string[] segments = path.Split('/');
-                
+
+                // 末尾の要素は葉になるため、その手前までをフォルダとして辿る
                 TreeViewItem<int> parent = root;
                 string accum = "";
                 for (int i = 0; i < segments.Length - 1; i++)
@@ -77,6 +104,7 @@ namespace PPCore
                 {
                     string assetPath = AssetDatabase.GUIDToAssetPath(guid);
                     var asset = AssetDatabase.LoadAssetAtPath<PPPartyConditionValidator>(assetPath);
+                    // FindAssets は派生型も拾うため、厳密に一致するものだけを採用する
                     if (asset == null || asset.GetType() != type) continue;
 
                     int assetId = nextLeafId++;
@@ -89,14 +117,20 @@ namespace PPCore
                     mIdToAsset[assetId] = asset;
                 }
             }
-            
+
+            // TreeView は子が 1 つも無いと例外になるため、ダミーを入れておく
             if (!root.hasChildren)
                 root.AddChild(new TreeViewItem<int>(0, 0, "(条件クラスが見つかりません)"));
 
             SetupDepthsFromParentsAndChildren(root);
             return root;
         }
-        
+
+        /// <summary>
+        /// ダブルクリックで選択を確定する。
+        /// アセットを先に判定するため、型ノードとアセットノードが混在していても取り違えない。
+        /// </summary>
+        /// <param name="aId">ダブルクリックされたノードの ID。</param>
         protected override void DoubleClickedItem(int aId)
         {
             if (mIdToAsset.TryGetValue(aId, out var asset))
@@ -109,6 +143,11 @@ namespace PPCore
                 mOnPickType?.Invoke(type);
         }
 
+        /// <summary>
+        /// エディタ組み込みアイコンを名前で取得する。
+        /// </summary>
+        /// <param name="aName">アイコン名。</param>
+        /// <returns>取得したテクスチャ。見つからなければ null。</returns>
         private static Texture2D LoadIcon(string aName)
         {
             var content = EditorGUIUtility.IconContent(aName);
