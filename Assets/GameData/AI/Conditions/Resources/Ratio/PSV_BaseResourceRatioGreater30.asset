@@ -15,5 +15,5 @@ MonoBehaviour:
   mDescription: "\u30D9\u30FC\u30B9\u30EA\u30BD\u30FC\u30B9\u304C30%\u4EE5\u4E0A"
   ResourceType: 0
   Op: 2
-  Threshold: 30
-  Tolerance: 1
+  Threshold: 0.3
+  Tolerance: 0.01

@@ -47,9 +47,7 @@ namespace PPCore
         public float LowestAllyHpRatio { get; private set; } = 1f;
 
         /// <summary>
-        /// パーティ全体の HP 割合。
-        /// 条件アセット側の閾値設定に合わせて、0～1 ではなく 0～100 のパーセント値で保持する
-        /// （0～1 の <see cref="LowestAllyHpRatio"/> とは尺度が違う点に注意）。
+        /// パーティ全体の HP 割合。0～1 で保持する（<see cref="LowestAllyHpRatio"/> と同じ尺度）。
         /// </summary>
         public float PartyHpRatio { get; private set; } = 0f;
         /// <summary>危機的状況かどうか。<see cref="PPBattleRules.CrisisHpRatio"/> を下回ると true。</summary>
@@ -92,9 +90,7 @@ namespace PPCore
                 }
             }
 
-            // %変換
             snap.PartyHpRatio = sumMax > 0f ? sumCur / sumMax : 0f;
-            snap.PartyHpRatio *= 100;
 
             // 敵パーティの集計
             // 自分がどちら側かで相手パーティが変わるため、参照比較で判定する

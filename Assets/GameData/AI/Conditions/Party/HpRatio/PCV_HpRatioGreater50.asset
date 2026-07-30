@@ -14,5 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyHpRatioCondition
   mDescription: "HP\u304C50%\u4EE5\u4E0A"
   Op: 2
-  Threshold: 50
+  Threshold: 0.5
   Tolerance: 0

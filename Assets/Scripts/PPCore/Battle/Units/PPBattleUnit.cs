@@ -28,8 +28,8 @@ namespace PPCore
         public PPUnitActionScoreModifier ScoreModifier { get; set; } = new PPUnitActionScoreModifier();
 
         /// <summary>
-        /// AI の賢さ。低いほど最適でない行動を選びやすくなる。
-        /// -1 はパーティの Intelligence を継承する意味。
+        /// AI の賢さ（0〜1）。低いほど最適でない行動を選びやすくなる。
+        /// 負値はパーティの Intelligence を継承する意味。
         /// </summary>
         public float Intelligence { get; set; } = -1f;
 

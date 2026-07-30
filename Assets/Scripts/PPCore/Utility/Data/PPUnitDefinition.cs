@@ -37,8 +37,8 @@ namespace PPCore
         [Label("既定ロール")][SerializeField]protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
         /// <summary>AI のスコアリングに掛かる既定の個体差補正。</summary>
         [Label("既定の行動スコア補正")][SerializeField]protected PPUnitActionScoreModifier mDefaultActionScore = new();
-        /// <summary>既定の知能。-1 ならパーティプロファイルの値を継承する。</summary>
-        [Label("既定の知能")][SerializeField][Range(-1,100)]protected float mDefaultIntelligence = 50f;
+        /// <summary>既定の知能（0〜1）。負値ならパーティプロファイルの値を継承する。</summary>
+        [PercentLabel("既定の知能", -1f, 1f, "継承")][SerializeField]protected float mDefaultIntelligence = 0.5f;
 
         /// <summary>最大HPの成長曲線（X = レベル, Y = 基礎値への倍率）。</summary>
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
@@ -58,7 +58,7 @@ namespace PPCore
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
         /// <summary>既定の行動スコア補正。</summary>
         public PPUnitActionScoreModifier ActionScoreModifier => mDefaultActionScore;
-        /// <summary>既定の知能。</summary>
+        /// <summary>既定の知能（0〜1）。</summary>
         public float DefaultIntelligence => mDefaultIntelligence;
 
         /// <summary>

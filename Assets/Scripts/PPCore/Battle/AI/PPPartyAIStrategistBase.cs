@@ -221,9 +221,9 @@ namespace PPCore
         /// 未設定（0 以下）ならプロファイルの値を使う。
         /// </summary>
         /// <param name="aUnit">対象ユニット。</param>
-        /// <returns>0～100 に丸めた知能値。</returns>
+        /// <returns>0～1 に丸めた知能値。</returns>
         protected float ResolveIntelligence(PPBattleUnit aUnit)
-            => aUnit.Intelligence > 0f ? Mathf.Clamp(aUnit.Intelligence, 0f, 100f) : mProfile.Intelligence;
+            => aUnit.Intelligence > 0f ? Mathf.Clamp01(aUnit.Intelligence) : mProfile.Intelligence;
 
         /// <summary>
         /// 候補からベストを選ぶ。スコアにノイズを載せてから比較するため、
@@ -241,9 +241,9 @@ namespace PPCore
             if(aCandidates.Count == 1)
                 return aCandidates[0];
 
-            // 知能 100 ならノイズ 0、知能 0 なら最大幅でぶれる
+            // 知能 1 ならノイズ 0、知能 0 なら最大幅でぶれる
             float maxScore = aCandidates.Max(c => c.Score);
-            float noiseRatio = 1f - Mathf.Clamp01(aIntelligence / 100f);
+            float noiseRatio = 1f - Mathf.Clamp01(aIntelligence);
             float amplitude = maxScore * mProfile.ActionNoiseAmplitude * noiseRatio;
 
             PPActionCandidate best = null;
@@ -280,7 +280,7 @@ namespace PPCore
             if (aSnap.AliveEnemies.Count == 0)
                 return null;
             // 知能が高いほど最低ターゲットを選択しやすい
-            float optimalChance = Mathf.Clamp01(aIntelligence / 100f);
+            float optimalChance = Mathf.Clamp01(aIntelligence);
             if(Chance(optimalChance, aContext))
                 return aSnap.LowestHpEnemy;
             int idx = aContext.Rules.RandomProvider.NextInt(aSnap.AliveEnemies.Count);
@@ -473,7 +473,7 @@ namespace PPCore
             bool aUseAggression, PPResourceCost aCost, float aAggressionMultiplier = 1f)
         {
             float raw = aBaseScore + aBias * aFactor;
-            float aggr = aUseAggression ? (mProfile.Aggression / 100f) * aAggressionMultiplier : 1f;
+            float aggr = aUseAggression ? mProfile.Aggression * aAggressionMultiplier : 1f;
             return aWeight * aSituationMul * raw * aggr * CostEfficiency(aCost);
         }
 
@@ -625,7 +625,7 @@ namespace PPCore
 
             // AIプロファイルの警戒度が高いほど短いTick数でしか待たない(溜められると判断しない)
             // パーティ種別の忍耐係数とシチュエーションによる補正を掛けて待つことに意味があるか判断する
-            float allowedTicks = Mathf.Lerp(6f, 1f, (mProfile.Caution /100f)) * aSnap.PatienceCoefficient * aSituation.PatienceMultiplier;
+            float allowedTicks = Mathf.Lerp(6f, 1f, mProfile.Caution) * aSnap.PatienceCoefficient * aSituation.PatienceMultiplier;
 
             return ticksNeeded > allowedTicks ? 0f : upcoming.Score;
         }

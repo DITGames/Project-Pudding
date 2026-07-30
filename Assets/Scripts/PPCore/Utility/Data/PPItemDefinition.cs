@@ -29,15 +29,14 @@ namespace PPCore
         [Label("アイコン")][SerializeField] private Sprite mIcon;
         /// <summary>効果の対象範囲。</summary>
         [Label("対象")][SerializeField] private TargetScope mTarget = TargetScope.SingleAlly;
-        /// <summary>使用に必要なリソースコスト。</summary>
-        /// <remarks>
-        /// 既知の未整理箇所: <see cref="PPResourceCost"/> は <c>[Serializable]</c> を持たず
-        /// コンストラクタも private なため、Unity のシリアライズ対象にならない。
-        /// このフィールドは常に null のままで、実質アイテムのコストは機能していない。
-        /// スキル側と同様に <see cref="PPResourceAmount"/> の配列で保持し、
-        /// <see cref="PPResourceCost.From"/> で組み立てる形にする必要がある。
-        /// </remarks>
-        [Label("コスト")] [SerializeField] private PPResourceCost mCost;
+        /// <summary>
+        /// 属性ごとの消費リソース量。インスペクタ設定用の生データ。
+        /// <see cref="PPResourceCost"/> 自体はシリアライズできないため、
+        /// スキル定義と同じくエントリ配列で保持して実行時に組み立てる。
+        /// </summary>
+        [Label("コスト")] [SerializeField] private PPResourceAmount[] mCost;
+        /// <summary><see cref="mCost"/> から一度だけ構築するコストのキャッシュ。</summary>
+        private PPResourceCost mCachedCost;
 
         /// <summary>アイテムID。</summary>
         public string ItemId => mItemId;
@@ -47,8 +46,8 @@ namespace PPCore
         public Sprite Icon => mIcon;
         /// <summary>効果の対象範囲。</summary>
         public TargetScope Target => mTarget;
-        /// <summary>使用に必要なリソースコスト。上記の理由により現状は常に null。</summary>
-        public PPResourceCost Cost => mCost;
+        /// <summary>使用に必要なリソースコスト。初回アクセス時に構築してキャッシュする。</summary>
+        public PPResourceCost Cost => mCachedCost ??= PPResourceCost.From(mCost);
 
         /// <summary>
         /// アイテムの効果を実行する。派生側で実装する。

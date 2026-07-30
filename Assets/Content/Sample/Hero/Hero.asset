@@ -29,7 +29,7 @@ MonoBehaviour:
     Attack: 1
     Support: 1
     Heal: 1
-  mDefaultIntelligence: 50
+  mDefaultIntelligence: 0.5
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

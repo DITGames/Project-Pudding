@@ -52,8 +52,8 @@ namespace PPCore
         [Label("行動スコア上書き値")]public PPUnitActionScoreModifier ActionScoreOverride = new();
         /// <summary>知能を上書きするか。</summary>
         [Label("知能を上書きする?")] public bool IsOverrideIntelligence = false;
-        /// <summary>知能の上書き値。</summary>
-        [Label("知能上書き値")]public float IntelligenceOverride = 50f;
+        /// <summary>知能の上書き値（0〜1）。</summary>
+        [PercentLabel("知能上書き値")]public float IntelligenceOverride = 0.5f;
     }
 
     /// <summary>
@@ -147,12 +147,12 @@ namespace PPCore
         }
 
         /// <summary>
-        /// 適用する知能を解決する。上書き指定時のみ手入力値を 0～100 に丸めて使う。
+        /// 適用する知能を解決する。上書き指定時のみ手入力値を 0～1 に丸めて使う。
         /// </summary>
         /// <param name="aEntry">対象のメンバー設定。</param>
         private static float ResolveIntelligence(PPPartyMemberEntry aEntry)
         {
-            if(aEntry.IsOverrideIntelligence) return Mathf.Clamp(aEntry.IntelligenceOverride, 0f, 100f);
+            if(aEntry.IsOverrideIntelligence) return Mathf.Clamp01(aEntry.IntelligenceOverride);
             return aEntry.Unit.DefaultIntelligence;
         }
     }

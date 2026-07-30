@@ -155,13 +155,13 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPPartyAIProfileDefinition", menuName = "Project-Pudding/AI/PPPartyAIProfileDefinition")]
     public class PPPartyAIProfileDefinition : ScriptableObject
     {
-        /// <summary>積極性。高いほど攻撃系のスコアが上がる。</summary>
+        /// <summary>積極性（0〜1）。高いほど攻撃系のスコアが上がる。</summary>
         [Header("性能")]
-        [Label("積極性")][Range(0,100)] public float Aggression = 50f;
-        /// <summary>警戒度。高いほど「待って溜める」判断をしなくなる。</summary>
-        [Label("警戒度")][Range(0, 100)] public float Caution = 50f;
-        /// <summary>知能。低いほど選択にノイズが乗り、最適解を外しやすくなる。</summary>
-        [Label("知能")][Range(0, 100)] public float Intelligence = 50f;
+        [PercentLabel("積極性")] public float Aggression = 0.5f;
+        /// <summary>警戒度（0〜1）。高いほど「待って溜める」判断をしなくなる。</summary>
+        [PercentLabel("警戒度")] public float Caution = 0.5f;
+        /// <summary>知能（0〜1）。低いほど選択にノイズが乗り、最適解を外しやすくなる。</summary>
+        [PercentLabel("知能")] public float Intelligence = 0.5f;
 
         /// <summary>コスト感度。高いほど高コストの行動を避ける。</summary>
         [Header("リソース")]
