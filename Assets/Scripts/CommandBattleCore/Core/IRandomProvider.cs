@@ -5,7 +5,8 @@
  * @date 2026/06/13
  * @brief バトル中の全乱数の供給コア
  * =====================================*/
-using UnityEngine;
+
+using System;
 
 namespace CommandBattleCore
 {
@@ -38,17 +39,17 @@ namespace CommandBattleCore
     }
 
     /// <summary>
-    /// <see cref="System.Random"/> を用いた標準の乱数供給実装。
+    /// <see cref="Random"/> を用いた標準の乱数供給実装。
     /// シードを与えれば同じ乱数列を再現できる。
     /// </summary>
     public class DefaultRandomProvider : IRandomProvider
     {
         /// <summary>乱数生成器の実体。</summary>
-        protected readonly System.Random mRng;
+        protected readonly Random mRng;
 
         /// <param name="aSeed">固定シード。null なら時刻由来のシードで初期化する。</param>
         public DefaultRandomProvider(int? aSeed = null)
-            => mRng = aSeed.HasValue ? new System.Random(aSeed.Value) : new System.Random();
+            => mRng = aSeed.HasValue ? new Random(aSeed.Value) : new Random();
 
         /// <summary>0 以上 <paramref name="aMaxExclusive"/> 未満の整数を返す。</summary>
         public int NextInt(int aMaxExclusive) => mRng.Next(aMaxExclusive);

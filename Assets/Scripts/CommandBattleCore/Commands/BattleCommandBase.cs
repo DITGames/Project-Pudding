@@ -6,9 +6,6 @@
  * @brief 全コマンドの基底クラス
  * =====================================*/
 
-using System;
-using UnityEngine;
-
 namespace CommandBattleCore
 {
     /// <summary>
@@ -30,12 +27,12 @@ namespace CommandBattleCore
         /// <summary>リアクション（反撃など）として生成されたコマンドなら true。連鎖抑止の判定に使う。</summary>
         public bool IsReaction { get; protected internal set; }
 
-        /// <param name="source">コマンドを実行するユニット。</param>
-        /// <param name="targetResolver">対象を決定するリゾルバ。</param>
-        protected BattleCommandBase(BattleUnit source, ITargetResolver targetResolver)
+        /// <param name="aSource">コマンドを実行するユニット。</param>
+        /// <param name="aTargetResolver">対象を決定するリゾルバ。</param>
+        protected BattleCommandBase(BattleUnit aSource, ITargetResolver aTargetResolver)
         {
-            Source = source;
-            TargetResolver = targetResolver;
+            Source = aSource;
+            TargetResolver = aTargetResolver;
         }
 
         /// <summary>

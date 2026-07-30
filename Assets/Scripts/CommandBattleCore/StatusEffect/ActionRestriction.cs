@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief 行動制限の種類
  * =====================================*/
+
 using System;
 
 namespace CommandBattleCore

@@ -5,7 +5,6 @@
  * @date 2026/06/13
  * @brief データ定義からターゲットのデフォルトを生成する
  * =====================================*/
-using UnityEngine;
 
 namespace CommandBattleCore
 {

@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief スキルのマスターデータ
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using UnityEngine;

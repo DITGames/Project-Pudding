@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief AIコマンドの基底
  * =====================================*/
+
 using System.Collections.Generic;
 
 namespace CommandBattleCore

@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief 基本のコマンド実装
  * =====================================*/
+
 using System;
 using UnityEngine;
 
@@ -64,10 +65,6 @@ namespace CommandBattleCore
 
     /// <summary>
     /// スキル使用コマンド。
-    /// <para>
-    /// コア層はリソースという概念を持たないため、ここではコストの消費を行わない。
-    /// リソース消費が必要な場合は <see cref="PPSkillCommand"/> のように派生側で実装する。
-    /// </para>
     /// </summary>
     public class SkillCommand : BattleCommandBase
     {
@@ -110,8 +107,6 @@ namespace CommandBattleCore
                 aContext.NotifyCastFailed(Source, Skill, validation.Reason);
                 return;
             }
-
-            // プロジェクトに合わせてコストの消費
 
             // スキル実行
             Skill.Execute(Source, targets, aContext);

@@ -5,7 +5,6 @@
  * @date 2026/06/13
  * @brief 1ターン内の行動回数を管理する
  * =====================================*/
-using UnityEngine;
 
 namespace CommandBattleCore
 {

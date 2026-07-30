@@ -8,7 +8,6 @@
  * @update
  * 6/21 CastFailReasonの追加
  * =====================================*/
-using UnityEngine;
 
 namespace CommandBattleCore
 {
@@ -81,7 +80,6 @@ namespace CommandBattleCore
 
     /// <summary>
     /// コア標準のバリデータ。クールダウンと使用回数のみを見る。
-    /// リソース消費のような固有仕様は <see cref="PPBattleCastValidator"/> 側で追加する。
     /// </summary>
     public class DefaultCastValidator : ICastValidator
     {

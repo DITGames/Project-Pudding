@@ -19,9 +19,6 @@ namespace CommandBattleCore
     /// スキルも同時にランタイム化されるため、同じ定義から作った 2 体は
     /// クールダウンなどの状態を共有しない。
     /// </para>
-    /// <para>
-    /// レベル成長や属性といった本作固有の要素は <see cref="PPUnitDefinition"/> 側で追加する。
-    /// </para>
     /// </summary>
     [CreateAssetMenu(menuName = "CommandBattleCore/UnitDefinition", fileName = "NewUnit")]
     public class UnitDefinition : ScriptableObject

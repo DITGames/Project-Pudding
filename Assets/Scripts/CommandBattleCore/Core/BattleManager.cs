@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief バトル進行のコアクラス
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,7 +26,6 @@ namespace CommandBattleCore
     /// <para>
     /// 判定ロジックそのものは持たず、<see cref="IBattleResultChecker"/> / <see cref="ITurnOrderResolver"/> /
     /// <see cref="IBattlePresenter"/> などの差し替え可能なインターフェースへ委譲する。
-    /// ゲーム固有の仕様（属性・コイン・パーティ AI 等）はここには置かず、PPCore 側で拡張する。
     /// </para>
     /// </summary>
     public class BattleManager

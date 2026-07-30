@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief バトル進行ステートの管理
  * =====================================*/
+
 using System;
 
 namespace CommandBattleCore

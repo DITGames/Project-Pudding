@@ -5,6 +5,7 @@
  * @date 2026/06/13
  * @brief バトル用ログ定義
  * =====================================*/
+
 using System.Collections.Generic;
 
 namespace CommandBattleCore

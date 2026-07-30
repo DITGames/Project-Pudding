@@ -5,7 +5,6 @@
  * @date 2026/06/13
  * @brief 勝敗チェッカー
  * =====================================*/
-using UnityEngine;
 
 namespace CommandBattleCore
 {

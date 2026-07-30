@@ -5,9 +5,9 @@
  * @date 2026/06/13
  * @brief バトル開始のコンテキスト
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
-using System.Data;
 
 namespace CommandBattleCore
 {

@@ -6,7 +6,6 @@
  * @brief コマンド決定の責務を切り出すインターフェース
  * プレイヤーユニットも敵ユニットも同じ仕組みで扱える
  * =====================================*/
-using UnityEngine;
 
 namespace CommandBattleCore
 {
@@ -15,10 +14,6 @@ namespace CommandBattleCore
     /// <para>
     /// 「誰が決めるか」（プレイヤー入力か AI か）を <see cref="BattleUnit"/> から切り離すためのもの。
     /// バトル側は決め方を問わず、返ってきたコマンドをキューへ積むだけで済む。
-    /// </para>
-    /// <para>
-    /// なお本作の敵はユニット単位ではなくパーティ単位で行動を決めるため、
-    /// 実際には <see cref="IPPPartyCommandStrategist"/> 側が主に使われる。
     /// </para>
     /// </summary>
     public interface ICommandDecider

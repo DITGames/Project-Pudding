@@ -6,6 +6,7 @@
  * @brief バトルパーティインスタンス
  * 入れ替え前提で作ってる
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,6 @@ namespace CommandBattleCore
     /// <para>
     /// 戦場に出ているアクティブメンバーと控えのリザーブメンバーを分けて持ち、
     /// 両者の入れ替え・全滅判定・パーティ単位の Tick を担う。
-    /// パーティ共有のリソース（コイン等）を持たせたい場合は、これを継承した PPBattleParty 側で拡張する。
     /// </para>
     /// </summary>
     public class BattleParty

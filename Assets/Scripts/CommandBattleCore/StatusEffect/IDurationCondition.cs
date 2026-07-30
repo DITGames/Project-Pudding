@@ -5,7 +5,6 @@
  * @date 2026/06/13
  * @brief 状態異常の持続条件
  * =====================================*/
-using UnityEngine;
 
 namespace CommandBattleCore
 {

@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace CommandBattleCore
 {
@@ -16,7 +15,6 @@ namespace CommandBattleCore
     /// <para>
     /// 命中・クリティカル・乱数・詠唱可否・ターゲット絞り込み・死亡対象の扱いといった
     /// 「どう判定するか」をすべてインターフェースで保持し、既定実装をあらかじめ入れてある。
-    /// ゲーム固有のルールを入れたい場合は、これを継承した PPBattleRules 側で実装を差し替える。
     /// </para>
     /// </summary>
     public class BattleRules

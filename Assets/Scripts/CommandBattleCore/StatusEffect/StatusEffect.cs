@@ -6,6 +6,7 @@
  * @brief 状態異常定義
  * 防御状態や毒などステータスの異変はすべて定義をまとめる
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 
