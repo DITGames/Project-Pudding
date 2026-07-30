@@ -11,26 +11,47 @@ using UnityEngine;
 
 namespace PPCore
 {
+    /// <summary>
+    /// パーティ状況条件: 指定属性のリソースが上限に対して何割溜まっているか。
+    /// <para>
+    /// 絶対量で見る <see cref="PPResourceAmountCondition"/> と違い、上限に対する充足率で判定する。
+    /// 「リソースが満タンに近いので大技を狙う」といった状況判断に使う。
+    /// 閾値・許容値ともに 0～100 のパーセント値で扱う。
+    /// </para>
+    /// </summary>
     [PPConditionMenu("リソース/残量(割合)", "Resources/Ratio")]
     [CreateAssetMenu(fileName = "PPResourceRatioCondition",
         menuName = "Project-Pudding/AI/Conditions/リソース割合")]
     public sealed class PPResourceRatioCondition : PPPartyConditionValidator
     {
+        /// <summary>判定対象の属性。</summary>
         [Label("対象リソース")] public PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
+        /// <summary>比較演算子。</summary>
         [Label("比較")] public PPCompareOp Op = PPCompareOp.GreaterOrEqual;
+        /// <summary>閾値（％）。</summary>
         [Label("割合")] [Range(0f, 100f)] public float Threshold = 100;
+        /// <summary>等値判定の許容誤差（％）。等値・非等値のときのみ表示される。</summary>
         [Label("許容値")] [EditCondition("IsEqualOp", true, false)] public float Tolerance = 1f;
-        
+
+        /// <summary>許容値の入力欄を出すかどうか（等値系の演算子でのみ意味を持つ）。</summary>
         private bool IsEqualOp
             => Op == PPCompareOp.Equal || Op == PPCompareOp.NotEqual;
 
+        /// <summary>
+        /// 対象リソースの充足率を求めて閾値と比較する。
+        /// 閾値がパーセント指定のため、0～1 の比率を 100 倍して尺度を合わせる。
+        /// 上限が 0 の場合は 0% として扱う。
+        /// </summary>
+        /// <param name="aSnapShot">評価対象のパーティ状況スナップショット。</param>
+        /// <returns>条件を満たす場合 true。</returns>
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         {
             float max = aSnapShot.ResourcePool.Max(mTypeAttribute);
-            float ratio = max > 0f ? aSnapShot.Current(mTypeAttribute) / max : 0f;
+            float ratio = max > 0f ? aSnapShot.Current(mTypeAttribute) / max * 100f : 0f;
             return PPConditionMath.Compare(ratio, Op, Threshold, Tolerance);
         }
-        
+
+        /// <summary>設定内容から説明文を組み立てる。等値系のときは許容値も併記する。</summary>
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
         {
@@ -44,6 +65,8 @@ namespace PPCore
             }
         }
 
+        /// <summary>説明文の語尾を自然な日本語にするため、等値系のみ表記を差し替える。</summary>
+        /// <param name="aOp">比較演算子。</param>
         protected override string GetOpString(PPCompareOp aOp)
             => aOp switch
             {

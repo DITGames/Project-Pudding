@@ -10,16 +10,32 @@ using CommandBattleCore;
 
 namespace PPCore
 {
+    /// <summary>
+    /// AI が評価する行動候補 1 件分。
+    /// <para>
+    /// スコアリングに必要な情報（ロール・コスト・対象）と、
+    /// 採用が決まった時点で実際のコマンドを作るためのファクトリを 1 つにまとめたもの。
+    /// コマンドを先に作らずデリゲートで遅延させることで、
+    /// 採用されなかった候補の分だけ無駄にインスタンスを作らずに済む。
+    /// </para>
+    /// </summary>
     public sealed class PPActionCandidate
     {
+        /// <summary>この行動を取るユニット。</summary>
         public PPBattleUnit Unit;
+        /// <summary>行動のロール。スコア関数の振り分けと実行順序の決定に使う。</summary>
         public PPBattleActionRole Role;
+        /// <summary>この行動に必要なリソースコスト。</summary>
         public PPResourceCost Cost;
+        /// <summary>使用するスキル。通常攻撃の場合は null。</summary>
         public PPBattleSkill Skill;
+        /// <summary>対象ユニット。範囲行動や自己完結する行動では null。</summary>
         public PPBattleUnit Target;
-        
+
+        /// <summary>採用時にコマンドを生成するファクトリ。対象は生成時点で焼き込まれている。</summary>
         public Func<BattleContext, BattleCommandBase> BuildCommand;
-        
+
+        /// <summary>評価済みのスコア。<see cref="PPPartyAIStrategistBase.Evaluate"/> が設定する。</summary>
         public float Score;
     }
 }
