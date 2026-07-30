@@ -5,6 +5,7 @@
  * @date 2026/07/02
  * @brief アイテム状態ソース
  * =====================================*/
+
 using System;
 
 namespace PPCore

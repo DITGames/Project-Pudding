@@ -5,6 +5,7 @@
  * @date 2026/07/23
  * @brief ユニットに割り当てるパーティ内の役割
  * =====================================*/
+
 using UnityEngine;
 
 namespace PPCore

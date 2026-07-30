@@ -5,6 +5,7 @@
  * @date 2026/06/21
  * @brief バトルスキル定義のベースクラス
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using CommandBattleCore;

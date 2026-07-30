@@ -5,6 +5,7 @@
  * @date 2026/07/16
  * @brief 戦略層が評価する行動候補
  * =====================================*/
+
 using System;
 using CommandBattleCore;
 

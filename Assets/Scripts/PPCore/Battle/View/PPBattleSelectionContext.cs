@@ -5,6 +5,7 @@
  * @date 2026/06/30
  * @brief バトル中のコマンド選択途中の蓄積データ
  * =====================================*/
+
 using System;
 using CommandBattleCore;
 

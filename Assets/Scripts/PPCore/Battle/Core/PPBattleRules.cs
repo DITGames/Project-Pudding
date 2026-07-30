@@ -5,6 +5,7 @@
  * @date 2026/07/16
  * @brief 拡張バトルルール
  * =====================================*/
+
 using CommandBattleCore;
 
 namespace PPCore

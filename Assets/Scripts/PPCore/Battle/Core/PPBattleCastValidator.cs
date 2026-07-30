@@ -7,7 +7,6 @@
  * =====================================*/
 
 using CommandBattleCore;
-using UnityEngine;
 
 namespace PPCore
 {

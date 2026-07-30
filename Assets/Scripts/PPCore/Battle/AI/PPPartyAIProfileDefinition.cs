@@ -5,11 +5,11 @@
  * @date 2026/07/16
  * @brief 敵パーティAIの性格定義
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using CommandBattleCore;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace PPCore
 {

@@ -5,6 +5,7 @@
  * @date 2026/06/25
  * @brief バトルユニット情報読み取りアダプタ
  * =====================================*/
+
 using CommandBattleCore;
 using System;
 

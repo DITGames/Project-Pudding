@@ -5,9 +5,9 @@
  * @date 2026/07/09
  * @brief バトル中のユニット選択系ビューのベースクラス
  * =====================================*/
+
 using System.Collections.Generic;
 using CommandBattleCore;
-using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace PPCore

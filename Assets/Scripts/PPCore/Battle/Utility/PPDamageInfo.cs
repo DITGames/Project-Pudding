@@ -5,6 +5,7 @@
  * @date 2026/07/27
  * @brief PPCore固有のダメージ情報
  * =====================================*/
+
 using CommandBattleCore;
 
 namespace PPCore

@@ -5,6 +5,7 @@
  * @date 2026/07/16
  * @brief AIの戦略評価用コンテキスト
  * =====================================*/
+
 using System.Collections.Generic;
 using CommandBattleCore;
 

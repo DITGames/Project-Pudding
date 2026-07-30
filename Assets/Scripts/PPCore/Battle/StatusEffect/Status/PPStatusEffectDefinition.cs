@@ -5,6 +5,7 @@
  * @date 2026/07/27
  * @brief ステータス異常のデータ定義
  * =====================================*/
+
 using CommandBattleCore;
 using UnityEngine;
 

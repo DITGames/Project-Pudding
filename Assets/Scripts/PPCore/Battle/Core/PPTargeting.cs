@@ -5,6 +5,7 @@
  * @date 2026/07/02
  * @brief 種別/スコープ判定のユーティリティ
  * =====================================*/
+
 using CommandBattleCore;
 
 namespace PPCore

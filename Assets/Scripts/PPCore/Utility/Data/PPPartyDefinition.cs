@@ -5,6 +5,7 @@
  * @date 2026/07/23
  * @brief パーティ定義
  * =====================================*/
+
 using System;
 using System.Collections.Generic;
 using CommandBattleCore;

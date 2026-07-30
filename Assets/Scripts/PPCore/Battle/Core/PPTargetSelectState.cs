@@ -5,9 +5,9 @@
  * @date 2026/06/30
  * @brief ターゲット選択ステート
  * =====================================*/
+
 using System.Collections.Generic;
 using CommandBattleCore;
-using UnityEngine.EventSystems;
 
 namespace PPCore
 {

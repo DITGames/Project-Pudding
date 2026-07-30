@@ -5,6 +5,7 @@
  * @date 2026/06/21
  * @brief バトルで使用されるリソース定義
  * =====================================*/
+
 using CommandBattleCore;
 
 namespace PPCore
