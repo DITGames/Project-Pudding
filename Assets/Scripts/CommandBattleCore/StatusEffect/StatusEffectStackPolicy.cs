@@ -8,23 +8,21 @@
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// 同一 ID のステータスエフェクトを重ねて付与したときの挙動。
-    /// <see cref="BattleUnit.AddStatusEffect"/> がこの値を見て分岐する。
-    /// </summary>
+    // 同一 ID のステータスエフェクトを重ねて付与したときの挙動
+    // BattleUnit.AddStatusEffect がこの値を見て分岐する
     public enum StatusEffectStackPolicy
     {
-        /// <summary>別で積む(複数同時処理が可能)</summary>
+        // 別で積む(複数同時処理が可能)
         Stack,
-        /// <summary>継続時間のリフレッシュ</summary>
+        // 継続時間のリフレッシュ
         Refresh,
-        /// <summary>スタック数を加算する。スタック数によって効果を変えるときなどに便利</summary>
+        // スタック数を加算する。スタック数によって効果を変えるときなどに便利
         StackCount,
-        /// <summary>スタック数加算 + 継続時間リフレッシュ</summary>
+        // スタック数加算 + 継続時間リフレッシュ
         StackCountAndRefresh,
-        /// <summary>すでに付与されていた場合に新規付与をしない</summary>
+        // すでに付与されていた場合に新規付与をしない
         Ignore,
-        /// <summary>既存付与を除去して置き換える</summary>
+        // 既存付与を除去して置き換える
         Replace,
     }
 }

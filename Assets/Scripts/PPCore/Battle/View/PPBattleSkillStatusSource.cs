@@ -10,44 +10,38 @@ using CommandBattleCore;
 
 namespace PPCore
 {
-    /// <summary>
-    /// <see cref="BattleSkill"/> を UI 向けの表示情報として見せるアダプタ。
-    /// <para>
-    /// 発動可否は自前で判定せず <see cref="ICastValidator"/> へ委ねるため、
-    /// UI の表示とコマンド実行時の判定が食い違わない。
-    /// </para>
-    /// <para>
-    /// 購読するのはこのスキルが実際に消費する属性のリソースだけ。
-    /// 無関係な属性の増減で UI が再描画されるのを避けている。
-    /// </para>
-    /// </summary>
+    // BattleSkill を UI 向けの表示情報として見せるアダプタ
+    // 発動可否は自前で判定せず ICastValidator へ委ねるため、
+    // UI の表示とコマンド実行時の判定が食い違わない
+    // 購読するのはこのスキルが実際に消費する属性のリソースだけ
+    // 無関係な属性の増減で UI が再描画されるのを避けている
     public class PPBattleSkillStatusSource : IPPSkillStatusSource, IDisposable
     {
-        /// <summary>表示対象のスキル。</summary>
+        // 表示対象のスキル
         private readonly BattleSkill mSkill;
-        /// <summary>このスキルを持つユニット。発動可否の判定に使う。</summary>
+        // このスキルを持つユニット。発動可否の判定に使う
         private readonly BattleUnit mOwner;
-        /// <summary>発動可否の判定に使うバトルコンテキスト。</summary>
+        // 発動可否の判定に使うバトルコンテキスト
         private readonly BattleContext mContext;
-        /// <summary>リソース変化を購読する対象のパーティ。取得できなければ null。</summary>
+        // リソース変化を購読する対象のパーティ。取得できなければ null
         private readonly PPBattleParty mParty;
-        /// <summary>購読解除済みかどうか。<see cref="Dispose"/> の多重呼び出しを無害にする。</summary>
+        // 購読解除済みかどうか。Dispose の多重呼び出しを無害にする
         private bool mIsDisposed;
-        /// <summary>表示内容が変化したときに発火する。</summary>
+        // 表示内容が変化したときに発火する
         public event Action Changed;
 
-        /// <summary>UI 表示名。</summary>
+        // UI 表示名
         public string DisplayName => mSkill.DisplayName;
-        /// <summary>消費リソース。定義を引けない場合は無コスト扱い。</summary>
+        // 消費リソース。定義を引けない場合は無コスト扱い
         public PPResourceCost Cost => (mSkill.SourceDefinition as PPSkillDefinition)?.Cost ?? PPResourceCost.Free;
-        /// <summary>残りクールダウンターン数。</summary>
+        // 残りクールダウンターン数
         public int CooldownRemaining => mSkill.RemainingCooldown;
-        /// <summary>今このスキルを発動できるか。判定はバリデータへ委譲する。</summary>
+        // 今このスキルを発動できるか。判定はバリデータへ委譲する
         public bool IsCastable => mContext.Rules.CastValidator.Validate(mOwner, mSkill, mContext).CanCast;
 
-        /// <param name="aSkill">表示対象のスキル。</param>
-        /// <param name="aOwner">このスキルを持つユニット。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
+        // aSkill : 表示対象のスキル
+        // aOwner : このスキルを持つユニット
+        // aContext : バトルコンテキスト
         public PPBattleSkillStatusSource(BattleSkill aSkill, BattleUnit aOwner, BattleContext aContext)
         {
             mSkill = aSkill;
@@ -64,13 +58,11 @@ namespace PPCore
             }
         }
 
-        /// <summary>リソースの変化を自身のイベントとして中継する。</summary>
+        // リソースの変化を自身のイベントとして中継する
         private void HandleChanged(IReadableParameter _) => Changed?.Invoke();
 
-        /// <summary>
-        /// メニュー破棄時に呼び出す(購読によるメモリリーク防止用)。
-        /// 購読時と同じ属性集合を辿って解除する。二度呼ばれても安全。
-        /// </summary>
+        // メニュー破棄時に呼び出す(購読によるメモリリーク防止用)
+        // 購読時と同じ属性集合を辿って解除する。二度呼ばれても安全
         public void Dispose()
         {
             if (mIsDisposed) return;

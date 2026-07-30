@@ -10,32 +10,27 @@ using System;
 
 namespace PPCore
 {
-    /// <summary>
-    /// <see cref="BattleUnit"/> を UI 向けの表示情報として見せるアダプタ。
-    /// 値を保持せず参照のたびに読み直し、HP と最大 HP の変化を購読して
-    /// <see cref="Changed"/> へ中継する。
-    /// <para>
-    /// ユニットのパラメータを購読するため、UI を破棄する際は必ず <see cref="Dispose"/> を呼ぶこと。
-    /// 呼ばないとユニットが生きている限りこのアダプタが解放されない。
-    /// </para>
-    /// </summary>
+    // BattleUnit を UI 向けの表示情報として見せるアダプタ
+    // 値を保持せず参照のたびに読み直し、HP と最大 HP の変化を購読して Changed へ中継する
+    // ユニットのパラメータを購読するため、UI を破棄する際は必ず Dispose を呼ぶこと
+    // 呼ばないとユニットが生きている限りこのアダプタが解放されない
     public class PPBattleUnitStatusSource : IPPUnitStatusSource, IDisposable
     {
-        /// <summary>表示対象のユニット。</summary>
+        // 表示対象のユニット
         private readonly BattleUnit mBattleUnit;
-        /// <summary>購読解除済みかどうか。<see cref="Dispose"/> の多重呼び出しを無害にする。</summary>
+        // 購読解除済みかどうか。Dispose の多重呼び出しを無害にする
         private bool mIsDisposed;
-        /// <summary>表示内容が変化したときに発火する。</summary>
+        // 表示内容が変化したときに発火する
         public event Action Changed;
 
-        /// <summary>UI 表示名。</summary>
+        // UI 表示名
         public string DisplayName => mBattleUnit.DisplayName;
-        /// <summary>現在 HP。</summary>
+        // 現在 HP
         public float CurrentHP => mBattleUnit.Parameters.Hp.CurrentValue;
-        /// <summary>最大 HP。バフで変動しうるため現在値を返す。</summary>
+        // 最大 HP。バフで変動しうるため現在値を返す
         public float MaxHP => mBattleUnit.Parameters.Hp.Max.CurrentValue;
 
-        /// <param name="aBattleUnit">表示対象のユニット。</param>
+        // aBattleUnit : 表示対象のユニット
         public PPBattleUnitStatusSource(BattleUnit aBattleUnit)
         {
             mBattleUnit = aBattleUnit;
@@ -44,16 +39,12 @@ namespace PPCore
             mBattleUnit.Parameters.Hp.Max.OnValueChanged += HandleChanged;
         }
 
-        /// <summary>
-        /// パラメータの変化を自身のイベントとして中継する。
-        /// 解除できるようラムダではなく名前付きメソッドにしてある。
-        /// </summary>
+        // パラメータの変化を自身のイベントとして中継する
+        // 解除できるようラムダではなく名前付きメソッドにしてある
         private void HandleChanged(IReadableParameter _) => Changed?.Invoke();
 
-        /// <summary>
-        /// ユニットのパラメータへの購読を解除する。UI を破棄する際に呼ぶ。
-        /// 二度呼ばれても安全。
-        /// </summary>
+        // ユニットのパラメータへの購読を解除する。UI を破棄する際に呼ぶ
+        // 二度呼ばれても安全
         public void Dispose()
         {
             if (mIsDisposed) return;

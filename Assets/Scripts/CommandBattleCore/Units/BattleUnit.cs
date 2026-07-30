@@ -11,68 +11,63 @@ using System.Collections.Generic;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// 戦闘に参加する 1 体分のランタイムインスタンス。
-    /// <para>
-    /// パラメータ・スキル・ステータスエフェクト・リアクション・行動回数を保持し、
-    /// ダメージ／回復／エフェクト付与といった「自分の状態が変わる操作」を受け付ける。
-    /// 状態が変わるたびに event を発火し、<see cref="BattleManager"/> がそれを購読して
-    /// 全体への通知・ログ出力・リアクション発火へ変換する。
-    /// つまりこのクラス自体はバトル全体の進行を一切知らない。
-    /// </para>
-    /// </summary>
+    // 戦闘に参加する 1 体分のランタイムインスタンス
+    // パラメータ・スキル・ステータスエフェクト・リアクション・行動回数を保持し、
+    // ダメージ／回復／エフェクト付与といった「自分の状態が変わる操作」を受け付ける
+    // 状態が変わるたびに event を発火し、BattleManager がそれを購読して
+    // 全体への通知・ログ出力・リアクション発火へ変換する
+    // つまりこのクラス自体はバトル全体の進行を一切知らない
     public class BattleUnit
     {
-        /// <summary>ユニットのID。</summary>
+        // ユニットのID
         public string UnitId { get; }
-        /// <summary>UI表示名。</summary>
+        // UI表示名
         public string DisplayName { get; }
-        /// <summary>味方か敵か。パーティ生成時に設定される。</summary>
+        // 味方か敵か。パーティ生成時に設定される
         public BattleSide Side { get; protected internal set; }
-        /// <summary>生存中かどうか。HP が 1 以上なら true。</summary>
+        // 生存中かどうか。HP が 1 以上なら true
         public bool IsAlive => Parameters.Hp.CurrentValue > 0;
 
-        /// <summary>HP・攻撃力などのパラメータ一式。</summary>
+        // HP・攻撃力などのパラメータ一式
         public ParameterSet Parameters { get; }
-        /// <summary>発動中のステータスエフェクト（ステータス上昇や状態異常もこれに含まれる想定）。</summary>
+        // 発動中のステータスエフェクト（ステータス上昇や状態異常もこれに含まれる想定）
         public List<StatusEffect> ActiveStatusEffects { get; } = new();
-        /// <summary>使用可能なスキル。</summary>
+        // 使用可能なスキル
         public List<BattleSkill> Skills { get; } = new();
-        /// <summary>反撃などのリアクション定義。トリガー発生時に <see cref="BattleManager"/> が走査する。</summary>
+        // 反撃などのリアクション定義。トリガー発生時に BattleManager が走査する
         public List<IBattleReaction> Reactions { get; } = new();
 
-        /// <summary>1 ターンあたりの行動回数の管理。</summary>
+        // 1 ターンあたりの行動回数の管理
         public ActionBudget Actions { get; } = new();
-        /// <summary>コマンド決定クラス。AI 制御ユニットに設定する。</summary>
+        // コマンド決定クラス。AI 制御ユニットに設定する
         public ICommandDecider CommandDecider { get; set; }
-        /// <summary>
-        /// 生成元の定義アセットへの参照。
-        /// AI が定義型で判定するため、<c>CreateRuntimeUnit()</c> での設定を省略しない。
-        /// </summary>
+        // 生成元の定義アセットへの参照
+        // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }
 
-        /// <summary>ダメージ適用前の介入(ダメージ情報)。ここで Amount を書き換えれば軽減・無効化できる。</summary>
+        // ダメージ適用前の介入(ダメージ情報)。ここで Amount を書き換えれば軽減・無効化できる
         public event Action<DamageInfo> OnPreDamaged;
-        /// <summary>ダメージデリゲート(対象ユニット, 値)。実際に HP が減ったときのみ発火する。</summary>
+        // ダメージデリゲート(対象ユニット, 値)。実際に HP が減ったときのみ発火する
         public event Action<BattleUnit, float> OnDamaged;
-        /// <summary>ダメージ適用後の介入(ダメージ情報)。</summary>
+        // ダメージ適用後の介入(ダメージ情報)
         public event Action<DamageInfo> OnPostDamaged;
-        /// <summary>ダメージ結果のデリゲート(ダメージ情報)。ミス・無効化を含む全ての結果で発火する。</summary>
+        // ダメージ結果のデリゲート(ダメージ情報)。ミス・無効化を含む全ての結果で発火する
         public event Action<DamageInfo> OnDamageResolved;
-        /// <summary>回復デリゲート(対象ユニット, 値)</summary>
+        // 回復デリゲート(対象ユニット, 値)
         public event Action<BattleUnit, float> OnHealed;
-        /// <summary>撃破デリゲート(対象ユニット)</summary>
+        // 撃破デリゲート(対象ユニット)
         public event Action<BattleUnit> OnDefeated;
-        /// <summary>ステータスエフェクト追加デリゲート(対象ユニット, エフェクト)</summary>
+        // ステータスエフェクト追加デリゲート(対象ユニット, エフェクト)
         public event Action<BattleUnit, StatusEffect> OnStatusEffectAdded;
-        /// <summary>ステータスエフェクト除去デリゲート(対象ユニット, エフェクト)</summary>
+        // ステータスエフェクト除去デリゲート(対象ユニット, エフェクト)
         public event Action<BattleUnit, StatusEffect> OnStatusEffectRemoved;
-        /// <summary>ステータスエフェクトスタック時デリゲート(対象ユニット, エフェクト)</summary>
+        // ステータスエフェクトスタック時デリゲート(対象ユニット, エフェクト)
         public event Action<BattleUnit, StatusEffect> OnStatusEffectStacked;
 
-        /// <param name="aUnitId">ユニットID。</param>
-        /// <param name="aDisplayName">UI表示名。</param>
-        /// <param name="aParameters">このユニットのパラメータ一式。</param>
+        // ユニットを生成する
+        // aUnitId : ユニットID
+        // aDisplayName : UI表示名
+        // aParameters : このユニットのパラメータ一式
         public BattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameters)
         {
             UnitId = aUnitId;
@@ -80,9 +75,7 @@ namespace CommandBattleCore
             Parameters = aParameters;
         }
 
-        /// <summary>
-        /// 現在の行動制限状況。発動中の全ステータスエフェクトの制限をビット OR で合成して返す。
-        /// </summary>
+        // 現在の行動制限状況。発動中の全ステータスエフェクトの制限をビット OR で合成して返す
         public ActionRestriction CurrentRestrictions
         {
             get
@@ -93,13 +86,11 @@ namespace CommandBattleCore
             }
         }
 
-        /// <summary>
-        /// 状態異常によって今回の行動が失敗するかを抽選する。
-        /// 行動不能エフェクトのうち、失敗率が設定されていれば確率判定（麻痺など）、
-        /// 未設定なら無条件で失敗（睡眠など）として扱う。
-        /// </summary>
-        /// <param name="aContext">乱数供給元を含むバトルコンテキスト。</param>
-        /// <returns>行動が阻害された場合 true。</returns>
+        // 状態異常によって今回の行動が失敗するかを抽選する
+        // 行動不能エフェクトのうち、失敗率が設定されていれば確率判定（麻痺など）、
+        // 未設定なら無条件で失敗（睡眠など）として扱う
+        // aContext : 乱数供給元を含むバトルコンテキスト
+        // return : 行動が阻害された場合 true
         public bool RollActionBlocked(BattleContext aContext)
         {
             bool blocked = false;
@@ -120,22 +111,18 @@ namespace CommandBattleCore
             return blocked;
         }
 
-        /// <summary>
-        /// 数値だけを指定してダメージを適用する簡易版。攻撃元なしの <see cref="DamageInfo"/> を組んで委譲する。
-        /// スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算。
-        /// </summary>
-        /// <param name="aAmount">ダメージ量。</param>
+        // 数値だけを指定してダメージを適用する簡易版。攻撃元なしの DamageInfo を組んで委譲する
+        // スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算
+        // aAmount : ダメージ量
         public void ApplyDamage(float aAmount)
         {
             ApplyDamage(new DamageInfo(null, this, aAmount));
         }
 
-        /// <summary>
-        /// ダメージを適用する。
-        /// ミス判定 → ステータスエフェクトによる軽減 → 実装先の介入 → 無効化判定 →
-        /// HP 減算 → 撃破判定、の順に進み、各段階で対応する event を発火する。
-        /// </summary>
-        /// <param name="aDamageInfo">攻撃元・対象・ダメージ量・命中結果を持つダメージ情報。</param>
+        // ダメージを適用する
+        // ミス判定 → ステータスエフェクトによる軽減 → 実装先の介入 → 無効化判定 →
+        // HP 減算 → 撃破判定、の順に進み、各段階で対応する event を発火する
+        // aDamageInfo : 攻撃元・対象・ダメージ量・命中結果を持つダメージ情報
         public void ApplyDamage(DamageInfo aDamageInfo)
         {
             if (!IsAlive) return;
@@ -173,10 +160,8 @@ namespace CommandBattleCore
             if(!IsAlive) OnDefeated?.Invoke(this);
         }
 
-        /// <summary>
-        /// 回復を適用する。戦闘不能状態のユニットは回復対象にならない。
-        /// </summary>
-        /// <param name="aAmount">回復量。0 以下なら何もしない。</param>
+        // 回復を適用する。戦闘不能状態のユニットは回復対象にならない
+        // aAmount : 回復量。0 以下なら何もしない
         public void ApplyHeal(float aAmount)
         {
             if (!IsAlive || aAmount <= 0) return;
@@ -184,12 +169,10 @@ namespace CommandBattleCore
             OnHealed?.Invoke(this, aAmount);
         }
 
-        /// <summary>
-        /// ステータスエフェクトを追加する。
-        /// 同一 ID のエフェクトが既に付与されている場合は
-        /// <see cref="StatusEffectStackPolicy"/> に従って無視／継続時間更新／スタック加算／置き換えのいずれかを行う。
-        /// </summary>
-        /// <param name="aStatusEffect">付与するエフェクト。</param>
+        // ステータスエフェクトを追加する
+        // 同一 ID のエフェクトが既に付与されている場合は
+        // StatusEffectStackPolicy に従って無視／継続時間更新／スタック加算／置き換えのいずれかを行う
+        // aStatusEffect : 付与するエフェクト
         public void AddStatusEffect(StatusEffect aStatusEffect)
         {
             // 既に同じエフェクトが付いている場合はスタックポリシーで挙動を決める
@@ -239,10 +222,8 @@ namespace CommandBattleCore
             OnStatusEffectAdded?.Invoke(this, aStatusEffect);
         }
 
-        /// <summary>
-        /// ステータスエフェクトを除去し、そのエフェクトが加えていた効果を巻き戻す。
-        /// </summary>
-        /// <param name="aStatusEffect">除去するエフェクト。</param>
+        // ステータスエフェクトを除去し、そのエフェクトが加えていた効果を巻き戻す
+        // aStatusEffect : 除去するエフェクト
         public void RemoveStatusEffect(StatusEffect aStatusEffect)
         {
             ActiveStatusEffects.Remove(aStatusEffect);
@@ -250,12 +231,10 @@ namespace CommandBattleCore
             OnStatusEffectRemoved?.Invoke(this, aStatusEffect);
         }
 
-        /// <summary>
-        /// 状況更新の度に呼び出す。各エフェクトの OnTick（毒ダメージ等）を実行し、
-        /// 持続条件が切れたものを除去する。
-        /// 除去中にリストが縮むため、末尾から逆順に走査している。
-        /// </summary>
-        /// <param name="aContext">バトルコンテキスト。</param>
+        // 状況更新の度に呼び出す。各エフェクトの OnTick（毒ダメージ等）を実行し、
+        // 持続条件が切れたものを除去する
+        // 除去中にリストが縮むため、末尾から逆順に走査している
+        // aContext : バトルコンテキスト
         public void TickStatusEffects(BattleContext aContext)
         {
             for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
@@ -269,11 +248,9 @@ namespace CommandBattleCore
             }
         }
 
-        /// <summary>
-        /// 1 ターン分の更新処理。ステータスエフェクトの更新、行動回数のリセット、
-        /// 全スキルのクールダウン消化をまとめて行う。
-        /// </summary>
-        /// <param name="aContext">バトルコンテキスト。</param>
+        // 1 ターン分の更新処理。ステータスエフェクトの更新、行動回数のリセット、
+        // 全スキルのクールダウン消化をまとめて行う
+        // aContext : バトルコンテキスト
         public virtual void UnitTick(BattleContext aContext)
         {
             TickStatusEffects(aContext);

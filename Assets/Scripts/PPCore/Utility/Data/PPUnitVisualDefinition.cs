@@ -8,36 +8,28 @@
 using CommandBattleCore;
 using UnityEngine;
 
-/// <summary>
-/// ユニットの見た目に関する定義（ScriptableObject）。
-/// <para>
-/// 性能定義（<see cref="PPCore.PPUnitDefinition"/>）とは別アセットに分けてあり、
-/// 両者はユニット ID で対応付ける。バトルロジックが見た目のアセットを直接参照せずに済む。
-/// 解決は <see cref="PPCore.PPUnitVisualCatalog"/> が行う。
-/// </para>
-/// </summary>
-/// <remarks>
-/// このクラスだけ namespace の外に置かれており、PPCore の他の型と同じ扱いになっていない。
-/// </remarks>
+// ユニットの見た目に関する定義（ScriptableObject）
+// 性能定義（PPCore.PPUnitDefinition）とは別アセットに分けてあり、
+// 両者はユニット ID で対応付ける。バトルロジックが見た目のアセットを直接参照せずに済む
+// 解決は PPCore.PPUnitVisualCatalog が行う
+// このクラスだけ namespace の外に置かれており、PPCore の他の型と同じ扱いになっていない
 [CreateAssetMenu(fileName = "PPUnitVisualDefinition", menuName = "Project-Pudding/Definition/PPUnitVisualDefinition")]
 public class PPUnitVisualDefinition : ScriptableObject
 {
-    /// <summary>対応するユニット ID。カタログでの解決キー。</summary>
+    // 対応するユニット ID。カタログでの解決キー
     [Label("ユニットID")]
     public string UnitId;
-    /// <summary>UI に出すアイコン。</summary>
     [Label("アイコン")]
     public Sprite UnitIcon;
-    /// <summary>立ち絵。</summary>
+    // 立ち絵
     [Label("立ち絵")]
     public Sprite UnitPortrait;
-    /// <summary>戦場に配置する見た目のプレハブ。</summary>
+    // 戦場に配置する見た目のプレハブ
     [Label("プレハブ")]
     public GameObject ViewPrefab;
-    /// <summary>アニメーターコントローラー。</summary>
     [Label("アニメーター")]
     public RuntimeAnimatorController Animator;
-    /// <summary>配置位置の補正。</summary>
+    // 配置位置の補正
     [Label("オフセット")]
     public Vector3 SpawnOffset;
 }

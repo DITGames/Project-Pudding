@@ -15,50 +15,40 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// パーティ単位で行動計画（<see cref="PPPartyPlan"/>）を立てる AI の基底実装。
-    /// <para>
-    /// ユニット 1 体ずつが個別に動くのではなく、パーティ全体で
-    /// 「限られたリソースを誰の何に割り当てるか」を決めるのがこの AI の役割。
-    /// <see cref="PPEnemyAIDriver"/> が一定間隔で <see cref="PlanActions"/> を呼び出して駆動する。
-    /// </para>
-    /// <para>
-    /// 思考の流れは <see cref="PlanActions"/> を参照。挙動のチューニングは基本的にコードではなく
-    /// <see cref="PPPartyAIProfileDefinition"/> アセット側で行う。
-    /// スコア計算系は全て protected virtual 相当の粒度で切ってあるので、
-    /// 特殊な敵を作る場合はこのクラスを継承して個別のスコア関数だけを差し替える。
-    /// </para>
-    /// <para>
-    /// 乱数は必ず <c>aContext.Rules.RandomProvider</c> を経由すること（UnityEngine.Random は使わない）。
-    /// </para>
-    /// </summary>
+    // パーティ単位で行動計画（PPPartyPlan）を立てる AI の基底実装
+    // ユニット 1 体ずつが個別に動くのではなく、パーティ全体で
+    // 「限られたリソースを誰の何に割り当てるか」を決めるのがこの AI の役割
+    // PPEnemyAIDriver が一定間隔で PlanActions を呼び出して駆動する
+    // 思考の流れは PlanActions を参照。挙動のチューニングは基本的にコードではなく
+    // PPPartyAIProfileDefinition アセット側で行う
+    // スコア計算系は全て protected virtual 相当の粒度で切ってあるので、
+    // 特殊な敵を作る場合はこのクラスを継承して個別のスコア関数だけを差し替える
+    // 乱数は必ず aContext.Rules.RandomProvider を経由すること（UnityEngine.Random は使わない）
     public class PPPartyAIStrategistBase : IPPPartyCommandStrategist
     {
-        /// <summary>
-        /// ユニット 1 体分の行動希望。採点済みの全候補と、その中から選ばれたベスト候補を保持する。
-        /// パーティ全体で優先順位を付け直す際に、候補一覧ごと持ち回る必要があるため一時的にまとめている。
-        /// </summary>
+        // ユニット 1 体分の行動希望。採点済みの全候補と、その中から選ばれたベスト候補を保持する
+        // パーティ全体で優先順位を付け直す際に、候補一覧ごと持ち回る必要があるため一時的にまとめている
         private sealed class PPPartyWish
         {
-            /// <summary>行動主体のユニット。</summary>
+            // 行動主体のユニット
             public PPBattleUnit Unit;
-            /// <summary>採点済みの全候補</summary>
+            // 採点済みの全候補
             public List<PPActionCandidate> Candidates;
-            /// <summary>ベスト選択</summary>
+            // ベスト選択
             public PPActionCandidate BestCandidate;
-            /// <summary>ベスト候補のスコア。</summary>
+            // ベスト候補のスコア
             public float Score;
         }
 
-        /// <summary>AI の性格・重み・閾値をまとめた設定アセット。</summary>
+        // AI の性格・重み・閾値をまとめた設定アセット
         private readonly PPPartyAIProfileDefinition mProfile;
-        /// <summary>リソース増加トレンドの記録。「待てば撃てるか」の判断に使う。</summary>
+        // リソース増加トレンドの記録。「待てば撃てるか」の判断に使う
         private readonly PPIncomTrendTracker mTrend = new();
 
-        /// <summary>直近の思考で採用された状況ルール名。デバッグ表示用。</summary>
+        // 直近の思考で採用された状況ルール名。デバッグ表示用
         public string LastResolvedRuleName {get; private set;} = "Default";
 
-        /// <param name="aProfile">AI プロファイル。null の場合は既定値のインスタンスを生成して使う。</param>
+        // aProfile : AI プロファイル。null の場合は既定値のインスタンスを生成して使う
         public PPPartyAIStrategistBase(PPPartyAIProfileDefinition aProfile)
         {
             mProfile = aProfile != null
@@ -66,22 +56,18 @@ namespace PPCore
                 : ScriptableObject.CreateInstance<PPPartyAIProfileDefinition>();
         }
 
-        /// <summary>
-        /// このティックでパーティが取る行動計画を組み立てる。
-        /// <para>
-        /// 処理の流れは次の通り。
-        /// 1. <see cref="PPPartyAIContext.Capture"/> でパーティ状況をスナップショット
-        /// 2. リソース増加トレンドをサンプリング
-        /// 3. 状況ルールを評価して状況スコアを解決
-        /// 4. ユニットごとに行動候補を生成し、スコアを付ける
-        /// 5. 「待って溜めた方が良いか」と比較し、行動した方が良いユニットだけ希望として残す
-        /// 6. ロール別の状況ウェイトを掛けて希望を優先度順に並べ替える
-        /// 7. 実リソースを優先度順に確保し、<c>MaxActionsPerTick</c> まで採用する
-        /// </para>
-        /// </summary>
-        /// <param name="aSelf">思考主体のパーティ。<see cref="PPBattleParty"/> でなければ待機を返す。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>採用された行動の割り当て。何も採用できなければ <see cref="PPPartyPlan.Wait"/>。</returns>
+        // このティックでパーティが取る行動計画を組み立てる
+        // 処理の流れは次の通り
+        // 1. PPPartyAIContext.Capture でパーティ状況をスナップショット
+        // 2. リソース増加トレンドをサンプリング
+        // 3. 状況ルールを評価して状況スコアを解決
+        // 4. ユニットごとに行動候補を生成し、スコアを付ける
+        // 5. 「待って溜めた方が良いか」と比較し、行動した方が良いユニットだけ希望として残す
+        // 6. ロール別の状況ウェイトを掛けて希望を優先度順に並べ替える
+        // 7. 実リソースを優先度順に確保し、MaxActionsPerTick まで採用する
+        // aSelf : 思考主体のパーティ。PPBattleParty でなければ待機を返す
+        // aContext : バトルコンテキスト
+        // return : 採用された行動の割り当て。何も採用できなければ PPPartyPlan.Wait
         public PPPartyPlan PlanActions(BattleParty aSelf, BattleContext aContext)
         {
             if (aSelf is not PPBattleParty party)
@@ -179,13 +165,11 @@ namespace PPCore
             return picks.Count == 0 ? PPPartyPlan.Wait : new PPPartyPlan(picks);
         }
 
-        /// <summary>
-        /// 状況別にシチュエーションスコアを解決する。
-        /// プロファイルのルールを順に評価し、条件を全て満たしたものでスコアを上書きしていくため、
-        /// 後ろに定義されたルールほど優先される。どれも成立しなければ既定スコアのまま。
-        /// </summary>
-        /// <param name="aSnap">評価対象のパーティ状況スナップショット。</param>
-        /// <returns>解決された状況スコア。</returns>
+        // 状況別にシチュエーションスコアを解決する
+        // プロファイルのルールを順に評価し、条件を全て満たしたものでスコアを上書きしていくため、
+        // 後ろに定義されたルールほど優先される。どれも成立しなければ既定スコアのまま
+        // aSnap : 評価対象のパーティ状況スナップショット
+        // return : 解決された状況スコア
         protected PPAISituationScore ResolveSituationRule(PPPartyAIContext aSnap)
         {
             var resolved = mProfile.DefaultScore;
@@ -216,23 +200,19 @@ namespace PPCore
             return resolved;
         }
 
-        /// <summary>
-        /// 実行時の知能値を解決する。ユニット個別の値が設定されていればそれを、
-        /// 0（未設定）ならプロファイルの値を継承する。
-        /// </summary>
-        /// <param name="aUnit">対象ユニット。</param>
-        /// <returns>0～1 に丸めた知能値。</returns>
+        // 実行時の知能値を解決する。ユニット個別の値が設定されていればそれを、
+        // 0（未設定）ならプロファイルの値を継承する
+        // aUnit : 対象ユニット
+        // return : 0～1 に丸めた知能値
         protected float ResolveIntelligence(PPBattleUnit aUnit)
             => aUnit.Intelligence > 0f ? Mathf.Clamp01(aUnit.Intelligence) : mProfile.Intelligence;
 
-        /// <summary>
-        /// 候補からベストを選ぶ。スコアにノイズを載せてから比較するため、
-        /// 知能が低いほど最適解を外しやすくなる（ノイズ幅は最大スコアに比例）。
-        /// </summary>
-        /// <param name="aCandidates">選択対象の候補（実行可能なものだけを渡す想定）。</param>
-        /// <param name="aIntelligence">この選択に使う知能値（0～100）。</param>
-        /// <param name="aContext">乱数供給元を含むバトルコンテキスト。</param>
-        /// <returns>選ばれた候補。候補が空なら null。</returns>
+        // 候補からベストを選ぶ。スコアにノイズを載せてから比較するため、
+        // 知能が低いほど最適解を外しやすくなる（ノイズ幅は最大スコアに比例）
+        // aCandidates : 選択対象の候補（実行可能なものだけを渡す想定）
+        // aIntelligence : この選択に使う知能値（0～100）
+        // aContext : 乱数供給元を含むバトルコンテキスト
+        // return : 選ばれた候補。候補が空なら null
         protected PPActionCandidate SelectBestCandidate(List<PPActionCandidate> aCandidates, float aIntelligence,
             BattleContext aContext)
         {
@@ -261,20 +241,18 @@ namespace PPCore
             return best;
         }
 
-        /// <summary>-1～1 の符号付き乱数を取得する。</summary>
-        /// <param name="aContext">乱数供給元を含むバトルコンテキスト。</param>
+        // -1～1 の符号付き乱数を取得する
+        // aContext : 乱数供給元を含むバトルコンテキスト
         protected static float RandomSigned(BattleContext aContext)
             => aContext.Rules.RandomProvider.NextFloat(-1f, 1f);
 
-        /// <summary>
-        /// 攻撃対象を抽選する。知能が高いほど HP 最低の敵（＝とどめを刺しやすい相手）を選び、
-        /// 外れた場合は生存敵からランダムに選ぶ。
-        /// </summary>
-        /// <param name="aUnit">攻撃するユニット。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aIntelligence">この選択に使う知能値（0～100）。</param>
-        /// <param name="aContext">乱数供給元を含むバトルコンテキスト。</param>
-        /// <returns>攻撃対象。敵が居なければ null。</returns>
+        // 攻撃対象を抽選する。知能が高いほど HP 最低の敵（＝とどめを刺しやすい相手）を選び、
+        // 外れた場合は生存敵からランダムに選ぶ
+        // aUnit : 攻撃するユニット
+        // aSnap : パーティ状況スナップショット
+        // aIntelligence : この選択に使う知能値（0～100）
+        // aContext : 乱数供給元を含むバトルコンテキスト
+        // return : 攻撃対象。敵が居なければ null
         protected PPBattleUnit ChooseAttackTargetForUnit(PPBattleUnit aUnit, PPPartyAIContext aSnap, float aIntelligence, BattleContext aContext)
         {
             if (aSnap.AliveEnemies.Count == 0)
@@ -287,15 +265,13 @@ namespace PPCore
             return aSnap.AliveEnemies[idx];
         }
 
-        /// <summary>
-        /// ユニット 1 体分の行動候補を収集する。通常攻撃と、発動可能な各スキルを候補として並べる。
-        /// この段階ではリソースが足りるかは見ておらず、コスト込みの候補として全て返す。
-        /// </summary>
-        /// <param name="aUnit">対象ユニット。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aFocusTarget">このユニットが狙うと決めた攻撃対象。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>スコア未評価の行動候補リスト。</returns>
+        // ユニット 1 体分の行動候補を収集する。通常攻撃と、発動可能な各スキルを候補として並べる
+        // この段階ではリソースが足りるかは見ておらず、コスト込みの候補として全て返す
+        // aUnit : 対象ユニット
+        // aSnap : パーティ状況スナップショット
+        // aFocusTarget : このユニットが狙うと決めた攻撃対象
+        // aContext : バトルコンテキスト
+        // return : スコア未評価の行動候補リスト
         protected List<PPActionCandidate> GenerateCandidatesForUnit(PPBattleUnit aUnit, PPPartyAIContext aSnap, PPBattleUnit aFocusTarget, BattleContext aContext)
         {
             var list = new List<PPActionCandidate>();
@@ -347,14 +323,12 @@ namespace PPCore
             return list;
         }
 
-        /// <summary>
-        /// スキルのロールに応じて対象を決める。回復なら最も HP 割合の低い味方、
-        /// 攻撃なら狙うと決めた敵、それ以外は対象指定なし（範囲・自己完結スキル）。
-        /// </summary>
-        /// <param name="aRole">スキルの行動ロール。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aTarget">攻撃時に使う対象。</param>
-        /// <returns>対象ユニット。指定不要なら null。</returns>
+        // スキルのロールに応じて対象を決める。回復なら最も HP 割合の低い味方、
+        // 攻撃なら狙うと決めた敵、それ以外は対象指定なし（範囲・自己完結スキル）
+        // aRole : スキルの行動ロール
+        // aSnap : パーティ状況スナップショット
+        // aTarget : 攻撃時に使う対象
+        // return : 対象ユニット。指定不要なら null
         protected static BattleUnit ResolveSkillTarget(PPBattleActionRole aRole, PPPartyAIContext aSnap, BattleUnit aTarget)
             => aRole switch
             {
@@ -363,11 +337,9 @@ namespace PPCore
                 _ => null,
             };
 
-        /// <summary>
-        /// スキル定義のスキルロールを、AI 側の行動ロールへ変換する。
-        /// </summary>
-        /// <param name="aDef">スキル定義。</param>
-        /// <returns>対応する行動ロール。</returns>
+        // スキル定義のスキルロールを、AI 側の行動ロールへ変換する
+        // aDef : スキル定義
+        // return : 対応する行動ロール
         protected static PPBattleActionRole RoleOf(PPSkillDefinition aDef)
             => aDef.BattleSkillRole switch
             {
@@ -377,13 +349,11 @@ namespace PPCore
                 _ => PPBattleActionRole.None,
             };
 
-        /// <summary>
-        /// AI が選んだ対象を焼き込んだターゲットリゾルバを作る。
-        /// 単体対象のスコープのみ差し替え、範囲スコープはスコープ既定のリゾルバをそのまま使う。
-        /// </summary>
-        /// <param name="aScope">スキルのターゲットスコープ。</param>
-        /// <param name="aTarget">AI が選んだ対象。null ならスコープ既定を使う。</param>
-        /// <returns>コマンドに渡すターゲットリゾルバ。</returns>
+        // AI が選んだ対象を焼き込んだターゲットリゾルバを作る
+        // 単体対象のスコープのみ差し替え、範囲スコープはスコープ既定のリゾルバをそのまま使う
+        // aScope : スキルのターゲットスコープ
+        // aTarget : AI が選んだ対象。null ならスコープ既定を使う
+        // return : コマンドに渡すターゲットリゾルバ
         protected static ITargetResolver BuildSkillResolver(TargetScope aScope, BattleUnit aTarget)
         {
             if (aTarget == null)
@@ -396,17 +366,15 @@ namespace PPCore
             };
         }
 
-        /// <summary>ユニットに割り当てられたロールを取得する。</summary>
-        /// <param name="aUnit">対象ユニット。</param>
+        // ユニットに割り当てられたロールを取得する
+        // aUnit : 対象ユニット
         protected static PPUnitRole ResolveUnitRole(PPBattleUnit aUnit) => aUnit.AssignedRole;
 
-        /// <summary>
-        /// ユニットのロールに対応する状況ウェイトを引く。
-        /// パーティ内での行動の優先順位付けに掛かる。
-        /// </summary>
-        /// <param name="aRole">ユニットのロール。</param>
-        /// <param name="aSituation">解決済みの状況スコア。</param>
-        /// <returns>ロールに対応するウェイト。未割り当ての場合は 3 種の平均。</returns>
+        // ユニットのロールに対応する状況ウェイトを引く
+        // パーティ内での行動の優先順位付けに掛かる
+        // aRole : ユニットのロール
+        // aSituation : 解決済みの状況スコア
+        // return : ロールに対応するウェイト。未割り当ての場合は 3 種の平均
         protected static float SituationWeightFor(PPUnitRole aRole, PPAISituationScore aSituation)
             => aRole switch
             {
@@ -416,13 +384,11 @@ namespace PPCore
                 _ => (aSituation.Attack + aSituation.Support + aSituation.Heal) / 3f,   // 未割り当ては平均値を返却
             };
 
-        /// <summary>
-        /// 候補の行動ロールに対応する、ユニット固有のスコア倍率を引く。
-        /// 「このユニットは攻撃を好む」といった個体差を表現する。
-        /// </summary>
-        /// <param name="aUnit">行動主体のユニット。</param>
-        /// <param name="aCandidate">評価中の候補。</param>
-        /// <returns>スコアに掛ける倍率。対応ロールが無ければ 1。</returns>
+        // 候補の行動ロールに対応する、ユニット固有のスコア倍率を引く
+        // 「このユニットは攻撃を好む」といった個体差を表現する
+        // aUnit : 行動主体のユニット
+        // aCandidate : 評価中の候補
+        // return : スコアに掛ける倍率。対応ロールが無ければ 1
         protected static float UnitScoreMultiplier(PPBattleUnit aUnit, PPActionCandidate aCandidate)
         {
             var mod = aUnit.ScoreModifier;
@@ -435,14 +401,12 @@ namespace PPCore
             };
         }
 
-        /// <summary>
-        /// 行動候補のスコアを評価する。ロール別のスコア関数へ振り分け、
-        /// 最後にユニット固有の倍率を掛ける。通常攻撃と攻撃スキルはスキルの有無で分岐する。
-        /// </summary>
-        /// <param name="aCandidate">評価する候補。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aScore">解決済みの状況スコア。</param>
-        /// <returns>この候補の最終スコア。</returns>
+        // 行動候補のスコアを評価する。ロール別のスコア関数へ振り分け、
+        // 最後にユニット固有の倍率を掛ける。通常攻撃と攻撃スキルはスキルの有無で分岐する
+        // aCandidate : 評価する候補
+        // aSnap : パーティ状況スナップショット
+        // aScore : 解決済みの状況スコア
+        // return : この候補の最終スコア
         protected float Evaluate(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aScore)
         {
             float baseScore = aCandidate.Role switch
@@ -456,19 +420,17 @@ namespace PPCore
             return baseScore * UnitScoreMultiplier(aCandidate.Unit, aCandidate);
         }
 
-        /// <summary>
-        /// 各スコア計算の共通ベース。
-        /// 「基礎点 + バイアス × 状況係数」に、ロール重み・状況倍率・攻撃性・コスト効率を掛け合わせる。
-        /// </summary>
-        /// <param name="aWeight">プロファイルのロール別重み。</param>
-        /// <param name="aSituationMul">状況スコアによる倍率。</param>
-        /// <param name="aBaseScore">行動種別ごとの基礎点。</param>
-        /// <param name="aBias">状況係数に掛けるバイアス。</param>
-        /// <param name="aFactor">状況係数（とどめやすさ・人数比・緊急度など）。</param>
-        /// <param name="aUseAggression">攻撃性（Aggression）を反映するか。攻撃系のみ true。</param>
-        /// <param name="aCost">この行動のコスト。コスト効率の算出に使う。</param>
-        /// <param name="aAggressionMultiplier">状況による攻撃性の追加倍率。</param>
-        /// <returns>算出されたスコア。</returns>
+        // 各スコア計算の共通ベース
+        // 「基礎点 + バイアス × 状況係数」に、ロール重み・状況倍率・攻撃性・コスト効率を掛け合わせる
+        // aWeight : プロファイルのロール別重み
+        // aSituationMul : 状況スコアによる倍率
+        // aBaseScore : 行動種別ごとの基礎点
+        // aBias : 状況係数に掛けるバイアス
+        // aFactor : 状況係数（とどめやすさ・人数比・緊急度など）
+        // aUseAggression : 攻撃性（Aggression）を反映するか。攻撃系のみ true
+        // aCost : この行動のコスト。コスト効率の算出に使う
+        // aAggressionMultiplier : 状況による攻撃性の追加倍率
+        // return : 算出されたスコア
         protected float ScoreWeighted(float aWeight, float aSituationMul, float aBaseScore, float aBias, float aFactor,
             bool aUseAggression, PPResourceCost aCost, float aAggressionMultiplier = 1f)
         {
@@ -477,13 +439,11 @@ namespace PPCore
             return aWeight * aSituationMul * raw * aggr * CostEfficiency(aCost);
         }
 
-        /// <summary>
-        /// 通常攻撃のスコアを計算する。対象の HP 割合が低いほど（＝とどめを刺しやすいほど）高くなる。
-        /// </summary>
-        /// <param name="aCandidate">評価する候補。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aSituation">解決済みの状況スコア。</param>
-        /// <returns>算出されたスコア。</returns>
+        // 通常攻撃のスコアを計算する。対象の HP 割合が低いほど（＝とどめを刺しやすいほど）高くなる
+        // aCandidate : 評価する候補
+        // aSnap : パーティ状況スナップショット
+        // aSituation : 解決済みの状況スコア
+        // return : 算出されたスコア
         protected float ScoreBasicAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
             var s = mProfile.AttackScore;
@@ -499,15 +459,13 @@ namespace PPCore
                 aSituation.AggressionMultiplier);
         }
 
-        /// <summary>
-        /// 攻撃スキルのスコアを計算する。
-        /// 単体対象なら通常攻撃と同じくとどめやすさを、対象を持たない範囲スキルなら
-        /// プロファイルの範囲スキル評価値を係数として使う。
-        /// </summary>
-        /// <param name="aCandidate">評価する候補。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aSituation">解決済みの状況スコア。</param>
-        /// <returns>算出されたスコア。</returns>
+        // 攻撃スキルのスコアを計算する
+        // 単体対象なら通常攻撃と同じくとどめやすさを、対象を持たない範囲スキルなら
+        // プロファイルの範囲スキル評価値を係数として使う
+        // aCandidate : 評価する候補
+        // aSnap : パーティ状況スナップショット
+        // aSituation : 解決済みの状況スコア
+        // return : 算出されたスコア
         protected float ScoreSkillAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
             var s = mProfile.SkillScore;
@@ -527,13 +485,11 @@ namespace PPCore
                 aSituation.AggressionMultiplier);
         }
 
-        /// <summary>
-        /// サポートスキルのスコアを計算する。生存人数が多いほど恩恵が大きいとみなして高くなる。
-        /// </summary>
-        /// <param name="aCandidate">評価する候補。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aSituation">解決済みの状況スコア。</param>
-        /// <returns>算出されたスコア。</returns>
+        // サポートスキルのスコアを計算する。生存人数が多いほど恩恵が大きいとみなして高くなる
+        // aCandidate : 評価する候補
+        // aSnap : パーティ状況スナップショット
+        // aSituation : 解決済みの状況スコア
+        // return : 算出されたスコア
         protected float ScoreSupport(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
             var s = mProfile.SupportScore;
@@ -548,15 +504,13 @@ namespace PPCore
                 aCandidate.Cost);
         }
 
-        /// <summary>
-        /// 回復スキルのスコアを計算する。
-        /// 味方の最低 HP 割合から緊急度を求め、閾値未満なら回復不要として 0 を返す。
-        /// 緊急度は 2 乗して扱うため、瀕死に近づくほど急激にスコアが跳ね上がる。
-        /// </summary>
-        /// <param name="aCandidate">評価する候補。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aSituation">解決済みの状況スコア。</param>
-        /// <returns>算出されたスコア。閾値未満なら 0。</returns>
+        // 回復スキルのスコアを計算する
+        // 味方の最低 HP 割合から緊急度を求め、閾値未満なら回復不要として 0 を返す
+        // 緊急度は 2 乗して扱うため、瀕死に近づくほど急激にスコアが跳ね上がる
+        // aCandidate : 評価する候補
+        // aSnap : パーティ状況スナップショット
+        // aSituation : 解決済みの状況スコア
+        // return : 算出されたスコア。閾値未満なら 0
         protected float ScoreHeal(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
         {
             var s = mProfile.HealScore;
@@ -574,13 +528,11 @@ namespace PPCore
                 aCandidate.Cost);
         }
 
-        /// <summary>
-        /// 消費コストによるスコア減少率を計算する。
-        /// 基準コストに対する比率が大きいほど 1 から下がっていくため、
-        /// 同程度の効果なら安い行動が優先される。
-        /// </summary>
-        /// <param name="aCost">評価する行動のコスト。無コストなら 1 を返す。</param>
-        /// <returns>スコアに掛ける 0～1 の効率係数。</returns>
+        // 消費コストによるスコア減少率を計算する
+        // 基準コストに対する比率が大きいほど 1 から下がっていくため、
+        // 同程度の効果なら安い行動が優先される
+        // aCost : 評価する行動のコスト。無コストなら 1 を返す
+        // return : スコアに掛ける 0～1 の効率係数
         protected float CostEfficiency(PPResourceCost aCost)
         {
             if(aCost == null || aCost.IsFree) return 1f;
@@ -588,21 +540,17 @@ namespace PPCore
             return 1f / (1f + mProfile.CostSensitivity * (aCost.Total / cs.ReferenceCost));
         }
 
-        /// <summary>
-        /// 「今は撃たずに待ってリソースを溜めた方が良いか」を評価する。
-        /// <para>
-        /// 今の残量では撃てない候補のうち最もスコアの高いものを探し、
-        /// 不足分をリソース増加トレンドで割って「あと何 Tick 待てば撃てるか」を見積もる。
-        /// それが許容 Tick 数以内なら、その候補のスコアを待機スコアとして返す
-        /// （＝呼び出し元がこれと現在のベスト候補を比較し、上回らなければ行動を見送る）。
-        /// </para>
-        /// </summary>
-        /// <param name="aUnit">対象ユニット。</param>
-        /// <param name="aSnap">パーティ状況スナップショット。</param>
-        /// <param name="aCandidates">このユニットの採点済み候補一覧。</param>
-        /// <param name="aBudget">判定に使うリソース予算。確保済み分が反映されている。</param>
-        /// <param name="aSituation">解決済みの状況スコア。</param>
-        /// <returns>待機の価値を表すスコア。待つ意味がなければ 0。</returns>
+        // 「今は撃たずに待ってリソースを溜めた方が良いか」を評価する
+        // 今の残量では撃てない候補のうち最もスコアの高いものを探し、
+        // 不足分をリソース増加トレンドで割って「あと何 Tick 待てば撃てるか」を見積もる
+        // それが許容 Tick 数以内なら、その候補のスコアを待機スコアとして返す
+        // （＝呼び出し元がこれと現在のベスト候補を比較し、上回らなければ行動を見送る）
+        // aUnit : 対象ユニット
+        // aSnap : パーティ状況スナップショット
+        // aCandidates : このユニットの採点済み候補一覧
+        // aBudget : 判定に使うリソース予算。確保済み分が反映されている
+        // aSituation : 解決済みの状況スコア
+        // return : 待機の価値を表すスコア。待つ意味がなければ 0
         protected float EvaluateWaitForUnit(PPBattleUnit aUnit, PPPartyAIContext aSnap, List<PPActionCandidate> aCandidates, PPResourceBudget aBudget, PPAISituationScore aSituation)
         {
             // 危機状態は溜め評価を放棄する
@@ -630,11 +578,9 @@ namespace PPCore
             return ticksNeeded > allowedTicks ? 0f : upcoming.Score;
         }
 
-        /// <summary>
-        /// ロールごとの実行順序を引く。同一ティック内でどの行動を先に処理するかの並び順になる。
-        /// </summary>
-        /// <param name="aRole">行動ロール。</param>
-        /// <returns>プロファイルで設定された実行順序値。</returns>
+        // ロールごとの実行順序を引く。同一ティック内でどの行動を先に処理するかの並び順になる
+        // aRole : 行動ロール
+        // return : プロファイルで設定された実行順序値
         protected int RoleOrder(PPBattleActionRole aRole)
         => aRole switch
         {
@@ -644,12 +590,10 @@ namespace PPCore
             _ => mProfile.Order.Default,
         };
 
-        /// <summary>
-        /// 0～1 の確率で成否を判定する。内部では 100 分率の整数抽選に落として比較する。
-        /// </summary>
-        /// <param name="a01">成功確率（0～1）。範囲外は丸められる。</param>
-        /// <param name="aContext">乱数供給元を含むバトルコンテキスト。</param>
-        /// <returns>成功なら true。</returns>
+        // 0～1 の確率で成否を判定する。内部では 100 分率の整数抽選に落として比較する
+        // a01 : 成功確率（0～1）。範囲外は丸められる
+        // aContext : 乱数供給元を含むバトルコンテキスト
+        // return : 成功なら true
         protected static bool Chance(float a01, BattleContext aContext)
         {
             a01 = Mathf.Clamp01(a01);

@@ -10,59 +10,49 @@ using CommandBattleCore;
 
 namespace PPCore
 {
-    /// <summary>
-    /// AI が思考を始める時点でのパーティ状況のスナップショット。
-    /// <para>
-    /// <see cref="Capture"/> で 1 回だけ集計し、以降の候補生成・スコアリング・条件評価は
-    /// 全てこのスナップショットを参照する。思考の途中で状況が変わらないことを保証し、
-    /// 生存メンバーの走査や最低 HP の探索を毎回やり直さずに済ませるのが狙い。
-    /// </para>
-    /// <para>
-    /// AI 条件アセット（<see cref="PPPartyConditionValidator"/> 派生）の評価入力にもなる。
-    /// </para>
-    /// </summary>
+    // AI が思考を始める時点でのパーティ状況のスナップショット
+    // Capture で 1 回だけ集計し、以降の候補生成・スコアリング・条件評価は
+    // 全てこのスナップショットを参照する。思考の途中で状況が変わらないことを保証し、
+    // 生存メンバーの走査や最低 HP の探索を毎回やり直さずに済ませるのが狙い
+    // AI 条件アセット（PPPartyConditionValidator 派生）の評価入力にもなる
     public sealed class PPPartyAIContext
     {
-        /// <summary>思考主体のパーティ。</summary>
+        // 思考主体のパーティ
         public PPBattleParty Party { get; private set; }
-        /// <summary>参照元のバトルコンテキスト。乱数やルールを引くのに使う。</summary>
+        // 参照元のバトルコンテキスト。乱数やルールを引くのに使う
         public BattleContext Context { get; private set; }
 
-        /// <summary>スナップショット時点で生存しているアクティブな味方。</summary>
+        // スナップショット時点で生存しているアクティブな味方
         public List<PPBattleUnit> AliveMembers { get; } = new();
-        /// <summary>スナップショット時点で生存しているアクティブな敵。</summary>
+        // スナップショット時点で生存しているアクティブな敵
         public List<PPBattleUnit> AliveEnemies { get; } = new();
 
-        /// <summary>思考主体のパーティが持つリソースプール。</summary>
+        // 思考主体のパーティが持つリソースプール
         public PPBattleResourcePool ResourcePool { get; private set; }
-        /// <summary>指定属性のリソース現在値を取得するショートカット。</summary>
-        /// <param name="a">対象の属性。</param>
+        // 指定属性のリソース現在値を取得するショートカット
+        // a : 対象の属性
         public float Current(PPTypeAttribute a) => ResourcePool.Current(a);
 
-        /// <summary>HP 実数値が最も低い敵。とどめを狙う際の第一候補になる。</summary>
+        // HP 実数値が最も低い敵。とどめを狙う際の第一候補になる
         public PPBattleUnit LowestHpEnemy { get; private set; }
-        /// <summary>HP 割合が最も低い味方。回復スキルの対象になる。</summary>
+        // HP 割合が最も低い味方。回復スキルの対象になる
         public PPBattleUnit LowestHpRatioAlly { get; private set; }
-        /// <summary>味方内で最も低い HP 割合。0～1 で保持する。</summary>
+        // 味方内で最も低い HP 割合。0～1 で保持する
         public float LowestAllyHpRatio { get; private set; } = 1f;
 
-        /// <summary>
-        /// パーティ全体の HP 割合。0～1 で保持する（<see cref="LowestAllyHpRatio"/> と同じ尺度）。
-        /// </summary>
+        // パーティ全体の HP 割合。0～1 で保持する（LowestAllyHpRatio と同じ尺度）
         public float PartyHpRatio { get; private set; } = 0f;
-        /// <summary>危機的状況かどうか。<see cref="PPBattleRules.CrisisHpRatio"/> を下回ると true。</summary>
+        // 危機的状況かどうか。PPBattleRules.CrisisHpRatio を下回ると true
         public bool IsCrisis { get; private set; } = false;
-        /// <summary>パーティの忍耐係数。AI が「待って溜める」判断をする際の許容 Tick 数に掛かる。</summary>
+        // パーティの忍耐係数。AI が「待って溜める」判断をする際の許容 Tick 数に掛かる
         public float PatienceCoefficient { get; private set; } = 0f;
 
-        /// <summary>
-        /// 現在のパーティ状況を集計してスナップショットを生成する。
-        /// 味方側の HP 集計と最低 HP 割合の探索、敵側の生存者列挙と最低 HP の探索、
-        /// 危機判定と忍耐係数の取り込み、をこの 1 回で済ませる。
-        /// </summary>
-        /// <param name="aParty">思考主体のパーティ。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>集計済みのスナップショット。</returns>
+        // 現在のパーティ状況を集計してスナップショットを生成する
+        // 味方側の HP 集計と最低 HP 割合の探索、敵側の生存者列挙と最低 HP の探索、
+        // 危機判定と忍耐係数の取り込み、をこの 1 回で済ませる
+        // aParty : 思考主体のパーティ
+        // aContext : バトルコンテキスト
+        // return : 集計済みのスナップショット
         public static PPPartyAIContext Capture(PPBattleParty aParty, BattleContext aContext)
         {
             var snap = new PPPartyAIContext { Party = aParty, Context = aContext };
@@ -122,11 +112,9 @@ namespace PPCore
             return snap;
         }
 
-        /// <summary>
-        /// ユニットの HP 割合を 0～1 で求める。最大 HP が 0 以下の場合は 0 を返す。
-        /// </summary>
-        /// <param name="aUnit">対象ユニット。</param>
-        /// <returns>HP 割合（0～1）。</returns>
+        // ユニットの HP 割合を 0～1 で求める。最大 HP が 0 以下の場合は 0 を返す
+        // aUnit : 対象ユニット
+        // return : HP 割合（0～1）
         public static float HpRatio(PPBattleUnit aUnit)
         {
             float max = aUnit.Parameters.Hp.Max.CurrentValue;

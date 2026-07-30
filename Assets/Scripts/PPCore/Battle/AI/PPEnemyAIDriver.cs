@@ -13,33 +13,26 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// パーティ AI を一定間隔で駆動するドライバ。
-    /// <para>
-    /// 本作のバトルはターン制ではなくプッシャーと並行してリアルタイムに進むため、
-    /// 敵は「自分の番が来たら動く」のではなく、一定秒ごとに思考して動く。
-    /// その周期を作るのがこのクラスの役割で、
-    /// 思考そのものは <see cref="IPPPartyCommandStrategist"/> へ完全に委譲する。
-    /// </para>
-    /// <para>
-    /// MonoBehaviour ではないため、<see cref="RunLoop"/> を呼び出し側のコルーチンとして起動する。
-    /// </para>
-    /// </summary>
+    // パーティ AI を一定間隔で駆動するドライバ
+    // 本作のバトルはターン制ではなくプッシャーと並行してリアルタイムに進むため、
+    // 敵は「自分の番が来たら動く」のではなく、一定秒ごとに思考して動く
+    // その周期を作るのがこのクラスの役割で、思考そのものは IPPPartyCommandStrategist へ完全に委譲する
+    // MonoBehaviour ではないため、RunLoop を呼び出し側のコルーチンとして起動する
     public sealed class PPEnemyAIDriver
     {
-        /// <summary>コマンドの投入先。</summary>
+        // コマンドの投入先
         private readonly BattleManager mManager;
-        /// <summary>思考対象の陣営。</summary>
+        // 思考対象の陣営
         private readonly BattleSide mSide;
-        /// <summary>パーティ側に設定が無い場合に使うフォールバックの AI。</summary>
+        // パーティ側に設定が無い場合に使うフォールバックの AI
         private readonly IPPPartyCommandStrategist mPartyCommandStrategist;
-        /// <summary>思考間隔（秒）。</summary>
+        // 思考間隔（秒）
         private readonly float mThinkInterval;
 
-        /// <param name="aManager">コマンドの投入先。</param>
-        /// <param name="aSide">思考対象の陣営。</param>
-        /// <param name="aPartyCommandStrategist">フォールバックの AI。</param>
-        /// <param name="aThinkInterval">思考間隔（秒）。0.1 秒未満は 0.1 秒に丸められる。</param>
+        // aManager : コマンドの投入先
+        // aSide : 思考対象の陣営
+        // aPartyCommandStrategist : フォールバックの AI
+        // aThinkInterval : 思考間隔（秒）。0.1 秒未満は 0.1 秒に丸められる
         public PPEnemyAIDriver(BattleManager aManager, BattleSide aSide,
             IPPPartyCommandStrategist aPartyCommandStrategist, float aThinkInterval)
         {
@@ -49,11 +42,9 @@ namespace PPCore
             mThinkInterval = Mathf.Max(0.1f, aThinkInterval);
         }
 
-        /// <summary>
-        /// バトルが終了するまで、思考間隔ごとに思考と実行を繰り返すコルーチン。
-        /// 待機オブジェクトを使い回して毎周期の生成を避けている。
-        /// </summary>
-        /// <returns>コルーチンの列挙子。呼び出し側で StartCoroutine する。</returns>
+        // バトルが終了するまで、思考間隔ごとに思考と実行を繰り返すコルーチン
+        // 待機オブジェクトを使い回して毎周期の生成を避けている
+        // return : コルーチンの列挙子。呼び出し側で StartCoroutine する
         public IEnumerator RunLoop()
         {
             var wait = new WaitForSeconds(mThinkInterval);
@@ -64,11 +55,9 @@ namespace PPCore
             }
         }
 
-        /// <summary>
-        /// 1 回分の思考と実行を行う。
-        /// 計画を立て、実行順に並べてコマンドを積み、まとめて実行する。
-        /// バトル終了時と他のコマンド実行中はスキップし、割り込みが起きないようにする。
-        /// </summary>
+        // 1 回分の思考と実行を行う
+        // 計画を立て、実行順に並べてコマンドを積み、まとめて実行する
+        // バトル終了時と他のコマンド実行中はスキップし、割り込みが起きないようにする
         public void PlanAndExecuteOnce()
         {
             if(mManager == null) return;

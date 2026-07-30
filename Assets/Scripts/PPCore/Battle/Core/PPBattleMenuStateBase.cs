@@ -10,40 +10,32 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// メニュー UI を表示する入力ステートの共通実装。
-    /// <para>
-    /// コマンド選択・スキル選択のように「選択中ユニットの隣にメニューを出す」系のステートが継承する。
-    /// ライフサイクル（表示 → 購読 → 退避 → 破棄）の流れを固定し、
-    /// 派生側は表示・非表示・購読・購読解除の 4 つだけを実装すればよいようにしてある。
-    /// </para>
-    /// <para>
-    /// 退避と破棄はどちらも「UI を閉じて購読を切る」だけなので同じ処理を共有する。
-    /// 戻ってきた際は <see cref="Resume"/> が選択途中の内容をリセットしてから開き直す。
-    /// </para>
-    /// </summary>
+    // メニュー UI を表示する入力ステートの共通実装
+    // コマンド選択・スキル選択のように「選択中ユニットの隣にメニューを出す」系のステートが継承する
+    // ライフサイクル（表示 → 購読 → 退避 → 破棄）の流れを固定し、
+    // 派生側は表示・非表示・購読・購読解除の 4 つだけを実装すればよいようにしてある
+    // 退避と破棄はどちらも「UI を閉じて購読を切る」だけなので同じ処理を共有する
+    // 戻ってきた際は Resume が選択途中の内容をリセットしてから開き直す
     public abstract class PPBattleMenuStateBase : IPPBattleInputState
     {
-        /// <summary>このステートを保持する入力コントローラー。</summary>
+        // このステートを保持する入力コントローラー
         protected readonly PPBattleCommandInputController mOwner;
 
-        /// <param name="aOwner">このステートを保持する入力コントローラー。</param>
+        // aOwner : このステートを保持する入力コントローラー
         protected PPBattleMenuStateBase(PPBattleCommandInputController aOwner) => mOwner = aOwner;
 
-        /// <summary>メニュー UI を表示する。</summary>
-        /// <param name="aUnit">選択中のユニット。</param>
-        /// <param name="aAnchor">メニューを配置する位置の基準。ビューが無い場合は null。</param>
+        // メニュー UI を表示する
+        // aUnit : 選択中のユニット
+        // aAnchor : メニューを配置する位置の基準。ビューが無い場合は null
         protected abstract void ShowView(BattleUnit aUnit, RectTransform aAnchor);
-        /// <summary>メニュー UI を隠す。</summary>
+        // メニュー UI を隠す
         protected abstract void HideView();
-        /// <summary>メニューの決定イベントなどを購読する。</summary>
+        // メニューの決定イベントなどを購読する
         protected abstract void Subscribe();
-        /// <summary>購読を解除する。</summary>
+        // 購読を解除する
         protected abstract void Unsubscribe();
 
-        /// <summary>
-        /// 選択中ユニットのビューからアンカーを引いてメニューを表示し、入力を購読する。
-        /// </summary>
+        // 選択中ユニットのビューからアンカーを引いてメニューを表示し、入力を購読する
         public void Enter()
         {
             var unit = mOwner.Context.Unit;
@@ -52,22 +44,20 @@ namespace PPCore
             Subscribe();
         }
 
-        /// <summary>
-        /// 先のステートから戻ってきたときの復帰処理。
-        /// ユニットの選択は保ったまま、その先で選んだ内容（スキル・対象）だけを破棄して開き直す。
-        /// </summary>
+        // 先のステートから戻ってきたときの復帰処理
+        // ユニットの選択は保ったまま、その先で選んだ内容（スキル・対象）だけを破棄して開き直す
         public void Resume()
         {
             mOwner.Context.ClearSelectionKeepingUnit();
             Enter();
         }
 
-        /// <summary>先へ進むため退避する。UI を閉じて購読を切る。</summary>
+        // 先へ進むため退避する。UI を閉じて購読を切る
         public void Suspend() => Detach();
-        /// <summary>破棄する。UI を閉じて購読を切る。</summary>
+        // 破棄する。UI を閉じて購読を切る
         public void Exit() => Detach();
 
-        /// <summary>購読解除と UI の非表示をまとめて行う。</summary>
+        // 購読解除と UI の非表示をまとめて行う
         private void Detach()
         {
             Unsubscribe();

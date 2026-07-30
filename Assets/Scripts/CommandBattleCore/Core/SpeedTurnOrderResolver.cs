@@ -11,22 +11,18 @@ using System.Linq;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// 速度パラメータの降順で行動順を決める標準実装。
-    /// <see cref="SpeedJitter"/> を設定すると速度に乱数の揺らぎが乗るため、
-    /// 速度が同値のユニット同士の順序が毎ターン入れ替わるようになる。
-    /// 乱数はシード管理・再現性のため <c>aContext.Rules.RandomProvider</c> を経由する。
-    /// </summary>
+    // 速度パラメータの降順で行動順を決める標準実装
+    // SpeedJitter を設定すると速度に乱数の揺らぎが乗るため、
+    // 速度が同値のユニット同士の順序が毎ターン入れ替わるようになる
+    // 乱数はシード管理・再現性のため aContext.Rules.RandomProvider を経由する
     public class SpeedTurnOrderResolver : ITurnOrderResolver
     {
-        /// <summary>速度に加算する揺らぎの最大値。0 なら揺らぎなしで純粋な速度順になる。</summary>
+        // 速度に加算する揺らぎの最大値。0 なら揺らぎなしで純粋な速度順になる
         public float SpeedJitter { get; set; } = 0f;
 
-        /// <summary>
-        /// 敵味方の生存アクティブメンバーをまとめ、速度（＋揺らぎ）の降順に並べて返す。
-        /// </summary>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>先に行動する順に並べたユニットのリスト。</returns>
+        // 敵味方の生存アクティブメンバーをまとめ、速度（＋揺らぎ）の降順に並べて返す
+        // aContext : バトルコンテキスト
+        // return : 先に行動する順に並べたユニットのリスト
         public List<BattleUnit> ResolveOrder(BattleContext aContext)
         {
             var all = aContext.AllyParty.GetAliveActiveMembers()

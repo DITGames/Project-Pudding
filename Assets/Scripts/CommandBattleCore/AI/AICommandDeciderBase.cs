@@ -10,35 +10,27 @@ using System.Collections.Generic;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// AI によるコマンド決定の基底クラス。
-    /// プレイヤー入力側の実装と型で区別を付けるための足場で、現状は追加の振る舞いを持たない。
-    /// </summary>
+    // AI によるコマンド決定の基底クラス
+    // プレイヤー入力側の実装と型で区別を付けるための足場で、現状は追加の振る舞いを持たない
     public abstract class AICommandDeciderBase : ICommandDecider
     {
-        /// <summary>
-        /// このユニットが取る行動を決める。派生側で実装する。
-        /// </summary>
-        /// <param name="aSelf">行動を決めるユニット。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>実行するコマンド。</returns>
+        // このユニットが取る行動を決める。派生側で実装する
+        // aSelf : 行動を決めるユニット
+        // aContext : バトルコンテキスト
+        // return : 実行するコマンド
         public abstract BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext);
     }
 
-    /// <summary>
-    /// 通常攻撃と発動可能なスキルから完全にランダムで選ぶ、最も単純な AI。
-    /// <see cref="UnitDefinition.CreateRuntimeUnit"/> で decider を指定しなかった場合の既定値になる。
-    /// 乱数はシード管理・再現性のため <c>aContext.Rules.RandomProvider</c> を経由する。
-    /// </summary>
+    // 通常攻撃と発動可能なスキルから完全にランダムで選ぶ、最も単純な AI
+    // UnitDefinition.CreateRuntimeUnit で decider を指定しなかった場合の既定値になる
+    // 乱数はシード管理・再現性のため aContext.Rules.RandomProvider を経由する
     public class RandomAICommandDecider : AICommandDeciderBase
     {
-        /// <summary>
-        /// 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、
-        /// その中から等確率で 1 つ選ぶ。候補が必ず 1 件以上あるため選択に失敗しない。
-        /// </summary>
-        /// <param name="aSelf">行動を決めるユニット。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>選ばれたコマンド。</returns>
+        // 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、
+        // その中から等確率で 1 つ選ぶ。候補が必ず 1 件以上あるため選択に失敗しない
+        // aSelf : 行動を決めるユニット
+        // aContext : バトルコンテキスト
+        // return : 選ばれたコマンド
         public override BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext)
         {
             var options = new List<BattleCommandBase>

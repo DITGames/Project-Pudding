@@ -12,39 +12,27 @@ using UnityEngine.UI;
 
 namespace PPCore
 {
-    /// <summary>
-    /// <see cref="BattleUnit"/> と <see cref="PPBattleUnitView"/> を対応付ける橋渡し役。
-    /// <para>
-    /// 担うのは 2 つ。パーティのメンバー分だけビューを生成して辞書に登録することと、
-    /// <see cref="BattleManager"/> のイベントを購読して該当ユニットのビューへ演出を振り分けること。
-    /// これにより、バトルロジック側はビューの存在を知らないまま演出が動く。
-    /// </para>
-    /// <para>
-    /// 入力ステートが対象ユニットのビューを引く際も、この <see cref="GetView"/> を使う。
-    /// </para>
-    /// </summary>
+    // BattleUnit と PPBattleUnitView を対応付ける橋渡し役
+    // 担うのは 2 つ。パーティのメンバー分だけビューを生成して辞書に登録することと、
+    // BattleManager のイベントを購読して該当ユニットのビューへ演出を振り分けること
+    // これにより、バトルロジック側はビューの存在を知らないまま演出が動く
+    // 入力ステートが対象ユニットのビューを引く際も、この GetView を使う
     public class PPBattleUnitViewBinder : MonoBehaviour
     {
-        /// <summary>複製元のユニットビュー。</summary>
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
-        /// <summary>味方ビューを並べる親。</summary>
         [Label("味方表示エリア")]
         [SerializeField] private RectTransform mAllyRow;
-        /// <summary>敵ビューを並べる親。</summary>
         [Label("敵表示エリア")]
         [SerializeField] private RectTransform mEnemyRow;
-        /// <summary>ユニット ID から見た目定義を引くカタログ。</summary>
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
-        /// <summary>ユニットとビューの対応表。</summary>
+        // ユニットとビューの対応表
         private readonly Dictionary<BattleUnit, PPBattleUnitView> mViews = new();
 
-        /// <summary>
-        /// 両パーティのビューを生成し、バトルイベントを購読して演出へ振り分ける。
-        /// </summary>
-        /// <param name="aManager">購読対象のバトルマネージャ。</param>
+        // 両パーティのビューを生成し、バトルイベントを購読して演出へ振り分ける
+        // aManager : 購読対象のバトルマネージャ
         public void Bind(BattleManager aManager)
         {
             SpawnViews(aManager.Context.AllyParty, mAllyRow, BattleSide.Ally);
@@ -87,13 +75,11 @@ namespace PPCore
             };
         }
 
-        /// <summary>
-        /// パーティのアクティブメンバー分のビューを生成して並べ、対応表へ登録する。
-        /// 生成直後は選択不可にしておき、入力ステートが必要なタイミングで有効化する。
-        /// </summary>
-        /// <param name="aParty">対象のパーティ。</param>
-        /// <param name="aRow">ビューを並べる親。</param>
-        /// <param name="aSide">このパーティの陣営。ビューの向きの決定に使う。</param>
+        // パーティのアクティブメンバー分のビューを生成して並べ、対応表へ登録する
+        // 生成直後は選択不可にしておき、入力ステートが必要なタイミングで有効化する
+        // aParty : 対象のパーティ
+        // aRow : ビューを並べる親
+        // aSide : このパーティの陣営。ビューの向きの決定に使う
         private void SpawnViews(BattleParty aParty, RectTransform aRow, BattleSide aSide)
         {
             if (aRow == null)
@@ -114,11 +100,9 @@ namespace PPCore
             LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
         }
 
-        /// <summary>
-        /// ユニットに対応するビューを取得する。
-        /// </summary>
-        /// <param name="aUnit">対象のユニット。</param>
-        /// <returns>対応するビュー。未登録なら null。</returns>
+        // ユニットに対応するビューを取得する
+        // aUnit : 対象のユニット
+        // return : 対応するビュー。未登録なら null
         public PPBattleUnitView GetView(BattleUnit aUnit) => mViews.GetValueOrDefault(aUnit);
     }
 }

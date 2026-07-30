@@ -9,22 +9,16 @@ using CommandBattleCore;
 
 namespace PPCore
 {
-    /// <summary>
-    /// パーティ全体を俯瞰して行動計画を立てる AI のインターフェース。
-    /// <para>
-    /// ユニット単位で決める <see cref="ICommandDecider"/> と違い、
-    /// パーティ共有のリソースを誰に割り当てるかまで含めて 1 回で決めるのが役割。
-    /// 実装は <see cref="PPPartyAIStrategistBase"/>、駆動は <see cref="PPEnemyAIDriver"/> が担う。
-    /// </para>
-    /// </summary>
+    // パーティ全体を俯瞰して行動計画を立てる AI のインターフェース
+    // ユニット単位で決める ICommandDecider と違い、
+    // パーティ共有のリソースを誰に割り当てるかまで含めて 1 回で決めるのが役割
+    // 実装は PPPartyAIStrategistBase、駆動は PPEnemyAIDriver が担う
     public interface IPPPartyCommandStrategist
     {
-        /// <summary>
-        /// このティックでパーティが取る行動計画を組み立てる。
-        /// </summary>
-        /// <param name="aSelf">思考主体のパーティ。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>行動の割り当て。何もしない場合は <see cref="PPPartyPlan.Wait"/>。</returns>
+        // このティックでパーティが取る行動計画を組み立てる
+        // aSelf : 思考主体のパーティ
+        // aContext : バトルコンテキスト
+        // return : 行動の割り当て。何もしない場合は PPPartyPlan.Wait
         PPPartyPlan PlanActions(BattleParty aSelf, BattleContext aContext);
     }
 }

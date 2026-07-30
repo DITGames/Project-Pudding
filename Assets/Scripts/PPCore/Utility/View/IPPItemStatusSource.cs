@@ -9,22 +9,19 @@ using System;
 
 namespace PPCore
 {
-    /// <summary>
-    /// UI がアイテムの表示情報を読み取るためのインターフェース。
-    /// スキル用（<see cref="IPPSkillStatusSource"/>）とほぼ同じ構成だが、
-    /// クールダウンの代わりに所持数を持つ。
-    /// </summary>
+    // UI がアイテムの表示情報を読み取るためのインターフェース
+    // スキル用（IPPSkillStatusSource）とほぼ同じ構成だが、クールダウンの代わりに所持数を持つ
     public interface IPPItemStatusSource
     {
-        /// <summary>UI 表示名。</summary>
+        // UI 表示名
         string DisplayName { get; }
-        /// <summary>所持数。</summary>
+        // 所持数
         int Count { get; }
-        /// <summary>使用に必要なリソースコスト。</summary>
+        // 使用に必要なリソースコスト
         PPResourceCost Cost { get; }
-        /// <summary>今このアイテムを使用できるか。ボタンの有効・無効に使う。</summary>
+        // 今このアイテムを使用できるか。ボタンの有効・無効に使う
         bool IsUsable { get; }
-        /// <summary>表示内容が変化したときに発火する。</summary>
+        // 表示内容が変化したときに発火する
         event Action Changed;
     }
 }

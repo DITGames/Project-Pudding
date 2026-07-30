@@ -11,28 +11,21 @@ using UnityEngine;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// CommandBattleCore だけでターン制バトルを回す最小サンプル。
-    /// <para>
-    /// バトルの組み立て方（ユニット生成 → パーティ生成 → コンテキスト構築 → イベント購読 → 開始）と、
-    /// 1 ターンの回し方（行動順取得 → コマンド決定 → キュー実行 → ターン経過）を示すための参照実装。
-    /// PPCore 側の実際のエントリポイントは <c>PPCore.SamplePusherBattleRunner</c>。
-    /// </para>
-    /// </summary>
+    // CommandBattleCore だけでターン制バトルを回す最小サンプル
+    // バトルの組み立て方（ユニット生成 → パーティ生成 → コンテキスト構築 → イベント購読 → 開始）と、
+    // 1 ターンの回し方（行動順取得 → コマンド決定 → キュー実行 → ターン経過）を示すための参照実装
     public class TurnBattleRunnerSample : MonoBehaviour
     {
-        /// <summary>味方として生成するユニット定義。</summary>
+        // 味方として生成するユニット定義
         [SerializeField] private UnitDefinition[] mAllyDefinitions;
-        /// <summary>敵として生成するユニット定義。</summary>
+        // 敵として生成するユニット定義
         [SerializeField] private UnitDefinition[] mEnemyDefinitions;
 
-        /// <summary>このサンプルが駆動するバトルマネージャ。</summary>
+        // このサンプルが駆動するバトルマネージャ
         private BattleManager mBattleManager;
 
-        /// <summary>
-        /// 定義からユニットを生成して両パーティを組み立て、
-        /// ログ出力用のイベントを購読してからバトルを開始する。
-        /// </summary>
+        // 定義からユニットを生成して両パーティを組み立て、
+        // ログ出力用のイベントを購読してからバトルを開始する
         private void Start()
         {
             mBattleManager = new BattleManager {TimeProvider = () => Time.time};
@@ -54,11 +47,9 @@ namespace CommandBattleCore
             mBattleManager.StartBattle(context);
         }
 
-        /// <summary>
-        /// 1 ターン分を進める。行動順に全ユニットのコマンドを積み、
-        /// まとめて実行してからターンを経過させる。
-        /// インスペクタのコンテキストメニューから手動で呼ぶ想定。
-        /// </summary>
+        // 1 ターン分を進める。行動順に全ユニットのコマンドを積み、
+        // まとめて実行してからターンを経過させる
+        // インスペクタのコンテキストメニューから手動で呼ぶ想定
         [ContextMenu("Run One Turn")]
         public void RunOneTurn()
         {

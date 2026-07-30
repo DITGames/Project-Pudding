@@ -12,28 +12,22 @@ using UnityEngine;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// <see cref="EditConditionAttribute"/> の描画を担う PropertyDrawer。
-    /// <para>
-    /// 条件メンバーの値をリフレクションで読み取り、条件を満たさない場合は
-    /// 属性の設定に応じてグレーアウトさせるか完全に隠す。
-    /// 条件メンバーは <see cref="SerializedProperty"/> からは辿れないため、
-    /// プロパティパスを解析して実インスタンスを取得している。
-    /// </para>
-    /// </summary>
+    // EditConditionAttribute の描画を担う PropertyDrawer
+    // 条件メンバーの値をリフレクションで読み取り、条件を満たさない場合は
+    // 属性の設定に応じてグレーアウトさせるか完全に隠す
+    // 条件メンバーは SerializedProperty からは辿れないため、
+    // プロパティパスを解析して実インスタンスを取得している
     [CustomPropertyDrawer(typeof(EditConditionAttribute))]
     public class EditConditionDrawer : PropertyDrawer
     {
-        /// <summary>条件メンバーの探索に使うバインディングフラグ。private メンバーも対象にする。</summary>
+        // 条件メンバーの探索に使うバインディングフラグ。private メンバーも対象にする
         private const BindingFlags MemberFlags =
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
 
-        /// <summary>
-        /// 描画に必要な高さを返す。非表示条件を満たす場合は高さを消す。
-        /// </summary>
-        /// <param name="property">対象プロパティ。</param>
-        /// <param name="label">ラベル。</param>
-        /// <returns>描画に必要な高さ。非表示時は負値。</returns>
+        // 描画に必要な高さを返す。非表示条件を満たす場合は高さを消す
+        // property : 対象プロパティ
+        // label : ラベル
+        // return : 描画に必要な高さ。非表示時は負値
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
             var editConditionAttr = (EditConditionAttribute)attribute;
@@ -48,13 +42,11 @@ namespace CommandBattleCore
             return EditorGUI.GetPropertyHeight(property, label, true);
         }
 
-        /// <summary>
-        /// プロパティを描画する。条件を満たさない場合、Hides なら描画自体を行わず、
-        /// そうでなければ GUI を無効化してグレーアウト表示にする。
-        /// </summary>
-        /// <param name="position">描画領域。</param>
-        /// <param name="property">対象プロパティ。</param>
-        /// <param name="label">ラベル。</param>
+        // プロパティを描画する。条件を満たさない場合、Hides なら描画自体を行わず、
+        // そうでなければ GUI を無効化してグレーアウト表示にする
+        // position : 描画領域
+        // property : 対象プロパティ
+        // label : ラベル
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
             var editConditionAttr = (EditConditionAttribute)attribute;
@@ -77,15 +69,13 @@ namespace CommandBattleCore
             GUI.enabled = prevEnabled;
         }
 
-        /// <summary>
-        /// 条件メンバーを評価する。
-        /// フィールド → プロパティ → 引数なしメソッドの順に探し、基底クラスへも遡る。
-        /// 見つからない場合は警告を出したうえで「表示する」側へフォールバックする
-        /// （条件名の打ち間違いでプロパティが消えて気付けなくなるのを避けるため）。
-        /// </summary>
-        /// <param name="attr">評価する属性。</param>
-        /// <param name="property">対象プロパティ。</param>
-        /// <returns>条件を満たす場合 true。</returns>
+        // 条件メンバーを評価する
+        // フィールド → プロパティ → 引数なしメソッドの順に探し、基底クラスへも遡る
+        // 見つからない場合は警告を出したうえで「表示する」側へフォールバックする
+        // （条件名の打ち間違いでプロパティが消えて気付けなくなるのを避けるため）
+        // attr : 評価する属性
+        // property : 対象プロパティ
+        // return : 条件を満たす場合 true
         private static bool EvaluateCondition(EditConditionAttribute attr, SerializedProperty property)
         {
             object target = GetParentObject(property);
@@ -123,14 +113,12 @@ namespace CommandBattleCore
             return true;
         }
 
-        /// <summary>SerializedPropertyが実際に属するオブジェクトインスタンスを反射で取得する（ネスト対応）</summary>
-        /// <remarks>
-        /// プロパティパスを "." で分割し、最後の 1 要素（プロパティ自身）を除いた分だけ辿ることで
-        /// 「そのプロパティを保持しているオブジェクト」に到達する。
-        /// 配列要素は "xxx.Array.Data[n]" という形式になるため、事前に "xxx[n]" へ正規化している。
-        /// </remarks>
-        /// <param name="property">対象プロパティ。</param>
-        /// <returns>プロパティを保持するオブジェクト。辿れない場合は null。</returns>
+        // SerializedPropertyが実際に属するオブジェクトインスタンスを反射で取得する（ネスト対応）
+        // プロパティパスを "." で分割し、最後の 1 要素（プロパティ自身）を除いた分だけ辿ることで
+        // 「そのプロパティを保持しているオブジェクト」に到達する
+        // 配列要素は "xxx.Array.Data[n]" という形式になるため、事前に "xxx[n]" へ正規化している
+        // property : 対象プロパティ
+        // return : プロパティを保持するオブジェクト。辿れない場合は null
         private static object GetParentObject(SerializedProperty property)
         {
             var path = property.propertyPath.Replace(".Array.Data[", "[");
@@ -156,12 +144,10 @@ namespace CommandBattleCore
             return obj;
         }
 
-        /// <summary>
-        /// 名前でフィールドまたはプロパティの値をリフレクションで取得する。基底クラスへも遡る。
-        /// </summary>
-        /// <param name="source">取得元オブジェクト。</param>
-        /// <param name="name">メンバー名。</param>
-        /// <returns>取得した値。見つからない場合は null。</returns>
+        // 名前でフィールドまたはプロパティの値をリフレクションで取得する。基底クラスへも遡る
+        // source : 取得元オブジェクト
+        // name : メンバー名
+        // return : 取得した値。見つからない場合は null
         private static object GetMemberValue(object source, string name)
         {
             if (source == null)
@@ -190,15 +176,13 @@ namespace CommandBattleCore
             return null;
         }
 
-        /// <summary>
-        /// コレクション型メンバーの指定インデックスの要素を取得する。
-        /// 添字アクセスを持たない <see cref="System.Collections.IEnumerable"/> にも対応するため、
-        /// 列挙子を目的の位置まで進める方式にしている。
-        /// </summary>
-        /// <param name="source">取得元オブジェクト。</param>
-        /// <param name="name">コレクションのメンバー名。</param>
-        /// <param name="index">取得したい要素の位置。</param>
-        /// <returns>該当要素。範囲外またはコレクションでない場合は null。</returns>
+        // コレクション型メンバーの指定インデックスの要素を取得する
+        // 添字アクセスを持たない System.Collections.IEnumerable にも対応するため、
+        // 列挙子を目的の位置まで進める方式にしている
+        // source : 取得元オブジェクト
+        // name : コレクションのメンバー名
+        // index : 取得したい要素の位置
+        // return : 該当要素。範囲外またはコレクションでない場合は null
         private static object GetIndexedValue(object source, string name, int index)
         {
             if (GetMemberValue(source, name) is not System.Collections.IEnumerable enumerable)

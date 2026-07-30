@@ -8,16 +8,14 @@
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// ユニットが属する陣営。
-    /// <see cref="BattleContext.GetParty"/> / <see cref="BattleContext.GetOpponentParty"/> の引数になり、
-    /// ターゲット解決で「味方」「敵」を判断する基準になる。
-    /// </summary>
+    // ユニットが属する陣営
+    // BattleContext.GetParty / BattleContext.GetOpponentParty の引数になり、
+    // ターゲット解決で「味方」「敵」を判断する基準になる
     public enum BattleSide
     {
-        /// <summary>プレイヤー側。</summary>
+        // プレイヤー側
         Ally,
-        /// <summary>敵側。</summary>
+        // 敵側
         Enemy,
     }
 }

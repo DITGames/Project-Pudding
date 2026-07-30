@@ -10,54 +10,50 @@ using System.Collections.Generic;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// バトルログの種別。UI 側で「戦闘ログ」を種類ごとに色分け・フィルタするために使う。
-    /// </summary>
+    // バトルログの種別。UI 側で「戦闘ログ」を種類ごとに色分け・フィルタするために使う
     public enum BattleLogType
     {
-        /// <summary>コマンドの投入。</summary>
+        // コマンドの投入
         Action,
-        /// <summary>ダメージの発生。</summary>
+        // ダメージの発生
         Damage,
-        /// <summary>回復の発生。</summary>
+        // 回復の発生
         Heal,
-        /// <summary>ステータスエフェクトの増減。</summary>
+        // ステータスエフェクトの増減
         StatusEffect,
-        /// <summary>ユニットの撃破。</summary>
+        // ユニットの撃破
         UnitDefeated,
-        /// <summary>メンバーの入れ替え。</summary>
+        // メンバーの入れ替え
         Swap,
-        /// <summary>逃走。</summary>
+        // 逃走
         Escape,
-        /// <summary>状態異常による行動失敗。</summary>
+        // 状態異常による行動失敗
         ActionBlocked,
-        /// <summary>その他。バトル終了通知などに使われる。</summary>
+        // その他。バトル終了通知などに使われる
         Custom,
     }
 
-    /// <summary>
-    /// バトルログ 1 行分のエントリ。
-    /// 表示用の文言だけでなく関係ユニットの参照も持つため、
-    /// ログから対象を辿った演出やデバッグ表示にも使える。
-    /// </summary>
+    // バトルログ 1 行分のエントリ
+    // 表示用の文言だけでなく関係ユニットの参照も持つため、
+    // ログから対象を辿った演出やデバッグ表示にも使える
     public record BattleLogEntry
     {
-        /// <summary>ログ種別。</summary>
+        // ログ種別
         public BattleLogType LogType { get; protected set; }
-        /// <summary>行動主体のユニット。無い場合は null。</summary>
+        // 行動主体のユニット。無い場合は null
         public BattleUnit Unit { get; protected set; }
-        /// <summary>対象のユニット。無い場合は null。</summary>
+        // 対象のユニット。無い場合は null
         public BattleUnit Target { get; protected set; }
-        /// <summary>ログ本文。</summary>
+        // ログ本文
         public string Description { get; protected set; }
-        /// <summary>記録時刻。<see cref="BattleManager.TimeProvider"/> から取得した値。</summary>
+        // 記録時刻。BattleManager.TimeProvider から取得した値
         public float TimeStamp { get; protected set; }
 
-        /// <param name="aType">ログ種別。</param>
-        /// <param name="aSource">行動主体のユニット。</param>
-        /// <param name="aTarget">対象のユニット。</param>
-        /// <param name="aDescription">ログ本文。</param>
-        /// <param name="aTimeStamp">記録時刻。</param>
+        // aType : ログ種別
+        // aSource : 行動主体のユニット
+        // aTarget : 対象のユニット
+        // aDescription : ログ本文
+        // aTimeStamp : 記録時刻
         public BattleLogEntry(BattleLogType aType, BattleUnit aSource, BattleUnit aTarget, string aDescription,
             float aTimeStamp)
         {
@@ -69,29 +65,24 @@ namespace CommandBattleCore
         }
     }
 
-    /// <summary>
-    /// バトルログの出力先。<see cref="BattleManager.Logger"/> に差し込む。
-    /// 実装を差し替えれば、履歴保持のかわりに UI へ即時表示したりファイルへ書き出したりできる。
-    /// </summary>
+    // バトルログの出力先。BattleManager.Logger に差し込む
+    // 実装を差し替えれば、履歴保持のかわりに UI へ即時表示したりファイルへ書き出したりできる
     public interface IBattleLogger
     {
-        /// <summary>ログを 1 件出力する。</summary>
-        /// <param name="entry">出力するログエントリ。</param>
+        // ログを 1 件出力する
+        // entry : 出力するログエントリ
         void Log(BattleLogEntry entry);
     }
 
-    /// <summary>
-    /// 標準のロガー。出力せずメモリ上に履歴として溜めるだけの実装。
-    /// リザルト画面での戦闘ログ表示などに使う。
-    /// </summary>
+    // 標準のロガー。出力せずメモリ上に履歴として溜めるだけの実装
+    // リザルト画面での戦闘ログ表示などに使う
     public class DefaultBattleLogger : IBattleLogger
     {
-        /// <summary>記録された全ログ。</summary>
+        // 記録された全ログ
         protected readonly List<BattleLogEntry> mHistory = new();
-        /// <summary>ログ履歴の読み取り専用ビュー。</summary>
+        // ログ履歴の読み取り専用ビュー
         public IReadOnlyList<BattleLogEntry> History => mHistory;
-        /// <summary>ログを履歴へ追加する。</summary>
-        /// <param name="entry">追加するログエントリ。</param>
+        // ログを履歴へ追加する
         public virtual void Log(BattleLogEntry entry) => mHistory.Add(entry);
     }
 }

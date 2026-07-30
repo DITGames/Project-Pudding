@@ -8,24 +8,21 @@
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// リアクション（反撃など）が反応する出来事の種類。
-    /// <see cref="BattleManager.DispatchReactions"/> がこの種別を突き合わせて、
-    /// 一致する <see cref="IBattleReaction"/> だけを発火させる。
-    /// </summary>
+    // リアクション（反撃など）が反応する出来事の種類
+    // BattleManager.DispatchReactions がこの種別を突き合わせて、一致する IBattleReaction だけを発火させる
     public enum ReactionTrigger
     {
-        /// <summary>ダメージを受けたとき。反撃・とげ等。</summary>
+        // ダメージを受けたとき。反撃・とげ等
         OnDamaged,
-        /// <summary>回復を受けたとき。</summary>
+        // 回復を受けたとき
         OnHealed,
-        /// <summary>ユニットが撃破されたとき。</summary>
+        // ユニットが撃破されたとき
         OnUnitDefeated,
-        /// <summary>ステータスエフェクトが付与されたとき。</summary>
+        // ステータスエフェクトが付与されたとき
         OnStatusAdded,
-        /// <summary>ターンが開始したとき。</summary>
+        // ターンが開始したとき
         OnTurnStarted,
-        /// <summary>ターンが終了したとき。</summary>
+        // ターンが終了したとき
         OnTurnEnded,
     }
 }

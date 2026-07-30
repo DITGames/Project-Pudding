@@ -11,33 +11,25 @@ using UnityEngine;
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// 通常攻撃コマンド。解決した全対象に対し、命中・クリティカル判定を経てダメージを与える。
-    /// <para>
-    /// ダメージ計算式は <see cref="DamageFormula"/> として差し替え可能な static デリゲートにしてある。
-    /// </para>
-    /// </summary>
+    // 通常攻撃コマンド。解決した全対象に対し、命中・クリティカル判定を経てダメージを与える
+    // ダメージ計算式は DamageFormula として差し替え可能な static デリゲートにしてある
     public class AttackCommand : BattleCommandBase
     {
-        /// <summary>
-        /// 通常攻撃のダメージ計算式（攻撃側, 防御側）。
-        /// 既定は「攻撃力 - 防御力 × 0.5」で、最低 1 ダメージを保証する。
-        /// static なので差し替えるとゲーム全体に効く。
-        /// </summary>
+        // 通常攻撃のダメージ計算式（攻撃側, 防御側）
+        // 既定は「攻撃力 - 防御力 × 0.5」で、最低 1 ダメージを保証する
+        // static なので差し替えるとゲーム全体に効く
         public static Func<BattleUnit, BattleUnit, float> DamageFormula { get; set; } =
             (src, tgt) =>
                 Mathf.Max(1f, src.Parameters.Attack.CurrentValue - tgt.Parameters.Defense.CurrentValue * 0.5f);
 
-        /// <param name="aSource">攻撃するユニット。</param>
-        /// <param name="aResolver">対象を決めるリゾルバ。</param>
+        // aSource : 攻撃するユニット
+        // aResolver : 対象を決めるリゾルバ
         public AttackCommand(BattleUnit aSource, ITargetResolver aResolver) : base(aSource, aResolver) {}
 
-        /// <summary>
-        /// 対象ごとにダメージ情報を組み立て、命中判定 → クリティカル補正 → 適用の順に処理する。
-        /// ミスの場合はダメージ量を 0 に落としたうえで適用まで通し、
-        /// 「外れた」という結果を購読側へ届ける。
-        /// </summary>
-        /// <param name="aContext">実行時のバトルコンテキスト。</param>
+        // 対象ごとにダメージ情報を組み立て、命中判定 → クリティカル補正 → 適用の順に処理する
+        // ミスの場合はダメージ量を 0 に落としたうえで適用まで通し、
+        // 「外れた」という結果を購読側へ届ける
+        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
         {
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
@@ -63,33 +55,27 @@ namespace CommandBattleCore
         }
     }
 
-    /// <summary>
-    /// スキル使用コマンド。
-    /// </summary>
+    // スキル使用コマンド
     public class SkillCommand : BattleCommandBase
     {
-        /// <summary>使用するスキル。</summary>
+        // 使用するスキル
         public BattleSkill Skill { get; }
 
-        /// <param name="aSource">スキルを使用するユニット。</param>
-        /// <param name="aSkill">使用するスキル。</param>
-        /// <param name="aResolverOverride">対象を明示指定する場合のリゾルバ。null ならスキル既定を使う。</param>
+        // aSource : スキルを使用するユニット
+        // aSkill : 使用するスキル
+        // aResolverOverride : 対象を明示指定する場合のリゾルバ。null ならスキル既定を使う
         public SkillCommand(BattleUnit aSource, BattleSkill aSkill, ITargetResolver aResolverOverride = null)
             : base(aSource, aResolverOverride ?? aSkill.DefaultTargetResolver)
         {
             Skill = aSkill;
         }
 
-        /// <summary>
-        /// 対象解決 → 発動可否検証 → スキル実行 → 使用記録の順に処理する。
-        /// 対象不在または発動条件を満たさない場合は理由付きで通知して中止する。
-        /// </summary>
-        /// <remarks>
-        /// 対象は冒頭で 1 回だけ解決し、その結果をそのままスキルへ渡す。
-        /// リゾルバを再度直接呼ぶと <see cref="BattleContext.ResolveTargets"/> を経由せず
-        /// <see cref="ITargetFilter"/> が適用されないため、解決は 1 回に統一すること。
-        /// </remarks>
-        /// <param name="aContext">実行時のバトルコンテキスト。</param>
+        // 対象解決 → 発動可否検証 → スキル実行 → 使用記録の順に処理する
+        // 対象不在または発動条件を満たさない場合は理由付きで通知して中止する
+        // 対象は冒頭で 1 回だけ解決し、その結果をそのままスキルへ渡す
+        // リゾルバを再度直接呼ぶと BattleContext.ResolveTargets を経由せず
+        // ITargetFilter が適用されないため、解決は 1 回に統一すること
+        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
         {
             // 先にターゲット解決
@@ -114,60 +100,50 @@ namespace CommandBattleCore
         }
     }
 
-    /// <summary>
-    /// アイテムの効果本体。アイテム定義はコア層では型を決めないため、
-    /// 使用時の振る舞いだけをこのインターフェースで受け取る。
-    /// </summary>
+    // アイテムの効果本体。アイテム定義はコア層では型を決めないため、
+    // 使用時の振る舞いだけをこのインターフェースで受け取る
     public interface IItemEffect
     {
-        /// <summary>
-        /// アイテムを使用する。
-        /// </summary>
-        /// <param name="aSource">使用者。</param>
-        /// <param name="aTargets">解決済みの対象リスト。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
+        // アイテムを使用する
+        // aSource : 使用者
+        // aTargets : 解決済みの対象リスト
+        // aContext : バトルコンテキスト
         void Use(BattleUnit aSource, System.Collections.Generic.List<BattleUnit> aTargets, BattleContext aContext);
     }
 
-    /// <summary>
-    /// アイテム使用コマンド。効果の中身は <see cref="IItemEffect"/> へ完全に委譲する。
-    /// </summary>
+    // アイテム使用コマンド。効果の中身は IItemEffect へ完全に委譲する
     public class ItemCommand : BattleCommandBase
     {
-        /// <summary>使用するアイテムの効果。</summary>
+        // 使用するアイテムの効果
         public IItemEffect Item { get; }
 
-        /// <param name="aSource">アイテムを使用するユニット。</param>
-        /// <param name="aItem">使用するアイテムの効果。</param>
-        /// <param name="aResolver">対象を決めるリゾルバ。</param>
+        // aSource : アイテムを使用するユニット
+        // aItem : 使用するアイテムの効果
+        // aResolver : 対象を決めるリゾルバ
         public ItemCommand(BattleUnit aSource, IItemEffect aItem, ITargetResolver aResolver) : base(aSource, aResolver)
             => Item = aItem;
 
-        /// <summary>対象を解決してアイテム効果を実行する。</summary>
-        /// <param name="aContext">実行時のバトルコンテキスト。</param>
+        // 対象を解決してアイテム効果を実行する
+        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
             => Item.Use(Source, TargetResolver.Resolve(Source, aContext), aContext);
     }
 
-    /// <summary>
-    /// メンバー入れ替えコマンド。アクティブのユニットを控えのユニットと交代させる。
-    /// </summary>
+    // メンバー入れ替えコマンド。アクティブのユニットを控えのユニットと交代させる
     public class SwapCommand : BattleCommandBase
     {
-        /// <summary>参戦させる控えのユニット。</summary>
+        // 参戦させる控えのユニット
         public BattleUnit ReserveUnit { get; }
 
-        /// <param name="aOutUnit">退場させるアクティブメンバー。コマンドの実行主体でもある。</param>
-        /// <param name="aInUnit">参戦させる控えメンバー。</param>
+        // aOutUnit : 退場させるアクティブメンバー。コマンドの実行主体でもある
+        // aInUnit : 参戦させる控えメンバー
         public SwapCommand(BattleUnit aOutUnit, BattleUnit aInUnit) : base(aOutUnit, new SelfResolver())
         {
             ReserveUnit = aInUnit;
         }
 
-        /// <summary>
-        /// 入れ替えを実行する。入れ替え不可の状態異常が掛かっている場合は何もしない。
-        /// </summary>
-        /// <param name="aContext">実行時のバトルコンテキスト。</param>
+        // 入れ替えを実行する。入れ替え不可の状態異常が掛かっている場合は何もしない
+        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
         {
             if ((Source.CurrentRestrictions & ActionRestriction.CannotSwap) != 0) return;
@@ -175,25 +151,19 @@ namespace CommandBattleCore
         }
     }
 
-    /// <summary>
-    /// 逃走コマンド。成功するとコンテキストに逃走フラグを立て、勝敗判定側が戦闘を終了させる。
-    /// </summary>
+    // 逃走コマンド。成功するとコンテキストに逃走フラグを立て、勝敗判定側が戦闘を終了させる
     public class EscapeCommand : BattleCommandBase
     {
-        /// <summary>
-        /// 逃走成功判定の式（逃走ユニット, コンテキスト）。既定は必ず成功。
-        /// static なので差し替えるとゲーム全体に効く。
-        /// </summary>
+        // 逃走成功判定の式（逃走ユニット, コンテキスト）。既定は必ず成功
+        // static なので差し替えるとゲーム全体に効く
         public static Func<BattleUnit, BattleContext, bool> EscapeFormula { get; set; } = (_, _) => true;
 
-        /// <param name="aSource">逃走するユニット。</param>
+        // aSource : 逃走するユニット
         public EscapeCommand(BattleUnit aSource) : base(aSource, new SelfResolver()){}
 
-        /// <summary>
-        /// 逃走を試みる。逃走不可の状態異常が掛かっている場合、
-        /// および判定に失敗した場合はフラグを立てず何も起こらない。
-        /// </summary>
-        /// <param name="aContext">実行時のバトルコンテキスト。</param>
+        // 逃走を試みる。逃走不可の状態異常が掛かっている場合、
+        // および判定に失敗した場合はフラグを立てず何も起こらない
+        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
         {
             if ((Source.CurrentRestrictions & ActionRestriction.CannotEscape) != 0) return;

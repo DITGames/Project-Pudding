@@ -12,33 +12,24 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// 状況ルールを「ルール名 → 条件リスト → 成立時スコア」の順で描画する PropertyDrawer。
-    /// <para>
-    /// 主目的は条件リストの「＋」ボタンの差し替え。標準の挙動では空要素が追加されるだけで、
-    /// 別途アセットを作って割り当てる必要がある。ここを
-    /// <see cref="PPConditionPickerPopup"/> に繋ぎ替えることで、
-    /// 押した流れのまま条件を選んで（必要ならアセット生成まで済ませて）追加できる。
-    /// </para>
-    /// <para>
-    /// <see cref="ReorderableList"/> は生成コストが高く状態も持つため、
-    /// プロパティパスをキーにキャッシュして描画のたびに作り直さないようにしている。
-    /// </para>
-    /// </summary>
+    // 状況ルールを「ルール名 → 条件リスト → 成立時スコア」の順で描画する PropertyDrawer
+    // 主目的は条件リストの「＋」ボタンの差し替え。標準の挙動では空要素が追加されるだけで、
+    // 別途アセットを作って割り当てる必要がある。ここを PPConditionPickerPopup に繋ぎ替えることで、
+    // 押した流れのまま条件を選んで（必要ならアセット生成まで済ませて）追加できる
+    // ReorderableList は生成コストが高く状態も持つため、
+    // プロパティパスをキーにキャッシュして描画のたびに作り直さないようにしている
     [CustomPropertyDrawer(typeof(PPPartyAISituationRule))]
     public class PPPartyAISituationRuleDrawer : PropertyDrawer
     {
-        /// <summary>プロパティパスごとのリストのキャッシュ。</summary>
+        // プロパティパスごとのリストのキャッシュ
         private readonly Dictionary<string, ReorderableList> mListCache = new();
-        /// <summary>ポップアップを出す基準となる「＋」ボタンの矩形のキャッシュ。</summary>
+        // ポップアップを出す基準となる「＋」ボタンの矩形のキャッシュ
         private readonly Dictionary<string, Rect> mAddButtonRectCache = new();
 
-        /// <summary>
-        /// ルール名・条件リスト・成立時スコアを縦に並べて描画する。
-        /// </summary>
-        /// <param name="aPosition">描画領域。</param>
-        /// <param name="aProperty">対象プロパティ。</param>
-        /// <param name="aLabel">ラベル。</param>
+        // ルール名・条件リスト・成立時スコアを縦に並べて描画する
+        // aPosition : 描画領域
+        // aProperty : 対象プロパティ
+        // aLabel : ラベル
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
             var nameProp = aProperty.FindPropertyRelative("Name");
@@ -66,12 +57,10 @@ namespace PPCore
             EditorGUI.EndProperty();
         }
 
-        /// <summary>
-        /// 3 つの要素の高さを合算して返す。条件リストは件数で高さが変わるため実測値を使う。
-        /// </summary>
-        /// <param name="aProperty">対象プロパティ。</param>
-        /// <param name="aLabel">ラベル。</param>
-        /// <returns>描画に必要な高さ。</returns>
+        // 3 つの要素の高さを合算して返す。条件リストは件数で高さが変わるため実測値を使う
+        // aProperty : 対象プロパティ
+        // aLabel : ラベル
+        // return : 描画に必要な高さ
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
         {
             var conditionsProp = aProperty.FindPropertyRelative("Conditions");
@@ -83,14 +72,12 @@ namespace PPCore
                  + EditorGUI.GetPropertyHeight(scoreProp, true);
         }
 
-        /// <summary>
-        /// 条件リスト用の <see cref="ReorderableList"/> を取得する。
-        /// キャッシュがあれば対象プロパティだけ差し替えて使い回す
-        /// （SerializedProperty は描画のたびに作り直されるため、参照の更新が要る）。
-        /// </summary>
-        /// <param name="aKey">キャッシュのキーとなるプロパティパス。</param>
-        /// <param name="aConditionsProp">条件リストのプロパティ。</param>
-        /// <returns>設定済みのリスト。</returns>
+        // 条件リスト用の ReorderableList を取得する
+        // キャッシュがあれば対象プロパティだけ差し替えて使い回す
+        // （SerializedProperty は描画のたびに作り直されるため、参照の更新が要る）
+        // aKey : キャッシュのキーとなるプロパティパス
+        // aConditionsProp : 条件リストのプロパティ
+        // return : 設定済みのリスト
         private ReorderableList GetOrCreateList(string aKey, SerializedProperty aConditionsProp)
         {
             if (mListCache.TryGetValue(aKey, out var cached))

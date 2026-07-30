@@ -13,69 +13,55 @@ using UnityEngine.UI;
 
 namespace PPCore
 {
-    /// <summary>
-    /// 戦場に並ぶユニット 1 体分の表示。
-    /// <para>
-    /// 見た目（アイコン・アニメーション）の再生と、選択対象としての振る舞いを兼ねる。
-    /// 演出メソッドは <see cref="PPBattleUnitViewBinder"/> がバトルイベントを受けて呼び出す。
-    /// </para>
-    /// <para>
-    /// メニューの表示位置は <see cref="MenuAnchor"/> として公開し、
-    /// 入力ステート側がここを基準にコマンドメニューを配置する。
-    /// </para>
-    /// </summary>
+    // 戦場に並ぶユニット 1 体分の表示
+    // 見た目（アイコン・アニメーション）の再生と、選択対象としての振る舞いを兼ねる
+    // 演出メソッドは PPBattleUnitViewBinder がバトルイベントを受けて呼び出す
+    // メニューの表示位置は MenuAnchor として公開し、
+    // 入力ステート側がここを基準にコマンドメニューを配置する
     public class PPBattleUnitView : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
-        /// <summary>名前と HP を表示するウィジェット。</summary>
         [Label("ステータスウィジェット")]
         [SerializeField] private PPUnitStatusWidget mStatusWidget;
-        /// <summary>ユニットのアイコン。</summary>
         [Label("アイコン")]
         [SerializeField] private Image mUnitIcon;
-        /// <summary>演出再生用のアニメーター。</summary>
         [Label("アニメーター")]
         [SerializeField] private Animator mAnimator;
-        /// <summary>選択を受け付けるボタン。</summary>
         [Label("選択ボタン")]
         [SerializeField] private Button mSelectButton;
-        /// <summary>フォーカス中に表示する枠。</summary>
         [Label("フォーカス枠")]
         [SerializeField] private GameObject mFocusFrame;
-        /// <summary>コマンドメニューを配置する位置の基準。</summary>
         [Label("メニューアンカー")]
         [SerializeField] private RectTransform mMenuAnchor;
 
-        /// <summary>このビューが表すユニット。</summary>
+        // このビューが表すユニット
         private BattleUnit mBattleUnit;
-        /// <summary>ステータスウィジェットへ渡した表示ソース。破棄時に購読を解除するため保持する。</summary>
+        // ステータスウィジェットへ渡した表示ソース。破棄時に購読を解除するため保持する
         private PPBattleUnitStatusSource mStatusSource;
-        /// <summary>このビューが表すユニット。</summary>
+        // このビューが表すユニット
         public BattleUnit BattleUnit => mBattleUnit;
-        /// <summary>フォーカス対象となるオブジェクト。</summary>
+        // フォーカス対象となるオブジェクト
         public GameObject SelectableObject => mSelectButton.gameObject;
-        /// <summary>コマンドメニューを配置する位置の基準。</summary>
+        // コマンドメニューを配置する位置の基準
         public RectTransform MenuAnchor => mMenuAnchor;
 
-        /// <summary>ユニットが決定されたときの通知。</summary>
+        // ユニットが決定されたときの通知
         public event Action<PPBattleUnitView> OnDecided;
 
-        /// <summary>フォーカスが乗ったときの通知。</summary>
+        // フォーカスが乗ったときの通知
         public event Action<PPBattleUnitView> OnSelected;
-        /// <summary>フォーカスが外れたときの通知。</summary>
+        // フォーカスが外れたときの通知
         public event Action<PPBattleUnitView> OnDeselected;
 
-        /// <summary>選択ボタンの押下を決定通知へ中継する。</summary>
+        // 選択ボタンの押下を決定通知へ中継する
         private void Awake() => mSelectButton.onClick.AddListener(() => OnDecided?.Invoke(this));
 
-        /// <summary>
-        /// 表示対象のユニットと見た目を設定する。
-        /// 味方は敵と向き合う形にするためアイコンを左右反転させる。
-        /// 見た目定義が解決できなかった場合もユニット自体の表示は成立させ、
-        /// アイコンとアニメーターだけ未設定のままにする。
-        /// </summary>
-        /// <param name="aUnit">表示対象のユニット。</param>
-        /// <param name="aVisualDefinition">見た目の定義。カタログで解決できなければ null。</param>
-        /// <param name="aSide">このユニットの陣営。</param>
+        // 表示対象のユニットと見た目を設定する
+        // 味方は敵と向き合う形にするためアイコンを左右反転させる
+        // 見た目定義が解決できなかった場合もユニット自体の表示は成立させ、
+        // アイコンとアニメーターだけ未設定のままにする
+        // aUnit : 表示対象のユニット
+        // aVisualDefinition : 見た目の定義。カタログで解決できなければ null
+        // aSide : このユニットの陣営
         public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisualDefinition, BattleSide aSide)
         {
             mBattleUnit = aUnit;
@@ -96,10 +82,8 @@ namespace PPCore
             mStatusWidget.Bind(mStatusSource);
         }
 
-        /// <summary>
-        /// 破棄時にステータス表示の購読を解除する。
-        /// ウィジェット側とソース側で購読先が違うため、両方を明示的に切る。
-        /// </summary>
+        // 破棄時にステータス表示の購読を解除する
+        // ウィジェット側とソース側で購読先が違うため、両方を明示的に切る
         private void OnDestroy()
         {
             // 子オブジェクトの破棄順は保証されないため、先に破棄済みの可能性を見る
@@ -108,72 +92,70 @@ namespace PPCore
             mStatusSource = null;
         }
 
-        /// <summary>選択できる状態かを切り替える。入力ステートが候補の絞り込みに使う。</summary>
-        /// <param name="aSelectable">選択可能にするなら true。</param>
+        // 選択できる状態かを切り替える。入力ステートが候補の絞り込みに使う
+        // aSelectable : 選択可能にするなら true
         public void SetSelectable(bool aSelectable)
         {
             mSelectButton.interactable = aSelectable;
         }
 
-        /// <summary>フォーカス枠の表示を切り替える。</summary>
-        /// <param name="aFocused">フォーカス中なら true。</param>
+        // フォーカス枠の表示を切り替える
+        // aFocused : フォーカス中なら true
         public void SetFocused(bool aFocused)
         {
             if (mFocusFrame != null) mFocusFrame.SetActive(aFocused);
         }
 
-        /// <summary>フォーカスを得たときに枠を出して通知する。</summary>
+        // フォーカスを得たときに枠を出して通知する
         public void OnSelect(BaseEventData _)
         {
             SetFocused(true);
             OnSelected?.Invoke(this);
         }
 
-        /// <summary>フォーカスを失ったときに枠を消して通知する。</summary>
+        // フォーカスを失ったときに枠を消して通知する
         public void OnDeselect(BaseEventData _)
         {
             SetFocused(false);
             OnDeselected?.Invoke(this);
         }
 
-        /// <summary>攻撃モーションを再生する。</summary>
-        /// <param name="aCommand">実行されたコマンド。現状は未使用だが、種別で演出を分ける拡張点。</param>
+        // 攻撃モーションを再生する
+        // aCommand : 実行されたコマンド。現状は未使用だが、種別で演出を分ける拡張点
         public void CommandExecuted(BattleCommandBase aCommand)
         {
             mAnimator.SetTrigger("Attack");
         }
 
-        /// <summary>
-        /// 被弾モーションを再生する。撃破時は撃破モーションが優先されるため、生存時のみ再生する。
-        /// </summary>
-        /// <param name="aDmg">受けたダメージ量。現状は未使用。</param>
+        // 被弾モーションを再生する。撃破時は撃破モーションが優先されるため、生存時のみ再生する
+        // aDmg : 受けたダメージ量。現状は未使用
         public void PlayDamage(float aDmg)
         {
             if(mBattleUnit.IsAlive) mAnimator.SetTrigger("Damaged");
         }
 
-        /// <summary>回復演出を再生する。未実装。</summary>
-        /// <param name="aAmt">回復量。</param>
+        // 回復演出を再生する。未実装
+        // aAmt : 回復量
         public void PlayHeal(float aAmt)
         {
 
         }
 
-        /// <summary>撃破モーションを再生する。</summary>
+        // 撃破モーションを再生する
         public void PlayDefeat()
         {
             mAnimator.SetTrigger("Defeated");
         }
 
-        /// <summary>状態異常アイコンを追加する。未実装。</summary>
-        /// <param name="aEffect">付与されたエフェクト。</param>
+        // 状態異常アイコンを追加する。未実装
+        // aEffect : 付与されたエフェクト
         public void AddStatusIcon(StatusEffect aEffect)
         {
 
         }
 
-        /// <summary>状態異常アイコンを除去する。未実装。</summary>
-        /// <param name="aEffect">除去されたエフェクト。</param>
+        // 状態異常アイコンを除去する。未実装
+        // aEffect : 除去されたエフェクト
         public void RemoveStatusIcon(StatusEffect aEffect)
         {
 

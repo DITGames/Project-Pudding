@@ -17,49 +17,36 @@ using UnityEngine.UI;
 
 namespace PPCore
 {
-    /// <summary>
-    /// ユニットのステータス・所持スキル・状態異常を一覧表示する詳細ビュー。
-    /// <para>
-    /// 表示は <see cref="Show"/> を呼んだ時点のスナップショットで、変更を購読しない。
-    /// 表示中に値が変わっても更新されないが、入力中は timeScale が 0 で
-    /// 盤面が止まっているため実用上は問題にならない。
-    /// </para>
-    /// </summary>
+    // ユニットのステータス・所持スキル・状態異常を一覧表示する詳細ビュー
+    // 表示は Show を呼んだ時点のスナップショットで、変更を購読しない
+    // 表示中に値が変わっても更新されないが、入力中は timeScale が 0 で
+    // 盤面が止まっているため実用上は問題にならない
     public class PPBattleDetailMenuView : MonoBehaviour
     {
-        /// <summary>ユニット名ラベル。</summary>
         [Label("ユニット名")]
         [SerializeField] private TMP_Text mNameLabel;
-        /// <summary>HP ラベル（現在値/最大値）。</summary>
+        // HP ラベル（現在値/最大値）
         [FormerlySerializedAs("mHPLabel")]
         [Label("HP")]
         [SerializeField] private TMP_Text mHpLabel;
-        /// <summary>攻撃力ラベル。</summary>
         [Label("攻撃力")]
         [SerializeField] private TMP_Text mAttackLabel;
-        /// <summary>防御力ラベル。</summary>
         [Label("防御力")]
         [SerializeField] private TMP_Text mDefenseLabel;
-        /// <summary>素早さラベル。</summary>
         [Label("素早さ")]
         [SerializeField] private TMP_Text mSpeedLabel;
-        /// <summary>所持スキル名の一覧ラベル。</summary>
         [Label("スキル一覧")]
         [SerializeField]private TMP_Text mSkillListLabel;
-        /// <summary>付与中の状態異常名の一覧ラベル。</summary>
         [Label("状態異常一覧")]
         [SerializeField] private TMP_Text mStatusEffectListLabel;
-        /// <summary>戻るボタン。</summary>
         [Label("戻るボタン")]
         [SerializeField] private Button mBackButton;
 
-        /// <summary>戻るが押されたときに発火する。</summary>
+        // 戻るが押されたときに発火する
         public event Action OnBackRequested;
 
-        /// <summary>
-        /// ビューを指定した位置へ移動させる。レイアウトを崩さないよう worldPositionStays は false。
-        /// </summary>
-        /// <param name="aAnchor">配置先の親となる RectTransform。</param>
+        // ビューを指定した位置へ移動させる。レイアウトを崩さないよう worldPositionStays は false
+        // aAnchor : 配置先の親となる RectTransform
         public void AttachTo(RectTransform aAnchor)
         {
             var rt = (RectTransform)transform;
@@ -67,12 +54,9 @@ namespace PPCore
             rt.anchoredPosition = Vector2.zero;
         }
 
-        /// <summary>
-        /// ユニットの情報を各ラベルへ流し込んで表示する。
-        /// 表示中のパラメータはバフ込みの現在値。スキルと状態異常は
-        /// 空のときにプレースホルダを出す。
-        /// </summary>
-        /// <param name="aUnit">表示対象のユニット。</param>
+        // ユニットの情報を各ラベルへ流し込んで表示する
+        // 表示中のパラメータはバフ込みの現在値。スキルと状態異常は空のときにプレースホルダを出す
+        // aUnit : 表示対象のユニット
         public void Show(BattleUnit aUnit)
         {
             gameObject.SetActive(true);
@@ -97,14 +81,14 @@ namespace PPCore
             EventSystem.current.SetSelectedGameObject(mBackButton.gameObject);
         }
 
-        /// <summary>ビューを閉じ、戻るボタンのリスナーを解除する。</summary>
+        // ビューを閉じ、戻るボタンのリスナーを解除する
         public void Hide()
         {
             mBackButton.onClick.RemoveListener(RaiseBack);
             gameObject.SetActive(false);
         }
 
-        /// <summary>戻る操作を外部へ通知する。</summary>
+        // 戻る操作を外部へ通知する
         private void RaiseBack() => OnBackRequested?.Invoke();
     }
 }

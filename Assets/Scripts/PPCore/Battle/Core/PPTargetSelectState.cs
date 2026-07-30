@@ -11,21 +11,17 @@ using UnityEngine.EventSystems;
 
 namespace PPCore
 {
-    /// <summary>
-    /// 「誰を狙うか」を選ぶ入力ステート。コマンド入力の最終段階で、
-    /// 決定すると <see cref="PPBattleCommandInputController.Confirm"/> によりコマンドが確定する。
-    /// </summary>
+    // 「誰を狙うか」を選ぶ入力ステート。コマンド入力の最終段階で、
+    // 決定すると PPBattleCommandInputController.Confirm によりコマンドが確定する
     public class PPTargetSelectState : PPBattleUnitPickerStateBase
     {
-        /// <param name="aOwner">このステートを保持する入力コントローラー。</param>
+        // aOwner : このステートを保持する入力コントローラー
         public PPTargetSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
         }
 
-        /// <summary>
-        /// 選択中スキルのターゲット範囲から、味方側か敵側かを判定して候補を返す。
-        /// 範囲が未設定の場合は味方単体として扱う。
-        /// </summary>
+        // 選択中スキルのターゲット範囲から、味方側か敵側かを判定して候補を返す
+        // 範囲が未設定の場合は味方単体として扱う
         protected override IEnumerable<BattleUnit> Candidates()
         {
             var ctx = mOwner.Manager.Context;
@@ -36,8 +32,8 @@ namespace PPCore
                 : ctx.GetOpponentParty(unit.Side).GetAliveActiveMembers();
         }
 
-        /// <summary>選択された対象を記録し、コマンドを確定させる。</summary>
-        /// <param name="aView">決定されたユニットのビュー。</param>
+        // 選択された対象を記録し、コマンドを確定させる
+        // aView : 決定されたユニットのビュー
         protected override void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Target = aView.BattleUnit;

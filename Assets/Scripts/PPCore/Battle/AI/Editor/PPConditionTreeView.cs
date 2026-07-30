@@ -14,33 +14,27 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// 条件クラスと既存の条件アセットをカテゴリ別に並べるツリービュー。
-    /// <para>
-    /// 階層は <see cref="PPConditionMenuAttribute"/> の Path から組み立てる。
-    /// 各条件クラスのノードの下に、その型で既に作られているアセットをぶら下げるため、
-    /// 「新規作成」と「既存の再利用」を同じツリーから選べる。
-    /// </para>
-    /// <para>
-    /// ノード ID はフォルダを負値、葉（型とアセット）を 0 以上で採番して衝突を避けている。
-    /// </para>
-    /// </summary>
+    // 条件クラスと既存の条件アセットをカテゴリ別に並べるツリービュー
+    // 階層は PPConditionMenuAttribute の Path から組み立てる
+    // 各条件クラスのノードの下に、その型で既に作られているアセットをぶら下げるため、
+    // 「新規作成」と「既存の再利用」を同じツリーから選べる
+    // ノード ID はフォルダを負値、葉（型とアセット）を 0 以上で採番して衝突を避けている
     internal sealed class PPConditionTreeView : TreeView<int>
     {
-        /// <summary>条件の型が選ばれたときのコールバック。</summary>
+        // 条件の型が選ばれたときのコールバック
         private readonly Action<Type> mOnPickType;
-        /// <summary>既存アセットが選ばれたときのコールバック。</summary>
+        // 既存アセットが選ばれたときのコールバック
         private readonly Action<PPPartyConditionValidator> mOnPickAsset;
-        /// <summary>ノード ID から条件クラスの型への対応。</summary>
+        // ノード ID から条件クラスの型への対応
         private readonly Dictionary<int, Type> mIdToType = new();
-        /// <summary>ノード ID から既存アセットへの対応。</summary>
+        // ノード ID から既存アセットへの対応
         private readonly Dictionary<int, PPPartyConditionValidator> mIdToAsset = new();
-        /// <summary>フォルダノードに割り当てる次の ID。葉と衝突しないよう負方向へ進める。</summary>
+        // フォルダノードに割り当てる次の ID。葉と衝突しないよう負方向へ進める
         private int mNextFolderId = -2;
 
-        /// <param name="aState">ツリーの展開状態を保持する状態オブジェクト。</param>
-        /// <param name="aOnPickType">条件の型が選ばれたときのコールバック。</param>
-        /// <param name="aOnPickAsset">既存アセットが選ばれたときのコールバック。</param>
+        // aState : ツリーの展開状態を保持する状態オブジェクト
+        // aOnPickType : 条件の型が選ばれたときのコールバック
+        // aOnPickAsset : 既存アセットが選ばれたときのコールバック
         public PPConditionTreeView(TreeViewState<int> aState, Action<Type> aOnPickType, Action<PPPartyConditionValidator> aOnPickAsset)
             : base(aState)
         {
@@ -50,12 +44,10 @@ namespace PPCore
             Reload();
         }
 
-        /// <summary>
-        /// ツリーを構築する。
-        /// 条件クラスを走査し、属性のパスに沿ってフォルダノードを掘りながら葉を追加する。
-        /// さらに各型について既存アセットを検索し、その型のノードの子として並べる。
-        /// </summary>
-        /// <returns>構築されたルートノード。</returns>
+        // ツリーを構築する
+        // 条件クラスを走査し、属性のパスに沿ってフォルダノードを掘りながら葉を追加する
+        // さらに各型について既存アセットを検索し、その型のノードの子として並べる
+        // return : 構築されたルートノード
         protected override TreeViewItem<int> BuildRoot()
         {
             var root = new TreeViewItem<int>(-1, -1, "root");
@@ -126,11 +118,9 @@ namespace PPCore
             return root;
         }
 
-        /// <summary>
-        /// ダブルクリックで選択を確定する。
-        /// アセットを先に判定するため、型ノードとアセットノードが混在していても取り違えない。
-        /// </summary>
-        /// <param name="aId">ダブルクリックされたノードの ID。</param>
+        // ダブルクリックで選択を確定する
+        // アセットを先に判定するため、型ノードとアセットノードが混在していても取り違えない
+        // aId : ダブルクリックされたノードの ID
         protected override void DoubleClickedItem(int aId)
         {
             if (mIdToAsset.TryGetValue(aId, out var asset))
@@ -143,11 +133,9 @@ namespace PPCore
                 mOnPickType?.Invoke(type);
         }
 
-        /// <summary>
-        /// エディタ組み込みアイコンを名前で取得する。
-        /// </summary>
-        /// <param name="aName">アイコン名。</param>
-        /// <returns>取得したテクスチャ。見つからなければ null。</returns>
+        // エディタ組み込みアイコンを名前で取得する
+        // aName : アイコン名
+        // return : 取得したテクスチャ。見つからなければ null
         private static Texture2D LoadIcon(string aName)
         {
             var content = EditorGUIUtility.IconContent(aName);

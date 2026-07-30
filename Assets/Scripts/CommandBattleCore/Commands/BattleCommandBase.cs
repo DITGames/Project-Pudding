@@ -8,37 +8,31 @@
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// バトル中の 1 行動を表すコマンドの基底クラス。
-    /// <para>
-    /// 「誰が」（<see cref="Source"/>）「誰を狙って」（<see cref="TargetResolver"/>）行動するかだけを持ち、
-    /// 実際の効果は派生クラスの <see cref="Execute"/> が実装する。
-    /// 生成されたコマンドは <see cref="ActionQueue"/> に積まれ、<see cref="BattleManager"/> が順に実行する。
-    /// </para>
-    /// </summary>
+    // バトル中の 1 行動を表すコマンドの基底クラス
+    // 「誰が」（Source）「誰を狙って」（TargetResolver）行動するかだけを持ち、
+    // 実際の効果は派生クラスの Execute が実装する
+    // 生成されたコマンドは ActionQueue に積まれ、BattleManager が順に実行する
     public abstract class BattleCommandBase
     {
-        /// <summary>このコマンドを実行するユニット。</summary>
+        // このコマンドを実行するユニット
         public BattleUnit Source { get; }
-        /// <summary>対象を決定するリゾルバ。実行時に <see cref="BattleContext.ResolveTargets"/> へ渡す。</summary>
+        // 対象を決定するリゾルバ。実行時に BattleContext.ResolveTargets へ渡す
         public ITargetResolver TargetResolver { get; }
-        /// <summary>実行優先度。優先度付きキューへ拡張する際の差し込み口で、既定では未使用。</summary>
+        // 実行優先度。優先度付きキューへ拡張する際の差し込み口で、既定では未使用
         public virtual int Priority => 0;
-        /// <summary>リアクション（反撃など）として生成されたコマンドなら true。連鎖抑止の判定に使う。</summary>
+        // リアクション（反撃など）として生成されたコマンドなら true。連鎖抑止の判定に使う
         public bool IsReaction { get; protected internal set; }
 
-        /// <param name="aSource">コマンドを実行するユニット。</param>
-        /// <param name="aTargetResolver">対象を決定するリゾルバ。</param>
+        // aSource : コマンドを実行するユニット
+        // aTargetResolver : 対象を決定するリゾルバ
         protected BattleCommandBase(BattleUnit aSource, ITargetResolver aTargetResolver)
         {
             Source = aSource;
             TargetResolver = aTargetResolver;
         }
 
-        /// <summary>
-        /// コマンドの効果を実行する。派生クラスで具体的な処理（スキル発動・アイテム使用など）を実装する。
-        /// </summary>
-        /// <param name="aContext">実行時のバトルコンテキスト。</param>
+        // コマンドの効果を実行する。派生クラスで具体的な処理（スキル発動・アイテム使用など）を実装する
+        // aContext : 実行時のバトルコンテキスト
         public abstract void Execute(BattleContext aContext);
     }
 }

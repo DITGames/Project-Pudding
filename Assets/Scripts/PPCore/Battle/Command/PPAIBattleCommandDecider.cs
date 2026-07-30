@@ -12,26 +12,17 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// 本作のコマンドを使うランダム AI。
-    /// <para>
-    /// 挙動は基底の <see cref="RandomAICommandDecider"/> と同じだが、
-    /// 生成するコマンドがリソース消費に対応した <see cref="PPAttackCommand"/> /
-    /// <see cref="PPSkillCommand"/> になる点が異なる。
-    /// </para>
-    /// <para>
-    /// ユニット単位で動く簡易 AI で、<see cref="UnitDefinition.CreateRuntimeUnit"/> の既定値として使われる。
-    /// 敵パーティの本来の思考は <see cref="PPPartyAIStrategistBase"/> が担う。
-    /// </para>
-    /// </summary>
+    // 本作のコマンドを使うランダム AI
+    // 挙動は基底の RandomAICommandDecider と同じだが、
+    // 生成するコマンドがリソース消費に対応した PPAttackCommand / PPSkillCommand になる点が異なる
+    // ユニット単位で動く簡易 AI で、UnitDefinition.CreateRuntimeUnit の既定値として使われる
+    // 敵パーティの本来の思考は PPPartyAIStrategistBase が担う
     public class PPRandomAICommandDecider : AICommandDeciderBase
     {
-        /// <summary>
-        /// 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、その中から等確率で選ぶ。
-        /// </summary>
-        /// <param name="aSelf">行動を決めるユニット。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>選ばれたコマンド。</returns>
+        // 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、その中から等確率で選ぶ
+        // aSelf : 行動を決めるユニット
+        // aContext : バトルコンテキスト
+        // return : 選ばれたコマンド
         public override BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext)
         {
             // PP専用の攻撃コマンドをベースで追加

@@ -12,84 +12,76 @@ using PPCore;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-/// <summary>
-/// プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント。
-/// <para>
-/// バトルの組み立て方（パーティ生成 → Rules 設定 → Strategist 注入 →
-/// View / 入力 / コイン橋渡しの Bind → AI ドライバとティックのコルーチン起動）を
-/// 一通り示す参照実装で、新しくバトルを立ち上げる際はこの流れをなぞる。
-/// </para>
-/// <para>
-/// 本作のバトルはターン制ではなく、プッシャーと並行してリアルタイムに進む。
-/// 一定間隔のティックでターンを進めつつ、プレイヤーは任意のタイミングで
-/// コマンド入力を開始できる（入力中は timeScale が 0 になり盤面が止まる）。
-/// </para>
-/// </summary>
+// プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント
+// バトルの組み立て方（パーティ生成 → Rules 設定 → Strategist 注入 →
+// View / 入力 / コイン橋渡しの Bind → AI ドライバとティックのコルーチン起動）を
+// 一通り示す参照実装で、新しくバトルを立ち上げる際はこの流れをなぞる
+// 本作のバトルはターン制ではなく、プッシャーと並行してリアルタイムに進む
+// 一定間隔のティックでターンを進めつつ、プレイヤーは任意のタイミングで
+// コマンド入力を開始できる（入力中は timeScale が 0 になり盤面が止まる）
 public class SamplePusherBattleRunner : MonoBehaviour
 {
-    /// <summary>プッシャーのコイン獲得をリソースへ橋渡しするブリッジ。</summary>
+    // プッシャーのコイン獲得をリソースへ橋渡しするブリッジ
     [Header("コイン")]
     [Label("コインリソースブリッジ")]
     [SerializeField] private PPCoinResourceBridge mCoinResourceBridge;
-    /// <summary>属性ごとのリソース上限。</summary>
+    // 属性ごとのリソース上限
     [Label("コイン上限")]
     [SerializeField] private int mMaxCoin = 100;
-    /// <summary>コイン 1 枚あたりのリソース変換係数の初期値。</summary>
+    // コイン 1 枚あたりのリソース変換係数の初期値
     [Label("コイン獲得レート初期値")]
     [SerializeField] private float mBaseCoinConversionRate = 1f;
 
-    /// <summary>ユニットとビューを対応付けるバインダー。</summary>
+    // ユニットとビューを対応付けるバインダー
     [Header("UI")]
     [Label("バトルビューバインダー")]
     [SerializeField] private PPBattleUnitViewBinder mBattleUnitViewBinder;
 
-    /// <summary>プレイヤーのコマンド入力を扱うコントローラー。</summary>
+    // プレイヤーのコマンド入力を扱うコントローラー
     [Header("インプット")]
     [Label("コマンド入力コントローラ")]
     [SerializeField] private PPBattleCommandInputController mController;
 
-    /// <summary>ターン経過の間隔（秒）。</summary>
+    // ターン経過の間隔（秒）
     [Header("バトル設定")]
     [Label("ターン更新間隔")]
     [SerializeField] private float mTurnTickInterval = 5f;
 
-    /// <summary>味方として生成するユニット定義。</summary>
+    // 味方として生成するユニット定義
     [Header("味方")]
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mAllyUnit;
 
-    /// <summary>敵として生成するユニット定義。</summary>
+    // 敵として生成するユニット定義
     [Header("敵")]
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mEnemyUnit;
-    /// <summary>敵 AI の性格プロファイル。未設定でも既定値で動作する。</summary>
+    // 敵 AI の性格プロファイル。未設定でも既定値で動作する
     [Label("敵AIプロファイル")]
     [SerializeField] private PPPartyAIProfileDefinition mEnemyAIProfile;
-    /// <summary>プロファイル未設定時に使う思考間隔（秒）。</summary>
+    // プロファイル未設定時に使う思考間隔（秒）
     [Label("デフォルト思考間隔")][EditCondition("HasEnemyAIProfile", true, true)]
     [SerializeField] private float mDefaultEnemyThinkDuration = 0.5f;
-    /// <summary>敵 AI を駆動するドライバ。</summary>
+    // 敵 AI を駆動するドライバ
     private PPEnemyAIDriver mEnemyAIDriver;
-    /// <summary>敵がティックごとに得るリソース量の範囲（最小, 最大）。</summary>
+    // 敵がティックごとに得るリソース量の範囲（最小, 最大）
     [Label("コイン取得")]
     [SerializeField] private Vector2Int mEnemyResourcePerTick = new Vector2Int(5, 10);
 
-    /// <summary>敵 AI プロファイルが設定されているか。思考間隔の入力欄の出し分けに使う。</summary>
+    // 敵 AI プロファイルが設定されているか。思考間隔の入力欄の出し分けに使う
     private bool HasEnemyAIProfile => mEnemyAIProfile != null;
 
-    /// <summary>バトル進行を統括するマネージャ。</summary>
+    // バトル進行を統括するマネージャ
     private BattleManager mBattleManager = new();
 
-    /// <summary>敵 AI のループを回しているコルーチン。</summary>
+    // 敵 AI のループを回しているコルーチン
     private Coroutine mEnemyActionCoroutine;
-    /// <summary>ターン経過を回しているコルーチン。</summary>
+    // ターン経過を回しているコルーチン
     private Coroutine mTickCoroutine;
 
-    /// <summary>
-    /// バトルを組み立てて開始する。
-    /// ユニット生成 → コンテキスト構築 → 敵 AI の注入 → ログ用イベント購読 → バトル開始 →
-    /// View・コインブリッジ・入力の接続 → AI とティックのコルーチン起動、の順に進む。
-    /// </summary>
+    // バトルを組み立てて開始する
+    // ユニット生成 → コンテキスト構築 → 敵 AI の注入 → ログ用イベント購読 → バトル開始 →
+    // View・コインブリッジ・入力の接続 → AI とティックのコルーチン起動、の順に進む
     void Start()
     {
         mBattleManager = new BattleManager { TimeProvider = () => Time.time };
@@ -147,9 +139,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mTickCoroutine = StartCoroutine(AdvanceTick());
     }
 
-    /// <summary>
-    /// コマンド入力キーの押下を監視し、行動可能なユニットが居る場合のみ入力を開始する。
-    /// </summary>
+    // コマンド入力キーの押下を監視し、行動可能なユニットが居る場合のみ入力を開始する
     void Update()
     {
         if (IsCommandInputPressed())
@@ -161,12 +151,10 @@ public class SamplePusherBattleRunner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 今コマンド入力を始める意味があるかを判定する。
-    /// 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true。
-    /// リソース不足で何も撃てない状態のときに入力画面が開くのを防ぐ。
-    /// </summary>
-    /// <returns>入力を開始できる場合 true。</returns>
+    // 今コマンド入力を始める意味があるかを判定する
+    // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
+    // リソース不足で何も撃てない状態のときに入力画面が開くのを防ぐ
+    // return : 入力を開始できる場合 true
     private bool CanSelectAnyCommand()
     {
         if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
@@ -185,12 +173,10 @@ public class SamplePusherBattleRunner : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// 一定間隔でターンを進めるコルーチン。
-    /// 敵にはプッシャーが無いため、ティックごとにランダム量のリソースを直接補給して
-    /// プレイヤー側のコイン収入と釣り合いを取っている。
-    /// </summary>
-    /// <returns>コルーチンの列挙子。</returns>
+    // 一定間隔でターンを進めるコルーチン
+    // 敵にはプッシャーが無いため、ティックごとにランダム量のリソースを直接補給して
+    // プレイヤー側のコイン収入と釣り合いを取っている
+    // return : コルーチンの列挙子
     IEnumerator AdvanceTick()
     {
         while (true)
@@ -209,18 +195,14 @@ public class SamplePusherBattleRunner : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// プレイヤーのコマンドがキューへ流された直後に、それを即座に実行する。
-    /// </summary>
+    // プレイヤーのコマンドがキューへ流された直後に、それを即座に実行する
     private void HandleCommandFlushed()
     {
         mBattleManager.ExecuteNextCommand();
     }
 
-    /// <summary>
-    /// コマンド入力の開始操作が行われたかを判定する。
-    /// </summary>
-    /// <returns>キーボードの C、またはゲームパッドの△が押された場合 true。</returns>
+    // コマンド入力の開始操作が行われたかを判定する
+    // return : キーボードの C、またはゲームパッドの△が押された場合 true
     bool IsCommandInputPressed()
     {
         return

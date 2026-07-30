@@ -12,25 +12,19 @@ using UnityEngine;
 
 namespace PPCore
 {
-    /// <summary>
-    /// 条件クラスの型から条件アセットを生成して保存するエディタ用ファクトリ。
-    /// <para>
-    /// 保存先は <see cref="PPConditionMenuAttribute"/> の FolderPath に従って自動で決まるため、
-    /// 条件アセットが種類ごとに整理された状態を保てる。
-    /// フォルダが無ければ階層ごと作成する。
-    /// </para>
-    /// </summary>
+    // 条件クラスの型から条件アセットを生成して保存するエディタ用ファクトリ
+    // 保存先は PPConditionMenuAttribute の FolderPath に従って自動で決まるため、
+    // 条件アセットが種類ごとに整理された状態を保てる
+    // フォルダが無ければ階層ごと作成する
     public static class PPConditionAssetFactory
     {
-        /// <summary>条件アセットを保存するルートフォルダ。</summary>
+        // 条件アセットを保存するルートフォルダ
         private const string DefaultFolder = "Assets/GameData/AI/Conditions";
 
-        /// <summary>
-        /// 指定された条件型のアセットを生成して保存し、Project ウィンドウで位置を示す。
-        /// 抽象型や条件クラス以外が渡された場合は何もしない。
-        /// </summary>
-        /// <param name="aType">生成する条件クラスの型。</param>
-        /// <returns>生成されたアセット。生成できなければ null。</returns>
+        // 指定された条件型のアセットを生成して保存し、Project ウィンドウで位置を示す
+        // 抽象型や条件クラス以外が渡された場合は何もしない
+        // aType : 生成する条件クラスの型
+        // return : 生成されたアセット。生成できなければ null
         public static PPPartyConditionValidator CreateAndSave(Type aType)
         {
             if(aType == null || aType.IsAbstract || !typeof(PPPartyConditionValidator).IsAssignableFrom(aType))
@@ -58,12 +52,10 @@ namespace PPCore
             return instance;
         }
 
-        /// <summary>
-        /// 指定パスのフォルダが存在することを保証する。
-        /// <see cref="AssetDatabase.CreateFolder"/> は 1 階層ずつしか作れないため、
-        /// パスを分解して root から順に掘っていく。
-        /// </summary>
-        /// <param name="aPath">作成したいフォルダパス（Assets からの相対）。</param>
+        // 指定パスのフォルダが存在することを保証する
+        // AssetDatabase.CreateFolder は 1 階層ずつしか作れないため、
+        // パスを分解して root から順に掘っていく
+        // aPath : 作成したいフォルダパス（Assets からの相対）
         public static void EnsureFolder(string aPath)
         {
             if(AssetDatabase.IsValidFolder(aPath)) return;

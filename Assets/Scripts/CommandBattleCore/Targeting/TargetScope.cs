@@ -8,40 +8,34 @@
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// スキル定義がインスペクタ上で対象範囲を指定するための列挙。
-    /// リゾルバのインスタンスは ScriptableObject にシリアライズできないため、
-    /// データ側はこの enum で持ち、実行時に <see cref="TargetScopeExtensions.CreateResolver"/> で
-    /// <see cref="ITargetResolver"/> へ変換する。
-    /// </summary>
+    // スキル定義がインスペクタ上で対象範囲を指定するための列挙
+    // リゾルバのインスタンスは ScriptableObject にシリアライズできないため、
+    // データ側はこの enum で持ち、実行時に TargetScopeExtensions.CreateResolver で
+    // ITargetResolver へ変換する
     public enum TargetScope
     {
-        /// <summary>敵単体。</summary>
+        // 敵単体
         SingleEnemy,
-        /// <summary>敵全体。</summary>
+        // 敵全体
         AllEnemies,
-        /// <summary>味方単体。</summary>
+        // 味方単体
         SingleAlly,
-        /// <summary>味方全体。</summary>
+        // 味方全体
         AllAllies,
-        /// <summary>敵からランダムに 1 体。</summary>
+        // 敵からランダムに 1 体
         RandomEnemy,
-        /// <summary>自分自身。</summary>
+        // 自分自身
         Self
     }
 
-    /// <summary>
-    /// <see cref="TargetScope"/> から対応するリゾルバを生成する拡張メソッド群。
-    /// </summary>
+    // TargetScope から対応するリゾルバを生成する拡張メソッド群
     public static class TargetScopeExtensions
     {
-        /// <summary>
-        /// スコープに対応するリゾルバを新規生成する。
-        /// 単体系は対象未指定の状態で返るため、対象を確定させたい場合は生成後に設定するか、
-        /// 対象を焼き込んだリゾルバを別途組み立てる。
-        /// </summary>
-        /// <param name="aScope">対象範囲。</param>
-        /// <returns>対応するリゾルバ。未知の値は自分自身を対象とする。</returns>
+        // スコープに対応するリゾルバを新規生成する
+        // 単体系は対象未指定の状態で返るため、対象を確定させたい場合は生成後に設定するか、
+        // 対象を焼き込んだリゾルバを別途組み立てる
+        // aScope : 対象範囲
+        // return : 対応するリゾルバ。未知の値は自分自身を対象とする
         public static ITargetResolver CreateResolver(this TargetScope aScope) => aScope switch
         {
             TargetScope.SingleEnemy => new SingleEnemyResolver(),

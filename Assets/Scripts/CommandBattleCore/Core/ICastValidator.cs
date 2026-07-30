@@ -11,85 +11,70 @@
 
 namespace CommandBattleCore
 {
-    /// <summary>
-    /// スキルが発動できなかった理由。
-    /// <see cref="BattleContext.OnCastFailed"/> を通じて UI へ伝わり、失敗表示の出し分けに使う。
-    /// </summary>
+    // スキルが発動できなかった理由
+    // BattleContext.OnCastFailed を通じて UI へ伝わり、失敗表示の出し分けに使う
     public enum CastFailReason
     {
-        /// <summary>理由なし（成功時、または分類不能）。</summary>
+        // 理由なし（成功時、または分類不能）
         None,
-        /// <summary>クールダウン中。</summary>
+        // クールダウン中
         OnCooldown,
-        /// <summary>1 戦闘あたりの使用回数を使い切った。</summary>
+        // 1 戦闘あたりの使用回数を使い切った
         MaxUses,
-        /// <summary>有効な対象が居ない。</summary>
+        // 有効な対象が居ない
         InvalidTarget,
         // コア実装のデフォルトはここまで
-        /// <summary>スキル定義の未解決。PPCore 側で使用。</summary>
+        // ここから下は採用先が独自に使う理由
         InvalidDefinition,
-        /// <summary>パーティが不正。PPCore 側で使用。</summary>
         InvalidParty,
-        /// <summary>リソース不足。PPCore 側で使用。</summary>
         NotEnoughResource,
     }
 
-    /// <summary>
-    /// スキル発動可否の判定結果。可否と、不可の場合の理由を持つ。
-    /// </summary>
+    // スキル発動可否の判定結果。可否と、不可の場合の理由を持つ
     public readonly struct CastValidation
     {
-        /// <summary>発動できるか。</summary>
+        // 発動できるか
         public bool CanCast { get; }
-        /// <summary>発動できない場合の理由。</summary>
+        // 発動できない場合の理由
         public CastFailReason Reason { get; }
 
-        /// <param name="aCanCast">発動可否。</param>
-        /// <param name="aReason">不可の場合の理由。</param>
+        // 判定結果を生成する
+        // aCanCast : 発動可否
+        // aReason : 不可の場合の理由
         public CastValidation(bool aCanCast, CastFailReason aReason = CastFailReason.None)
         {
             CanCast = aCanCast;
             Reason = aReason;
         }
 
-        /// <summary>発動可能を表す共有インスタンス。</summary>
+        // 発動可能を表す共有インスタンス
         public static readonly CastValidation Ok = new(true);
-        /// <summary>理由付きの発動不可を生成する。</summary>
-        /// <param name="reason">発動できない理由。</param>
+        // 理由付きの発動不可を生成する
+        // reason : 発動できない理由
         public static CastValidation Fail(CastFailReason reason) => new(false, reason);
     }
 
-    /// <summary>
-    /// スキルを発動できるかを検証するバリデータ。<see cref="BattleRules.CastValidator"/> に差し込む。
-    /// <para>
-    /// AI の候補絞り込みや UI のグレーアウト判定にも同じものが使われるため、
-    /// ここでは状態を変えず、判定だけを行うこと。
-    /// </para>
-    /// </summary>
+    // スキルを発動できるかを検証するバリデータ。BattleRules.CastValidator に差し込む
+    // AI の候補絞り込みや UI のグレーアウト判定にも同じものが使われるため、
+    // ここでは状態を変えず、判定だけを行うこと
     public interface ICastValidator
     {
-        /// <summary>
-        /// 発動可否を検証する。
-        /// </summary>
-        /// <param name="aUser">発動しようとしているユニット。</param>
-        /// <param name="aSkill">対象のスキル。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>判定結果。</returns>
+        // 発動可否を検証する
+        // aUser : 発動しようとしているユニット
+        // aSkill : 対象のスキル
+        // aContext : バトルコンテキスト
+        // return : 判定結果
         CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext);
     }
 
-    /// <summary>
-    /// コア標準のバリデータ。クールダウンと使用回数のみを見る。
-    /// </summary>
+    // コア標準のバリデータ。クールダウンと使用回数のみを見る
     public class DefaultCastValidator : ICastValidator
     {
-        /// <summary>
-        /// スキルが使用可能な状態かを検証し、不可なら理由を特定して返す。
-        /// </summary>
-        /// <param name="aUser">発動しようとしているユニット。</param>
-        /// <param name="aSkill">対象のスキル。</param>
-        /// <param name="aContext">バトルコンテキスト。</param>
-        /// <returns>判定結果。</returns>
+        // スキルが使用可能な状態かを検証し、不可なら理由を特定して返す
+        // aUser : 発動しようとしているユニット
+        // aSkill : 対象のスキル
+        // aContext : バトルコンテキスト
+        // return : 判定結果
         public virtual CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext)
         {
             if (!aSkill.IsReady)
