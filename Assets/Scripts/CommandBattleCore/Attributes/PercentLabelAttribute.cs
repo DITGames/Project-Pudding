@@ -20,8 +20,8 @@ namespace CommandBattleCore
     /// <code>追加攻撃確率 50%    [====|====] 0.5</code>
     /// </para>
     /// <para>
-    /// 「未設定」を負値の番兵で表す場合は <paramref name="aNegativeText"/> を指定すると、
-    /// 値が負のときパーセントの代わりにその文字列を出す。
+    /// 「未設定」を 0 の番兵で表す場合は <paramref name="aZeroText"/> を指定すると、
+    /// 値が 0 のときパーセントの代わりにその文字列を出す。
     /// </para>
     /// </summary>
     public class PercentLabelAttribute : PropertyAttribute
@@ -33,21 +33,21 @@ namespace CommandBattleCore
         /// <summary>スライダーの上限。</summary>
         public float Max { get; }
         /// <summary>
-        /// 値が負のときにパーセントの代わりに表示する文字列。
-        /// null なら常にパーセント表記になる。
+        /// 値が 0 のときにパーセントの代わりに表示する文字列。
+        /// null なら 0 も「0%」として表示する。
         /// </summary>
-        public string NegativeText { get; }
+        public string ZeroText { get; }
 
         /// <param name="aText">表示名。</param>
         /// <param name="aMin">スライダーの下限。既定は 0。</param>
         /// <param name="aMax">スライダーの上限。既定は 1。</param>
-        /// <param name="aNegativeText">負値のときに表示する文字列。番兵値を使う場合に指定する。</param>
-        public PercentLabelAttribute(string aText, float aMin = 0f, float aMax = 1f, string aNegativeText = null)
+        /// <param name="aZeroText">値が 0 のときに表示する文字列。0 を番兵値として使う場合に指定する。</param>
+        public PercentLabelAttribute(string aText, float aMin = 0f, float aMax = 1f, string aZeroText = null)
         {
             Text = aText;
             Min = aMin;
             Max = aMax;
-            NegativeText = aNegativeText;
+            ZeroText = aZeroText;
         }
     }
 }

@@ -42,16 +42,16 @@ namespace CommandBattleCore
         }
 
         /// <summary>
-        /// 表示名にパーセント表記（または負値用の文字列）を付けたラベル文字列を組み立てる。
+        /// 表示名にパーセント表記（または 0 のときの番兵用文字列）を付けたラベル文字列を組み立てる。
         /// </summary>
         /// <param name="aAttr">対象の属性。</param>
         /// <param name="aValue">現在値。</param>
         /// <returns>ラベルに表示する文字列。</returns>
         private static string BuildLabelText(PercentLabelAttribute aAttr, float aValue)
         {
-            if (aAttr.NegativeText != null && aValue < 0f)
+            if (aAttr.ZeroText != null && Mathf.Approximately(aValue, 0f))
             {
-                return $"{aAttr.Text} ({aAttr.NegativeText})";
+                return $"{aAttr.Text} ({aAttr.ZeroText})";
             }
             return $"{aAttr.Text} {aValue * 100f:0.#}%";
         }

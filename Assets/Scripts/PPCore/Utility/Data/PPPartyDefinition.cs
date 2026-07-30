@@ -52,8 +52,8 @@ namespace PPCore
         [Label("行動スコア上書き値")]public PPUnitActionScoreModifier ActionScoreOverride = new();
         /// <summary>知能を上書きするか。</summary>
         [Label("知能を上書きする?")] public bool IsOverrideIntelligence = false;
-        /// <summary>知能の上書き値（0〜1）。</summary>
-        [PercentLabel("知能上書き値")]public float IntelligenceOverride = 0.5f;
+        /// <summary>知能の上書き値（0〜1）。0 を指定した場合はプロファイルの値を継承する扱いになる。</summary>
+        [PercentLabel("知能上書き値", 0f, 1f, "継承")]public float IntelligenceOverride = 0.5f;
     }
 
     /// <summary>
@@ -148,6 +148,7 @@ namespace PPCore
 
         /// <summary>
         /// 適用する知能を解決する。上書き指定時のみ手入力値を 0～1 に丸めて使う。
+        /// ここで 0 になった場合は、AI 側でプロファイルの値へフォールバックする。
         /// </summary>
         /// <param name="aEntry">対象のメンバー設定。</param>
         private static float ResolveIntelligence(PPPartyMemberEntry aEntry)

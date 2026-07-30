@@ -29,9 +29,9 @@ namespace PPCore
 
         /// <summary>
         /// AI の賢さ（0〜1）。低いほど最適でない行動を選びやすくなる。
-        /// 負値はパーティの Intelligence を継承する意味。
+        /// 0 はパーティプロファイルの Intelligence を継承する意味。
         /// </summary>
-        public float Intelligence { get; set; } = -1f;
+        public float Intelligence { get; set; } = 0f;
 
         /// <summary>ユニットの属性。弱点・耐性倍率の判定に使う。</summary>
         public PPTypeAttribute TypeAttribute { get; }
