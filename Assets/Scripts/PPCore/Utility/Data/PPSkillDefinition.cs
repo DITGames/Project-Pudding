@@ -76,7 +76,7 @@ namespace PPCore
         // return : クールダウン・使用回数を初期化済みのランタイムスキル
         public override BattleSkill CreateRuntimeSkill()
         {
-            var skill = new PPBattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffect());
+            var skill = new PPBattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffectWithEntries());
             skill.SourceDefinition = this;
             skill.MaxCooldown = mMaxCooldown;
             skill.MaxUsesPerBattle = mMaxUsesPerBattle;
@@ -85,8 +85,6 @@ namespace PPCore
         }
 
         // 派生クラスの効果本体に、mEffectEntries のエフェクト付与を後段として繋げたデリゲートを組み立てる
-        // 既知の未整理箇所: 現状 CreateRuntimeSkill は BuildEffect() を直接使っており
-        // このメソッドを呼んでいないため、インスペクタで設定したエフェクト付与は実際には走らない
         // return : 効果本体とエフェクト付与を続けて実行するデリゲート
         private Action<BattleUnit, List<BattleUnit>, BattleContext> BuildEffectWithEntries()
         {
@@ -116,13 +114,13 @@ namespace PPCore
                 // 発動者向けは対象リストを走査せず 1 回だけ付与する
                 if (entry.ApplyTarget == PPEffectApplyTarget.Self)
                 {
-                    aSource.AddStatusEffect(entry.Effect.CreateRuntimeStatusEffect(aSource, aSource, aContext));
+                    aSource.AddStatusEffect(entry.Effect.CreateRuntimeStatusEffect(aSource, aSource, aContext), aContext);
                     continue;
                 }
 
                 foreach (var tgt in aTargets)
                 {
-                    tgt.AddStatusEffect(entry.Effect.CreateRuntimeStatusEffect(aSource, tgt, aContext));
+                    tgt.AddStatusEffect(entry.Effect.CreateRuntimeStatusEffect(aSource, tgt, aContext), aContext);
                 }
             }
         }

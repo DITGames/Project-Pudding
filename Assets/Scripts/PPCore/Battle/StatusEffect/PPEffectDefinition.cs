@@ -12,10 +12,11 @@ using UnityEngine;
 namespace PPCore
 {
     // エフェクト定義（ScriptableObject）の抽象基底
-    // 状態異常（PPStatusEffectDefinition）とバフデバフ（PPParameterEffectDefinition）に共通する、
     // ID・表示名・持続期間・スタック挙動といった枠組みを定める
     // エフェクト ID はインスペクタでの手入力ではなく BuildAutoEffectId で設定内容から自動生成する
     // 同じ効果に別 ID が付いてスタック判定が働かなくなるのを防ぐため
+    // 効き目そのものは ConfigureBehaviours で StatusEffectBehaviour を組み立てる形に一本化されており、
+    // ランタイムインスタンスの生成自体は本基底が一手に引き受ける
     public abstract class PPEffectDefinition : ScriptableObject
     {
         // エフェクトID。BuildAutoEffectId により自動設定されるため手入力しない
@@ -36,21 +37,37 @@ namespace PPCore
         public int Duration => mDuration;
         public StatusEffectStackPolicy StackPolicy => mStackPolicy;
 
+        // 分類。UI・AI・解除スキルから共通に参照できるよう基底で公開する
+        public abstract PPEffectCategory Category { get; }
+        // Coreが理解できる汎用分類
+        public abstract StatusEffectTag Tags { get; }
+
         // この定義からランタイムのステータスエフェクトを生成する
-        // 付与元と対象を受け取るのは、効果量が両者のパラメータに依存しうるため
+        // 共通部分(ID・表示名・持続期間・スタック・分類)を組み立てたのち、
+        // 派生側の ConfigureBehaviours へ効き目の組み立てを委ねる
         // aSource : エフェクトの付与元ユニット
         // aTarget : 付与される対象ユニット
         // aContext : バトルコンテキスト
         // return : 生成されたステータスエフェクト
-        public abstract StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext);
+        public StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+        {
+            var effect = new StatusEffect(mEffectId, mDisplayName, new TurnDurationCondition(mDuration))
+                .WithSource(aSource)
+                .WithSourceDefinition(this)
+                .WithStacking(mStackPolicy, mMaxStack)
+                .WithCategory((long)Category)
+                .WithTags(Tags);
 
-        // 生成したエフェクトへ固有の効果（継続ダメージ・パラメータ修飾子など）を設定する
-        // 共通部分の設定が済んだ後に呼ばれる
+            ConfigureBehaviours(effect, aSource, aTarget, aContext);
+            return effect;
+        }
+
+        // 効果の中身。派生クラスが AddBehaviour で組み立てる
         // aEffect : 設定対象のエフェクト
         // aSource : エフェクトの付与元ユニット
         // aTarget : 付与される対象ユニット
         // aContext : バトルコンテキスト
-        protected abstract void ConfigureEffect(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext);
+        protected abstract void ConfigureBehaviours(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext);
 
         // 設定内容からエフェクト ID を組み立てる。派生側で実装する
         // 同じ効果の定義が同じ ID になるようにすること（スタック判定の単位になるため）

@@ -2,7 +2,7 @@
  * Copyright hqrse. All rights reserved.
  * @file PPPoisonEffectDefinition.cs
  * @author hqrse
- * @date 2026/07/28
+ * @date 2026/07/27
  * @brief 毎ターンダメージを与える毒のStatusEffect定義
  * =====================================*/
 
@@ -15,29 +15,30 @@ namespace PPCore
     // パラメータを変化させるのではなく Tick でダメージを与えるタイプの状態異常の実装例
     [CreateAssetMenu(fileName = "PPPoisonEffectDefinition",
         menuName = "Project-Pudding/Effect/PPPoisonEffectDefinition")]
-    public class PPPoisonEffectDefinition : PPStatusEffectDefinition
+    public class PPPoisonEffectDefinition : PPEffectDefinition
     {
         [Header("毒")]
-        [Label("ダメージ量")]
+        [Label("毎ターンダメージ量")]
         [SerializeField]protected float mDamagePerTurn = 5f;
+        [Label("属性")]
+        [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
 
-        // ターン更新のたびに固定ダメージを与えるコールバックを仕込む
-        // 付与元をダメージ情報に残すため、クロージャで aSource を捕捉している
+        public override PPEffectCategory Category => PPEffectCategory.Poison;
+        public override StatusEffectTag Tags
+            => StatusEffectTag.Ailment | StatusEffectTag.Debuff | StatusEffectTag.Periodic;
+
+        // ターン更新のたびに固定ダメージを与える振る舞いを積む
         // aEffect : 設定対象のエフェクト
         // aSource : エフェクトの付与元ユニット
         // aTarget : 付与される対象ユニット
         // aContext : バトルコンテキスト
-        protected override void ConfigureEffect(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+        protected override void ConfigureBehaviours(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            aEffect.OnTick = (unit, ctx) =>
-            {
-                var damageInfo = new PPDamageInfo(aSource, unit, mDamagePerTurn, PPSkillCategory.Debuff, PPTypeAttribute.Normal, this);
-                unit.ApplyDamage(damageInfo);
-            };
+            aEffect.AddBehaviour(new PPPeriodicDamageBehaviour(mDamagePerTurn, mAttribute));
         }
 
         // ダメージ量と持続ターン数からエフェクト ID を組み立てる
         protected override string BuildAutoEffectId()
-            => $"Poison_{mDamagePerTurn}_{mDuration}";
+            => $"Poison_{mAttribute}_{mDamagePerTurn}_{mDuration}";
     }
 }

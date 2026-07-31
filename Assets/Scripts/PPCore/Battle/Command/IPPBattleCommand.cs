@@ -65,7 +65,7 @@ namespace PPCore
             // CastValidatorを通して実行可能かチェックされるが念のためコスト消費ができた場合のみ攻撃実行
             if (party.ResourcePool.TryPay(AttackCost))
             {
-                foreach (var damageInfo in damages) damageInfo.Target?.ApplyDamage(damageInfo);
+                foreach (var damageInfo in damages) damageInfo.Target?.ApplyDamage(damageInfo, aContext);
             }
             else
             {

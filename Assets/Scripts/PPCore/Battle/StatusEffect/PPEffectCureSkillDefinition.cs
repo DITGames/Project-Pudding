@@ -15,19 +15,16 @@ using UnityEngine;
 namespace PPCore
 {
     // 指定した種別のエフェクトを解除するスキルの定義
-    // 状態異常とパラメータ変動でマスクを分けて持つため、
-    // 「毒だけ治す」「デバフだけ打ち消す」「その両方」を 1 つの定義で表現できる
-    // 種別はビットフラグなので複数指定も可能
+    // 状態異常・パラメータ変動を問わず PPEffectCategory のビットマスク1本で指定できるため、
+    // 系統をまたいだ解除(例: 毒+攻撃力デバフを同時に解除)も1つの定義で表現できる
+    // Unremovable タグが付いたエフェクトはマスクが一致しても解除対象から除外する
     [CreateAssetMenu(fileName = "PPEffectCureSkillDefinition",
         menuName = "Project-Pudding/Skill/PPEffectCureSkillDefinition")]
     public class PPEffectCureSkillDefinition : PPSkillDefinition
     {
-        [Header("状態異常解除")]
+        [Header("エフェクト解除")]
         [Label("解除するカテゴリ")]
-        [SerializeField]protected PPStatusEffectCategory mStatusCureMask = PPStatusEffectCategory.None;
-        [Header("パラメータ変動解除")]
-        [Label("解除するカテゴリ")]
-        [SerializeField]protected PPParameterEffectCategory mParameterCureMask = PPParameterEffectCategory.None;
+        [SerializeField]protected PPEffectCategory mCureMask = PPEffectCategory.AllAilment;
 
         // 対象のエフェクト一覧からマスクに一致するものを解除する効果を組み立てる
         // 除去中に BattleUnit.ActiveStatusEffects が変化するため、
@@ -37,26 +34,17 @@ namespace PPCore
         {
             return (src, targets, ctx) =>
             {
+                long mask = (long)mCureMask;
                 foreach (var tgt in targets)
                 {
-                    var statusMatched = tgt.ActiveStatusEffects
-                        .OfType<PPStatusEffect>()
-                        .Where(e => (e.Category & mStatusCureMask) != 0)
+                    var matched = tgt.ActiveStatusEffects
+                        .Where(e => (e.Category & mask) != 0
+                                 && (e.Tags & StatusEffectTag.Unremovable) == 0)
                         .ToList();
 
-                    foreach (var eff in statusMatched)
+                    foreach (var effect in matched)
                     {
-                        tgt.RemoveStatusEffect(eff);
-                    }
-
-                    var parameterMatched = tgt.ActiveStatusEffects
-                        .OfType<PPParameterEffect>()
-                        .Where(e => (e.Category & mParameterCureMask) != 0)
-                        .ToList();
-
-                    foreach (var eff in parameterMatched)
-                    {
-                        tgt.RemoveStatusEffect(eff);
+                        tgt.RemoveStatusEffect(effect, ctx);
                     }
                 }
             };
