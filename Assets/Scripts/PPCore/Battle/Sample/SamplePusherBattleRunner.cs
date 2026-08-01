@@ -102,17 +102,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
         var enemyStrategist = new PPPartyAIStrategistBase(mEnemyAIProfile);
         ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
 
-        mBattleManager.OnDamageTaken += (u, d) =>
-        {
-            Debug.Log($"{u.DisplayName} damaged {d} : HP{u.Parameters.Hp.CurrentValue}");
-        };
-        mBattleManager.OnUnitDefeated += u =>
-        {
-            Debug.Log($"{u.DisplayName} defeated!");
-        };
         mBattleManager.OnBattleEnded += r =>
         {
-            Debug.Log($"Battle Ended! {r.Type}");
             // 終了後もコルーチンが回り続けないよう確実に止める
             if (mEnemyActionCoroutine != null)
             {
@@ -126,6 +117,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
                 mTickCoroutine = null;
             }
         };
+        PPBattleLogBinder.Bind(mBattleManager, context);
         mBattleManager.StartBattle(context);
         mBattleUnitViewBinder.Bind(mBattleManager);
         mCoinResourceBridge.Bind(mBattleManager, BattleSide.Ally);

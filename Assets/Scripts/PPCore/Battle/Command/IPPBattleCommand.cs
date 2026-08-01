@@ -8,7 +8,7 @@
 
 using System.Collections.Generic;
 using CommandBattleCore;
-using UnityEngine;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -48,7 +48,7 @@ namespace PPCore
         {
             if (aContext.GetParty(Source.Side) is not PPBattleParty party)
             {
-                Debug.Log("パーティがプロジェクトと一致しません");
+                CustomConsoleLog.Warning("Battle", $"{Source.DisplayName}の通常攻撃: 対象パーティがPPBattlePartyではありません。");
                 return;
             }
 
@@ -69,7 +69,7 @@ namespace PPCore
             }
             else
             {
-                Debug.Log("コストの消費に失敗しました");
+                CustomConsoleLog.Warning("Battle", $"{Source.DisplayName}の通常攻撃はコスト不足のため中止されました。");
             }
         }
     }

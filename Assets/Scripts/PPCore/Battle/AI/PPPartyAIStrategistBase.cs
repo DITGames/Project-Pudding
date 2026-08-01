@@ -100,12 +100,22 @@ namespace PPCore
                 // ユニットごとに行動候補を収集する
                 var candidates = GenerateCandidatesForUnit(unit, snap, focusTarget, aContext);
                 if(candidates.Count == 0)
+                {
+                    CustomConsoleLog.Warning("AI", $"{unit.DisplayName}は実行可能な行動候補がなく待機します。");
                     continue;
+                }
 
                 // 行動のスコア評価
                 foreach (var c in candidates)
                 {
                     c.Score = Evaluate(c, snap, situation);
+                }
+
+                // 上位3件のスコアを可視化用に出力する
+                foreach (var (c, rank) in candidates.OrderByDescending(x => x.Score).Take(3).Select((c, i) => (c, i + 1)))
+                {
+                    CustomConsoleLog.Verbose("AI",
+                        $"{unit.DisplayName} 候補{rank}: {c.Role} {(c.Skill != null ? c.Skill.DisplayName : "通常攻撃")} -> {c.Target?.DisplayName ?? "-"} score={c.Score:F2}");
                 }
 
                 // 待ちに対する評価

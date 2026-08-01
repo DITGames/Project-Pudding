@@ -7,6 +7,7 @@
  * =====================================*/
 
 using CommandBattleCore;
+using CustomConsole;
 using UnityEngine;
 
 namespace PPCore
@@ -35,7 +36,7 @@ namespace PPCore
             mCoinNotifier = mCoinNotifierSource as IPPCoinGainNotifier;
             if (mConverter == null)
             {
-                Debug.Log($"{nameof(mCoinNotifierSource)}はIPPCoinGainNotifierを実装している必要があります");
+                CustomConsoleLog.Warning("Resource", $"{nameof(mCoinNotifierSource)}はIPPCoinGainNotifierを実装している必要があります", this);
             }
         }
 
@@ -46,7 +47,7 @@ namespace PPCore
         {
             if (aBattleManager.Context.GetParty(aTargetSide) is not PPBattleParty party)
             {
-                Debug.Log("対象パーティが PPBattleParty ではありません。");
+                CustomConsoleLog.Warning("Resource", "対象パーティが PPBattleParty ではありません。", this);
                 return;
             }
 
@@ -77,6 +78,11 @@ namespace PPCore
 
             float rate = mTargetParty.CoinConversionRate.CurrentValue;
             float amount = mConverter.Convert(aCoinCount, rate);
+            // 実質変化のない変換(0枚など)はログを出さない
+            if (amount > 0f)
+            {
+                CustomConsoleLog.Verbose("Resource", $"コイン{aCoinCount}枚を{a}リソース{amount}に変換します（レートx{rate}）。", this);
+            }
             mTargetParty.ResourcePool.Add(a, amount);
         }
 
