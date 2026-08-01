@@ -98,7 +98,7 @@ namespace CommandBattleCore
             {
                 if((eff.Restriction & ActionRestriction.CannotAct) == 0)
                     continue;
-                if (eff.ActionFailChange is float chance)
+                if (eff.ActionFailChance is float chance)
                 {
                     if (aContext.Rules.RandomProvider.NextBool(chance))
                         blocked = true;
