@@ -62,7 +62,7 @@ namespace PPCore
         // ID からパラメータを解決する。基本パラメータを先に探し、無ければ拡張パラメータを探す
         // aId : パラメータID
         // return : 該当パラメータ。どちらにも存在しなければ null
-        public Parameter ResolveParameter(string aId)
+        public override Parameter ResolveParameter(string aId)
         {
             if(Parameters.Parameters.TryGetValue(aId, out var paramDef))
             {

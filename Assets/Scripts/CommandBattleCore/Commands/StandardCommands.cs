@@ -50,7 +50,7 @@ namespace CommandBattleCore
                     info.Amount *= hit.mCriticalInfo.CriticalMultiplier;
                 }
 
-                target.ApplyDamage(info);
+                target.ApplyDamage(info, aContext);
             }
         }
     }

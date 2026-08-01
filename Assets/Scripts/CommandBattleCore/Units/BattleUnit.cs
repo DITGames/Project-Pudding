@@ -98,7 +98,7 @@ namespace CommandBattleCore
             {
                 if((eff.Restriction & ActionRestriction.CannotAct) == 0)
                     continue;
-                if (eff.ActionFailChange is float chance)
+                if (eff.ActionFailChance is float chance)
                 {
                     if (aContext.Rules.RandomProvider.NextBool(chance))
                         blocked = true;
@@ -111,19 +111,26 @@ namespace CommandBattleCore
             return blocked;
         }
 
+        // パラメータをIDで解決する
+        // 追加のパラメータ群を持つ派生クラスはここをoverrideする
+        // aParamId : パラメータID
+        public virtual Parameter ResolveParameter(string aParamId) => Parameters.Get(aParamId);
+
         // 数値だけを指定してダメージを適用する簡易版。攻撃元なしの DamageInfo を組んで委譲する
         // スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算
         // aAmount : ダメージ量
-        public void ApplyDamage(float aAmount)
+        // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
+        public void ApplyDamage(float aAmount, BattleContext aContext = null)
         {
-            ApplyDamage(new DamageInfo(null, this, aAmount));
+            ApplyDamage(new DamageInfo(null, this, aAmount), aContext);
         }
 
         // ダメージを適用する
         // ミス判定 → ステータスエフェクトによる軽減 → 実装先の介入 → 無効化判定 →
         // HP 減算 → 撃破判定、の順に進み、各段階で対応する event を発火する
         // aDamageInfo : 攻撃元・対象・ダメージ量・命中結果を持つダメージ情報
-        public void ApplyDamage(DamageInfo aDamageInfo)
+        // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
+        public void ApplyDamage(DamageInfo aDamageInfo, BattleContext aContext = null)
         {
             if (!IsAlive) return;
 
@@ -137,7 +144,7 @@ namespace CommandBattleCore
             // ステータスエフェクトによるダメージ適用前の耐性や無効などを適用する
             foreach (var ef in ActiveStatusEffects)
             {
-                ef.ModifyIncomingDamage?.Invoke(this, aDamageInfo);
+                ef.NotifyIncomingDamage(this, aContext, aDamageInfo);
             }
 
             // 実装先でのダメージ適用前介入
@@ -172,9 +179,13 @@ namespace CommandBattleCore
         // ステータスエフェクトを追加する
         // 同一 ID のエフェクトが既に付与されている場合は
         // StatusEffectStackPolicy に従って無視／継続時間更新／スタック加算／置き換えのいずれかを行う
+        // 死亡しているユニットには付与しない
         // aStatusEffect : 付与するエフェクト
-        public void AddStatusEffect(StatusEffect aStatusEffect)
+        // aContext : バトルコンテキスト
+        public void AddStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
         {
+            if (aStatusEffect == null || !IsAlive) return;
+
             // 既に同じエフェクトが付いている場合はスタックポリシーで挙動を決める
             var existing = ActiveStatusEffects.Find(e => e.EffectId == aStatusEffect.EffectId);
             if (existing != null)
@@ -185,28 +196,21 @@ namespace CommandBattleCore
                         return;
                     case StatusEffectStackPolicy.Refresh:
                         (existing.DurationCondition as IRefreshableDuration)?.Refresh();
-                        existing.OnStackChanged?.Invoke(this, existing);
                         OnStatusEffectStacked?.Invoke(this, existing);
                         return;
                     case StatusEffectStackPolicy.StackCount:
-                        if (existing.CurrentStacks < existing.MaxStacks)
+                        if (existing.TryAddStack(this, aContext))
                         {
-                            existing.CurrentStacks++;
-                            existing.OnStackChanged?.Invoke(this, existing);
                             OnStatusEffectStacked?.Invoke(this, existing);
                         }
                         return;
                     case StatusEffectStackPolicy.StackCountAndRefresh:
-                        if (existing.CurrentStacks < existing.MaxStacks)
-                        {
-                            existing.CurrentStacks++;
-                        }
+                        existing.TryAddStack(this, aContext);
                         (existing.DurationCondition as IRefreshableDuration)?.Refresh();
-                        existing.OnStackChanged?.Invoke(this, existing);
                         OnStatusEffectStacked?.Invoke(this, existing);
                         return;
                     case StatusEffectStackPolicy.Replace:
-                        RemoveStatusEffect(existing);
+                        RemoveStatusEffect(existing, aContext);
                         // 置き換えるので下で処理
                         break;
                     case StatusEffectStackPolicy.Stack:
@@ -217,21 +221,21 @@ namespace CommandBattleCore
 
             // 新規付与。効果を適用してから通知する
             ActiveStatusEffects.Add(aStatusEffect);
-            aStatusEffect.CurrentStacks = 1;
-            aStatusEffect.ApplyTo(this);
+            aStatusEffect.AttachTo(this, aContext);
             OnStatusEffectAdded?.Invoke(this, aStatusEffect);
         }
 
         // ステータスエフェクトを除去し、そのエフェクトが加えていた効果を巻き戻す
         // aStatusEffect : 除去するエフェクト
-        public void RemoveStatusEffect(StatusEffect aStatusEffect)
+        // aContext : バトルコンテキスト
+        public void RemoveStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
         {
-            ActiveStatusEffects.Remove(aStatusEffect);
-            aStatusEffect.RemoveFrom(this);
+            if (!ActiveStatusEffects.Remove(aStatusEffect)) return;
+            aStatusEffect.DetachFrom(this, aContext);
             OnStatusEffectRemoved?.Invoke(this, aStatusEffect);
         }
 
-        // 状況更新の度に呼び出す。各エフェクトの OnTick（毒ダメージ等）を実行し、
+        // 状況更新の度に呼び出す。各エフェクトの Tick（毒ダメージ等）を実行し、
         // 持続条件が切れたものを除去する
         // 除去中にリストが縮むため、末尾から逆順に走査している
         // aContext : バトルコンテキスト
@@ -240,10 +244,10 @@ namespace CommandBattleCore
             for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
             {
                 var effect = ActiveStatusEffects[i];
-                effect.OnTick?.Invoke(this, aContext);
+                effect.Tick(this, aContext);
                 if (!effect.DurationCondition.Tick())
                 {
-                    RemoveStatusEffect(effect);
+                    RemoveStatusEffect(effect, aContext);
                 }
             }
         }

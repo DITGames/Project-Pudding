@@ -60,23 +60,25 @@ namespace PPCore
         public ParameterModifierType ModifierType => mModifierType;
         public float Value => mValue;
 
-        // 対象パラメータと変動方向の組み合わせから、解除判定用の種別を決める
-        // return : 対応する種別。組み合わせが不明な場合は None
-        private PPParameterEffectCategory ResolveCategory()
+        // 対象パラメータと変動方向の組み合わせから、解除判定用の分類を決める
+        public override PPEffectCategory Category
             => (mTargetParam, mDirection) switch
             {
-                (PPModifierTargetParam.Attack, PPModifierDirection.Increase) => PPParameterEffectCategory.AttackBuff,
-                (PPModifierTargetParam.Attack, PPModifierDirection.Decrease) => PPParameterEffectCategory.AttackDebuff,
-                (PPModifierTargetParam.Defense, PPModifierDirection.Increase) => PPParameterEffectCategory.DefenseBuff,
-                (PPModifierTargetParam.Defense, PPModifierDirection.Decrease) => PPParameterEffectCategory.DefenseDebuff,
-                (PPModifierTargetParam.Speed, PPModifierDirection.Increase) => PPParameterEffectCategory.SpeedBuff,
-                (PPModifierTargetParam.Speed, PPModifierDirection.Decrease) => PPParameterEffectCategory.SpeedDebuff,
-                (PPModifierTargetParam.Hp, PPModifierDirection.Increase) => PPParameterEffectCategory.HpBuff,
-                (PPModifierTargetParam.Hp, PPModifierDirection.Decrease) => PPParameterEffectCategory.HpDebuff,
-                (PPModifierTargetParam.Cost, PPModifierDirection.Increase) => PPParameterEffectCategory.CostBuff,
-                (PPModifierTargetParam.Cost, PPModifierDirection.Decrease) => PPParameterEffectCategory.CostDebuff,
-                _ => PPParameterEffectCategory.None,
+                (PPModifierTargetParam.Attack, PPModifierDirection.Increase) => PPEffectCategory.AttackBuff,
+                (PPModifierTargetParam.Attack, PPModifierDirection.Decrease) => PPEffectCategory.AttackDebuff,
+                (PPModifierTargetParam.Defense, PPModifierDirection.Increase) => PPEffectCategory.DefenseBuff,
+                (PPModifierTargetParam.Defense, PPModifierDirection.Decrease) => PPEffectCategory.DefenseDebuff,
+                (PPModifierTargetParam.Speed, PPModifierDirection.Increase) => PPEffectCategory.SpeedBuff,
+                (PPModifierTargetParam.Speed, PPModifierDirection.Decrease) => PPEffectCategory.SpeedDebuff,
+                (PPModifierTargetParam.Hp, PPModifierDirection.Increase) => PPEffectCategory.MaxHpBuff,
+                (PPModifierTargetParam.Hp, PPModifierDirection.Decrease) => PPEffectCategory.MaxHpDebuff,
+                (PPModifierTargetParam.Cost, PPModifierDirection.Increase) => PPEffectCategory.CostBuff,
+                _ => PPEffectCategory.CostDebuff,
             };
+
+        public override StatusEffectTag Tags
+            => StatusEffectTag.ParameterMod
+             | (mDirection == PPModifierDirection.Increase ? StatusEffectTag.Buff : StatusEffectTag.Debuff);
 
         // 入力された変動量を、実際に修飾子へ渡す値へ変換する
         // 加算はデバフなら符号を反転させる。乗算は変動方向と矛盾する値
@@ -95,23 +97,6 @@ namespace PPCore
                 (_,_) => mValue,
             };
 
-        // ターン経過で切れるパラメータ変動エフェクトのランタイム実体を生成する
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
-        // return : 生成されたエフェクト
-        public override StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
-        {
-            var effect = new PPParameterEffect(mEffectId, mDisplayName, new TurnDurationCondition(mDuration))
-            {
-                StackPolicy = mStackPolicy,
-                MaxStacks = mMaxStack,
-                Category = ResolveCategory(),
-            };
-            ConfigureEffect(effect, aSource, aTarget, aContext);
-            return effect;
-        }
-
         // 対象パラメータに対応するパラメータ ID
         // コストのみ追加パラメータ側の ID を返す点に注意
         protected string ParamId
@@ -125,17 +110,14 @@ namespace PPCore
                 _ => string.Empty,
             };
 
-        // エフェクトへパラメータ修飾子を 1 件登録する
+        // エフェクトへパラメータ修飾の振る舞いを 1 件積む
         // aEffect : 設定対象のエフェクト
         // aSource : エフェクトの付与元ユニット
         // aTarget : 付与される対象ユニット
         // aContext : バトルコンテキスト
-        protected override void ConfigureEffect(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+        protected override void ConfigureBehaviours(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            if (aEffect is PPParameterEffect effect)
-            {
-                aEffect.AddModifier(ParamId, mModifierType, ResolveModifier());
-            }
+            aEffect.AddBehaviour(new ParameterModifierBehaviour(ParamId, mModifierType, ResolveModifier()));
         }
 
         // 設定内容の組み合わせからエフェクト ID を組み立てる

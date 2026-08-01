@@ -32,7 +32,7 @@ namespace PPCore
                 {
                     float dmg = PPDamageUtility.ResolveAttackSkillDamage(src, tgt, this);
                     var damageInfo = PPDamageUtility.CreateDamageInfo(src, tgt, dmg, mCategory, attribute, this, ctx);
-                    tgt.ApplyDamage(damageInfo);
+                    tgt.ApplyDamage(damageInfo, ctx);
                 }
             };
         }
