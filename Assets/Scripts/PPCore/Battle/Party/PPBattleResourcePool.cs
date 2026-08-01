@@ -7,6 +7,7 @@
  * =====================================*/
 
 using CommandBattleCore;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -46,7 +47,15 @@ namespace PPCore
         // 指定属性のリソースを加算する。上限を超えた分は切り捨てられる
         // a : 対象の属性
         // aAmount : 加算量
-        public void Add(PPTypeAttribute a, float aAmount) => mResourcePools[(int)a].Recover(aAmount);
+        public void Add(PPTypeAttribute a, float aAmount)
+        {
+            mResourcePools[(int)a].Recover(aAmount);
+            // 実質変化のない加算(0など)はログを出さない
+            if (aAmount > 0f)
+            {
+                CustomConsoleLog.Verbose("Resource", $"{a}リソースが{aAmount}加算されました（残量{mResourcePools[(int)a].Current}）。");
+            }
+        }
 
         // コストを支払えるかを実際には消費せずに判定する
         // AI の行動候補の絞り込みや UI のグレーアウト判定など、事前チェックに使う
@@ -76,7 +85,10 @@ namespace PPCore
             if(aCost == null || aCost.IsFree)
                 return true;
             if(!CanPay(aCost))
+            {
+                CustomConsoleLog.Warning("Resource", $"コスト支払いに失敗しました（合計必要量{aCost.Total}）。");
                 return false;
+            }
             for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
                 float need = aCost.Get(i);
@@ -85,6 +97,7 @@ namespace PPCore
                     mResourcePools[i].Damage(need);
                 }
             }
+            CustomConsoleLog.Verbose("Resource", $"コスト支払いに成功しました（合計消費量{aCost.Total}）。");
             return true;
         }
     }

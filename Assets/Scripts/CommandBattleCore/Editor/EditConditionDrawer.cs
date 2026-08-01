@@ -116,12 +116,12 @@ namespace CommandBattleCore
         // SerializedPropertyが実際に属するオブジェクトインスタンスを反射で取得する（ネスト対応）
         // プロパティパスを "." で分割し、最後の 1 要素（プロパティ自身）を除いた分だけ辿ることで
         // 「そのプロパティを保持しているオブジェクト」に到達する
-        // 配列要素は "xxx.Array.Data[n]" という形式になるため、事前に "xxx[n]" へ正規化している
+        // 配列要素は "xxx.Array.data[n]" という形式になるため、事前に "xxx[n]" へ正規化している
         // property : 対象プロパティ
         // return : プロパティを保持するオブジェクト。辿れない場合は null
         private static object GetParentObject(SerializedProperty property)
         {
-            var path = property.propertyPath.Replace(".Array.Data[", "[");
+            var path = property.propertyPath.Replace(".Array.data[", "[");
             object obj = property.serializedObject.targetObject;
             var elements = path.Split('.');
 

@@ -7,6 +7,7 @@
  * =====================================*/
 
 using CommandBattleCore;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -61,6 +62,7 @@ namespace PPCore
 
             Skill.Execute(Source, targets, aContext);
             Skill.NotifyUsed();
+            CustomConsoleLog.Log("Battle", $"{Source.DisplayName}が{Skill.DisplayName}を発動しました。");
         }
     }
 }
