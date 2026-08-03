@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de27464d551ab2e42a5356a16a30f18e, type: 3}
-  m_Name: UVD_Hero
+  m_Name: PUVD_Slotton
   m_EditorClassIdentifier: Assembly-CSharp::PPUnitVisualDefinition
-  UnitId: Hero
-  UnitIcon: {fileID: 705052327, guid: 6d9eab3de771c714faf5227348812bee, type: 3}
-  UnitPortrait: {fileID: 0}
+  UnitId: Slotton
+  UnitIcon: {fileID: 21300000, guid: 6aeb6edb34f9ecb4f9ad30bc4453f9d6, type: 3}
+  UnitPortrait: {fileID: 21300000, guid: 6aeb6edb34f9ecb4f9ad30bc4453f9d6, type: 3}
   ViewPrefab: {fileID: 0}
-  Animator: {fileID: 9100000, guid: 19768bfdfe69f7144b164c49c7906178, type: 2}
+  Animator: {fileID: 0}
   SpawnOffset: {x: 0, y: 0, z: 0}
