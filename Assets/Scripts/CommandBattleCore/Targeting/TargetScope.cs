@@ -6,6 +6,8 @@
  * @brief データ定義からターゲットのデフォルトを生成する
  * =====================================*/
 
+using UnityEngine;
+
 namespace CommandBattleCore
 {
     // スキル定義がインスペクタ上で対象範囲を指定するための列挙
@@ -14,17 +16,17 @@ namespace CommandBattleCore
     // ITargetResolver へ変換する
     public enum TargetScope
     {
-        // 敵単体
+        [InspectorName("敵単体")]
         SingleEnemy,
-        // 敵全体
+        [InspectorName("敵全体")]
         AllEnemies,
-        // 味方単体
+        [InspectorName("味方単体")]
         SingleAlly,
-        // 味方全体
+        [InspectorName("味方全体")]
         AllAllies,
-        // 敵からランダムに 1 体
+        [InspectorName("敵ランダム")]
         RandomEnemy,
-        // 自分自身
+        [InspectorName("自分")]
         Self
     }
 

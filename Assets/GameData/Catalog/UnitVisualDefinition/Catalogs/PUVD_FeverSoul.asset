@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de27464d551ab2e42a5356a16a30f18e, type: 3}
-  m_Name: UVD_Monster
+  m_Name: PUVD_FeverSoul
   m_EditorClassIdentifier: Assembly-CSharp::PPUnitVisualDefinition
-  UnitId: Monster
-  UnitIcon: {fileID: -935554532, guid: 9d14dc6b17639974ba12c044cfb252ad, type: 3}
-  UnitPortrait: {fileID: 0}
+  UnitId: FeverSoul
+  UnitIcon: {fileID: 21300000, guid: bdf26cf8111321e46928913ae7217934, type: 3}
+  UnitPortrait: {fileID: 21300000, guid: bdf26cf8111321e46928913ae7217934, type: 3}
   ViewPrefab: {fileID: 0}
-  Animator: {fileID: 9100000, guid: 773451a767e2f5547977b18c0084f363, type: 2}
+  Animator: {fileID: 0}
   SpawnOffset: {x: 0, y: 0, z: 0}

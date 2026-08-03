@@ -964,8 +964,8 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 829383975}
-  - component: {fileID: 829383974}
   - component: {fileID: 829383977}
+  - component: {fileID: 829383978}
   m_Layer: 0
   m_Name: BattleRunner
   m_TagString: Untagged
@@ -973,27 +973,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &829383974
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 829383973}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 37b64a5a5244d1646aadb5334753675b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::SampleBattleRunner
-  mCoinResourceBridge: {fileID: 829383977}
-  mMaxCoin: 100
-  mBaseCoinConversionRate: 1
-  mAllyUnit: {fileID: 11400000, guid: 1094bf7bd86055b4bad38234592a1c86, type: 2}
-  mEnemyUnit: {fileID: 11400000, guid: f660413af9c34e34c95b30d5543030d9, type: 2}
-  mBattleUnitViewBinder: {fileID: 1909357157}
-  mController: {fileID: 1909357156}
-  mTurnTickInterval: 1
-  mEnemyAttackInterval: 10
 --- !u!4 &829383975
 Transform:
   m_ObjectHideFlags: 0
@@ -1022,6 +1001,55 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPCoinResourceBridge
   mCoinNotifierSource: {fileID: 1652698682}
+--- !u!114 &829383978
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 829383973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec9579097a44a2a096c63f547b336745, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleRunner
+  mCoinResourceBridge: {fileID: 829383977}
+  mBattleUnitViewBinder: {fileID: 1909357157}
+  mController: {fileID: 1909357156}
+  mTurnTickInterval: 5
+  mDefaultThinkDuration: 0.5
+  mEnemyResourceSimulation:
+    mEntries:
+    - mType: 0
+      mAmount: {x: 1, y: 5}
+    - mType: 1
+      mAmount: {x: 1, y: 5}
+    - mType: 2
+      mAmount: {x: 1, y: 5}
+    - mType: 3
+      mAmount: {x: 1, y: 5}
+    - mType: 4
+      mAmount: {x: 1, y: 5}
+    - mType: 5
+      mAmount: {x: 1, y: 5}
+  mAllyPartyDefinition: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+  mEnemyPartyDefinition: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
+  mIsAutoBattle: 1
+  mIsSimulateAllyResource: 1
+  mAllyResourceSimulation:
+    mEntries:
+    - mType: 0
+      mAmount: {x: 1, y: 5}
+    - mType: 1
+      mAmount: {x: 1, y: 5}
+    - mType: 2
+      mAmount: {x: 1, y: 5}
+    - mType: 3
+      mAmount: {x: 1, y: 5}
+    - mType: 4
+      mAmount: {x: 1, y: 5}
+    - mType: 5
+      mAmount: {x: 1, y: 5}
 --- !u!1 &850145642
 GameObject:
   m_ObjectHideFlags: 0

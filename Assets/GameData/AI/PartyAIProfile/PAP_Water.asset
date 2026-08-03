@@ -1,0 +1,54 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
+  m_Name: PAP_Water
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
+  Aggression: 0.5
+  Caution: 0.5
+  Intelligence: 0.5
+  CostSensitivity: 0.6
+  TrendSampleCount: 4
+  ThinkInterval: 10
+  MaxActionsPerTick: 3
+  ActionNoiseAmplitude: 0.6
+  Weights:
+    Attack: 1
+    Support: 1
+    Heal: 1
+  Order:
+    Attack: 1
+    Support: 0
+    Heal: 2
+    Default: 3
+  AttackScore:
+    BaseScore: 0.6
+    HpRatioBias: 0.8
+  SkillScore:
+    BaseScore: 0.9
+    RangeSkillScore: 0.4
+    HpRatioBias: 0.9
+  SupportScore:
+    BaseScore: 0.4
+    MemberCountScore: 3
+    MemberCountBias: 0.6
+  HealScore:
+    Threshold: 0.1
+    HpRatioBias: 1.8
+  CostScore:
+    ReferenceCost: 30
+  DefaultScore:
+    Attack: 1
+    Support: 1
+    Heal: 1
+    AggressionMultiplier: 1
+    PatienceMultiplier: 1
+  Rules: []

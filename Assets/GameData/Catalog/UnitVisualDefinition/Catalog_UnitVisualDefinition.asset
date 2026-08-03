@@ -13,5 +13,6 @@ MonoBehaviour:
   m_Name: Catalog_UnitVisualDefinition
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitVisualCatalog
   mItems:
-  - {fileID: 11400000, guid: e66da34c8dbcf624a9298db86308cf37, type: 2}
-  - {fileID: 11400000, guid: 3ce47e365d85d244cb3b0ba5bd0746d4, type: 2}
+  - {fileID: 11400000, guid: a4bbfed343f58e54b90a840124dadb2f, type: 2}
+  - {fileID: 11400000, guid: 7703ea86549e5e949a94d7fabe1fc682, type: 2}
+  - {fileID: 11400000, guid: dd7ea2123122b38469c129884496784a, type: 2}
