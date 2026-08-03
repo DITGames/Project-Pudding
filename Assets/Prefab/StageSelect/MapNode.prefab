@@ -89,7 +89,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::StageSelect.MapNodeView
   background: {fileID: 463033225163886945}
-  icon: {fileID: 0}
+  icon: {fileID: 463033225163886945}
   ring: {fileID: 0}
   lockedColor: {r: 1, g: 1, b: 1, a: 0.28}
   selectableColor: {r: 1, g: 1, b: 1, a: 1}
