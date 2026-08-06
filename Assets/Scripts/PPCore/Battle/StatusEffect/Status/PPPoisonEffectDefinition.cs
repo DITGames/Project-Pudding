@@ -6,6 +6,7 @@
  * @brief 毎ターンダメージを与える毒のStatusEffect定義
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -13,8 +14,8 @@ namespace PPCore
 {
     // 毎ターン一定ダメージを与える毒の定義
     // パラメータを変化させるのではなく Tick でダメージを与えるタイプの状態異常の実装例
-    [CreateAssetMenu(fileName = "PPPoisonEffectDefinition",
-        menuName = "Project-Pudding/Effect/PPPoisonEffectDefinition")]
+    [Serializable]
+    [PPTypeMenuName("StatusEffect付与/毒")]
     public class PPPoisonEffectDefinition : PPEffectDefinition
     {
         [Header("毒")]
@@ -40,5 +41,8 @@ namespace PPCore
         // ダメージ量と持続ターン数からエフェクト ID を組み立てる
         protected override string BuildAutoEffectId()
             => $"Poison_{mAttribute}_{mDamagePerTurn}_{mDuration}";
+
+        public override string BuildString()
+            => $"毒：{mDamagePerTurn}/ターン（{mAttribute}）";
     }
 }

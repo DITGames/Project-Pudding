@@ -6,23 +6,22 @@
  * @brief PPCore固有のエフェクトデータ定義
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
 namespace PPCore
 {
-    // エフェクト定義（ScriptableObject）の抽象基底
+    // エフェクト定義（[SerializeReference] 対応の通常クラス）の抽象基底
     // ID・表示名・持続期間・スタック挙動といった枠組みを定める
-    // エフェクト ID はインスペクタでの手入力ではなく BuildAutoEffectId で設定内容から自動生成する
+    // エフェクト ID は手入力・キャッシュせず、BuildAutoEffectId で設定内容から都度組み立てる
     // 同じ効果に別 ID が付いてスタック判定が働かなくなるのを防ぐため
     // 効き目そのものは ConfigureBehaviours で StatusEffectBehaviour を組み立てる形に一本化されており、
     // ランタイムインスタンスの生成自体は本基底が一手に引き受ける
-    public abstract class PPEffectDefinition : ScriptableObject
+    [Serializable]
+    public abstract class PPEffectDefinition
     {
-        // エフェクトID。BuildAutoEffectId により自動設定されるため手入力しない
         [Header("エフェクト")]
-        [Label("エフェクトID")]
-        [SerializeField]protected string mEffectId;
         [Label("表示名")]
         [SerializeField]protected string mDisplayName;
         [Label("期間")]
@@ -32,7 +31,7 @@ namespace PPCore
         [Label("最大スタック")]
         [SerializeField]protected int mMaxStack = 1;
 
-        public string EffectId => mEffectId;
+        public string EffectId => BuildAutoEffectId();
         public string DisplayName => mDisplayName;
         public int Duration => mDuration;
         public StatusEffectStackPolicy StackPolicy => mStackPolicy;
@@ -51,7 +50,7 @@ namespace PPCore
         // return : 生成されたステータスエフェクト
         public StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            var effect = new StatusEffect(mEffectId, mDisplayName, new TurnDurationCondition(mDuration))
+            var effect = new StatusEffect(BuildAutoEffectId(), mDisplayName, new TurnDurationCondition(mDuration))
                 .WithSource(aSource)
                 .WithSourceDefinition(this)
                 .WithStacking(mStackPolicy, mMaxStack)
@@ -74,11 +73,7 @@ namespace PPCore
         // return : 自動生成されたエフェクトID
         protected abstract string BuildAutoEffectId();
 
-        // インスペクタでの変更時にエフェクト ID を再生成して同期させる
-        private void OnValidate()
-        {
-            var autoId = BuildAutoEffectId();
-            mEffectId = autoId;
-        }
+        // フィールドラベルに表示する、この StatusEffect の内容を要約した文字列を組み立てる
+        public abstract string BuildString();
     }
 }

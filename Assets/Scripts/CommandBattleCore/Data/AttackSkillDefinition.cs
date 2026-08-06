@@ -30,6 +30,10 @@ namespace CommandBattleCore
         [SerializeField] protected AttackCategory mCategory;
         public AttackCategory Category => mCategory;
 
+        // ダメージ量の基礎値になる
+        [Label("スキルパワー")]
+        [SerializeField] protected float mPower = 10f;
+
         // 対象全員にダメージを与える効果を組み立てる
         // 生成されるデリゲートは実行のたびに、対象ごとのダメージ算出 → 命中判定 →
         // クリティカル補正 → 適用を繰り返す

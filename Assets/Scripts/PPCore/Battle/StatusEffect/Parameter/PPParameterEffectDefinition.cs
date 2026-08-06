@@ -6,6 +6,7 @@
  * @brief パラメータ異常のデータ定義
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -41,7 +42,8 @@ namespace PPCore
     // 「どのパラメータを」「上げるか下げるか」「加算か乗算か」「どれだけ」の 4 つを
     // インスペクタで組み合わせて表現する。変動量は常に正の値で入力し、
     // 符号や倍率への変換は ResolveModifier が引き受ける
-    [CreateAssetMenu(fileName = "PPParameterEffectDefinition", menuName = "Project-Pudding/Effect/PPParameterEffectDefinition")]
+    [Serializable]
+    [PPTypeMenuName("StatusEffect付与/パラメータ変動")]
     public class PPParameterEffectDefinition : PPEffectDefinition
     {
         [Header("パラメータエフェクト")]
@@ -123,5 +125,8 @@ namespace PPCore
         // 設定内容の組み合わせからエフェクト ID を組み立てる
         protected override string BuildAutoEffectId()
             => $"Param_{mTargetParam}_{mDirection}_{mModifierType}_{mValue}_{mDuration}";
+
+        public override string BuildString()
+            => $"{mTargetParam} {mDirection}：{mValue}（{mModifierType}）";
     }
 }
