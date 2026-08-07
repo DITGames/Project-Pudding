@@ -6,6 +6,7 @@
  * @brief バトル汎用
  * =====================================*/
 
+using System;
 using UnityEngine;
 
 namespace PPCore
@@ -23,36 +24,28 @@ namespace PPCore
         None,
     }
 
-    // スキル定義側が持つロール。AI が候補を PPBattleActionRole へ変換する際の入力になる
+    // スキル定義側が持つロール。AI の行動候補もこのロールをそのまま使う
+    // 1 つのスキルが複数ロールを同時に持てるようフラグ型にしており、
+    // 攻撃と回復を同時に行うスキルなどは Attack | Heal のように複数チェックする
+    // AI はチェックされたロールごとに個別の行動候補を生成する（PPPartyAIStrategistBase 参照）
+    [Flags]
     public enum PPBattleSkillRole
     {
-        [InspectorName(PPBattleUtilityDefinition.RoleNameAttack)]
-        Attack,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameSupport)]
-        Support,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameHeal)]
-        Heal,
-        // 特殊スキル。上記に当てはまらないもの
-        [InspectorName("スペシャル")]
-        Special,
-    }
-
-    // AI の行動候補が持つロール。スコア関数の振り分けと実行順序の決定に使う
-    public enum PPBattleActionRole
-    {
-        [InspectorName(PPBattleUtilityDefinition.RoleNameAttack)]
-        Attack,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameSupport)]
-        Support,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameHeal)]
-        Heal,
-        // 該当なし。スコア 0 として扱われる
         [InspectorName("なし")]
-        None,
+        None = 0,
+        [InspectorName(PPBattleUtilityDefinition.RoleNameAttack)]
+        Attack = 1 << 0,
+        [InspectorName(PPBattleUtilityDefinition.RoleNameSupport)]
+        Support = 1 << 1,
+        [InspectorName(PPBattleUtilityDefinition.RoleNameHeal)]
+        Heal = 1 << 2,
+        // 特殊スキル。他のロールと同様に AI のスコアリング対象になる
+        [InspectorName("スペシャル")]
+        Special = 1 << 3,
     }
 
     // ロールの日本語表示名を集約した定数群
-    // 3 つのロール enum で同じ文言を使うため、ハードコードせずここを参照する
+    // 複数のロール enum で同じ文言を使うため、ハードコードせずここを参照する
     public static class PPBattleUtilityDefinition
     {
         public const string RoleNameAttack = "攻撃";

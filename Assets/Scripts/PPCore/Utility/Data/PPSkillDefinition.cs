@@ -35,12 +35,13 @@ namespace PPCore
         [SerializeReference]
         [SerializeField] protected List<PPSkillEffectDefinition> mSkillEffects = new();
 
-        // AI がスキルのスコアリングに使う値。今回はプロパティ追加のみで、スコア計算ロジックへの組み込みは対象外
-        [Label("AIスコア")]
-        [SerializeField]protected int mAIScore;
-        
+        // AI がスキルのスコアリングに使う値。ロールごとに個別のスコアを持つ
+        // チェックされているロール（mBattleSkillRole）の数だけ入力欄が現れる
+        [Label("ロール別AIスコア")]
+        [SerializeField]protected PPSkillRoleScoreList mRoleScores = new();
+
         public PPBattleSkillRole BattleSkillRole => mBattleSkillRole;
-        public int AIScore => mAIScore;
+        public PPSkillRoleScoreList RoleScores => mRoleScores;
         // 消費リソース。初回アクセス時に構築してキャッシュする
         public PPResourceCost Cost => mCachedCost ??= PPResourceCost.From(mCost);
 

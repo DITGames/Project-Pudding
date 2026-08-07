@@ -11,7 +11,7 @@ using CommandBattleCore;
 namespace PPCore
 {
     // Project-Pudding 固有の要素を載せたバトルユニット
-    // 汎用の BattleUnit に対して、属性・拡張パラメータ・AI 用のロール／知能／スコア補正を追加する
+    // 汎用の BattleUnit に対して、属性・拡張パラメータ・AI 用のロール／知能を追加する
     // AI 側（PPPartyAIStrategistBase）は行動候補のスコアリングでここの
     // AssignedRole と Intelligence を参照する
     public class PPBattleUnit : BattleUnit
@@ -21,8 +21,6 @@ namespace PPCore
 
         // AI 上の役割。PPUnitRole.Inherit ならパーティ側の設定を継承する
         public PPUnitRole AssignedRole { get; set; } = PPUnitRole.Inherit;
-        // このユニット固有の行動スコア補正。AI のスコアリングに掛かる
-        public PPUnitActionScoreModifier ScoreModifier { get; set; } = new PPUnitActionScoreModifier();
 
         // AI の賢さ（0〜1）。低いほど最適でない行動を選びやすくなる
         // 0 はパーティプロファイルの Intelligence を継承する意味

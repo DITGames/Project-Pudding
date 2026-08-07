@@ -20,8 +20,9 @@ namespace PPCore
     {
         // この行動を取るユニット
         public PPBattleUnit Unit;
-        // 行動のロール。スコア関数の振り分けと実行順序の決定に使う
-        public PPBattleActionRole Role;
+        // 行動のロール。単一フラグを想定する（複数ロールを持つスキルはロールごとに候補を分ける）
+        // シチュエーション係数・ロール別重みの解決と実行順序の決定に使う
+        public PPBattleSkillRole Role;
         // この行動に必要なリソースコスト
         public PPResourceCost Cost;
         // 使用するスキル。通常攻撃の場合は null
@@ -31,6 +32,10 @@ namespace PPCore
 
         // 採用時にコマンドを生成するファクトリ。対象は生成時点で焼き込まれている
         public Func<BattleContext, BattleCommandBase> BuildCommand;
+
+        // ロール別の基礎AIスコア。スキルなら PPSkillDefinition.RoleScores、
+        // 通常攻撃なら PPBattleRules.NormalAttackAIScore から生成時に設定される
+        public float AIScore;
 
         // 評価済みのスコア。PPPartyAIStrategistBase.Evaluate が設定する
         public float Score;

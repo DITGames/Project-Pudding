@@ -16,7 +16,7 @@ namespace PPCore
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public sealed class PPTypeMenuNameAttribute : Attribute
     {
-        // "/" 区切りのツリー表示パス。既存の PPConditionMenuAttribute.Path と同じ考え方
+        // "/" 区切りのツリー表示パス
         public string Path { get; }
 
         // aPath : ツリー上の表示パス（"/" で階層を表す。区切りが無ければ単なる葉の名前になる）

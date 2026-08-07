@@ -6,6 +6,7 @@
  * @brief パーティ状況条件 : 経過ターン数
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -14,9 +15,8 @@ namespace PPCore
     // パーティ状況条件: バトル開始からの経過ターン数
     // 「序盤は溜めて中盤から攻める」のような、盤面ではなく進行度で切り替わる戦術に使う
     // ターン数は整数のため許容誤差を取らず厳密に比較する
-    [PPConditionMenu("進行/経過ターン数", "Progress/TurnCount")]
-    [CreateAssetMenu(fileName = "PPTurnCountCondition",
-        menuName = "Project-Pudding/AI/Conditions/経過ターン数")]
+    [Serializable]
+    [PPTypeMenuName("進行/経過ターン数")]
     public sealed class PPTurnCountCondition : PPPartyConditionValidator
     {
         [Label("比較")] public PPCompareOp Op = PPCompareOp.Equal;

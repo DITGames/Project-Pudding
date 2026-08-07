@@ -6,6 +6,7 @@
  * @brief パーティ状況条件 : パーティHP割合
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -14,9 +15,8 @@ namespace PPCore
     // パーティ状況条件: パーティ全体の HP 割合
     // 個々の残 HP ではなく合計 HP に対する割合で見るため、
     // 「全体的に消耗している」状況の判定に向く。閾値は 0～1 で保持する
-    [PPConditionMenu("パーティ状態/HP割合", "Party/HpRatio")]
-    [CreateAssetMenu(fileName = "PPPartyHpRatioCondition",
-        menuName = "Project-Pudding/AI/Conditions/パーティHP割合")]
+    [Serializable]
+    [PPTypeMenuName("パーティ状態/HP割合")]
     public sealed class PPPartyHpRatioCondition : PPPartyConditionValidator
     {
         [Label("比較")] public PPCompareOp Op = PPCompareOp.Equal;

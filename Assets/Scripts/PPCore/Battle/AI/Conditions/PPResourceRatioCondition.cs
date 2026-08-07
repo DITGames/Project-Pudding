@@ -6,6 +6,7 @@
  * @brief パーティ状況条件 : 指定リソースの割合
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -15,9 +16,8 @@ namespace PPCore
     // 絶対量で見る PPResourceAmountCondition と違い、上限に対する充足率で判定する
     // 「リソースが満タンに近いので大技を狙う」といった状況判断に使う
     // 閾値・許容値ともに 0～1 で扱う
-    [PPConditionMenu("リソース/残量(割合)", "Resources/Ratio")]
-    [CreateAssetMenu(fileName = "PPResourceRatioCondition",
-        menuName = "Project-Pudding/AI/Conditions/リソース割合")]
+    [Serializable]
+    [PPTypeMenuName("リソース/残量(割合)")]
     public sealed class PPResourceRatioCondition : PPPartyConditionValidator
     {
         [Label("対象リソース")] public PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;

@@ -40,8 +40,6 @@ namespace PPCore
         // AI ロールの上書き。Inherit ならユニット定義の既定ロールを使う
         [Header("上書き")]
         [Label("ロール上書き")] public PPUnitRole RoleOverride = PPUnitRole.Inherit;
-        [Label("行動スコアを上書きする?")] public bool IsOverrideActionScore = false;
-        [Label("行動スコア上書き値")][EditCondition(nameof(IsOverrideActionScore), true)]public PPUnitActionScoreModifier ActionScoreOverride = new();
         [Label("知能を上書きする?")] public bool IsOverrideIntelligence = false;
         // 知能の上書き値（0〜1）。0 を指定した場合はプロファイルの値を継承する扱いになる
         [PercentLabel("知能上書き値", 0f, 1f, "継承")][EditCondition(nameof(IsOverrideIntelligence), true)]public float IntelligenceOverride = 0.5f;
