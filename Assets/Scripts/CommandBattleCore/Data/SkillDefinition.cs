@@ -32,9 +32,6 @@ namespace CommandBattleCore
         [Header("詳細")]
         [Label("ターゲット選択")]
         [SerializeField] protected TargetScope mTargetScope = TargetScope.SingleEnemy;
-        // ダメージ量・回復量の基礎値になる
-        [Label("スキルパワー")]
-        [SerializeField] protected float mPower = 10f;
         [Label("クールタイム")]
         [SerializeField] protected int mMaxCooldown = 0;
         [Label("最大使用回数")]

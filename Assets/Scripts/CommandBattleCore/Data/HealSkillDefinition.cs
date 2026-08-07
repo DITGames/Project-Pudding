@@ -17,6 +17,10 @@ namespace CommandBattleCore
     [CreateAssetMenu(fileName = "HealSkillDefinition", menuName = "CommandBattleCore/HealSkillDefinition")]
     public class HealSkillDefinition : SkillDefinition
     {
+        // ダメージ量の基礎値になる
+        [Label("スキルパワー")]
+        [SerializeField] protected float mPower = 10f;
+
         // 対象全員をスキルパワー分だけ回復する効果を組み立てる
         // 戦闘不能のユニットは BattleUnit.ApplyHeal 側で弾かれるため、蘇生にはならない
         // return : 効果本体のデリゲート

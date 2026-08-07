@@ -29,12 +29,17 @@ namespace PPCore
         // 攻撃スキルの基礎ダメージ量を求める。通常攻撃の式にスキルの威力を上乗せする
         // aSource : 攻撃側ユニット
         // aTarget : 防御側ユニット
-        // aSkill : 使用するスキルの定義
+        // aPower : 威力倍率
         // return : 丸め済みの基礎ダメージ量
-        public static float ResolveAttackSkillDamage(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSkill)
+        public static float ResolveAttackSkillDamage(BattleUnit aSource, BattleUnit aTarget, float aPower, PPSkillCategory aCategory)
         {
-            var amount = Mathf.Max(1f, aSource.Parameters.Attack.CurrentValue + aSkill.Power - aTarget.Parameters.Defense.CurrentValue * 0.5f);
-            return Mathf.RoundToInt(amount);
+            // スキルのカテゴリごとに分ける(物理か特殊、その他はエラーで0を返す)
+            return aCategory switch
+            {
+                PPSkillCategory.Physical => Mathf.RoundToInt(Mathf.Max(1f, aSource.Parameters.Attack.CurrentValue * aPower - aTarget.Parameters.Defense.CurrentValue * 0.5f)),
+                PPSkillCategory.Special => Mathf.RoundToInt(Mathf.Max(1f, aSource.Parameters.Attack.CurrentValue * aPower - aTarget.Parameters.Defense.CurrentValue * 0.5f)),
+                _ => 0f
+            };
         }
 
         // 攻撃属性を解決する
