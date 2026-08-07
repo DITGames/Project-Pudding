@@ -12,13 +12,32 @@ using UnityEngine;
 namespace PPCore
 {
     // PPPartyConditionValidator 型のフィールド・リスト要素を、
-    // 型未選択なら型選択メニューを開くボタン、選択済みなら Description をラベルにしてフィールド展開する
-    // PPSkillEffectDefinitionDrawer と同じ形で PPManagedReferencePickerUtility に委譲する
+    // 型未選択ならツリーポップアップ（PPPartyConditionPickerPopup）を開く選択ボタン、
+    // 選択済みなら Description をラベルにしてフィールド展開する
+    // PPSkillEffectDefinitionDrawer と同じ形。選択済みの描画は PPManagedReferencePickerUtility に委譲する
     [CustomPropertyDrawer(typeof(PPPartyConditionValidator), true)]
     public class PPPartyConditionValidatorDrawer : PropertyDrawer
     {
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
-            => PPManagedReferencePickerUtility.OnGUI(aPosition, aProperty, aLabel, typeof(PPPartyConditionValidator));
+        {
+            if (string.IsNullOrEmpty(aProperty.managedReferenceFullTypename))
+            {
+                var buttonRect = new Rect(aPosition.x, aPosition.y, aPosition.width, EditorGUIUtility.singleLineHeight);
+                if (GUI.Button(buttonRect, $"+ {aLabel.text} を選択"))
+                {
+                    // ポップアップのコールバックは非同期(フレームをまたぐ)ため、プロパティをコピーして保持する
+                    var propertyCopy = aProperty.Copy();
+                    PPPartyConditionPickerPopup.Show(buttonRect, instance =>
+                    {
+                        propertyCopy.managedReferenceValue = instance;
+                        propertyCopy.serializedObject.ApplyModifiedProperties();
+                    });
+                }
+                return;
+            }
+
+            PPManagedReferencePickerUtility.DrawAssignedField(aPosition, aProperty, aLabel);
+        }
 
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
             => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
