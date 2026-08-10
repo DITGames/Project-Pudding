@@ -18,7 +18,7 @@ namespace PPCore
     public static class PPPartyFactory
     {
         // PPPartyDefinition からランタイムパーティを生成する
-        // メンバーごとにユニットを生成し、ロール・スコア補正・知能の上書きを適用してから編成する
+        // メンバーごとにユニットを生成し、ロール・知能の上書きを適用してから編成する
         // aDefinition : 生成元のパーティ定義
         // aSide : このパーティの陣営
         // aItems : 初期所持アイテム。null なら空のインベントリになる
@@ -32,7 +32,6 @@ namespace PPCore
                 if(entry == null) continue;
                 var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
                 unit.AssignedRole = ResolveRole(entry);
-                unit.ScoreModifier = entry.IsOverrideActionScore ? entry.ActionScoreOverride : entry.Unit.ActionScoreModifier;
                 unit.Intelligence = ResolveIntelligence(entry);
                 units.Add(unit);
             }

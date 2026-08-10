@@ -6,6 +6,7 @@
  * @brief パーティ状況条件 : 指定リソース残量(絶対値)
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -14,9 +15,8 @@ namespace PPCore
     // パーティ状況条件: 指定属性のリソース残量を絶対値で判定する
     // 「特定のスキルを撃つのに必要な量が溜まったか」のように、
     // 具体的なコスト量と突き合わせたい場合はこちらを使う（割合で見るなら PPResourceRatioCondition）
-    [PPConditionMenu("リソース/残量(絶対値)", "Resources/Amount")]
-    [CreateAssetMenu(fileName = "PPResourceAmountCondition",
-        menuName = "Project-Pudding/AI/Conditions/リソース残量(絶対値)")]
+    [Serializable]
+    [PPTypeMenuName("リソース/残量(絶対値)")]
     public sealed class PPResourceAmountCondition : PPPartyConditionValidator
     {
         [Label("対象リソース")] public PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;

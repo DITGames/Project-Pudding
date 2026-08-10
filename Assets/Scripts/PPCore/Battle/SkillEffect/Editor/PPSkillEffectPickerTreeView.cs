@@ -16,8 +16,8 @@ using UnityEngine;
 namespace PPCore
 {
     // PPSkillEffectDefinition 派生と PPEffectDefinition 派生をまとめて 1 本のツリーに表示する
-    // 階層は PPTypeMenuNameAttribute の Path から組み立てる（PPConditionTreeView と同じ考え方）
-    // アセットを生成しない方式のため、PPConditionTreeView と異なり既存アセットの列挙は行わない
+    // 階層は PPTypeMenuNameAttribute の Path から組み立てる
+    // アセットを生成しない方式のため、既存アセットの列挙は行わない
     internal sealed class PPSkillEffectPickerTreeView : TreeView<int>
     {
         // 型が選ばれたときのコールバック

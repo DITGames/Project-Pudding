@@ -6,18 +6,20 @@
  * @brief パーティAI状況条件の基底クラス
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
 namespace PPCore
 {
-    // パーティ AI の状況ルールが評価する条件の基底クラス（ScriptableObject）
-    // 「HP が減っている」「リソースが溜まっている」といった判定を 1 つずつアセット化し、
+    // パーティ AI の状況ルールが評価する条件の基底クラス
+    // 「HP が減っている」「リソースが溜まっている」といった判定を 1 つずつクラス化し、
     // PPPartyAISituationRule が複数を AND で束ねて状況を判断する
-    // 条件をアセットにすることで、AI の性格付けをコードを触らず組み替えられる
-    // 派生クラスを追加するときは PPConditionMenuAttribute と CreateAssetMenu を必ず付けること
-    // ピッカー UI とアセット自動生成がこれに依存する
-    public abstract class PPPartyConditionValidator : ScriptableObject
+    // PPSkillEffectDefinition と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとし、
+    // PPPartyAISituationRule.Conditions にインスタンスとして直接保持される
+    // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
+    [Serializable]
+    public abstract class PPPartyConditionValidator
     {
         [Header("表示")]
         [Label("説明")]

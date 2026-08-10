@@ -6,6 +6,7 @@
  * @brief パーティ戦略構築のベースクラス
  * =====================================*/
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommandBattleCore;
@@ -19,7 +20,7 @@ namespace PPCore
     // 「限られたリソースを誰の何に割り当てるか」を決めるのがこの AI の役割
     // PPEnemyAIDriver が一定間隔で PlanActions を呼び出して駆動する
     // 思考の流れは PlanActions を参照。挙動のチューニングは基本的にコードではなく
-    // PPPartyAIProfileDefinition アセット側で行う
+    // PPPartyAIProfileDefinition アセット（性格）と PPSkillDefinition のロール別AIスコア（スキルの強さ）で行う
     // スコア計算系は全て protected virtual 相当の粒度で切ってあるので、
     // 特殊な敵を作る場合はこのクラスを継承して個別のスコア関数だけを差し替える
     // 乱数は必ず aContext.Rules.RandomProvider を経由すること（UnityEngine.Random は使わない）
@@ -108,7 +109,7 @@ namespace PPCore
                 // 行動のスコア評価
                 foreach (var c in candidates)
                 {
-                    c.Score = Evaluate(c, snap, situation);
+                    c.Score = Evaluate(c, situation);
                 }
 
                 // 上位3件のスコアを可視化用に出力する
@@ -276,6 +277,7 @@ namespace PPCore
 
         // ユニット 1 体分の行動候補を収集する。通常攻撃と、発動可能な各スキルを候補として並べる
         // この段階ではリソースが足りるかは見ておらず、コスト込みの候補として全て返す
+        // 複数ロールを持つスキルは、ロールごとに個別の候補として競わせる
         // aUnit : 対象ユニット
         // aSnap : パーティ状況スナップショット
         // aFocusTarget : このユニットが狙うと決めた攻撃対象
@@ -292,13 +294,16 @@ namespace PPCore
                 // ラムダに載せるためローカルへ退避する
                 var u = aUnit;
                 var tgt = aFocusTarget;
+                // 通常攻撃はスキル定義を持たないため、基礎AIスコアは PPBattleRules 側の値を使う
+                float normalAttackScore = (aContext.Rules as PPBattleRules)?.NormalAttackAIScore ?? 0f;
                 list.Add(new PPActionCandidate
                 {
                     Unit = u,
-                    Role = PPBattleActionRole.Attack,
+                    Role = PPBattleSkillRole.Attack,
                     Cost = PPResourceCost.BaseCost(atkCost),
                     Skill = null,
                     Target = tgt,
+                    AIScore = normalAttackScore,
                     BuildCommand = _ => new PPAttackCommand(u, new SingleEnemyResolver(tgt)),
                 });
             }
@@ -312,50 +317,58 @@ namespace PPCore
                 if(skill.SourceDefinition is not PPSkillDefinition def)
                     continue;
 
-                var role = RoleOf(def);
-                var target = ResolveSkillTarget(role, aSnap, aFocusTarget);
                 var u = aUnit;
                 var s = skill as PPBattleSkill;
                 var scope = def.TargetScope;
-                var chosen = target as PPBattleUnit;
-                list.Add(new PPActionCandidate
+
+                // チェックされているロールの数だけ、個別の候補として生成する
+                foreach (var role in RoleFlags(def.BattleSkillRole))
                 {
-                    Unit = u,
-                    Role = role,
-                    Cost = def.Cost,
-                    Skill = s,
-                    Target = chosen,
-                    BuildCommand = _ => new PPSkillCommand(u, s, BuildSkillResolver(scope, chosen)),
-                });
+                    var target = ResolveSkillTarget(role, aSnap, aFocusTarget);
+                    var chosen = target as PPBattleUnit;
+                    var resolver = BuildSkillResolver(scope, target);
+                    list.Add(new PPActionCandidate
+                    {
+                        Unit = u,
+                        Role = role,
+                        Cost = def.Cost,
+                        Skill = s,
+                        Target = chosen,
+                        AIScore = def.RoleScores.Get(role),
+                        BuildCommand = _ => new PPSkillCommand(u, s, resolver),
+                    });
+                }
             }
 
             return list;
         }
 
+        // aRoles に含まれる単一フラグをすべて列挙する（None は含めない）
+        // ロールが増えても Enum.GetValues で拾えるため、このメソッドの修正は不要
+        // aRoles : 判定対象のロールフラグ
+        // return : 立っているロール単体の列挙
+        private static IEnumerable<PPBattleSkillRole> RoleFlags(PPBattleSkillRole aRoles)
+        {
+            foreach (PPBattleSkillRole role in Enum.GetValues(typeof(PPBattleSkillRole)))
+            {
+                if (role == PPBattleSkillRole.None) continue;
+                if ((aRoles & role) != 0) yield return role;
+            }
+        }
+
         // スキルのロールに応じて対象を決める。回復なら最も HP 割合の低い味方、
-        // 攻撃なら狙うと決めた敵、それ以外は対象指定なし（範囲・自己完結スキル）
+        // 攻撃なら狙うと決めた敵、それ以外（サポート・スペシャル等）は対象指定なし
+        // （BuildSkillResolver がスコープ既定のリゾルバへフォールバックする）
         // aRole : スキルの行動ロール
         // aSnap : パーティ状況スナップショット
         // aTarget : 攻撃時に使う対象
         // return : 対象ユニット。指定不要なら null
-        protected static BattleUnit ResolveSkillTarget(PPBattleActionRole aRole, PPPartyAIContext aSnap, BattleUnit aTarget)
+        protected static BattleUnit ResolveSkillTarget(PPBattleSkillRole aRole, PPPartyAIContext aSnap, BattleUnit aTarget)
             => aRole switch
             {
-                PPBattleActionRole.Heal => aSnap.LowestHpRatioAlly,
-                PPBattleActionRole.Attack => aTarget,
+                PPBattleSkillRole.Heal => aSnap.LowestHpRatioAlly,
+                PPBattleSkillRole.Attack => aTarget,
                 _ => null,
-            };
-
-        // スキル定義のスキルロールを、AI 側の行動ロールへ変換する
-        // aDef : スキル定義
-        // return : 対応する行動ロール
-        protected static PPBattleActionRole RoleOf(PPSkillDefinition aDef)
-            => aDef.BattleSkillRole switch
-            {
-                PPBattleSkillRole.Attack => PPBattleActionRole.Attack,
-                PPBattleSkillRole.Heal => PPBattleActionRole.Heal,
-                PPBattleSkillRole.Support => PPBattleActionRole.Support,
-                _ => PPBattleActionRole.None,
             };
 
         // AI が選んだ対象を焼き込んだターゲットリゾルバを作る
@@ -379,174 +392,44 @@ namespace PPCore
         // aUnit : 対象ユニット
         protected static PPUnitRole ResolveUnitRole(PPBattleUnit aUnit) => aUnit.AssignedRole;
 
-        // ユニットのロールに対応する状況ウェイトを引く
-        // パーティ内での行動の優先順位付けに掛かる
-        // aRole : ユニットのロール
-        // aSituation : 解決済みの状況スコア
-        // return : ロールに対応するウェイト。未割り当ての場合は 3 種の平均
-        protected static float SituationWeightFor(PPUnitRole aRole, PPAISituationScore aSituation)
+        // ユニットの配置ロール（PPUnitRole）を、シチュエーション係数が使うスキルロール（PPBattleSkillRole）へ対応付ける
+        // aRole : ユニットの配置ロール
+        // return : 対応するスキルロール。対応が無ければ null
+        private static PPBattleSkillRole? MapUnitRole(PPUnitRole aRole)
             => aRole switch
             {
-                PPUnitRole.Attacker => aSituation.Attack,
-                PPUnitRole.Supporter => aSituation.Support,
-                PPUnitRole.Healer => aSituation.Heal,
-                _ => (aSituation.Attack + aSituation.Support + aSituation.Heal) / 3f,   // 未割り当ては平均値を返却
+                PPUnitRole.Attacker => PPBattleSkillRole.Attack,
+                PPUnitRole.Supporter => PPBattleSkillRole.Support,
+                PPUnitRole.Healer => PPBattleSkillRole.Heal,
+                _ => null,
             };
 
-        // 候補の行動ロールに対応する、ユニット固有のスコア倍率を引く
-        // 「このユニットは攻撃を好む」といった個体差を表現する
-        // aUnit : 行動主体のユニット
-        // aCandidate : 評価中の候補
-        // return : スコアに掛ける倍率。対応ロールが無ければ 1
-        protected static float UnitScoreMultiplier(PPBattleUnit aUnit, PPActionCandidate aCandidate)
+        // ユニットの配置ロールに対応する状況係数を引く
+        // パーティ内での行動の優先順位付けに掛かる
+        // aRole : ユニットの配置ロール
+        // aSituation : 解決済みの状況スコア
+        // return : 対応するロールの状況係数。未割り当ての場合は登録済み係数の平均
+        protected static float SituationWeightFor(PPUnitRole aRole, PPAISituationScore aSituation)
         {
-            var mod = aUnit.ScoreModifier;
-            return aCandidate.Role switch
-            {
-                PPBattleActionRole.Attack => mod.Attack,
-                PPBattleActionRole.Support => mod.Support,
-                PPBattleActionRole.Heal => mod.Heal,
-                _ => 1f,
-            };
+            var mapped = MapUnitRole(aRole);
+            return mapped.HasValue
+                ? aSituation.Roles.Resolve(mapped.Value, 1f)
+                : aSituation.Roles.Average(1f);
         }
 
-        // 行動候補のスコアを評価する。ロール別のスコア関数へ振り分け、
-        // 最後にユニット固有の倍率を掛ける。通常攻撃と攻撃スキルはスキルの有無で分岐する
+        // 行動候補のスコアを評価する
+        // 最終スコア = AIScore（ロール別。スキル定義側 or 通常攻撃は PPBattleRules 側）
+        //            × シチュエーション係数（ロール別。状況ルールから解決）
+        //            × ロール別重み（プロファイル側の性格）
+        // 知能によるノイズは SelectBestCandidate 側で別途載せる
         // aCandidate : 評価する候補
-        // aSnap : パーティ状況スナップショット
-        // aScore : 解決済みの状況スコア
+        // aSituation : 解決済みの状況スコア
         // return : この候補の最終スコア
-        protected float Evaluate(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aScore)
+        protected float Evaluate(PPActionCandidate aCandidate, PPAISituationScore aSituation)
         {
-            float baseScore = aCandidate.Role switch
-            {
-                PPBattleActionRole.Attack when aCandidate.Skill == null => ScoreBasicAttack(aCandidate, aSnap, aScore),
-                PPBattleActionRole.Attack => ScoreSkillAttack(aCandidate, aSnap, aScore),
-                PPBattleActionRole.Support => ScoreSupport(aCandidate, aSnap, aScore),
-                PPBattleActionRole.Heal => ScoreHeal(aCandidate, aSnap, aScore),
-                _ => 0f,
-            };
-            return baseScore * UnitScoreMultiplier(aCandidate.Unit, aCandidate);
-        }
-
-        // 各スコア計算の共通ベース
-        // 「基礎点 + バイアス × 状況係数」に、ロール重み・状況倍率・攻撃性・コスト効率を掛け合わせる
-        // aWeight : プロファイルのロール別重み
-        // aSituationMul : 状況スコアによる倍率
-        // aBaseScore : 行動種別ごとの基礎点
-        // aBias : 状況係数に掛けるバイアス
-        // aFactor : 状況係数（とどめやすさ・人数比・緊急度など）
-        // aUseAggression : 攻撃性（Aggression）を反映するか。攻撃系のみ true
-        // aCost : この行動のコスト。コスト効率の算出に使う
-        // aAggressionMultiplier : 状況による攻撃性の追加倍率
-        // return : 算出されたスコア
-        protected float ScoreWeighted(float aWeight, float aSituationMul, float aBaseScore, float aBias, float aFactor,
-            bool aUseAggression, PPResourceCost aCost, float aAggressionMultiplier = 1f)
-        {
-            float raw = aBaseScore + aBias * aFactor;
-            float aggr = aUseAggression ? mProfile.Aggression * aAggressionMultiplier : 1f;
-            return aWeight * aSituationMul * raw * aggr * CostEfficiency(aCost);
-        }
-
-        // 通常攻撃のスコアを計算する。対象の HP 割合が低いほど（＝とどめを刺しやすいほど）高くなる
-        // aCandidate : 評価する候補
-        // aSnap : パーティ状況スナップショット
-        // aSituation : 解決済みの状況スコア
-        // return : 算出されたスコア
-        protected float ScoreBasicAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
-        {
-            var s = mProfile.AttackScore;
-            float finishBias = 1f - PPPartyAIContext.HpRatio(aCandidate.Target);
-            return ScoreWeighted(
-                mProfile.Weights.Attack,
-                aSituation.Attack,
-                s.BaseScore,
-                s.HpRatioBias,
-                finishBias,
-                true,
-                aCandidate.Cost,
-                aSituation.AggressionMultiplier);
-        }
-
-        // 攻撃スキルのスコアを計算する
-        // 単体対象なら通常攻撃と同じくとどめやすさを、対象を持たない範囲スキルなら
-        // プロファイルの範囲スキル評価値を係数として使う
-        // aCandidate : 評価する候補
-        // aSnap : パーティ状況スナップショット
-        // aSituation : 解決済みの状況スコア
-        // return : 算出されたスコア
-        protected float ScoreSkillAttack(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
-        {
-            var s = mProfile.SkillScore;
-
-            float finishBias = aCandidate.Target != null
-                ? 1f - PPPartyAIContext.HpRatio(aCandidate.Target)
-                : s.RangeSkillScore;
-
-            return ScoreWeighted(
-                mProfile.Weights.Attack,
-                aSituation.Attack,
-                s.BaseScore,
-                s.HpRatioBias,
-                finishBias,
-                true,
-                aCandidate.Cost,
-                aSituation.AggressionMultiplier);
-        }
-
-        // サポートスキルのスコアを計算する。生存人数が多いほど恩恵が大きいとみなして高くなる
-        // aCandidate : 評価する候補
-        // aSnap : パーティ状況スナップショット
-        // aSituation : 解決済みの状況スコア
-        // return : 算出されたスコア
-        protected float ScoreSupport(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
-        {
-            var s = mProfile.SupportScore;
-            float allies = Mathf.Clamp01(aSnap.AliveMembers.Count / s.MemberCountScore);
-            return ScoreWeighted(
-                mProfile.Weights.Support,
-                aSituation.Support,
-                s.BaseScore,
-                s.MemberCountBias,
-                allies,
-                false,
-                aCandidate.Cost);
-        }
-
-        // 回復スキルのスコアを計算する
-        // 味方の最低 HP 割合から緊急度を求め、閾値未満なら回復不要として 0 を返す
-        // 緊急度は 2 乗して扱うため、瀕死に近づくほど急激にスコアが跳ね上がる
-        // aCandidate : 評価する候補
-        // aSnap : パーティ状況スナップショット
-        // aSituation : 解決済みの状況スコア
-        // return : 算出されたスコア。閾値未満なら 0
-        protected float ScoreHeal(PPActionCandidate aCandidate, PPPartyAIContext aSnap, PPAISituationScore aSituation)
-        {
-            var s = mProfile.HealScore;
-            float severity = 1f - aSnap.LowestAllyHpRatio;
-            if (severity < s.Threshold) return 0f;
-
-            float urgency = severity * severity;
-            return ScoreWeighted(
-                mProfile.Weights.Heal,
-                aSituation.Heal,
-                0f,
-                s.HpRatioBias,
-                urgency,
-                false,
-                aCandidate.Cost);
-        }
-
-        // 消費コストによるスコア減少率を計算する
-        // 基準コストに対する比率が大きいほど 1 から下がっていくため、
-        // 同程度の効果なら安い行動が優先される
-        // aCost : 評価する行動のコスト。無コストなら 1 を返す
-        // return : スコアに掛ける 0～1 の効率係数
-        protected float CostEfficiency(PPResourceCost aCost)
-        {
-            if(aCost == null || aCost.IsFree) return 1f;
-            var cs = mProfile.CostScore;
-            return 1f / (1f + mProfile.CostSensitivity * (aCost.Total / cs.ReferenceCost));
+            float situationCoefficient = aSituation.Roles.Resolve(aCandidate.Role, 1f);
+            float roleWeight = mProfile.Weights.Resolve(aCandidate.Role, 1f);
+            return aCandidate.AIScore * situationCoefficient * roleWeight;
         }
 
         // 「今は撃たずに待ってリソースを溜めた方が良いか」を評価する
@@ -590,12 +473,12 @@ namespace PPCore
         // ロールごとの実行順序を引く。同一ティック内でどの行動を先に処理するかの並び順になる
         // aRole : 行動ロール
         // return : プロファイルで設定された実行順序値
-        protected int RoleOrder(PPBattleActionRole aRole)
+        protected int RoleOrder(PPBattleSkillRole aRole)
         => aRole switch
         {
-            PPBattleActionRole.Attack => mProfile.Order.Attack,
-            PPBattleActionRole.Support => mProfile.Order.Support,
-            PPBattleActionRole.Heal => mProfile.Order.Heal,
+            PPBattleSkillRole.Attack => mProfile.Order.Attack,
+            PPBattleSkillRole.Support => mProfile.Order.Support,
+            PPBattleSkillRole.Heal => mProfile.Order.Heal,
             _ => mProfile.Order.Default,
         };
 

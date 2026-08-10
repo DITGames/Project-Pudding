@@ -6,6 +6,7 @@
  * @brief バトルで使用されるリソース定義
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using CustomConsole;
 
@@ -19,6 +20,11 @@ namespace PPCore
     {
         // 属性ごとの行動用リソース。添字は PPTypeAttribute と対応する
         private readonly ResourceParameter[] mResourcePools;
+
+        // 収入が発生したときに発火する(対象の属性, 実際に増えた量)
+        // AI の収入推定(PPIncomeTracker)が購読し、収入ペースの見積もりに使う
+        // 上限で切り捨てられた分は含めず、実際にプールが増えた量だけを通知する
+        public event Action<PPTypeAttribute, float> OnResourceGained;
 
         // 全属性分のリソースを生成する
         // ResourceParameter は最大値で初期化されるため、
@@ -45,15 +51,25 @@ namespace PPCore
         // a : 対象の属性
         public float Max(PPTypeAttribute a) => mResourcePools[(int)a].Max.CurrentValue;
         // 指定属性のリソースを加算する。上限を超えた分は切り捨てられる
+        // 加算要求量ではなく実際に増えた量を測って OnResourceGained へ流すため、
+        // 上限に張り付いている間は収入 0 として観測される（溢れている状態と整合する）
         // a : 対象の属性
         // aAmount : 加算量
         public void Add(PPTypeAttribute a, float aAmount)
         {
+            // 実質変化のない加算(0など)は通知もログも出さない
+            if (aAmount <= 0f)
+                return;
+
+            float before = mResourcePools[(int)a].Current;
             mResourcePools[(int)a].Recover(aAmount);
-            // 実質変化のない加算(0など)はログを出さない
-            if (aAmount > 0f)
+            float gained = mResourcePools[(int)a].Current - before;
+
+            CustomConsoleLog.Verbose("Resource", $"{a}リソースが{aAmount}加算されました（残量{mResourcePools[(int)a].Current}）。");
+
+            if (gained > 0f)
             {
-                CustomConsoleLog.Verbose("Resource", $"{a}リソースが{aAmount}加算されました（残量{mResourcePools[(int)a].Current}）。");
+                OnResourceGained?.Invoke(a, gained);
             }
         }
 

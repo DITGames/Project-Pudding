@@ -55,6 +55,8 @@ namespace PPCore
             {
                 case PPSkillEffectDefinition skillEffect: label.text = skillEffect.BuildString(); break;
                 case PPEffectDefinition statusEffect: label.text = statusEffect.BuildString(); break;
+                case PPPartyConditionValidator condition when !string.IsNullOrEmpty(condition.Description):
+                    label.text = condition.Description; break;
             }
             EditorGUI.PropertyField(aPosition, aProperty, label, true);
         }

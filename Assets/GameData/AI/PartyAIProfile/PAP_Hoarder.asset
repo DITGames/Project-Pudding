@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
+  m_Name: PAP_Hoarder
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
+  mDescription: "\u6E9C\u3081\u578B\uFF08\u5F37\u653B\u6483\u304C\u3042\u308B\u6575\u5411\u3051\uFF09"
+  mIsUseLambda: 1
+  mIsUseInsurance: 1
+  mIsUseBanking: 1
+  mLambdaScale: 2
+  mOverflowAversion: 1.5
+  mInsuranceCount: 0
+  Caution: 0.8
+  Intelligence: 0.7
+  TrendSampleCount: 4
+  ThinkInterval: 2
+  MaxActionsPerTick: 2
+  mActionNoise: 0.1
+  Order:
+    Attack: 1
+    Support: 0
+    Heal: 2
+    Default: 3
+  mDefaultDoctrine:
+    mRoles: []
+    mSpendCapRatio: 1
+    mLambdaMultiplier: 1
+    mReserves: []
+    mPatienceMultiplier: 1
+  Rules: []
+  Weights: []
+  ActionNoiseAmplitude: 0.6
+  DefaultScore:
+    Roles: []
+    PatienceMultiplier: 1
+  references:
+    version: 2
+    RefIds: []

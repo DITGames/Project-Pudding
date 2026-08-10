@@ -6,6 +6,7 @@
  * @brief パーティ状況条件 : 味方ユニット生存数
  * =====================================*/
 
+using System;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -28,9 +29,8 @@ namespace PPCore
     // パーティ状況条件: 生存ユニット数
     // 「味方が 1 体になったら総攻撃」「敵が残り 1 体なら回復より攻撃」といった
     // 頭数に基づく戦術の切り替えに使う。人数は整数のため厳密に比較する
-    [PPConditionMenu("パーティ状態/ユニット生存数", "Party/AliveUnitCount")]
-    [CreateAssetMenu(fileName = "PPAllyAliveCountCondition",
-        menuName = "Project-Pudding/AI/Conditions/ユニット生存数")]
+    [Serializable]
+    [PPTypeMenuName("パーティ状態/ユニット生存数")]
     public sealed class PPAliveUnitCountCondition : PPPartyConditionValidator
     {
         [Label("対象")] public PPAliveUnitCountConditionType ConditionType = PPAliveUnitCountConditionType.Ally;

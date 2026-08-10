@@ -2,8 +2,8 @@
  * Copyright hqrse. All rights reserved.
  * @file PPPartyConditionValidatorDrawer.cs
  * @author hqrse
- * @date 2026/07/21
- * @brief 条件リストの要素ラベルにDescriptionを表示するDrawer
+ * @date 2026/08/07
+ * @brief PPPartyConditionValidator の [SerializeReference] フィールド用インスペクタ拡張
  * =====================================*/
 
 using UnityEditor;
@@ -11,30 +11,35 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 条件アセットの参照フィールドを、アセット名ではなく説明文で表示する PropertyDrawer
-    // 条件リストが「Element 0, Element 1...」ではなく
-    // 「HPが30%以下」のように読める形になり、ルールの中身が一覧で把握できる
+    // PPPartyConditionValidator 型のフィールド・リスト要素を、
+    // 型未選択ならツリーポップアップ（PPPartyConditionPickerPopup）を開く選択ボタン、
+    // 選択済みなら Description をラベルにしてフィールド展開する
+    // PPSkillEffectDefinitionDrawer と同じ形。選択済みの描画は PPManagedReferencePickerUtility に委譲する
     [CustomPropertyDrawer(typeof(PPPartyConditionValidator), true)]
     public class PPPartyConditionValidatorDrawer : PropertyDrawer
     {
-        // 説明文が設定されていればラベルとして使い、無ければ既定のラベルのまま描画する
-        // aPosition : 描画領域
-        // aProperty : 対象プロパティ
-        // aLabel : 既定のラベル
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
-            var condition = aProperty.objectReferenceValue as PPPartyConditionValidator;
-            var label = (condition != null && !string.IsNullOrEmpty(condition.Description))
-                ? new GUIContent(condition.Description, aLabel.tooltip)
-                : aLabel;
+            if (string.IsNullOrEmpty(aProperty.managedReferenceFullTypename))
+            {
+                var buttonRect = new Rect(aPosition.x, aPosition.y, aPosition.width, EditorGUIUtility.singleLineHeight);
+                if (GUI.Button(buttonRect, $"+ {aLabel.text} を選択"))
+                {
+                    // ポップアップのコールバックは非同期(フレームをまたぐ)ため、プロパティをコピーして保持する
+                    var propertyCopy = aProperty.Copy();
+                    PPPartyConditionPickerPopup.Show(buttonRect, instance =>
+                    {
+                        propertyCopy.managedReferenceValue = instance;
+                        propertyCopy.serializedObject.ApplyModifiedProperties();
+                    });
+                }
+                return;
+            }
 
-            EditorGUI.PropertyField(aPosition, aProperty, label);
+            PPManagedReferencePickerUtility.DrawAssignedField(aPosition, aProperty, aLabel);
         }
 
-        // 描画に必要な高さを返す。ラベルを差し替えるだけなので標準の高さを使う
-        // aProperty : 対象プロパティ
-        // aLabel : ラベル
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
-            => EditorGUI.GetPropertyHeight(aProperty, aLabel, true);
+            => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
     }
 }

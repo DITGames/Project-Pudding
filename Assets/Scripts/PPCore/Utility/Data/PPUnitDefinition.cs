@@ -13,7 +13,7 @@ namespace PPCore
 {
     // 本作固有の要素を追加したユニット定義
     // 基底の UnitDefinition に対して、属性・追加ステータス・
-    // パーティ AI 用の既定値（ロール・スコア補正・知能）・レベル成長曲線を持つ
+    // パーティ AI 用の既定値（ロール・知能）・レベル成長曲線を持つ
     // 成長は「レベルごとの実数値テーブル」ではなく AnimationCurve の倍率で表現する
     // 基礎ステータスに倍率を掛けるだけで済み、成長カーブをインスペクタ上で視覚的に調整できる
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
@@ -29,7 +29,6 @@ namespace PPCore
         // AI 上の既定ロール。Inherit ならパーティ側の設定に従う
         [Header("パーティAI")]
         [Label("既定ロール")][SerializeField]protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
-        [Label("既定の行動スコア補正")][SerializeField]protected PPUnitActionScoreModifier mDefaultActionScore = new();
         // 既定の知能（0〜1）。0 ならパーティプロファイルの値を継承する
         [PercentLabel("既定の知能", 0f, 1f, "継承")][SerializeField]protected float mDefaultIntelligence = 0.5f;
 
@@ -42,7 +41,6 @@ namespace PPCore
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPUnitRole DefaultRole => mDefaultRole;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
-        public PPUnitActionScoreModifier ActionScoreModifier => mDefaultActionScore;
         // 既定の知能（0〜1）。0 は継承を表す
         public float DefaultIntelligence => mDefaultIntelligence;
 
