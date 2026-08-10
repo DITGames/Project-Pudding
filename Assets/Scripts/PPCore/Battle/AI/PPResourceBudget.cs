@@ -41,6 +41,24 @@ namespace PPCore
             }
         }
 
+        // 属性ごとに使ってよい額を直接指定して予算を作る
+        // 保険・取り置き・支出上限率を反映済みの枠を予算計画層が算出するため、
+        // プールの現在値ではなくその結果をそのまま受け取る形にしている
+        // aPool : 上限値の参照元となるリソースプール
+        // aAllowance : 属性ごとの使ってよい額。添字は PPTypeAttribute と対応する
+        public PPResourceBudget(PPBattleResourcePool aPool, float[] aAllowance)
+        {
+            mRemaining = new float[PPTypeAttributeDefinition.TypeCount];
+            mMax = new float[PPTypeAttributeDefinition.TypeCount];
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
+            {
+                var t = (PPTypeAttribute)i;
+                float allowance = (aAllowance != null && i < aAllowance.Length) ? aAllowance[i] : 0f;
+                mRemaining[i] = Mathf.Max(0f, allowance);
+                mMax[i] = aPool.Max(t);
+            }
+        }
+
         // 指定属性の仮想残量を取得する
         // a : 対象の属性
         public float Remaining(PPTypeAttribute a)

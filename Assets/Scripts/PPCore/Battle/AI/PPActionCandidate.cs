@@ -11,6 +11,23 @@ using CommandBattleCore;
 
 namespace PPCore
 {
+    // 行動候補が採用されなかった理由。デバッグ表示で「なぜ撃たなかったか」を追うのに使う
+    public enum PPActionRejectReason
+    {
+        // 却下されていない（採用済み、または未判定）
+        None,
+        // 効用が λ × コストに届かなかった。今は撃つ価値が無いと判断された
+        BelowLambda,
+        // 使ってよい額が足りなかった
+        NotEnoughBudget,
+        // 同時行動数の上限に達した
+        ActionLimit,
+        // 同じユニットが既に別の行動を採用済み
+        UnitAlreadyActed,
+        // 対象の状態から見て効果が無くなった（満タンの味方への回復、倒れる予定の敵への追撃など）
+        NoEffect,
+    }
+
     // AI が評価する行動候補 1 件分
     // スコアリングに必要な情報（ロール・コスト・対象）と、
     // 採用が決まった時点で実際のコマンドを作るためのファクトリを 1 つにまとめたもの
@@ -39,5 +56,21 @@ namespace PPCore
 
         // 評価済みのスコア。PPPartyAIStrategistBase.Evaluate が設定する
         public float Score;
+
+        // 対象への効果量の見積もり。新 AI が候補生成時に設定する
+        public PPEffectEstimate Estimate;
+
+        // 戦況を反映した最終的な効用。PPActionUtilityEvaluator が設定する
+        public float Utility;
+
+        // 却下された理由。採用された場合は None のまま
+        public PPActionRejectReason RejectReason;
+
+        // 同じユニットの上位候補が却下された後で採用されたか
+        // 「本命が買えなかったので次善で動いた」ことをデバッグ表示から読み取れるようにする
+        public bool IsFallback;
+
+        // 表示用のスキル名。通常攻撃は専用の表記になる
+        public string DisplayName => Skill != null ? Skill.DisplayName : "通常攻撃";
     }
 }

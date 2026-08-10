@@ -44,6 +44,9 @@ namespace PPCore
         // 敵がティックごとに得るリソース量の範囲（最小, 最大）。敵にはプッシャーが無いため直接補給する
         [Label("敵コイン取得")]
         [SerializeField] private PPResourceSimulation mEnemyResourceSimulation;
+        // 新AI（リソース運用中心）と旧AIのどちらを使うか。同じ編成で挙動を見比べるための切り替え
+        [Label("新AI(リソース運用)を使う")]
+        [SerializeField] private bool mIsUseResourceStrategist = true;
 
         // 味方として編成するパーティ定義。デバッグ用にエディタから直接割り当てる
         [Header("パーティ")]
@@ -97,11 +100,11 @@ namespace PPCore
             // リソース消費を検証するバリデータへ差し替える
             context.Rules.CastValidator = new PPBattleCastValidator();
 
-            var enemyStrategist = new PPPartyAIStrategistBase(mEnemyPartyDefinition.AIProfile);
+            var enemyStrategist = CreateStrategist(mEnemyPartyDefinition);
             ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
 
             // 味方も常にStrategistを持たせておき、オートバトルボタンでいつでも思考を開始できるようにする
-            var allyStrategist = new PPPartyAIStrategistBase(mAllyPartyDefinition.AIProfile);
+            var allyStrategist = CreateStrategist(mAllyPartyDefinition);
             ((PPBattleParty)context.AllyParty).Strategist = allyStrategist;
 
             mBattleManager.OnBattleEnded += r =>
@@ -110,6 +113,10 @@ namespace PPCore
                 StopCoroutineIfRunning(ref mEnemyActionCoroutine);
                 StopCoroutineIfRunning(ref mAllyActionCoroutine);
                 StopCoroutineIfRunning(ref mTickCoroutine);
+
+                // 収入トラッカーがリソースプールを購読したままにならないよう解除する
+                (enemyStrategist as PPPartyAIResourceStrategist)?.Unbind();
+                (allyStrategist as PPPartyAIResourceStrategist)?.Unbind();
             };
             PPBattleLogBinder.Bind(mBattleManager, context);
             mBattleManager.StartBattle(context);
@@ -158,6 +165,16 @@ namespace PPCore
                 StartAllyAutoBattle();
             }
         }
+
+        // パーティ定義に対応する思考ルーチンを生成する
+        // 新旧を切り替えられるようにしてあるのは、同じ編成で挙動を見比べられるようにするためで、
+        // 新AIが期待通りに動かない場合の退路にもなる
+        // aDefinition : 生成元のパーティ定義
+        // return : 生成された思考ルーチン
+        private IPPPartyCommandStrategist CreateStrategist(PPPartyDefinition aDefinition)
+            => mIsUseResourceStrategist
+                ? new PPPartyAIResourceStrategist(aDefinition.AIProfile)
+                : new PPPartyAIStrategistBase(aDefinition.AIProfile);
 
         // 今コマンド入力を始める意味があるかを判定する
         // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true

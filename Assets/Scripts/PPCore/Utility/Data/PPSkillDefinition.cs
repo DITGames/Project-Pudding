@@ -45,6 +45,29 @@ namespace PPCore
         // 消費リソース。初回アクセス時に構築してキャッシュする
         public PPResourceCost Cost => mCachedCost ??= PPResourceCost.From(mCost);
 
+        // このスキルを aTarget へ撃った場合の効果量を、実行せずに見積もる
+        // AI の効用計算（PPActionUtilityEvaluator）から呼ばれる
+        // 発動者自身に掛かる効果（ApplyTarget = Self）は対象の状態と無関係なため合算しない
+        // aSource : スキル発動者
+        // aTarget : 対象。null なら効果なしを返す
+        // aContext : バトルコンテキスト
+        // return : 対象への効果量の見積もり
+        public PPEffectEstimate EstimateFor(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+        {
+            var result = PPEffectEstimate.None;
+            if (aTarget == null || mSkillEffects == null)
+                return result;
+
+            foreach (var effect in mSkillEffects)
+            {
+                if (effect == null || effect.ApplyTarget != PPEffectApplyTarget.Target)
+                    continue;
+
+                result = result.Merge(effect.Estimate(aSource, aTarget, aContext));
+            }
+            return result;
+        }
+
         // この定義からスキルのランタイムインスタンスを生成する
         // 生成物には自身への参照（SourceDefinition）を必ず設定する
         // AI やコマンドが SourceDefinition is PPSkillDefinition で

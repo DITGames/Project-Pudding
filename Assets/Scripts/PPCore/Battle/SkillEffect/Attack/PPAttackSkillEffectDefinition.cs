@@ -37,6 +37,22 @@ namespace PPCore
             aTarget.ApplyDamage(damageInfo, aContext);
         }
 
+        // 基礎ダメージ量をそのまま見積もりとして返す
+        // 命中・クリティカル・属性相性は CreateDamageInfo 側で乱数を含めて解決されるため、
+        // 見積もりには含めない（同じ状況で同じ値を返す必要がある）
+        // aSource : スキル発動者
+        // aTarget : ダメージを与える対象
+        // aContext : バトルコンテキスト
+        // return : 与ダメージの見積もり
+        public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+        {
+            if (aSource == null || aTarget == null)
+                return PPEffectEstimate.None;
+
+            return PPEffectEstimate.FromDamage(
+                PPDamageUtility.ResolveAttackSkillDamage(aSource, aTarget, mPower, mCategory));
+        }
+
         public override string BuildString()
             => $"ダメージ：{mAttribute} / {mCategory} / 威力{mPower:0%}";
     }

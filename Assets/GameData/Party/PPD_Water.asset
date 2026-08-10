@@ -25,6 +25,6 @@ MonoBehaviour:
     IntelligenceOverride: 0
   MaxResource: 100
   BaseResourceConversionRate: 1
-  AIProfile: {fileID: 11400000, guid: 079c9b53ddb5b684db50d01e09f697f5, type: 2}
+  AIProfile: {fileID: 11400000, guid: 959203362e1448f9b7cfe834871f0cdf, type: 2}
   EncounterType: 0
   CustomPatienceCoefficient: 1

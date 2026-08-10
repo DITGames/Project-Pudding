@@ -30,6 +30,15 @@ namespace PPCore
             aTarget.ApplyHeal(mPower);
         }
 
+        // 回復量をそのまま見積もりとして返す
+        // 対象の HP がどれだけ欠けているかは AI 側（PPActionUtilityEvaluator）で考慮する
+        // aSource : スキル発動者
+        // aTarget : 回復する対象
+        // aContext : バトルコンテキスト
+        // return : 回復量の見積もり
+        public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+            => PPEffectEstimate.FromHeal(mPower);
+
         public override string BuildString()
             => $"回復：{mPower}";
     }
