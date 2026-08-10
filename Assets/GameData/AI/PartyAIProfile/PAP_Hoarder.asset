@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
   m_Name: PAP_Hoarder
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
+  mDescription: "\u6E9C\u3081\u578B\uFF08\u5F37\u653B\u6483\u304C\u3042\u308B\u6575\u5411\u3051\uFF09"
   mIsUseLambda: 1
   mIsUseInsurance: 1
   mIsUseBanking: 1

@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
   m_Name: PAP_Cautious
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
+  mDescription: "\u614E\u91CD\u578B"
   mIsUseLambda: 1
   mIsUseInsurance: 1
   mIsUseBanking: 1

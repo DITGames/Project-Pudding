@@ -75,6 +75,9 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPPartyAIProfileDefinition", menuName = "Project-Pudding/AI/PPPartyAIProfileDefinition")]
     public class PPPartyAIProfileDefinition : ScriptableObject
     {
+        [Label("説明")]
+        [SerializeField][Multiline] protected string mDescription = "";
+        
         // 有効にした思考だけが働く。ティアの差はここで表現する
         [Header("思考機能")]
         [Label("リソースを値付けする(λ)")]

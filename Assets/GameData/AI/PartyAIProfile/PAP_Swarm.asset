@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5d46f00262b1b3b43b62011af856f066, type: 3}
   m_Name: PAP_Swarm
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyAIProfileDefinition
+  mDescription: "\u653E\u51FA\u578B(\u96D1\u9B5A\u7684\u5411\u3051)"
   mIsUseLambda: 0
   mIsUseInsurance: 0
   mIsUseBanking: 0
@@ -35,7 +36,25 @@ MonoBehaviour:
     mLambdaMultiplier: 1
     mReserves: []
     mPatienceMultiplier: 1
-  Rules: []
+  Rules:
+  - Name: 
+    Conditions:
+    - rid: -2
+    mPriority: 0
+    mOverride:
+      mIsOverrideRoles: 0
+      mRoles: []
+      mIsOverrideSpendCap: 0
+      mSpendCapRatio: 0
+      mIsOverrideLambda: 0
+      mLambdaMultiplier: 0
+      mIsOverrideReserves: 0
+      mReserves: []
+      mIsOverridePatience: 0
+      mPatienceMultiplier: 0
+    Score:
+      Roles: []
+      PatienceMultiplier: 0
   Weights: []
   ActionNoiseAmplitude: 0.6
   DefaultScore:
@@ -43,4 +62,6 @@ MonoBehaviour:
     PatienceMultiplier: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
