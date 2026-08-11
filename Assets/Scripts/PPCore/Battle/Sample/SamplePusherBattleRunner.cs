@@ -57,12 +57,12 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Header("敵")]
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mEnemyUnit;
-    // 敵 AI の性格プロファイル。未設定でも既定値で動作する
+    // 敵 AI の戦術プロファイル。未設定の場合、敵は常に待機する
     [Label("敵AIプロファイル")]
     [SerializeField] private PPPartyAIProfileDefinition mEnemyAIProfile;
-    // プロファイル未設定時に使う思考間隔（秒）
-    [Label("デフォルト思考間隔")][EditCondition("HasEnemyAIProfile", true, true)]
-    [SerializeField] private float mDefaultEnemyThinkDuration = 0.5f;
+    // プロファイル未設定時に使う、1ティックあたりの思考回数
+    [Label("デフォルト思考回数(1ティックあたり)")][EditCondition("HasEnemyAIProfile", true, true)]
+    [SerializeField] private int mDefaultThinkCountPerTick = 1;
     // 敵 AI を駆動するドライバ
     private PPEnemyAIDriver mEnemyAIDriver;
     // 敵がティックごとに得るリソース量の範囲（最小, 最大）
@@ -99,7 +99,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
         // リソース消費を検証するバリデータへ差し替える
         context.Rules.CastValidator = new PPBattleCastValidator();
 
-        var enemyStrategist = new PPPartyAIStrategistBase(mEnemyAIProfile);
+        var enemyStrategist = new PPPartyTacticsStrategist(mEnemyAIProfile);
         ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
 
         mBattleManager.OnBattleEnded += r =>
@@ -125,9 +125,9 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mController.Bind(mBattleManager);
         mController.OnCommandFlushed += HandleCommandFlushed;
 
-        // プロファイルがあればその思考間隔を優先する
-        float think = mEnemyAIProfile != null ? mEnemyAIProfile.ThinkInterval : mDefaultEnemyThinkDuration;
-        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, think);
+        // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
+        int thinkCount = mEnemyAIProfile != null ? mEnemyAIProfile.ThinkCountPerTick : mDefaultThinkCountPerTick;
+        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, mTurnTickInterval, thinkCount);
         mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
         mTickCoroutine = StartCoroutine(AdvanceTick());
     }

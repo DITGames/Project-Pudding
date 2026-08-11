@@ -18,5 +18,8 @@ namespace PPCore
     {
         [Label("通常攻撃コスト")]
         public float AttackCost;
+        // 1 ティックあたりに行動できる回数。バフで増減しうるため、ここでは初期値だけを持つ
+        [Label("行動回数上限")]
+        public int ActionCount;
     }
 }

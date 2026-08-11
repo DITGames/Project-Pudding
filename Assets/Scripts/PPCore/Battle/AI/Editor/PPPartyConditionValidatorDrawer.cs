@@ -12,7 +12,7 @@ using UnityEngine;
 namespace PPCore
 {
     // PPPartyConditionValidator 型のフィールド・リスト要素を、
-    // 型未選択ならツリーポップアップ（PPPartyConditionPickerPopup）を開く選択ボタン、
+    // 型未選択ならツリーポップアップ（PPTypeTreePickerPopup）を開く選択ボタン、
     // 選択済みなら Description をラベルにしてフィールド展開する
     // PPSkillEffectDefinitionDrawer と同じ形。選択済みの描画は PPManagedReferencePickerUtility に委譲する
     [CustomPropertyDrawer(typeof(PPPartyConditionValidator), true)]
@@ -27,7 +27,8 @@ namespace PPCore
                 {
                     // ポップアップのコールバックは非同期(フレームをまたぐ)ため、プロパティをコピーして保持する
                     var propertyCopy = aProperty.Copy();
-                    PPPartyConditionPickerPopup.Show(buttonRect, instance =>
+                    PPTypeTreePickerPopup.ShowDerived<PPPartyConditionValidator>(buttonRect,
+                        "(条件クラスが見つかりません)", instance =>
                     {
                         propertyCopy.managedReferenceValue = instance;
                         propertyCopy.serializedObject.ApplyModifiedProperties();

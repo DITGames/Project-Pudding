@@ -8,6 +8,7 @@
 
 using System.Collections;
 using CommandBattleCore;
+using CustomConsole;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -38,15 +39,12 @@ namespace PPCore
         [Header("バトル設定")]
         [Label("ターン更新間隔")]
         [SerializeField] private float mTurnTickInterval = 5f;
-        // パーティにAIプロファイルが設定されていない場合に使う思考間隔（秒）
-        [Label("デフォルト思考間隔")]
-        [SerializeField] private float mDefaultThinkDuration = 0.5f;
+        // パーティにAIプロファイルが設定されていない場合に使う、1ティックあたりの思考回数
+        [Label("デフォルト思考回数(1ティックあたり)")]
+        [SerializeField] private int mDefaultThinkCountPerTick = 1;
         // 敵がティックごとに得るリソース量の範囲（最小, 最大）。敵にはプッシャーが無いため直接補給する
         [Label("敵コイン取得")]
         [SerializeField] private PPResourceSimulation mEnemyResourceSimulation;
-        // 新AI（リソース運用中心）と旧AIのどちらを使うか。同じ編成で挙動を見比べるための切り替え
-        [Label("新AI(リソース運用)を使う")]
-        [SerializeField] private bool mIsUseResourceStrategist = true;
 
         // 味方として編成するパーティ定義。デバッグ用にエディタから直接割り当てる
         [Header("パーティ")]
@@ -113,10 +111,6 @@ namespace PPCore
                 StopCoroutineIfRunning(ref mEnemyActionCoroutine);
                 StopCoroutineIfRunning(ref mAllyActionCoroutine);
                 StopCoroutineIfRunning(ref mTickCoroutine);
-
-                // 収入トラッカーがリソースプールを購読したままにならないよう解除する
-                (enemyStrategist as PPPartyAIResourceStrategist)?.Unbind();
-                (allyStrategist as PPPartyAIResourceStrategist)?.Unbind();
             };
             PPBattleLogBinder.Bind(mBattleManager, context);
             mBattleManager.StartBattle(context);
@@ -130,13 +124,10 @@ namespace PPCore
             mController.Bind(mBattleManager);
             mController.OnCommandFlushed += HandleCommandFlushed;
 
-            // プロファイルがあればその思考間隔を優先する
-            float enemyThink = mEnemyPartyDefinition.AIProfile != null ? mEnemyPartyDefinition.AIProfile.ThinkInterval : mDefaultThinkDuration;
-            mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, enemyThink);
+            mEnemyAIDriver = CreateDriver(BattleSide.Enemy, enemyStrategist, mEnemyPartyDefinition);
             mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
 
-            float allyThink = mAllyPartyDefinition.AIProfile != null ? mAllyPartyDefinition.AIProfile.ThinkInterval : mDefaultThinkDuration;
-            mAllyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Ally, allyStrategist, allyThink);
+            mAllyAIDriver = CreateDriver(BattleSide.Ally, allyStrategist, mAllyPartyDefinition);
             if (mIsAutoBattle)
             {
                 StartAllyAutoBattle();
@@ -167,14 +158,33 @@ namespace PPCore
         }
 
         // パーティ定義に対応する思考ルーチンを生成する
-        // 新旧を切り替えられるようにしてあるのは、同じ編成で挙動を見比べられるようにするためで、
-        // 新AIが期待通りに動かない場合の退路にもなる
+        // プロファイル未設定のパーティは戦術を 1 つも持たないため常に待機になる
+        // 味方はオートバトルに切り替えて初めて動き出すので、設定漏れに気付けるよう生成時に警告を出す
         // aDefinition : 生成元のパーティ定義
         // return : 生成された思考ルーチン
         private IPPPartyCommandStrategist CreateStrategist(PPPartyDefinition aDefinition)
-            => mIsUseResourceStrategist
-                ? new PPPartyAIResourceStrategist(aDefinition.AIProfile)
-                : new PPPartyAIStrategistBase(aDefinition.AIProfile);
+        {
+            if (aDefinition.AIProfile == null)
+            {
+                CustomConsoleLog.Warning("AI", $"{aDefinition.name} にAIプロファイルが未設定のため、このパーティは常に待機します。");
+            }
+            return new PPPartyTacticsStrategist(aDefinition.AIProfile);
+        }
+
+        // パーティ定義に対応する思考ドライバを生成する
+        // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
+        // aSide : 思考対象の陣営
+        // aStrategist : 駆動する思考ルーチン
+        // aDefinition : 思考回数を引くパーティ定義
+        // return : 生成されたドライバ
+        private PPEnemyAIDriver CreateDriver(BattleSide aSide, IPPPartyCommandStrategist aStrategist,
+            PPPartyDefinition aDefinition)
+        {
+            int thinkCount = aDefinition.AIProfile != null
+                ? aDefinition.AIProfile.ThinkCountPerTick
+                : mDefaultThinkCountPerTick;
+            return new PPEnemyAIDriver(mBattleManager, aSide, aStrategist, mTurnTickInterval, thinkCount);
+        }
 
         // 今コマンド入力を始める意味があるかを判定する
         // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true

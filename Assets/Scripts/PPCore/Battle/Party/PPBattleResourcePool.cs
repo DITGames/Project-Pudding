@@ -22,7 +22,7 @@ namespace PPCore
         private readonly ResourceParameter[] mResourcePools;
 
         // 収入が発生したときに発火する(対象の属性, 実際に増えた量)
-        // AI の収入推定(PPIncomeTracker)が購読し、収入ペースの見積もりに使う
+        // リソース残量の変化を観測したい側が購読する
         // 上限で切り捨てられた分は含めず、実際にプールが増えた量だけを通知する
         public event Action<PPTypeAttribute, float> OnResourceGained;
 

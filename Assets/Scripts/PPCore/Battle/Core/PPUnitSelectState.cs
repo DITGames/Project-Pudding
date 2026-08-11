@@ -20,10 +20,19 @@ namespace PPCore
         {
         }
 
-        // 味方陣営の生存アクティブメンバーを候補として返す
+        // 味方陣営の生存アクティブメンバーのうち、まだ行動回数が残っているものを候補として返す
+        // 行動回数を使い切ったユニットはこのティックでは動かせないため、選択させない
+        // 基底が購読時と解除時の 2 回この結果を走査するため、遅延評価にせずリストとして確定させる
         protected override IEnumerable<BattleUnit> Candidates()
         {
-            return mOwner.Manager.Context.GetParty(BattleSide.Ally).GetAliveActiveMembers();
+            var candidates = new List<BattleUnit>();
+            foreach (var unit in mOwner.Manager.Context.GetParty(BattleSide.Ally).GetAliveActiveMembers())
+            {
+                if (!unit.Actions.CanAction) continue;
+
+                candidates.Add(unit);
+            }
+            return candidates;
         }
 
         // 選択されたユニットを記録し、コマンド選択ステートへ進む

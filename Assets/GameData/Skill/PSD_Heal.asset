@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
+  m_Name: PSD_Heal
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
+  mSkillId: Heal
+  mDisplayName: "回復"
+  mDescription: "味方1体のHPを回復する"
+  mTargetScope: 2
+  mMaxCooldown: 0
+  mMaxUsesPerBattle: 0
+  mTags:
+  - {fileID: 11400000, guid: 48a0f632d8ccdf9cf33481f29205bb1b, type: 2}
+  mCost:
+  - Type: 0
+    Amount: 7
+  mSkillEffects:
+  - rid: 7300000000000004001
+  mAIScore: 3
+  references:
+    version: 2
+    RefIds:
+    - rid: 7300000000000004001
+      type: {class: PPHealSkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mApplyTarget: 0
+        mPower: 40

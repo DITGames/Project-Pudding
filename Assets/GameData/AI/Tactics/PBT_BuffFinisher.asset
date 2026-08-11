@@ -1,0 +1,98 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589d81c8bbe5d1e5d913490795666141, type: 3}
+  m_Name: PBT_BuffFinisher
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleTacticsDefinition
+  mTacticsName: "\u30D0\u30D5\u5927\u6280"
+  mDescription: "\u5927\u6280\u3092\u6301\u3064\u5473\u65B9\u3078\u653B\u6483\u30D0\u30D5\u3092\u4ED8\u3051\u3066\u304B\u3089\u3001\u8105\u5A01\u306E\u9AD8\u3044\u6575\u3078\u5927\u6280\u3092\u6483\u3064\u3002\u30D0\u30D5\u304C\u4ED8\u3044\u3066\u3044\u308C\u3070\u5927\u6280\u306E\u30B9\u30C6\u30C3\u30D7\u304B\u3089\u518D\u958B\u3059\u308B"
+  mConditions:
+  - rid: 7300000000000000101
+  mSteps:
+  - rid: 7300000000000000102
+  - rid: 7300000000000000103
+  mIsDoOnce: 1
+  mCooldownTicks: 0
+  mAllowedWaitTicks: 3
+  mIsAlwaysRestart: 0
+  references:
+    version: 2
+    RefIds:
+    - rid: 2855699132165128269
+      type: {class: PPUnitHasSkillTagCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: 
+        mTags:
+        - {fileID: 11400000, guid: a29ea8ef3f13a9348350ea25ae4e5892, type: 2}
+        mIsInvert: 0
+    - rid: 7300000000000000101
+      type: {class: PPResourceRatioCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u30CE\u30FC\u30DE\u30EB\u30EA\u30BD\u30FC\u30B9\u304C30%\u4EE5\u4E0A"
+        mTypeAttribute: 0
+        Op: 2
+        Threshold: 0.3
+        Tolerance: 0.01
+    - rid: 7300000000000000102
+      type: {class: PPSkillTacticStep, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u653B\u6483\u30D0\u30D5 \u306E\u30B9\u30AD\u30EB\u3092 \u6761\u4EF6\u306B\u5408\u3046\u5473\u65B9
+          \u3078"
+        mActorConditions:
+        - rid: 2855699132165128269
+        mActorSelectRule: 1
+        mTargetPolicy: 3
+        mTargetConditions:
+        - rid: 7300000000000000104
+        mTargetSelectRule: 2
+        mCompletionConditions:
+        - rid: 7300000000000000105
+        mRequiredActionCount: 1
+        mSkillTags:
+        - {fileID: 11400000, guid: a29ea8ef3f13a9348350ea25ae4e5892, type: 2}
+        mSkillSelectRule: 0
+    - rid: 7300000000000000103
+      type: {class: PPSkillTacticStep, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u5927\u6280 \u306E\u30B9\u30AD\u30EB\u3092 \u6700\u3082\u8105\u5A01\u306E\u9AD8\u3044\u6575
+          \u3078"
+        mActorConditions:
+        - rid: 7300000000000000106
+        mActorSelectRule: 2
+        mTargetPolicy: 7
+        mTargetConditions: []
+        mTargetSelectRule: 0
+        mCompletionConditions: []
+        mRequiredActionCount: 1
+        mSkillTags:
+        - {fileID: 11400000, guid: 16b1f72d3e427e87fccb432312ff8b71, type: 2}
+        mSkillSelectRule: 0
+    - rid: 7300000000000000104
+      type: {class: PPUnitHasSkillTagCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u5927\u6280 \u306E\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
+        mTags:
+        - {fileID: 11400000, guid: 16b1f72d3e427e87fccb432312ff8b71, type: 2}
+        mIsInvert: 0
+    - rid: 7300000000000000105
+      type: {class: PPUnitStatusEffectCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "Buff \u306E\u52B9\u679C\u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u308B"
+        mEffectId: 
+        mTags: 1
+        mIsInvert: 0
+    - rid: 7300000000000000106
+      type: {class: PPUnitHasSkillTagCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u5927\u6280 \u306E\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
+        mTags:
+        - {fileID: 11400000, guid: 16b1f72d3e427e87fccb432312ff8b71, type: 2}
+        mIsInvert: 0

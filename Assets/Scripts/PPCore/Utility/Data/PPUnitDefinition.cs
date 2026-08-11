@@ -12,8 +12,7 @@ using UnityEngine;
 namespace PPCore
 {
     // 本作固有の要素を追加したユニット定義
-    // 基底の UnitDefinition に対して、属性・追加ステータス・
-    // パーティ AI 用の既定値（ロール・知能）・レベル成長曲線を持つ
+    // 基底の UnitDefinition に対して、属性・追加ステータス・レベル成長曲線を持つ
     // 成長は「レベルごとの実数値テーブル」ではなく AnimationCurve の倍率で表現する
     // 基礎ステータスに倍率を掛けるだけで済み、成長カーブをインスペクタ上で視覚的に調整できる
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
@@ -26,12 +25,6 @@ namespace PPCore
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
 
-        // AI 上の既定ロール。Inherit ならパーティ側の設定に従う
-        [Header("パーティAI")]
-        [Label("既定ロール")][SerializeField]protected PPUnitRole mDefaultRole = PPUnitRole.Inherit;
-        // 既定の知能（0〜1）。0 ならパーティプロファイルの値を継承する
-        [PercentLabel("既定の知能", 0f, 1f, "継承")][SerializeField]protected float mDefaultIntelligence = 0.5f;
-
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
         [Label("HP成長曲線")][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
         [Label("攻撃力成長曲線")][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
@@ -39,10 +32,7 @@ namespace PPCore
         [Label("素早さ成長曲線")][SerializeField]protected AnimationCurve mSpeedGrowth = AnimationCurve.Linear(1, 1, 50, 3);
 
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
-        public PPUnitRole DefaultRole => mDefaultRole;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
-        // 既定の知能（0〜1）。0 は継承を表す
-        public float DefaultIntelligence => mDefaultIntelligence;
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口
         // aDecider : コマンド決定クラス。null なら本作用のランダム AI が入る
@@ -88,8 +78,9 @@ namespace PPCore
         }
 
         // 追加パラメータ一式を組み立てる。こちらはレベル成長の対象外
+        // 行動回数上限は未設定のアセットで 0 になるため、下限 1 に丸めてから渡す
         // return : 生成された追加パラメータ一式
         protected virtual PPParameterSet CreatePPParameterSet()
-            => new(mExpandStatBlock.AttackCost);
+            => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount));
     }
 }

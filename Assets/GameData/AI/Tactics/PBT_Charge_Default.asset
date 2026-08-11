@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 589d81c8bbe5d1e5d913490795666141, type: 3}
+  m_Name: PBT_Charge_Default
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleTacticsDefinition
+  mTacticsName: "\u30C1\u30E3\u30FC\u30B8 (\u30C7\u30D5\u30A9\u30EB\u30C8)"
+  mDescription: "\u30B9\u30C6\u30C3\u30D7\u3092\u6301\u305F\u306A\u3044\u6226\u8853\u3002\u4F55\u3082\u305B\u305A\u30EA\u30BD\u30FC\u30B9\u3092\u6E9C\u3081\u308B\u3002\u6700\u4E0B\u4F4D\u306B\u7F6E\u3044\u3066\u6700\u5F8C\u306E\u30D5\u30A9\u30FC\u30EB\u30D0\u30C3\u30AF\u306B\u3059\u308B"
+  mConditions: []
+  mSteps: []
+  mIsDoOnce: 0
+  mCooldownTicks: 0
+  mAllowedWaitTicks: 0
+  mIsAlwaysRestart: 0
+  references:
+    version: 2
+    RefIds: []

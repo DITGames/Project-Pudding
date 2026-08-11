@@ -31,7 +31,7 @@ namespace PPCore
         }
 
         // 回復量をそのまま見積もりとして返す
-        // 対象の HP がどれだけ欠けているかは AI 側（PPActionUtilityEvaluator）で考慮する
+        // 対象の HP がどれだけ欠けているかは見ず、純粋な回復量の見積もりを返す
         // aSource : スキル発動者
         // aTarget : 回復する対象
         // aContext : バトルコンテキスト

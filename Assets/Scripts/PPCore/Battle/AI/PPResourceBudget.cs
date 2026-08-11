@@ -21,8 +21,6 @@ namespace PPCore
     {
         // 属性ごとの仮想残量
         private readonly float[] mRemaining;
-        // 属性ごとの上限値。充足率の算出に使う
-        private readonly float[] mMax;
 
         // プールの現在値を写し取って予算を作る
         // 取り置き量は基準リソース（ノーマル）にのみ適用される
@@ -31,31 +29,11 @@ namespace PPCore
         public PPResourceBudget(PPBattleResourcePool aPool, float aBaseReserve = 0f)
         {
             mRemaining = new float[PPTypeAttributeDefinition.TypeCount];
-            mMax = new float[PPTypeAttributeDefinition.TypeCount];
             for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
             {
                 var t = (PPTypeAttribute)i;
                 float reserve = (i == PPTypeAttributeDefinition.BaseIndex) ? Mathf.Max(0f, aBaseReserve) : 0f;
                 mRemaining[i] = Mathf.Max(0f, aPool.Current(t) - reserve);
-                mMax[i] = aPool.Max(t);
-            }
-        }
-
-        // 属性ごとに使ってよい額を直接指定して予算を作る
-        // 保険・取り置き・支出上限率を反映済みの枠を予算計画層が算出するため、
-        // プールの現在値ではなくその結果をそのまま受け取る形にしている
-        // aPool : 上限値の参照元となるリソースプール
-        // aAllowance : 属性ごとの使ってよい額。添字は PPTypeAttribute と対応する
-        public PPResourceBudget(PPBattleResourcePool aPool, float[] aAllowance)
-        {
-            mRemaining = new float[PPTypeAttributeDefinition.TypeCount];
-            mMax = new float[PPTypeAttributeDefinition.TypeCount];
-            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
-            {
-                var t = (PPTypeAttribute)i;
-                float allowance = (aAllowance != null && i < aAllowance.Length) ? aAllowance[i] : 0f;
-                mRemaining[i] = Mathf.Max(0f, allowance);
-                mMax[i] = aPool.Max(t);
             }
         }
 
@@ -63,11 +41,6 @@ namespace PPCore
         // a : 対象の属性
         public float Remaining(PPTypeAttribute a)
         => mRemaining[(int)a];
-
-        // 指定属性の充足率（残量 / 上限）を 0～1 で取得する。上限が 0 なら 0
-        // a : 対象の属性
-        public float Fill(PPTypeAttribute a)
-        => mMax[(int)a] > 0f ? mRemaining[(int)a] / mMax[(int)a] : 0f;
 
         // 現在の仮想残量でコストを支払えるかを判定する
         // 全属性について必要量が残量以下であることを確認する

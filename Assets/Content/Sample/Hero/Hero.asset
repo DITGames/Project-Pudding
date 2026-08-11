@@ -23,13 +23,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 557f6f8f6b1c4df42bb8064d45b14c7b, type: 2}
   mExpandStatBlock:
     AttackCost: 0
+    ActionCount: 1
   mTypeAttribute: 0
-  mDefaultRole: 0
-  mDefaultActionScore:
-    Attack: 1
-    Support: 1
-    Heal: 1
-  mDefaultIntelligence: 0.5
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

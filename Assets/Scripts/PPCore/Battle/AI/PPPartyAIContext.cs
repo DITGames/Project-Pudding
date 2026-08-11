@@ -36,21 +36,23 @@ namespace PPCore
 
         // HP 実数値が最も低い敵。とどめを狙う際の第一候補になる
         public PPBattleUnit LowestHpEnemy { get; private set; }
+        // HP 割合が最も低い敵。戦術の対象選択方針から引かれる
+        public PPBattleUnit LowestHpRatioEnemy { get; private set; }
         // HP 割合が最も低い味方。回復スキルの対象になる
         public PPBattleUnit LowestHpRatioAlly { get; private set; }
         // 味方内で最も低い HP 割合。0～1 で保持する
         public float LowestAllyHpRatio { get; private set; } = 1f;
+        // 攻撃力が最も高い敵。最優先で潰したい相手として扱う
+        public PPBattleUnit HighestThreatEnemy { get; private set; }
 
         // パーティ全体の HP 割合。0～1 で保持する（LowestAllyHpRatio と同じ尺度）
         public float PartyHpRatio { get; private set; } = 0f;
         // 危機的状況かどうか。PPBattleRules.CrisisHpRatio を下回ると true
         public bool IsCrisis { get; private set; } = false;
-        // パーティの忍耐係数。AI が「待って溜める」判断をする際の許容 Tick 数に掛かる
-        public float PatienceCoefficient { get; private set; } = 0f;
 
         // 現在のパーティ状況を集計してスナップショットを生成する
-        // 味方側の HP 集計と最低 HP 割合の探索、敵側の生存者列挙と最低 HP の探索、
-        // 危機判定と忍耐係数の取り込み、をこの 1 回で済ませる
+        // 味方側の HP 集計と最低 HP 割合の探索、敵側の生存者列挙と最低 HP・脅威度の探索、
+        // 危機判定、をこの 1 回で済ませる
         // aParty : 思考主体のパーティ
         // aContext : バトルコンテキスト
         // return : 集計済みのスナップショット
@@ -85,21 +87,40 @@ namespace PPCore
 
             // 敵パーティの集計
             // 自分がどちら側かで相手パーティが変わるため、参照比較で判定する
+            // 生存者を集めながら、最低 HP・最低 HP 割合・最大攻撃力の持ち主を同時に求める
             var opponent = ReferenceEquals(aParty, aContext.EnemyParty)
                 ? aContext.AllyParty
                 : aContext.EnemyParty;
 
             float lowestHp = float.MaxValue;
+            float lowestEnemyRatio = float.MaxValue;
+            float highestAttack = float.MinValue;
             foreach (var e in opponent.GetAliveActiveMembers())
             {
                 if(e is not PPBattleUnit pp || !pp.IsAlive)
                     continue;
                 snap.AliveEnemies.Add(pp);
+
                 float hp = e.Parameters.Hp.CurrentValue;
                 if (hp < lowestHp)
                 {
                     lowestHp = hp;
                     snap.LowestHpEnemy = pp;
+                }
+
+                float ratio = HpRatio(pp);
+                if (ratio < lowestEnemyRatio)
+                {
+                    lowestEnemyRatio = ratio;
+                    snap.LowestHpRatioEnemy = pp;
+                }
+
+                // 脅威度は攻撃力で測る。装備や状態異常込みの現在値を見る
+                float attack = e.Parameters.Attack.CurrentValue;
+                if (attack > highestAttack)
+                {
+                    highestAttack = attack;
+                    snap.HighestThreatEnemy = pp;
                 }
             }
 
@@ -108,7 +129,6 @@ namespace PPCore
             {
                 snap.IsCrisis = snap.LowestAllyHpRatio <= rule.CrisisHpRatio;
             }
-            snap.PatienceCoefficient = aParty.PatienceCoefficient;
 
             return snap;
         }

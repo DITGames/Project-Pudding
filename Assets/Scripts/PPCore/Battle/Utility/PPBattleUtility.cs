@@ -6,53 +6,10 @@
  * @brief バトル汎用
  * =====================================*/
 
-using System;
 using UnityEngine;
 
 namespace PPCore
 {
-    // ユニットに割り当てる戦闘ロール。パーティ AI が行動の優先順位を決める際の分類
-    public enum PPBattleRole
-    {
-        [InspectorName(PPBattleUtilityDefinition.RoleNameAttack)]
-        Attacker,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameSupport)]
-        Supporter,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameHeal)]
-        Healer,
-        [InspectorName("なし")]
-        None,
-    }
-
-    // スキル定義側が持つロール。AI の行動候補もこのロールをそのまま使う
-    // 1 つのスキルが複数ロールを同時に持てるようフラグ型にしており、
-    // 攻撃と回復を同時に行うスキルなどは Attack | Heal のように複数チェックする
-    // AI はチェックされたロールごとに個別の行動候補を生成する（PPPartyAIStrategistBase 参照）
-    [Flags]
-    public enum PPBattleSkillRole
-    {
-        [InspectorName("なし")]
-        None = 0,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameAttack)]
-        Attack = 1 << 0,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameSupport)]
-        Support = 1 << 1,
-        [InspectorName(PPBattleUtilityDefinition.RoleNameHeal)]
-        Heal = 1 << 2,
-        // 特殊スキル。他のロールと同様に AI のスコアリング対象になる
-        [InspectorName("スペシャル")]
-        Special = 1 << 3,
-    }
-
-    // ロールの日本語表示名を集約した定数群
-    // 複数のロール enum で同じ文言を使うため、ハードコードせずここを参照する
-    public static class PPBattleUtilityDefinition
-    {
-        public const string RoleNameAttack = "攻撃";
-        public const string RoleNameSupport = "サポート";
-        public const string RoleNameHeal = "回復";
-    }
-
     // 本作の属性
     // リソースプールの添字としてそのまま使うため、値は 0 から連番で固定されている
     // Normal は属性というより「無属性の基準リソース」の位置づけで、相性判定では常に等倍になる
