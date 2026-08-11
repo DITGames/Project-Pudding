@@ -14,7 +14,7 @@ namespace PPCore
 {
     // 内部にインラインで持つ PPEffectDefinition から StatusEffect を生成し、対象に付与するスキルエフェクト
     // [PPTypeMenuName] を持たないため、トップレベルの型選択ツリーには直接出てこない
-    // StatusEffect の葉（毒・パラメータ変動）をツリーから直接選んだ際に、PPSkillEffectPickerPopup がこのクラスでラップして生成する
+    // StatusEffect の葉（毒・パラメータ変動）をツリーから直接選んだ際に、PPSkillEffectDefinitionDrawer がこのクラスでラップして生成する
     [Serializable]
     public class PPStatusApplySkillEffectDefinition : PPSkillEffectDefinition
     {

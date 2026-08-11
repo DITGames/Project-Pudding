@@ -15,7 +15,7 @@ namespace PPCore
 {
     // パーティ AI を一定間隔で駆動するドライバ
     // 本作のバトルはターン制ではなくプッシャーと並行してリアルタイムに進むため、
-    // 敵は「自分の番が来たら動く」のではなく、一定秒ごとに思考して動く
+    // 敵は「自分の番が来たら動く」のではなく、一定間隔で思考して動く
     // その周期を作るのがこのクラスの役割で、思考そのものは IPPPartyCommandStrategist へ完全に委譲する
     // MonoBehaviour ではないため、RunLoop を呼び出し側のコルーチンとして起動する
     public sealed class PPEnemyAIDriver
@@ -26,20 +26,23 @@ namespace PPCore
         private readonly BattleSide mSide;
         // パーティ側に設定が無い場合に使うフォールバックの AI
         private readonly IPPPartyCommandStrategist mPartyCommandStrategist;
-        // 思考間隔（秒）
+        // 思考間隔（秒）。ティック間隔を思考回数で割って求める
         private readonly float mThinkInterval;
 
         // aManager : コマンドの投入先
         // aSide : 思考対象の陣営
         // aPartyCommandStrategist : フォールバックの AI
-        // aThinkInterval : 思考間隔（秒）。0.1 秒未満は 0.1 秒に丸められる
+        // aTickInterval : ターン経過の間隔（秒）。呼び出し側のティック駆動と同じ値を渡す
+        // aThinkCountPerTick : 1 ティックあたりの思考回数。1 未満は 1 に丸められる
         public PPEnemyAIDriver(BattleManager aManager, BattleSide aSide,
-            IPPPartyCommandStrategist aPartyCommandStrategist, float aThinkInterval)
+            IPPPartyCommandStrategist aPartyCommandStrategist, float aTickInterval, int aThinkCountPerTick)
         {
             mManager = aManager;
             mSide = aSide;
             mPartyCommandStrategist = aPartyCommandStrategist;
-            mThinkInterval = Mathf.Max(0.1f, aThinkInterval);
+            // 思考間隔は秒で直接指定せず、ティック間隔を思考回数で割って求める
+            // クールタイムなど AI の時間感覚がティック基準で揃うため、ティック側だけ調整すれば済む
+            mThinkInterval = Mathf.Max(0.1f, aTickInterval / Mathf.Max(1, aThinkCountPerTick));
         }
 
         // バトルが終了するまで、思考間隔ごとに思考と実行を繰り返すコルーチン

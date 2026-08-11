@@ -18,13 +18,14 @@ MonoBehaviour:
   mTargetScope: 0
   mMaxCooldown: 0
   mMaxUsesPerBattle: 0
-  mBattleSkillRole: 0
+  mTags:
+  - {fileID: 11400000, guid: 007f10aa48cc3d6730931e5d91192c2f, type: 2}
   mCost:
   - Type: 0
     Amount: 5
   mSkillEffects:
   - rid: 2855699029019066368
-  mAIScore: 0
+  mAIScore: 1
   references:
     version: 2
     RefIds:

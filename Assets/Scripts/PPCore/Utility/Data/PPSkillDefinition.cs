@@ -14,17 +14,17 @@ using UnityEngine;
 namespace PPCore
 {
     // Project-Pudding 固有のスキル定義（ScriptableObject）
-    // 汎用の SkillDefinition に対して、AI 用のスキルロール・主分類・AI スコア・
+    // 汎用の SkillDefinition に対して、AI 用のスキルタグ・AI スコア・
     // 消費リソース・スキルエフェクトの組み合わせを追加する
     // 効果本体は mSkillEffects（PPSkillEffectDefinition のインスタンス）を順に実行することで組み立てる
     [CreateAssetMenu(fileName = "PPSkillDefinition", menuName = "Project-Pudding/Skill/PPSkillDefinition")]
     public class PPSkillDefinition : SkillDefinition
     {
-        // AI が行動候補を分類するためのスキルロール（攻撃・回復・補助など）
+        // 戦術ステップがこのスキルを指すための分類タグ
         [Header("拡張")]
-        [Label("スキルタイプ")]
-        [SerializeField]protected PPBattleSkillRole mBattleSkillRole;
-        
+        [Label("スキルタグ", true)]
+        [SerializeField]protected List<PPSkillTagDefinition> mTags = new();
+
         [Label("コスト", true)]
         [SerializeField] protected PPResourceAmount[] mCost;
         // mCost から一度だけ構築するコストのキャッシュ
@@ -35,18 +35,32 @@ namespace PPCore
         [SerializeReference]
         [SerializeField] protected List<PPSkillEffectDefinition> mSkillEffects = new();
 
-        // AI がスキルのスコアリングに使う値。ロールごとに個別のスコアを持つ
-        // チェックされているロール（mBattleSkillRole）の数だけ入力欄が現れる
-        [Label("ロール別AIスコア")]
-        [SerializeField]protected PPSkillRoleScoreList mRoleScores = new();
+        // AI がスキルを比較する際の基礎スコア
+        // 戦術のステップで同じタグのスキルが複数マッチしたときの優劣に使う
+        [Label("AIスコア")]
+        [SerializeField]protected float mAIScore = 1f;
 
-        public PPBattleSkillRole BattleSkillRole => mBattleSkillRole;
-        public PPSkillRoleScoreList RoleScores => mRoleScores;
+        public IReadOnlyList<PPSkillTagDefinition> Tags => mTags;
+        public float AIScore => mAIScore;
         // 消費リソース。初回アクセス時に構築してキャッシュする
         public PPResourceCost Cost => mCachedCost ??= PPResourceCost.From(mCost);
 
+        // 指定タグのいずれかを持つかを判定する
+        // aTags : 判定するタグ。null または空なら常に true（タグ指定なし＝全スキルが対象）
+        // return : いずれかのタグを持つ場合 true
+        public bool HasAnyTag(IReadOnlyList<PPSkillTagDefinition> aTags)
+        {
+            if (aTags == null || aTags.Count == 0) return true;
+
+            foreach (var tag in aTags)
+            {
+                if (tag != null && mTags.Contains(tag)) return true;
+            }
+            return false;
+        }
+
         // このスキルを aTarget へ撃った場合の効果量を、実行せずに見積もる
-        // AI の効用計算（PPActionUtilityEvaluator）から呼ばれる
+        // 効果量から行動を比較したい場合に使う。現状の戦術 AI からは呼ばれていない
         // 発動者自身に掛かる効果（ApplyTarget = Self）は対象の状態と無関係なため合算しない
         // aSource : スキル発動者
         // aTarget : 対象。null なら効果なしを返す

@@ -46,13 +46,19 @@ namespace CustomConsole.Editor
 
         // ログ本体・フィルタ条件の変化を検知するためのdirtyフラグ。
         // スクロール操作等の毎イベントで重い再計算(LINQ走査)を走らせないために使う
-        private bool mEntriesDirty = true;
-        private bool mFilterDirty = true;
+        //
+        // 以下のキャッシュ一式は[NonSerialized]で揃えてある。
+        // EditorWindowのList/配列/boolはUnityが直列化してドメインリロードをまたぐ一方、
+        // 対になるDictionary(mCategoryEnabled等)は直列化されず空に戻る。
+        // 混在させるとリロード後にキャッシュだけが残った不整合状態になり、
+        // 再計算も走らないまま辞書を引いて例外になるため、寿命を明示的に揃えている
+        [NonSerialized] private bool mEntriesDirty = true;
+        [NonSerialized] private bool mFilterDirty = true;
 
-        private List<CustomConsoleEntry> mCachedFiltered = new();
-        private List<string> mCachedCategories = new();
-        private List<string> mCachedSources = new();
-        private string[] mCachedSourceOptions = { AllSourceLabel };
+        [NonSerialized] private List<CustomConsoleEntry> mCachedFiltered = new();
+        [NonSerialized] private List<string> mCachedCategories = new();
+        [NonSerialized] private List<string> mCachedSources = new();
+        [NonSerialized] private string[] mCachedSourceOptions = { AllSourceLabel };
         private readonly Dictionary<CustomLogLevel, int> mCachedLevelCounts = new();
 
         [MenuItem("Window/Custom Console")]
@@ -262,9 +268,18 @@ namespace CustomConsole.Editor
 
             foreach (var category in mCachedCategories)
             {
+                // 辞書に無いカテゴリでも描画を止めない。
+                // ここで例外を投げるとBeginHorizontalに対応するEndHorizontalへ到達できず、
+                // GUILayoutのスタックが壊れてウィンドウ全体が描画不能になる
+                if (!mCategoryEnabled.TryGetValue(category, out var enabled))
+                {
+                    enabled = true;
+                    mCategoryEnabled[category] = enabled;
+                }
+
                 var width = Mathf.Clamp(category.Length * 8 + 20, 40, 160);
-                var newValue = GUILayout.Toggle(mCategoryEnabled[category], category, EditorStyles.miniButton, GUILayout.Width(width));
-                if (newValue != mCategoryEnabled[category])
+                var newValue = GUILayout.Toggle(enabled, category, EditorStyles.miniButton, GUILayout.Width(width));
+                if (newValue != enabled)
                 {
                     mCategoryEnabled[category] = newValue;
                     mFilterDirty = true;

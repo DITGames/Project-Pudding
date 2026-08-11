@@ -43,8 +43,8 @@ namespace PPCore
                 ? EditorGUIUtility.singleLineHeight
                 : EditorGUI.GetPropertyHeight(aProperty, true);
 
-        // 選択済みの SerializeReference プロパティを、BuildString() の戻り値をラベルにして描画する
-        // ツリーピッカー（PPSkillEffectPickerPopup）経由で設定された場合の描画にも共通で使う
+        // 選択済みの SerializeReference プロパティを、型ごとの要約をラベルにして描画する
+        // ツリーピッカー（PPTypeTreePickerPopup）経由で設定された場合の描画にも共通で使う
         // aPosition : 描画領域
         // aProperty : 描画対象の SerializeReference プロパティ（型選択済み）
         // aLabel : フィールドの既定ラベル
@@ -57,6 +57,10 @@ namespace PPCore
                 case PPEffectDefinition statusEffect: label.text = statusEffect.BuildString(); break;
                 case PPPartyConditionValidator condition when !string.IsNullOrEmpty(condition.Description):
                     label.text = condition.Description; break;
+                case PPUnitConditionValidator unitCondition when !string.IsNullOrEmpty(unitCondition.Description):
+                    label.text = unitCondition.Description; break;
+                case PPTacticStepBase step when !string.IsNullOrEmpty(step.Description):
+                    label.text = step.Description; break;
             }
             EditorGUI.PropertyField(aPosition, aProperty, label, true);
         }

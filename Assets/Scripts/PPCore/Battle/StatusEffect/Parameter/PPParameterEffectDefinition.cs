@@ -27,6 +27,9 @@ namespace PPCore
         // 通常攻撃コスト。追加パラメータ側にある
         [InspectorName(PPParameterEffectCategoryDefinition.NameCost)]
         Cost,
+        // 1 ティックあたりの行動回数上限。追加パラメータ側にある
+        [InspectorName(PPParameterEffectCategoryDefinition.NameActionCount)]
+        ActionCount,
     }
 
     // 変動の向き。設定側は常に正の変動量を入れ、増減の別はこちらで指定する
@@ -75,7 +78,9 @@ namespace PPCore
                 (PPModifierTargetParam.Hp, PPModifierDirection.Increase) => PPEffectCategory.MaxHpBuff,
                 (PPModifierTargetParam.Hp, PPModifierDirection.Decrease) => PPEffectCategory.MaxHpDebuff,
                 (PPModifierTargetParam.Cost, PPModifierDirection.Increase) => PPEffectCategory.CostBuff,
-                _ => PPEffectCategory.CostDebuff,
+                (PPModifierTargetParam.Cost, PPModifierDirection.Decrease) => PPEffectCategory.CostDebuff,
+                (PPModifierTargetParam.ActionCount, PPModifierDirection.Increase) => PPEffectCategory.ActionCountBuff,
+                _ => PPEffectCategory.ActionCountDebuff,
             };
 
         public override StatusEffectTag Tags
@@ -100,7 +105,7 @@ namespace PPCore
             };
 
         // 対象パラメータに対応するパラメータ ID
-        // コストのみ追加パラメータ側の ID を返す点に注意
+        // コストと行動回数上限のみ追加パラメータ側の ID を返す点に注意
         protected string ParamId
             => mTargetParam switch
             {
@@ -109,6 +114,7 @@ namespace PPCore
                 PPModifierTargetParam.Speed => ParameterSet.ParamIdSpeed,
                 PPModifierTargetParam.Hp => ParameterSet.ParamIdMaxHp,
                 PPModifierTargetParam.Cost => PPParameterSet.ParameterIdAttackCost,
+                PPModifierTargetParam.ActionCount => PPParameterSet.ParameterIdActionCount,
                 _ => string.Empty,
             };
 

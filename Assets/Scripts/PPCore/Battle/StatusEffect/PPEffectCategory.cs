@@ -34,10 +34,12 @@ namespace PPCore
         MaxHpDebuff = 1L << 23,
         CostBuff = 1L << 24,
         CostDebuff = 1L << 25,
+        ActionCountBuff = 1L << 26,
+        ActionCountDebuff = 1L << 27,
 
         /* ---- まとめ(解除スキルのマスクとしてそのまま使う) ---- */
         AllAilment = Poison | Burn | Paralyze,
-        AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | CostBuff,
-        AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | CostDebuff,
+        AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | CostBuff | ActionCountBuff,
+        AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | CostDebuff | ActionCountDebuff,
     }
 }

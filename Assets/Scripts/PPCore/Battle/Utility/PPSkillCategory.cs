@@ -11,7 +11,7 @@ using UnityEngine;
 namespace PPCore
 {
     // スキルの種別。UI 表示の分類と、ダメージ情報へ引き継がれる性質の区別に使う
-    // AI が使う PPBattleSkillRole とは目的が異なる別軸の分類
+    // AI が使うスキルタグ(PPSkillTagDefinition)とは目的が異なる別軸の分類
     public enum PPSkillCategory
     {
         [InspectorName(PPSkillCategoryDefinition.NamePhysical)]

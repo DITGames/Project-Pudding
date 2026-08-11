@@ -17,5 +17,6 @@ namespace PPCore
         public const string NameSpeed = "素早さ";
         public const string NameHp = "HP";
         public const string NameCost = "コスト";
+        public const string NameActionCount = "行動回数上限";
     }
 }

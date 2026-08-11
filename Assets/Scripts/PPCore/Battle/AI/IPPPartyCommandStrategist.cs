@@ -13,7 +13,7 @@ namespace PPCore
     // パーティ全体を俯瞰して行動計画を立てる AI のインターフェース
     // ユニット単位で決める ICommandDecider と違い、
     // パーティ共有のリソースを誰に割り当てるかまで含めて 1 回で決めるのが役割
-    // 実装は PPPartyAIStrategistBase、駆動は PPEnemyAIDriver が担う
+    // 実装は PPPartyTacticsStrategist、駆動は PPEnemyAIDriver が担う
     public interface IPPPartyCommandStrategist
     {
         // このティックでパーティが取る行動計画を組み立てる

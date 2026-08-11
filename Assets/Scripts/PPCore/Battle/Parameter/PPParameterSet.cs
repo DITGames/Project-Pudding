@@ -8,6 +8,7 @@
 
 using System.Collections.Generic;
 using CommandBattleCore;
+using UnityEngine;
 
 namespace PPCore
 {
@@ -19,17 +20,27 @@ namespace PPCore
     {
         // 通常攻撃コストのパラメータ ID
         public static readonly string ParameterIdAttackCost = "AttackCost";
+        // 行動回数上限のパラメータ ID
+        public static readonly string ParameterIdActionCount = "ActionCount";
 
         // 通常攻撃 1 回あたりの消費リソース量。バフで増減しうる
         public Parameter AttackCost { get; }
+
+        // 1 ティックあたりに行動できる回数。Parameter で持つことで、
+        // 既存のパラメータ変動エフェクトでそのまま増減させられる
+        // 実際の消費・リセットは基底の ActionBudget が担うため、
+        // この値は PPBattleUnit.UnitTick が ActionBudget.Max へ同期する
+        public Parameter ActionCount { get; }
 
         // ID から引くための登録テーブル。値はプロパティ側と同じ実体を指す
         protected readonly Dictionary<string, Parameter> mParameters = new();
 
         // aAttackCost : 通常攻撃コストの初期値
-        public PPParameterSet(float aAttackCost)
+        // aActionCount : 行動回数上限の初期値。1 未満が渡された場合は 1 に丸める
+        public PPParameterSet(float aAttackCost, int aActionCount = 1)
         {
             AttackCost = RegisterModifiable(ParameterIdAttackCost, new Parameter(aAttackCost));
+            ActionCount = RegisterModifiable(ParameterIdActionCount, new Parameter(Mathf.Max(1, aActionCount)));
         }
 
         // パラメータを ID 付きで登録し、そのまま返すヘルパー

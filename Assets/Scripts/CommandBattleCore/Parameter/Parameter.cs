@@ -126,6 +126,8 @@ namespace CommandBattleCore
 
         // 現在値（IReadableParameter 用）
         public float CurrentValue => Current;
+        
+        public float Ratio => Max.CurrentValue > 0 ? Current / Max.CurrentValue : 0f;
 
         // 現在値または上限が変化したときに発火する
         public event Action<IReadableParameter> OnValueChanged;

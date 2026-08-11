@@ -22,7 +22,7 @@ namespace PPCore
         public float WeaknessMultiplier = 1.5f;
         // 耐性属性でヒットしたときのダメージ倍率
         public float ResistanceMultiplier = 0.75f;
-        // 通常攻撃（スキル未使用）候補の基礎AIスコア。スキルは PPSkillDefinition.RoleScores 側に個別で持つのに対し、
+        // 通常攻撃（スキル未使用）の基礎AIスコア。スキルは PPSkillDefinition.AIScore 側に個別で持つのに対し、
         // 通常攻撃はスキル定義を持たないためここで一括して持つ
         public float NormalAttackAIScore = 1f;
     }

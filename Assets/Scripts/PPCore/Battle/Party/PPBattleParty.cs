@@ -30,9 +30,6 @@ namespace PPCore
         // このパーティの行動計画を立てる AI。プレイヤー操作パーティなら null のまま
         public IPPPartyCommandStrategist Strategist { get; set; }
 
-        // AI の「待ってリソースを溜める」判断に掛かる粘り強さの係数
-        public float PatienceCoefficient { get; set; }
-
         // aMaxCoin : リソースプールの属性ごとの上限値
         // aBaseCoinRate : コイン変換係数の初期値
         // aSide : このパーティの陣営

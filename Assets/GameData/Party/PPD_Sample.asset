@@ -15,13 +15,6 @@ MonoBehaviour:
   Members:
   - Unit: {fileID: 0}
     Level: 0
-    RoleOverride: 2
-    IsOverrideActionScore: 0
-    ActionScoreOverride:
-      Attack: 0
-      Support: 0
-      Heal: 0
   MaxResource: 100
   BaseResourceConversionRate: 1
-  EncounterType: 3
-  CustomPatienceCoefficient: 1
+  AIProfile: {fileID: 11400000, guid: e2f854c7174ab9cfc378d76b89ed3005, type: 2}

@@ -8,7 +8,6 @@
 
 using System.Collections.Generic;
 using CommandBattleCore;
-using UnityEngine;
 
 namespace PPCore
 {
@@ -18,7 +17,7 @@ namespace PPCore
     public static class PPPartyFactory
     {
         // PPPartyDefinition からランタイムパーティを生成する
-        // メンバーごとにユニットを生成し、ロール・知能の上書きを適用してから編成する
+        // メンバーごとにユニットを生成して編成する
         // aDefinition : 生成元のパーティ定義
         // aSide : このパーティの陣営
         // aItems : 初期所持アイテム。null なら空のインベントリになる
@@ -29,35 +28,12 @@ namespace PPCore
             var units = new List<BattleUnit>();
             foreach (var entry in aDefinition.Members)
             {
-                if(entry == null) continue;
-                var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
-                unit.AssignedRole = ResolveRole(entry);
-                unit.Intelligence = ResolveIntelligence(entry);
-                units.Add(unit);
+                if(entry == null || entry.Unit == null) continue;
+
+                units.Add((PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level));
             }
 
-            var party = new PPBattleParty(aDefinition.MaxResource, aDefinition.BaseResourceConversionRate, aSide, units, null, aItems)
-            {
-                PatienceCoefficient = aDefinition.ResolvePatienceCoefficient(),
-            };
-            return party;
-        }
-
-        // 適用するロールを解決する。上書きが Inherit 以外ならそちらを優先する
-        // aEntry : 対象のメンバー設定
-        private static PPUnitRole ResolveRole(PPPartyMemberEntry aEntry)
-        {
-            if(aEntry.RoleOverride != PPUnitRole.Inherit) return aEntry.RoleOverride;
-            return aEntry.Unit.DefaultRole;
-        }
-
-        // 適用する知能を解決する。上書き指定時のみ手入力値を 0～1 に丸めて使う
-        // ここで 0 になった場合は、AI 側でプロファイルの値へフォールバックする
-        // aEntry : 対象のメンバー設定
-        private static float ResolveIntelligence(PPPartyMemberEntry aEntry)
-        {
-            if(aEntry.IsOverrideIntelligence) return Mathf.Clamp01(aEntry.IntelligenceOverride);
-            return aEntry.Unit.DefaultIntelligence;
+            return new PPBattleParty(aDefinition.MaxResource, aDefinition.BaseResourceConversionRate, aSide, units, null, aItems);
         }
     }
 }

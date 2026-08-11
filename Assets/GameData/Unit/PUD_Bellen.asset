@@ -20,17 +20,15 @@ MonoBehaviour:
     Defense: 20
     Speed: 10
   mSkills:
-  - {fileID: 11400000, guid: e29e7ac29baf0064b8118267d251e13b, type: 2}
-  - {fileID: 11400000, guid: 8c5716c6d3eeb944899b31ca8acc1a91, type: 2}
+  - {fileID: 11400000, guid: edc31c38c7d57374bad411b2c87b320f, type: 2}
+  - {fileID: 11400000, guid: ba50d2200588e4bdf421fd1bec35c40a, type: 2}
+  - {fileID: 11400000, guid: e44c7944da388b0a3e79f511a1f5761d, type: 2}
+  - {fileID: 11400000, guid: 546f6464db09e4b44f4eace1d340886b, type: 2}
+  - {fileID: 11400000, guid: 1c423067ca5d95a044493abeebd18229, type: 2}
   mExpandStatBlock:
     AttackCost: 6
+    ActionCount: 1
   mTypeAttribute: 3
-  mDefaultRole: 0
-  mDefaultActionScore:
-    Attack: 1
-    Support: 1
-    Heal: 1
-  mDefaultIntelligence: 0.5
   mHpGrowth:
     serializedVersion: 2
     m_Curve:
