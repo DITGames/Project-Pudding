@@ -6,6 +6,8 @@
  * @brief 複数のVFX Graphを登録し、再生とパラメータ設定を外部から制御する汎用コンポーネント
  * =====================================*/
 
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using CommandBattleCore;
 using CustomConsole;
@@ -18,46 +20,104 @@ namespace VFXUtility
     {
         private const string LogTag = "VFXUtility";
 
-        [Label("登録VFX一覧", true)]
-        [SerializeField] private List<VFXEntry> mVfxEntries = new();
+        [Label("VFXプロファイル")]
+        [SerializeField] private VFXProfileDefinition mProfile;
 
-        [Label("パラメータ一覧", true)]
-        [SerializeField] private List<VFXParameterEntry> mParameters = new();
+        [Label("プールを使用する")]
+        [SerializeField] private bool mUsePooling;
 
         private readonly Dictionary<string, VisualEffect> mVisualEffectCache = new();
+        private readonly Dictionary<string, Coroutine> mWatchCoroutines = new();
 
-        // 指定IDのVFXを再生する(未生成ならAddComponentで生成)。呼び出すたびに必ずPlay()で最初から再生し直す
-        // aVfxId: 対象VFXのID
-        public void ActivateVFX(string aVfxId)
+        // VFXの再生が完了した際に通知する(引数は再生完了したVFX ID)
+        public event Action<string> OnVFXCompleted;
+
+        // 指定IDのVFXを再生する(未生成ならプールまたはAddComponentで生成)。呼び出すたびに必ずPlay()で最初から再生し直す
+        // aVfxId: 対象VFXのID / aOnCompleted: 再生完了時に呼ばれるコールバック(省略可)
+        public void ActivateVFX(string aVfxId, Action aOnCompleted = null)
         {
-            VFXEntry entry = mVfxEntries.Find(e => e.VfxId == aVfxId);
+            if (mProfile == null)
+            {
+                CustomConsoleLog.Warning(LogTag, "VFXプロファイルが未設定です", this);
+                return;
+            }
+
+            VFXEntry entry = mProfile.FindEntry(aVfxId);
             if (entry == null)
             {
                 CustomConsoleLog.Warning(LogTag, $"VFXエントリが見つかりません: {aVfxId}", this);
                 return;
             }
 
-            if (!mVisualEffectCache.TryGetValue(aVfxId, out VisualEffect visualEffect))
+            if (mWatchCoroutines.TryGetValue(aVfxId, out Coroutine running))
             {
-                visualEffect = gameObject.AddComponent<VisualEffect>();
-                visualEffect.visualEffectAsset = entry.VisualEffectAsset;
+                StopCoroutine(running);
+                mWatchCoroutines.Remove(aVfxId);
+            }
+
+            if (!mVisualEffectCache.TryGetValue(aVfxId, out VisualEffect visualEffect) || visualEffect == null)
+            {
+                if (mUsePooling)
+                {
+                    visualEffect = VFXPoolManager.Instance.Rent(entry.VisualEffectAsset, transform.position, transform.rotation);
+                }
+                else
+                {
+                    visualEffect = gameObject.AddComponent<VisualEffect>();
+                    visualEffect.visualEffectAsset = entry.VisualEffectAsset;
+                }
+
                 mVisualEffectCache[aVfxId] = visualEffect;
             }
 
             visualEffect.Play();
+            mWatchCoroutines[aVfxId] = StartCoroutine(WatchCompletion(aVfxId, visualEffect, aOnCompleted));
+        }
+
+        // 指定IDのVFXを停止する(プール使用時はプールへ返却する)
+        // aVfxId: 対象VFXのID
+        public void StopVFX(string aVfxId)
+        {
+            if (mWatchCoroutines.TryGetValue(aVfxId, out Coroutine running))
+            {
+                StopCoroutine(running);
+                mWatchCoroutines.Remove(aVfxId);
+            }
+
+            if (!mVisualEffectCache.TryGetValue(aVfxId, out VisualEffect visualEffect))
+            {
+                return;
+            }
+
+            mVisualEffectCache.Remove(aVfxId);
+
+            if (mUsePooling)
+            {
+                VFXPoolManager.Instance.Return(visualEffect);
+            }
+            else
+            {
+                visualEffect.Stop();
+            }
         }
 
         // 指定IDのVFXに対し、指定した1パラメータだけを設定する(再生の制御は行わない)
         // aVfxId: 対象VFXのID / aParamName: 設定するパラメータ名 / aOverride: 上書き値。nullの場合はエントリの既定値を使う
         public void ApplyParameter(string aVfxId, string aParamName, object aOverride = null)
         {
+            if (mProfile == null)
+            {
+                CustomConsoleLog.Warning(LogTag, "VFXプロファイルが未設定です", this);
+                return;
+            }
+
             if (!mVisualEffectCache.TryGetValue(aVfxId, out VisualEffect visualEffect))
             {
                 CustomConsoleLog.Warning(LogTag, $"ActivateVFX未実行のVFXにパラメータを設定しようとしました: {aVfxId}", this);
                 return;
             }
 
-            VFXParameterEntry paramEntry = mParameters.Find(p => p.VfxId == aVfxId && p.ParamName == aParamName);
+            VFXParameterEntry paramEntry = mProfile.FindParameter(aVfxId, aParamName);
             if (paramEntry == null)
             {
                 CustomConsoleLog.Warning(LogTag, $"パラメータエントリが見つかりません: {aVfxId}/{aParamName}", this);
@@ -70,6 +130,61 @@ namespace VFXUtility
             }
 
             ApplyToVisualEffect(visualEffect, aParamName, paramEntry.ParamType, value);
+        }
+
+        // aSequenceのステップを順番に再生する(各ステップはVfxId + 直前ステップからの遅延 + 再生後に適用するパラメータ名の組)
+        // aSequence: 再生するシーケンス定義 / aOnCompleted: 全ステップ再生後に呼ばれるコールバック(省略可)
+        public Coroutine PlaySequence(VFXSequenceDefinition aSequence, Action aOnCompleted = null)
+        {
+            if (aSequence == null)
+            {
+                CustomConsoleLog.Warning(LogTag, "VFXシーケンスが未設定です", this);
+                return null;
+            }
+
+            return StartCoroutine(RunSequence(aSequence, aOnCompleted));
+        }
+
+        private IEnumerator RunSequence(VFXSequenceDefinition aSequence, Action aOnCompleted)
+        {
+            foreach (VFXSequenceStep step in aSequence.Steps)
+            {
+                if (step.DelaySeconds > 0f)
+                {
+                    yield return new WaitForSeconds(step.DelaySeconds);
+                }
+
+                ActivateVFX(step.VfxId);
+                foreach (string paramName in step.ParamNamesToApply)
+                {
+                    ApplyParameter(step.VfxId, paramName);
+                }
+            }
+
+            aOnCompleted?.Invoke();
+        }
+
+        // VFXの生存状況を監視し、完了したらコールバックとイベントを発火する(プール使用時は完了後にプールへ返却する)
+        // aliveParticleCountに基づく判定のため、パーティクルを生成しないVFXやスポーンに遅延があるVFXでは即座に完了扱いになる場合がある
+        private IEnumerator WatchCompletion(string aVfxId, VisualEffect aVisualEffect, Action aOnCompleted)
+        {
+            yield return null;
+
+            while (aVisualEffect != null && aVisualEffect.aliveParticleCount > 0)
+            {
+                yield return null;
+            }
+
+            mWatchCoroutines.Remove(aVfxId);
+            aOnCompleted?.Invoke();
+            OnVFXCompleted?.Invoke(aVfxId);
+
+            if (mUsePooling && aVisualEffect != null
+                && mVisualEffectCache.TryGetValue(aVfxId, out VisualEffect cached) && cached == aVisualEffect)
+            {
+                mVisualEffectCache.Remove(aVfxId);
+                VFXPoolManager.Instance.Return(aVisualEffect);
+            }
         }
 
         // 設定値を決定する。aOverrideがnullならエントリの既定値、非nullなら型一致を確認した上でaOverrideを採用する
