@@ -21,10 +21,7 @@ MonoBehaviour:
     Speed: 10
   mSkills:
   - {fileID: 11400000, guid: edc31c38c7d57374bad411b2c87b320f, type: 2}
-  - {fileID: 11400000, guid: ba50d2200588e4bdf421fd1bec35c40a, type: 2}
   - {fileID: 11400000, guid: e44c7944da388b0a3e79f511a1f5761d, type: 2}
-  - {fileID: 11400000, guid: 546f6464db09e4b44f4eace1d340886b, type: 2}
-  - {fileID: 11400000, guid: 1c423067ca5d95a044493abeebd18229, type: 2}
   mExpandStatBlock:
     AttackCost: 6
     ActionCount: 1

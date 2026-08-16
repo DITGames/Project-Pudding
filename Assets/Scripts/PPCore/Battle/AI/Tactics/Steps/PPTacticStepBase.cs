@@ -72,25 +72,30 @@ namespace PPCore
         // もう一度実行してしまう方が戦術としては安全なため
         // aSnap : パーティ状況スナップショット
         // aRuntime : 進行状況を保持するランタイム戦術
+        // aLedger : 行動回数の仮押さえ帳。実行時と同じ条件で実行者を引くために使う
         // return : 達成済みなら true
-        public virtual bool IsCompleted(PPPartyAIContext aSnap, PPRuntimeTactics aRuntime)
+        public virtual bool IsCompleted(PPPartyAIContext aSnap, PPRuntimeTactics aRuntime,
+            PPTacticActionLedger aLedger)
         {
             // 条件が未設定のステップは判定しようがないため、常に実行対象として扱う
             if (!PPUnitConditionValidator.HasAny(mCompletionConditions)) return false;
 
-            // 達成判定の時点では行動回数を消費しないため、行動可否を見ずに実行者を引く
-            var actor = SelectActor(aSnap, null);
+            // 実行時と同じ条件で実行者を引く
+            // 行動可否を見ずに引くと、対象選択方針が「自分自身」のときに
+            // 判定した相手と実際に実行する相手が別人になり、未達成のユニットを飛ばしてしまう
+            var actor = SelectActor(aSnap, aLedger);
             var target = ResolveTarget(aSnap, aRuntime, actor);
             if (target == null) return false;
 
             return PPUnitConditionValidator.EvaluateAll(mCompletionConditions, target, aSnap);
         }
 
-        // 実行者条件に合うユニットを 1 体選ぶ
+        // 実行者条件と行動回数だけで候補を絞る
+        // そのステップを実際に実行できるか（スキルを撃てるか等）は派生側の判断になるため、ここでは見ない
         // aSnap : パーティ状況スナップショット
-        // aLedger : 行動回数の仮押さえ帳。null なら行動可否を見ない（達成判定用）
-        // return : 選ばれた実行者。候補が居なければ null
-        protected PPBattleUnit SelectActor(PPPartyAIContext aSnap, PPTacticActionLedger aLedger)
+        // aLedger : 行動回数の仮押さえ帳。null なら行動可否を見ない
+        // return : 候補ユニット
+        protected List<PPBattleUnit> CollectActorCandidates(PPPartyAIContext aSnap, PPTacticActionLedger aLedger)
         {
             var candidates = new List<PPBattleUnit>();
             foreach (var unit in aSnap.AliveMembers)
@@ -100,8 +105,17 @@ namespace PPCore
 
                 candidates.Add(unit);
             }
-            return PPTacticUnitSelector.SelectUnit(candidates, mActorSelectRule, aSnap.Context);
+            return candidates;
         }
+
+        // 実行者を 1 体選ぶ
+        // 通常攻撃ステップのように誰でも実行できる場合はこの実装をそのまま使う
+        // スキル使用ステップは「そのスキルを撃てるか」まで見る必要があるため派生で差し替える
+        // aSnap : パーティ状況スナップショット
+        // aLedger : 行動回数の仮押さえ帳。null なら行動可否を見ない
+        // return : 選ばれた実行者。候補が居なければ null
+        protected virtual PPBattleUnit SelectActor(PPPartyAIContext aSnap, PPTacticActionLedger aLedger)
+            => PPTacticUnitSelector.SelectUnit(CollectActorCandidates(aSnap, aLedger), mActorSelectRule, aSnap.Context);
 
         // 対象選択方針に従って対象を解決する
         // スコープ既定の場合は対象を指定しないため null を返す（呼び出し側は解決失敗と区別すること）

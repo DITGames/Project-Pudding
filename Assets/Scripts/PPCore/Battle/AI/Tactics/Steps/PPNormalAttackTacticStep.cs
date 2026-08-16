@@ -35,8 +35,11 @@ namespace PPCore
                 return null;
             }
 
-            // 通常攻撃は必ず相手が要るため、スコープ既定を指定されていても敵を 1 体決める
-            var target = ResolveTarget(aSnap, aRuntime, actor) ?? aSnap.LowestHpRatioEnemy;
+            // 通常攻撃は必ず敵が要るため、スコープ既定を指定されていても敵を 1 体決める
+            // 味方向けの対象選択方針を設定された場合も敵へ差し替える
+            // SingleEnemyResolver は渡された対象の陣営を検証しないため、
+            // ここで弾かないと設定ミスがそのまま味方への攻撃になる
+            var target = ResolveEnemyTarget(aSnap, aRuntime, actor);
             if (target == null)
             {
                 aReason = PPTacticRejectReason.NoTarget;
@@ -59,6 +62,19 @@ namespace PPCore
                 RequiredActionCount = RequiredActionCount,
                 BuildCommand = _ => new PPAttackCommand(user, new SingleEnemyResolver(victim)),
             };
+        }
+
+        // 攻撃対象を解決する。敵が返ってこない方針が設定されていた場合は敵へ差し替える
+        // 対象選択方針は味方向けのものも選べるが、通常攻撃で味方を殴っても意味が無く、
+        // リゾルバ側も陣営を検証しないため、ここで敵に寄せておく
+        // aSnap : パーティ状況スナップショット
+        // aRuntime : 進行状況を保持するランタイム戦術
+        // aActor : 解決済みの実行者
+        // return : 攻撃対象。生存する敵が居なければ null
+        private PPBattleUnit ResolveEnemyTarget(PPPartyAIContext aSnap, PPRuntimeTactics aRuntime, PPBattleUnit aActor)
+        {
+            var target = ResolveTarget(aSnap, aRuntime, aActor);
+            return aSnap.AliveEnemies.Contains(target) ? target : aSnap.LowestHpRatioEnemy;
         }
 
         // 設定内容から説明文を組み立てる
