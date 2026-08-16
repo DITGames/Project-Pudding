@@ -39,21 +39,14 @@ namespace PPCore
         public override PPTacticStepResolution Resolve(PPPartyAIContext aSnap, PPRuntimeTactics aRuntime,
             PPTacticActionLedger aLedger, out PPTacticRejectReason aReason)
         {
-            var actor = SelectActor(aSnap, aLedger);
+            var (actor, skill, definition) = PPTacticUnitSelector.SelectActorSkill(
+                CollectEntries(aSnap, aLedger), mActorSelectRule, aSnap.Context);
             if (actor == null)
             {
                 aReason = PPTacticRejectReason.NoActor;
                 return null;
             }
 
-            var candidates = CollectCastableSkills(actor, aSnap.Context);
-            if (candidates.Count == 0)
-            {
-                aReason = PPTacticRejectReason.NoSkill;
-                return null;
-            }
-
-            var (skill, definition) = PPTacticUnitSelector.SelectSkill(candidates, mSkillSelectRule, aSnap.Context);
             var target = ResolveTarget(aSnap, aRuntime, actor);
             if (IsRequireTarget && target == null)
             {
@@ -77,6 +70,37 @@ namespace PPCore
                 BuildCommand = _ => new PPSkillCommand(user, used, resolver),
             };
         }
+
+        // 実行者と、その人が撃つスキルの組を作る
+        // 実行者を先に 1 体決めてからスキルを探すと、スキルを持たない人が選ばれた時点で
+        // 他に撃てる人が居ても打ち切られてしまうため、組にしてから選ぶ
+        // ユニット内での使用スキルはここで決め、ユニット間の比較はその結果に対して行う
+        // aSnap : パーティ状況スナップショット
+        // aLedger : 行動回数の仮押さえ帳
+        // return : 実行できるユニットと、その人が使うスキルの組
+        private List<(PPBattleUnit Actor, PPBattleSkill Skill, PPSkillDefinition Definition)> CollectEntries(
+            PPPartyAIContext aSnap, PPTacticActionLedger aLedger)
+        {
+            var entries = new List<(PPBattleUnit, PPBattleSkill, PPSkillDefinition)>();
+            foreach (var unit in CollectActorCandidates(aSnap, aLedger))
+            {
+                var skills = CollectCastableSkills(unit, aSnap.Context);
+                if (skills.Count == 0) continue;
+
+                var (skill, definition) = PPTacticUnitSelector.SelectSkill(skills, mSkillSelectRule, aSnap.Context);
+                entries.Add((unit, skill, definition));
+            }
+            return entries;
+        }
+
+        // 実行者を 1 体選ぶ
+        // 撃てるスキルを持つユニットだけを候補にし、比較値もこのステップのタグに
+        // 合致したスキルの値を使う（基底の実装は全所持スキルから集計してしまう）
+        // aSnap : パーティ状況スナップショット
+        // aLedger : 行動回数の仮押さえ帳
+        // return : 選ばれた実行者。候補が居なければ null
+        protected override PPBattleUnit SelectActor(PPPartyAIContext aSnap, PPTacticActionLedger aLedger)
+            => PPTacticUnitSelector.SelectActorSkill(CollectEntries(aSnap, aLedger), mActorSelectRule, aSnap.Context).Actor;
 
         // タグに合致し、リソース以外の理由では弾かれないスキルを集める
         // リソース不足（NotEnoughResource）だけは候補に残す

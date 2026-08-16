@@ -17,6 +17,10 @@ MonoBehaviour:
   mConditions: []
   mSteps:
   - rid: 2855699132165128283
+  mParallelActions:
+  - {fileID: 11400000, guid: fabd17d72ac3764cdef6c684d013823a, type: 2}
+  - {fileID: 11400000, guid: 0eac5eb5d48225471a450bedbf9d5cab, type: 2}
+  - {fileID: 11400000, guid: f785f8e283251ebb16384f72a103c95d, type: 2}
   mIsDoOnce: 0
   mCooldownTicks: 0
   mAllowedWaitTicks: 0

@@ -167,6 +167,16 @@ namespace PPCore
                 EditorGUILayout.LabelField("採用行動数", aReport.AdoptedCount.ToString());
                 EditorGUILayout.LabelField("リソース平均増加量", $"{aReport.AverageGainPerTick:F2} / ティック");
 
+                if (aReport.ParallelActions.Count > 0)
+                {
+                    EditorGUILayout.Space();
+                    EditorGUILayout.LabelField("並行アクション", EditorStyles.boldLabel);
+                    foreach (var entry in aReport.ParallelActions)
+                    {
+                        DrawParallelEntry(entry);
+                    }
+                }
+
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField("戦術（優先度順）", EditorStyles.boldLabel);
                 foreach (var entry in aReport.Tactics)
@@ -206,6 +216,33 @@ namespace PPCore
                 }
             }
         }
+
+        // 並行アクション 1 件分の判定結果を描画する
+        // aEntry : 描画する判定結果
+        private static void DrawParallelEntry(PPTacticsParallelEntry aEntry)
+        {
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.helpBox))
+            {
+                string name = aEntry.IsBeforeSteps ? $"[先行] {aEntry.ActionName}" : aEntry.ActionName;
+                EditorGUILayout.LabelField(name, EditorStyles.boldLabel);
+
+                string limit = aEntry.MaxExecutions > 0 ? aEntry.MaxExecutions.ToString() : "尽きるまで";
+                EditorGUILayout.LabelField($"{aEntry.ExecutedCount} / {limit} 回", GUILayout.Width(110f));
+                EditorGUILayout.LabelField(ParallelStopLabel(aEntry), GUILayout.Width(140f));
+            }
+        }
+
+        // 並行アクションの打ち切り理由を日本語表記へ変換する
+        // 1 回でも実行できていれば失敗ではないため、上限到達は素直に「完了」と出す
+        // aEntry : 対象の判定結果
+        // return : 日本語の表記
+        private static string ParallelStopLabel(PPTacticsParallelEntry aEntry)
+            => aEntry.StopReason switch
+            {
+                PPTacticRejectReason.ExecutionLimit => aEntry.ExecutedCount > 0 ? "完了" : "実行なし",
+                PPTacticRejectReason.NotEnoughResource => "リソース不足",
+                _ => RejectLabel(aEntry.StopReason),
+            };
 
         // 表示対象の記録を解決する
         // aReports : ためられている記録
@@ -262,6 +299,8 @@ namespace PPCore
                 PPTacticRejectReason.NoTarget => "対象なし",
                 PPTacticRejectReason.NoIncome => "収入見込みなし",
                 PPTacticRejectReason.TooFarToWait => "待ちが長すぎる",
+                PPTacticRejectReason.NotEnoughResource => "リソース不足",
+                PPTacticRejectReason.ExecutionLimit => "上限到達",
                 _ => "-",
             };
     }

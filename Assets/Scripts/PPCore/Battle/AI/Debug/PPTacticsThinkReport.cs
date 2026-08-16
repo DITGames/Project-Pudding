@@ -35,6 +35,22 @@ namespace PPCore
         public bool IsAffordableNow;
     }
 
+    // 並行アクション 1 件分の判定記録
+    // ステップと違って進行位置を持たないため、記録するのは「何回実行できたか」と
+    // 「なぜそこで止まったか」の 2 点になる
+    public struct PPTacticsParallelEntry
+    {
+        public string ActionName;
+        // 実際に実行された回数
+        public int ExecutedCount;
+        // 設定された最大実行回数。0 以下は「尽きるまで」
+        public int MaxExecutions;
+        // ステップより先に実行する設定か
+        public bool IsBeforeSteps;
+        // 繰り返しを打ち切った理由。上限まで回りきった場合は ExecutionLimit
+        public PPTacticRejectReason StopReason;
+    }
+
     // 戦術 AI の思考 1 回分の記録
     // 「成立した戦術 → メイン戦術 → ステップ進行」という流れをそのまま追えるようにしてある
     // リアルタイムに進むバトルでは見たい瞬間を捉えられないため、
@@ -57,5 +73,7 @@ namespace PPCore
         public int AdoptedCount;
         // 全戦術の判定記録
         public List<PPTacticsThinkEntry> Tactics = new();
+        // メイン戦術の並行アクションの判定記録
+        public List<PPTacticsParallelEntry> ParallelActions = new();
     }
 }

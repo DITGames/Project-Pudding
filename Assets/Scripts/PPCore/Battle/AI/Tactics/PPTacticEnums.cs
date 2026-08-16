@@ -89,5 +89,9 @@ namespace PPCore
         NoIncome,
         // 撃てるまでに掛かるティック数が許容待機ティック数を超えた
         TooFarToWait,
+        // 残りリソースで払えなかった（並行アクションの打ち切り理由）
+        NotEnoughResource,
+        // 最大実行回数まで回りきった（並行アクションの打ち切り理由。失敗ではない）
+        ExecutionLimit,
     }
 }

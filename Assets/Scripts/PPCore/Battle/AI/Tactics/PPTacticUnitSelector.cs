@@ -76,6 +76,39 @@ namespace PPCore
             return best;
         }
 
+        // 実行者と使用スキルの組から 1 つ選ぶ
+        // 実行者を先に決めてからスキルを探すと、スキルを持たない人が選ばれた時点で
+        // 他に撃てる人が居ても打ち切られてしまうため、組にしてから選ぶ
+        // 比較値はそのステップで実際に使うスキルの値になるので、
+        // ユニットの全所持スキルから集計する SelectUnit とは意味が異なる
+        // aCandidates : 選択対象の候補（実行者・スキル・定義の組）
+        // aRule : 選択ルール
+        // aContext : 乱数供給元を含むバトルコンテキスト
+        // return : 選ばれた組。候補が空なら全要素 null
+        public static (PPBattleUnit Actor, PPBattleSkill Skill, PPSkillDefinition Definition) SelectActorSkill(
+            IReadOnlyList<(PPBattleUnit Actor, PPBattleSkill Skill, PPSkillDefinition Definition)> aCandidates,
+            PPTacticSelectRule aRule, BattleContext aContext)
+        {
+            if (aCandidates == null || aCandidates.Count == 0) return (null, null, null);
+            if (aCandidates.Count == 1) return aCandidates[0];
+
+            if (aRule == PPTacticSelectRule.Random)
+                return aCandidates[aContext.Rules.RandomProvider.NextInt(aCandidates.Count)];
+
+            (PPBattleUnit Actor, PPBattleSkill Skill, PPSkillDefinition Definition) best = (null, null, null);
+            float bestScore = 0f;
+            foreach (var candidate in aCandidates)
+            {
+                float score = ScoreSkill(candidate.Definition, aRule);
+                if (best.Actor == null || score > bestScore)
+                {
+                    best = candidate;
+                    bestScore = score;
+                }
+            }
+            return best;
+        }
+
         // ユニットの比較値を求める
         // ユニット自体は AI スコアもコストも持たないため、保持スキルの値を代表値として使う
         // コストが低いほうを選びたい場合は符号を反転して「大きいほうが良い」に揃える

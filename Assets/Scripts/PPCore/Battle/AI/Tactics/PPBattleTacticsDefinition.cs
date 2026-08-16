@@ -37,6 +37,11 @@ namespace PPCore
         [SerializeReference]
         [Label("ステップリスト", true)] private List<PPTacticStepBase> mSteps = new();
 
+        // 手順とは独立して実行されるアクション。ステップに合致しなかったユニットを動かすのに使う
+        // アセット参照なので、同じアクションを複数の戦術から使い回せる
+        [Label("並行アクション", true)]
+        [SerializeField] private List<PPTacticParallelActionDefinition> mParallelActions = new();
+
         [Header("制御")]
         [Label("1バトル1回のみ")]
         [SerializeField] private bool mIsDoOnce = false;
@@ -55,6 +60,7 @@ namespace PPCore
         public string Description => mDescription;
         public IReadOnlyList<PPPartyConditionValidator> Conditions => mConditions;
         public IReadOnlyList<PPTacticStepBase> Steps => mSteps;
+        public IReadOnlyList<PPTacticParallelActionDefinition> ParallelActions => mParallelActions;
         public bool IsDoOnce => mIsDoOnce;
         public int CooldownTicks => Mathf.Max(0, mCooldownTicks);
         public float AllowedWaitTicks => Mathf.Max(0f, mAllowedWaitTicks);

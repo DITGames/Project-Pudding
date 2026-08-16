@@ -39,6 +39,13 @@ namespace PPCore
         protected readonly PPIncomTrendTracker mTrend = new();
         // プロファイルの戦術リストから生成したランタイム戦術。並び順がそのまま優先度になる
         protected readonly List<PPRuntimeTactics> mTactics = new();
+        // この思考で処理した並行アクションの記録。思考のたびに作り直す
+        private readonly List<PPTacticsParallelEntry> mParallelRecords = new();
+
+        // 最大実行回数が未指定（0 以下）のときに回す上限
+        // 実行のたびに資源か行動回数が必ず減るため理論上は止まるが、
+        // コスト 0 かつ行動回数を消費しないアクションを組まれた場合の保険
+        private const int ParallelActionSafetyCap = 32;
 
         // 現在のメイン戦術。切り替わったときに前のものの進行をリセットする
         private PPRuntimeTactics mMainTactics;
@@ -104,6 +111,9 @@ namespace PPCore
             {
                 mTrend.Sample(snap.Current(PPTypeAttribute.Normal), mProfile.TrendSampleCount);
             }
+
+            // 並行アクションの記録は思考ごとに作り直す
+            mParallelRecords.Clear();
 
             // 思考のたびに全戦術を評価し直す。対象も進行位置もここで解決し直される
             var executables = UpdateTacticsForThink(snap, party);
@@ -202,11 +212,13 @@ namespace PPCore
 
                 // 達成済みステップを飛ばして開始位置を決め直す
                 // 進行中の戦術も毎回やり直すため、バフが切れていればそのステップへ戻る
-                int startIndex = ResolveStartStepIndex(tactics, aSnap);
+                int startIndex = ResolveStartStepIndex(tactics, aSnap, ledger);
                 if (startIndex >= tactics.Definition.Steps.Count)
                 {
-                    // 全ステップが達成済み。実行するものが無いので完走として畳む
-                    tactics.Complete();
+                    // 全ステップが達成済み。実行するものが無いので進行だけ巻き戻す
+                    // ここで Complete() を呼ぶと、一度も実行していない戦術が
+                    // 1 バトル 1 回の枠を消化し、クールタイムまで始まってしまう
+                    tactics.ResetProgress();
                     tactics.SetThinkResult(null, PPTacticRejectReason.NoSteps, 0f, false);
                     continue;
                 }
@@ -248,8 +260,10 @@ namespace PPCore
         // 「常に先頭から実行」が有効なら達成済み判定を行わず先頭に戻す
         // aTactics : 対象のランタイム戦術
         // aSnap : パーティ状況スナップショット
+        // aLedger : 行動回数の仮押さえ帳。達成判定でも実行時と同じ条件で実行者を引くために渡す
         // return : 開始するステップの位置。全て達成済みならステップ数と同じ値
-        protected static int ResolveStartStepIndex(PPRuntimeTactics aTactics, PPPartyAIContext aSnap)
+        protected static int ResolveStartStepIndex(PPRuntimeTactics aTactics, PPPartyAIContext aSnap,
+            PPTacticActionLedger aLedger)
         {
             var steps = aTactics.Definition.Steps;
 
@@ -257,7 +271,7 @@ namespace PPCore
             {
                 if (steps[i] == null) continue;
                 if (aTactics.Definition.IsAlwaysRestart) return i;
-                if (!steps[i].IsCompleted(aSnap, aTactics)) return i;
+                if (!steps[i].IsCompleted(aSnap, aTactics, aLedger)) return i;
             }
             return steps.Count;
         }
@@ -354,53 +368,136 @@ namespace PPCore
         protected PPPartyPlan BuildPlan(PPRuntimeTactics aMain, PPPartyAIContext aSnap, PPBattleParty aParty,
             BattleContext aContext)
         {
-            // ステップを持たない戦術＝溜め。何も積まずに畳んでクールタイムへ入れる
-            if (aMain.Definition.ValidStepCount == 0)
-            {
-                aMain.Complete();
-                mMainTactics = null;
-                return PPPartyPlan.Wait;
-            }
-
-            // 実行可能予測で「待つ」と判断された戦術は、この思考では何もしない
-            if (!aMain.IsAffordableNow)
-            {
-                return PPPartyPlan.Wait;
-            }
-
             var budget = new PPResourceBudget(aParty.ResourcePool);
             var ledger = new PPTacticActionLedger();
             var picks = new List<PPPartyActionAssignment>();
-            var resolution = aMain.CurrentResolution;
             int order = 0;
+            bool hasSteps = aMain.Definition.ValidStepCount > 0;
 
-            while (resolution != null)
+            if (hasSteps && aMain.IsAffordableNow)
             {
-                if (!budget.CanAfford(resolution.Cost)) break;
-                if (!ledger.CanAct(resolution.Actor, resolution.RequiredActionCount)) break;
+                var resolution = aMain.CurrentResolution;
+                while (resolution != null)
+                {
+                    if (!budget.CanAfford(resolution.Cost)) break;
+                    if (!ledger.CanAct(resolution.Actor, resolution.RequiredActionCount)) break;
 
-                budget.TrySpend(resolution.Cost);
-                ledger.Reserve(resolution.Actor, resolution.RequiredActionCount);
+                    budget.TrySpend(resolution.Cost);
+                    ledger.Reserve(resolution.Actor, resolution.RequiredActionCount);
 
-                // 実行順はステップの並び順をそのまま使う
-                picks.Add(new PPPartyActionAssignment(resolution.Actor, resolution.BuildCommand(aContext), order));
-                order++;
+                    // 実行順はステップの並び順をそのまま使う
+                    picks.Add(new PPPartyActionAssignment(resolution.Actor, resolution.BuildCommand(aContext), order));
+                    order++;
 
-                CustomConsoleLog.Verbose("AI",
-                    $"{aMain.Definition.TacticsName} step{aMain.StepIndex}: {resolution.Actor.DisplayName} -> {resolution.DisplayName} -> {resolution.Target?.DisplayName ?? "-"}");
+                    CustomConsoleLog.Verbose("AI",
+                        $"{aMain.Definition.TacticsName} step{aMain.StepIndex}: {resolution.Actor.DisplayName} -> {resolution.DisplayName} -> {resolution.Target?.DisplayName ?? "-"}");
 
-                aMain.AdvanceStep(resolution);
-                resolution = ResolveCurrentStep(aMain, aSnap, ledger, out _);
+                    aMain.AdvanceStep(resolution);
+                    resolution = ResolveCurrentStep(aMain, aSnap, ledger, out _);
+                }
+            }
+            else if (hasSteps)
+            {
+                // 待機中。今溜まっている分は現在ステップのために取り置き、並行アクションには回さない
+                // ここで守らないと並行アクションが溜めを食い潰し、高コスト戦術が永久に発動しなくなる
+                budget.Reserve(aMain.CurrentResolution?.Cost);
             }
 
-            // 最終ステップまで消化できたら完走。クールタイムはここから数え始める
-            if (!aMain.HasRemainingStep)
+            // ステップが確保した残りで並行アクションを積む
+            AppendParallelActions(aMain, aSnap, aContext, budget, ledger, picks, order);
+
+            // 完走判定はステップだけで行う。並行アクションは進行位置に影響しない
+            // ステップを持たない戦術は「溜め」として毎思考ここで畳む
+            if (!hasSteps || !aMain.HasRemainingStep)
             {
                 aMain.Complete();
                 mMainTactics = null;
             }
 
             return picks.Count == 0 ? PPPartyPlan.Wait : new PPPartyPlan(picks);
+        }
+
+        // メイン戦術の並行アクションを、ステップが使った残りの資源で積む
+        // 資源と行動回数はステップと同じ帳簿を共有するため、並行アクションは常に「余り」で動き、
+        // メイン戦術で行動済みのユニットは実行者候補から自動的に外れる
+        // aMain : メイン戦術
+        // aSnap : パーティ状況スナップショット
+        // aContext : バトルコンテキスト
+        // aBudget : ステップ消化・取り置き後のリソース予算
+        // aLedger : ステップ消化後の行動回数の帳簿
+        // aPicks : 採用された行動の追加先
+        // aOrder : ステップの続きに割り当てる実行順序
+        protected void AppendParallelActions(PPRuntimeTactics aMain, PPPartyAIContext aSnap, BattleContext aContext,
+            PPResourceBudget aBudget, PPTacticActionLedger aLedger, List<PPPartyActionAssignment> aPicks, int aOrder)
+        {
+            // 「ステップより先に実行」は負値を降順で割り当てる
+            // ドライバが Order 昇順で流すため、負値は自然にステップより前へ来る
+            int beforeOrder = -1;
+
+            foreach (var parallel in aMain.Definition.ParallelActions)
+            {
+                if (parallel == null || parallel.Action == null) continue;
+
+                if (!parallel.EvaluateConditions(aSnap))
+                {
+                    RecordParallel(parallel, 0, PPTacticRejectReason.ConditionFailed);
+                    continue;
+                }
+
+                int limit = parallel.MaxExecutions > 0 ? parallel.MaxExecutions : ParallelActionSafetyCap;
+                int executed = 0;
+                var stopReason = PPTacticRejectReason.ExecutionLimit;
+
+                for (int i = 0; i < limit; i++)
+                {
+                    // 毎回解決し直す。行動回数を使い切ったユニットは実行者候補から外れるため、
+                    // 「手空きのユニット全員で殴る」が 1 アクションで書ける
+                    var resolution = parallel.Action.Resolve(aSnap, aMain, aLedger, out var reason);
+                    if (resolution == null)
+                    {
+                        stopReason = reason;
+                        break;
+                    }
+                    if (!aBudget.CanAfford(resolution.Cost))
+                    {
+                        stopReason = PPTacticRejectReason.NotEnoughResource;
+                        break;
+                    }
+
+                    aBudget.TrySpend(resolution.Cost);
+                    aLedger.Reserve(resolution.Actor, resolution.RequiredActionCount);
+
+                    // 資源はステップ優先で確保済み。ここで決めるのは実行順序だけ
+                    int order = parallel.IsBeforeSteps ? beforeOrder-- : aOrder++;
+                    aPicks.Add(new PPPartyActionAssignment(resolution.Actor, resolution.BuildCommand(aContext), order));
+                    executed++;
+
+                    CustomConsoleLog.Verbose("AI",
+                        $"{aMain.Definition.TacticsName} 並行[{parallel.ActionName}]: {resolution.Actor.DisplayName} -> {resolution.DisplayName} -> {resolution.Target?.DisplayName ?? "-"}");
+                }
+
+                RecordParallel(parallel, executed, stopReason);
+            }
+        }
+
+        // 並行アクションの判定結果を思考記録へ 1 行足す
+        // 購読者が居なければ何もしない
+        // aParallel : 対象の並行アクション
+        // aExecuted : 実際に実行された回数
+        // aStopReason : 繰り返しを打ち切った理由
+        protected void RecordParallel(PPTacticParallelActionDefinition aParallel, int aExecuted,
+            PPTacticRejectReason aStopReason)
+        {
+            if (!PPTacticsDebugHub.HasListener) return;
+
+            mParallelRecords.Add(new PPTacticsParallelEntry
+            {
+                ActionName = aParallel.ActionName,
+                ExecutedCount = aExecuted,
+                MaxExecutions = aParallel.MaxExecutions,
+                IsBeforeSteps = aParallel.IsBeforeSteps,
+                StopReason = aStopReason,
+            });
         }
 
         // バトル開始時の初期化。全戦術の進行・クールタイム・消化状況を戻す
@@ -434,6 +531,7 @@ namespace PPCore
                 AverageGainPerTick = mTrend.AverageRecentGainPerTick,
                 AdoptedCount = aPlan?.Assignments.Count ?? 0,
             };
+            report.ParallelActions.AddRange(mParallelRecords);
 
             foreach (var tactics in mTactics)
             {

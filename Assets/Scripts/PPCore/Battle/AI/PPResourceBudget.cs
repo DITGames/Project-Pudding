@@ -61,6 +61,22 @@ namespace PPCore
             return true;
         }
 
+        // 指定コスト分を残量から取り置く
+        // TrySpend と違い、残量が足りなくても失敗せずその属性の残量を 0 まで削る
+        // 待機中に「まだ払えないステップのために溜めている分」を並行アクションから守るために使う
+        // ここで守らないと並行アクションが溜めを食い潰し、高コスト戦術が永久に発動しなくなる
+        // aCost : 取り置くコスト。null または無コストなら何もしない
+        public void Reserve(PPResourceCost aCost)
+        {
+            if(aCost == null || aCost.IsFree)
+                return;
+
+            for (int i = 0; i < PPTypeAttributeDefinition.TypeCount; i++)
+            {
+                mRemaining[i] = Mathf.Max(0f, mRemaining[i] - aCost.Get(i));
+            }
+        }
+
         // コストを仮想残量から差し引く。割り当てに成功した場合のみ減算する
         // 実プールは変化しないため、実際の消費はコマンド実行時に別途行われる
         // aCost : 支払うコスト。null または無コストなら何もせず true

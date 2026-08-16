@@ -19,6 +19,8 @@ MonoBehaviour:
   mSteps:
   - rid: 7300000000000000102
   - rid: 7300000000000000103
+  mParallelActions:
+  - {fileID: 11400000, guid: 0eac5eb5d48225471a450bedbf9d5cab, type: 2}
   mIsDoOnce: 1
   mCooldownTicks: 0
   mAllowedWaitTicks: 3
