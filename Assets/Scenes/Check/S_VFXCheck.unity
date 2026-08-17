@@ -368,30 +368,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 29e8ae9030b34d6ab81d8a5d5b861c88, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VFXUtility.VFXParameterComponent
-  mVfxEntries:
-  - mVfxId: VFX_Burst
-    mVisualEffectAsset: {fileID: 8926484042661614526, guid: 2c495de63559c4649a98ce56be24bd42, type: 3}
-  mParameters:
-  - mVfxId: VFX_Burst
-    mParamName: Burst
-    mParamType: 7
-    mFloatValue: 0
-    mIntValue: 0
-    mBoolValue: 0
-    mVector2Value: {x: 0, y: 0}
-    mVector3Value: {x: 0, y: 0, z: 0}
-    mVector4Value: {x: 0, y: 0, z: 0, w: 0}
-    mColorValue: {r: 0, g: 0, b: 0, a: 0}
-  - mVfxId: VFX_Burst
-    mParamName: SpawnCount
-    mParamType: 1
-    mFloatValue: 0
-    mIntValue: 128
-    mBoolValue: 0
-    mVector2Value: {x: 0, y: 0}
-    mVector3Value: {x: 0, y: 0, z: 0}
-    mVector4Value: {x: 0, y: 0, z: 0, w: 0}
-    mColorValue: {r: 0, g: 0, b: 0, a: 0}
+  mProfile: {fileID: 11400000, guid: 0507fd1e068b425a9d2f2c232baf6b84, type: 2}
+  mUsePooling: 0
 --- !u!4 &1334308765
 Transform:
   m_ObjectHideFlags: 0
