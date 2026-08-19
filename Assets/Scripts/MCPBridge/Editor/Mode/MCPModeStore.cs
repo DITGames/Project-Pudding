@@ -1,0 +1,85 @@
+/* =====================================
+ * Copyright hqrse. All rights reserved.
+ * @file MCPModeStore.cs
+ * @author hqrse
+ * @date 2026/08/19
+ * @brief モード定義の永続化
+ * UserSettings/配下(Unity公式.gitignoreテンプレートでバージョン管理対象外の per-user・per-project
+ * 設定置き場。Library/と異なりバージョンアップや再インポートでも消えにくい)に保存する。
+ * 初回起動時は、常時許可(Debug)と永続化ツールも含むSceneEditの2種を初期モードとして生成する
+ * =====================================*/
+
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using MCPBridge.Editor.Tools;
+using Newtonsoft.Json;
+
+namespace MCPBridge.Editor.Mode
+{
+    public static class MCPModeStore
+    {
+        private const string StoreDirectory = "UserSettings/MCPBridge";
+        private const string StorePath = StoreDirectory + "/modes.json";
+
+        private const string DebugModeName = "Debug";
+        private const string SceneEditModeName = "SceneEdit";
+
+        // ディスクへの永続化を伴い、明示モードでのみ許可すべきツール
+        private static readonly string[] sPersistentToolNames = { "save_scene", "edit_asset", "create_terrain" };
+
+        public static (List<MCPToolMode> Modes, string CurrentModeName) Load()
+        {
+            if (!File.Exists(StorePath))
+            {
+                var (defaultModes, defaultCurrentName) = CreateDefault();
+                Save(defaultModes, defaultCurrentName);
+                return (defaultModes, defaultCurrentName);
+            }
+
+            var json = File.ReadAllText(StorePath);
+            var data = JsonConvert.DeserializeObject<MCPModeStoreData>(json);
+
+            // modes.jsonが手動編集等で壊れ、モードが1件も無い状態になっている場合は
+            // MCPModeRegistry側でmodes[0]アクセスが例外になるため、ここで初期モードへ自己修復する
+            if (data?.Modes == null || data.Modes.Count == 0)
+            {
+                var (defaultModes, defaultCurrentName) = CreateDefault();
+                Save(defaultModes, defaultCurrentName);
+                return (defaultModes, defaultCurrentName);
+            }
+
+            return (data.Modes, data.CurrentModeName);
+        }
+
+        public static void Save(List<MCPToolMode> aModes, string aCurrentModeName)
+        {
+            Directory.CreateDirectory(StoreDirectory);
+            var data = new MCPModeStoreData { Modes = aModes, CurrentModeName = aCurrentModeName };
+            File.WriteAllText(StorePath, JsonConvert.SerializeObject(data, Formatting.Indented));
+        }
+
+        private static (List<MCPToolMode>, string) CreateDefault()
+        {
+            var allToolNames = MCPToolRegistry.AllToolNames.ToList();
+
+            var debugMode = new MCPToolMode
+            {
+                Name = DebugModeName,
+                AllowedToolNames = allToolNames.Except(sPersistentToolNames).ToList(),
+            };
+            var sceneEditMode = new MCPToolMode
+            {
+                Name = SceneEditModeName,
+                AllowedToolNames = allToolNames.ToList(),
+            };
+            return (new List<MCPToolMode> { debugMode, sceneEditMode }, debugMode.Name);
+        }
+
+        private sealed class MCPModeStoreData
+        {
+            public List<MCPToolMode> Modes;
+            public string CurrentModeName;
+        }
+    }
+}
