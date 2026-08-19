@@ -7,7 +7,7 @@
  * =====================================*/
 
 using System;
-using CommandBattleCore;
+using AttributeUtility;
 
 namespace PPCore
 {

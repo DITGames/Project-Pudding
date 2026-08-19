@@ -7,7 +7,7 @@
  * =====================================*/
 using UnityEngine;
 
-namespace CommandBattleCore
+namespace AttributeUtility
 {
     // 他のメンバーの値に応じてインスペクタ表示を制御する属性（UE5 の EditCondition / EditConditionHides 相当）
     // 条件に使えるのは同じオブジェクト上の bool 型フィールド・プロパティ・引数なしメソッド

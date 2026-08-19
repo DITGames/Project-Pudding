@@ -7,7 +7,7 @@
  * =====================================*/
 using UnityEngine;
 
-namespace CommandBattleCore
+namespace AttributeUtility
 {
     // インスペクタ上のフィールド名を任意の文字列（主に日本語）へ差し替える属性
     // 描画は Editor/LabelAttributeDrawer.cs が担う

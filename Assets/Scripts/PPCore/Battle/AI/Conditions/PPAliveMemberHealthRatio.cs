@@ -7,8 +7,7 @@
  * =====================================*/
 
 using System;
-using CommandBattleCore;
-using Unity.VisualScripting;
+using AttributeUtility;
 using UnityEngine;
 
 namespace PPCore

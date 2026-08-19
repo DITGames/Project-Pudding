@@ -6,7 +6,7 @@
  * @brief スキルの分類タグ定義
  * =====================================*/
 
-using CommandBattleCore;
+using AttributeUtility;
 using UnityEngine;
 
 namespace PPCore

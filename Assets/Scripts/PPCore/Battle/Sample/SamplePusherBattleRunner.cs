@@ -12,6 +12,7 @@ using CommandBattleCore;
 using PPCore;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using AttributeUtility;
 
 // プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント
 // バトルの組み立て方（パーティ生成 → Rules 設定 → Strategist 注入 →

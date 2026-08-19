@@ -9,7 +9,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace CommandBattleCore
+namespace AttributeUtility
 {
     // PercentLabelAttribute の描画を担う PropertyDrawer
     // ラベルに現在値のパーセント表記を足したうえで、値は 0〜1 のスライダーとして編集させる

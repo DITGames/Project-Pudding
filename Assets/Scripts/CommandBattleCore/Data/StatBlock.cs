@@ -6,6 +6,7 @@
  * @brief 基礎ステータスのまとまり
  * =====================================*/
 using System;
+using AttributeUtility;
 
 namespace CommandBattleCore
 {

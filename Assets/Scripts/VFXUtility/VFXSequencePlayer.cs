@@ -8,7 +8,7 @@
 
 using System;
 using System.Threading;
-using CommandBattleCore;
+using AttributeUtility;
 using CustomConsole;
 using UnityEngine;
 using UnityEngine.VFX;

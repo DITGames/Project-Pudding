@@ -11,6 +11,7 @@ using CommandBattleCore;
 using CustomConsole;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using AttributeUtility;
 
 namespace PPCore
 {

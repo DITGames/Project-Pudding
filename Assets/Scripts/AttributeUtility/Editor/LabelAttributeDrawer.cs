@@ -9,7 +9,7 @@
 using UnityEditor;
 using UnityEngine;
 
-namespace CommandBattleCore
+namespace AttributeUtility
 {
     // LabelAttribute の描画を担う PropertyDrawer
     // ラベル文字列だけを差し替えて、描画自体は標準のプロパティ描画へ委ねる
