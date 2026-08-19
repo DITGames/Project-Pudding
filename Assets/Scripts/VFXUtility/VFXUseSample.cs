@@ -1,58 +1,64 @@
-using System.Collections;
+/* =====================================
+ * Copyright hqrse. All rights reserved.
+ * @file VFXUseSample.cs
+ * @author hqrse
+ * @date 2026/08/18
+ * @brief VFXSequencePlayerの利用例。一定間隔でSpawnCountを増やしながらシーケンスを再生し直すサンプル
+ * =====================================*/
+
+using System;
+using System.Threading;
+using CommandBattleCore;
+using CustomConsole;
 using UnityEngine;
 
 namespace VFXUtility
 {
     public class VFXUseSample : MonoBehaviour
     {
-        [SerializeField]
-        private VFXParameterComponent mVfxParameterComponent;
-        
-        [SerializeField]
-        private int mFirstCount = 128;
-        
-        [SerializeField]
-        private int mIncreaseCount = 4;
-        
-        private int mCurrentValue;
-        
-        Coroutine mCoroutine;
-        void Start()
+        [Label("シーケンス再生コンポーネント")]
+        [SerializeField] private VFXSequencePlayer mVfxSequencePlayer;
+
+        [Label("使用するオーバーライドセット")]
+        [SerializeField] private VFXSequenceOverrideSet mVfxSequenceOverrideSet;
+
+        private CancellationTokenSource mCancellationTokenSource;
+
+        private async Awaitable Start()
         {
-            if (mVfxParameterComponent == null)
+            if (mVfxSequencePlayer == null)
             {
-                mVfxParameterComponent = GetComponent<VFXParameterComponent>();
+                mVfxSequencePlayer = GetComponent<VFXSequencePlayer>();
             }
 
-            if (mVfxParameterComponent != null)
+            if (mVfxSequencePlayer == null)
             {
-                mVfxParameterComponent.ActivateVFX("VFX_Burst");
-                mVfxParameterComponent.ApplyParameter("VFX_Burst", "Burst");
+                return;
             }
-            
-            mCurrentValue = mFirstCount;
-            
-            mCoroutine = StartCoroutine(VFXFunc());
+
+            if (mVfxSequenceOverrideSet != null)
+            {
+                mVfxSequencePlayer.ApplyOverrideSet(mVfxSequenceOverrideSet);
+            }
+
+            // ゴールノード未到達のまま破棄された場合に待機し続けないよう、破棄時に打ち切れるトークンを渡す
+            mCancellationTokenSource = new CancellationTokenSource();
+
+            try
+            {
+                await mVfxSequencePlayer.PlayAsync(mCancellationTokenSource.Token);
+                CustomConsoleLog.Log("VFXUtility", "VFXUseSample: シーケンス再生が完了しました");
+            }
+            catch (OperationCanceledException)
+            {
+                // OnDestroy等による打ち切り
+            }
         }
 
-        IEnumerator VFXFunc()
+        private void OnDestroy()
         {
-            while (true)
-            {
-                yield return new WaitForSeconds(2);
-            
-                mCurrentValue += mIncreaseCount;
-
-                if (mVfxParameterComponent != null)
-                {
-                    mVfxParameterComponent.ApplyParameter("VFX_Burst", "SpawnCount", mCurrentValue);
-                    mVfxParameterComponent.ApplyParameter("VFX_Burst", "Burst");
-                }
-                else
-                {
-                    yield break;
-                }
-            }
+            mCancellationTokenSource?.Cancel();
+            mCancellationTokenSource?.Dispose();
         }
     }
 }

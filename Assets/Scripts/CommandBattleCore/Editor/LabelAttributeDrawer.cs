@@ -2,7 +2,7 @@
  * Copyright hqrse. All rights reserved.
  * @file LabelAttributeDrawer.cs
  * @author hqrse
- * @date 2026/06/13
+ * @date 2026/08/19
  * @brief LabelAttributeの表示クラス
  * =====================================*/
 
@@ -24,9 +24,11 @@ namespace CommandBattleCore
         {
             var labelAttr = (LabelAttribute)attribute;
 
-            label.text = labelAttr.Text;
+            // Unityが渡すlabelは描画パス内で使い回される共有インスタンスのことがあるため、
+            // .textを直接書き換えず新しいGUIContentを作る(直接書き換えると他フィールドの表示に文字列が漏れ出す)
+            var displayLabel = new GUIContent(labelAttr.Text, label.image, label.tooltip);
 
-            EditorGUI.PropertyField(position, property, label, true);
+            EditorGUI.PropertyField(position, property, displayLabel, true);
         }
 
         // 描画に必要な高さを返す。ラベルを変えるだけなので標準の高さをそのまま使う
