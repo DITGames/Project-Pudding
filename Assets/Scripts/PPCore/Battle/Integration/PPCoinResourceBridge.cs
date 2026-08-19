@@ -9,6 +9,7 @@
 using CommandBattleCore;
 using CustomConsole;
 using UnityEngine;
+using AttributeUtility;
 
 namespace PPCore
 {

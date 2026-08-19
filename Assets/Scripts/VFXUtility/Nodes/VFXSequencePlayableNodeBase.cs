@@ -8,7 +8,7 @@
 
 using System;
 using System.Collections.Generic;
-using CommandBattleCore;
+using AttributeUtility;
 using UnityEngine;
 using UnityEngine.VFX;
 

@@ -6,7 +6,7 @@
  * @brief ユニットのステータス表示共通ウィジェット
  * =====================================*/
 
-using CommandBattleCore;
+using AttributeUtility;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;

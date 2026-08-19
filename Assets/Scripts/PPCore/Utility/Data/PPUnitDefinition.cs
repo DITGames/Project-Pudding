@@ -8,6 +8,7 @@
 
 using CommandBattleCore;
 using UnityEngine;
+using AttributeUtility;
 
 namespace PPCore
 {

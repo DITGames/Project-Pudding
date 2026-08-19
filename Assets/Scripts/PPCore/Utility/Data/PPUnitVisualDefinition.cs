@@ -6,7 +6,7 @@
  * @brief ユニットビジュアル定義
  * =====================================*/
 
-using CommandBattleCore;
+using AttributeUtility;
 using UnityEngine;
 
 // ユニットの見た目に関する定義（ScriptableObject）

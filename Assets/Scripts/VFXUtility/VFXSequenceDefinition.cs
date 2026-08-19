@@ -7,7 +7,7 @@
  * =====================================*/
 
 using System.Collections.Generic;
-using CommandBattleCore;
+using AttributeUtility;
 using UnityEngine;
 
 namespace VFXUtility

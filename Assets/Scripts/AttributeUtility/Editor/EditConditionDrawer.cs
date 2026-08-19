@@ -10,7 +10,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-namespace CommandBattleCore
+namespace AttributeUtility
 {
     // EditConditionAttribute の描画を担う PropertyDrawer
     // 条件メンバーの値をリフレクションで読み取り、条件を満たさない場合は

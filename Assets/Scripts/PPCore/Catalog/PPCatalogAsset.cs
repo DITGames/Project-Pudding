@@ -8,7 +8,7 @@
 
 using UnityEngine;
 using System.Collections.Generic;
-using CommandBattleCore;
+using AttributeUtility;
 
 namespace PPCore
 {

@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using CommandBattleCore;
 using UnityEngine;
+using AttributeUtility;
 
 namespace PPCore
 {
