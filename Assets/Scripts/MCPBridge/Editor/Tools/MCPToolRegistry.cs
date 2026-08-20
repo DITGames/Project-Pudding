@@ -16,6 +16,7 @@ using System.Reflection;
 using MCPBridge.Editor.Logging;
 using MCPBridge.Editor.Mode;
 using MCPBridge.Editor.Server;
+using MCPBridge.Editor.Window;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 
@@ -58,7 +59,20 @@ namespace MCPBridge.Editor.Tools
                 throw new MCPToolException(-32001,
                     $"Tool '{aName}' is not allowed in current mode '{MCPModeRegistry.CurrentMode.Name}'.");
             }
-            return tool.Invoke(aArguments);
+
+            try
+            {
+                var result = tool.Invoke(aArguments);
+                // Call()自体がHTTPハンドラスレッド・メインスレッド(execute_plan経由)の
+                // どちらからも呼ばれ得るため、記録はEnqueueで必ずメインスレッドへ委譲する
+                MCPMainThreadDispatcher.Enqueue(() => MCPToolCallLog.RecordSuccess(aName));
+                return result;
+            }
+            catch (Exception e)
+            {
+                MCPMainThreadDispatcher.Enqueue(() => MCPToolCallLog.RecordError(aName, e.Message));
+                throw;
+            }
         }
 
         // 静的コンストラクタで走査すると[InitializeOnLoad]の実行順序に依存してしまうため、

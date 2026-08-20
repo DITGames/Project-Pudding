@@ -29,6 +29,11 @@ namespace MCPBridge.Editor.Server
             EditorApplication.update += Pump;
         }
 
+        // 呼び出し元が既にメインスレッド上かどうか。複数フレームにまたがる待機を行うツールが、
+        // メインスレッド起因の呼び出し(execute_plan経由等)による自己デッドロックを検知して
+        // 安全に拒否するために使う(CompileAndCheckTool等)
+        public static bool IsMainThread => Thread.CurrentThread.ManagedThreadId == sMainThreadId;
+
         // HTTPハンドラスレッドから呼ぶ。メインスレッドでaActionが完了するまでブロックし戻り値を返す。
         // 呼び出し時点で既にメインスレッド上(PlanExecutor等のEditorApplication.update経由)の場合、
         // Pump()を待つと自己デッドロックするため即座に実行する

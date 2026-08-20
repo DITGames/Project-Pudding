@@ -1,0 +1,335 @@
+/* ライト/ダークはUnity Editor自体のスキルとは独立したこのウィンドウ専用のテーマ。
+   MCPBridgeWindow.BuildThemeTabBar()がrootVisualElementへmcp-theme-light/mcp-theme-darkを
+   付け替えることで切り替わる。他のルールはこのトークンをvar()経由で参照する */
+.mcp-root.mcp-theme-light {
+    --mcp-bg: #e4e4e4;
+    --mcp-card-bg: #ffffff;
+    --mcp-card-border: #b5b5b5;
+    --mcp-text: #1a1a1a;
+    --mcp-text-sub: #6b6b6b;
+    --mcp-handle: #c4c4c4;
+    --mcp-handle-hover: #a6bccf;
+    --mcp-accent: #7fa0bf;
+    --mcp-accent-text: #ffffff;
+    --mcp-tab-active-bg: #cdd8e3;
+    --mcp-tab-active-text: #1a1a1a;
+}
+
+.mcp-root.mcp-theme-dark {
+    --mcp-bg: #2b2b2b;
+    --mcp-card-bg: #383838;
+    --mcp-card-border: #5a5a5a;
+    --mcp-text: #d4d4d4;
+    --mcp-text-sub: #9a9a9a;
+    --mcp-handle: #5a5a5a;
+    --mcp-handle-hover: #5b7288;
+    --mcp-accent: #4d7194;
+    --mcp-accent-text: #ffffff;
+    --mcp-tab-active-bg: #465464;
+    --mcp-tab-active-text: #e4e4e4;
+}
+
+.mcp-root {
+    flex-direction: column;
+    flex-grow: 1;
+    background-color: var(--mcp-bg);
+    color: var(--mcp-text);
+}
+
+/* Unity組み込みコントロール(Button/PopupField/ProgressBar/スクロールバー/HelpBox/
+   ListView項目)は、デフォルトでUnity Editor自体のスキル色を使うため、テーマトークンで
+   上書きする。.mcp-root配下に限定した複合セレクタにすることで、Unity組み込み
+   スタイルシートの素のクラスセレクタより確実に優先されるようにしている(将来
+   .mcp-theme-tab等の個別上書きを増やす場合は、この後ろに書けばカスケード順でも勝てる)。
+   注意: ここで参照している.unity-*クラス名はUI Toolkitの非公開の内部実装クラス名であり、
+   Unityのバージョンアップで変わる可能性がある。Editorアップグレード後にテーマが
+   効かなくなった箇所があれば、UI Toolkit Debugger(Window > UI Toolkit > Debugger)で
+   該当要素の実際のクラス名を確認し、このファイルを更新すること */
+.mcp-root .unity-button {
+    background-color: var(--mcp-card-bg);
+    border-width: 1px;
+    border-color: var(--mcp-card-border);
+    color: var(--mcp-text);
+}
+
+.mcp-root .unity-button:hover {
+    background-color: var(--mcp-handle-hover);
+    color: var(--mcp-accent-text);
+}
+
+.mcp-root .unity-base-field__input,
+.mcp-root .unity-base-popup-field__input,
+.mcp-root .unity-popup-field__input {
+    background-color: var(--mcp-card-bg);
+    border-color: var(--mcp-card-border);
+    color: var(--mcp-text);
+}
+
+.mcp-root .unity-base-popup-field__text {
+    color: var(--mcp-text);
+}
+
+.mcp-root .unity-progress-bar__background {
+    background-color: var(--mcp-card-bg);
+    border-color: var(--mcp-card-border);
+}
+
+.mcp-root .unity-progress-bar__progress {
+    background-color: var(--mcp-accent);
+}
+
+.mcp-root .unity-progress-bar__title {
+    color: var(--mcp-text);
+    -unity-text-align: middle-center;
+}
+
+.mcp-root .unity-base-slider__tracker {
+    background-color: var(--mcp-card-bg);
+    border-color: var(--mcp-card-border);
+}
+
+.mcp-root .unity-base-slider__dragger {
+    background-color: var(--mcp-handle);
+    border-width: 0;
+}
+
+.mcp-root .unity-scroller__low-button,
+.mcp-root .unity-scroller__high-button {
+    background-color: var(--mcp-card-bg);
+    border-color: var(--mcp-card-border);
+    color: var(--mcp-text);
+}
+
+.mcp-root .unity-help-box {
+    background-color: var(--mcp-card-bg);
+    border-width: 1px;
+    border-color: var(--mcp-card-border);
+}
+
+.mcp-root .unity-help-box__label {
+    color: var(--mcp-text);
+}
+
+/* ログListViewの各行のホバー・選択時の既定配色(Unity組み込みの濃色ハイライト)を
+   テーマ側の控えめなホバー色へ差し替える */
+.mcp-root .unity-list-view__item:hover,
+.mcp-root .unity-collection-view__item:hover {
+    background-color: var(--mcp-handle-hover);
+}
+
+.mcp-root .unity-list-view__item--selected,
+.mcp-root .unity-collection-view__item--selected {
+    background-color: var(--mcp-tab-active-bg);
+    color: var(--mcp-tab-active-text);
+}
+
+.mcp-theme-tab-bar {
+    flex-direction: row;
+    flex-shrink: 0;
+    justify-content: flex-end;
+    padding: 4px 4px 0 4px;
+}
+
+/* .mcp-rootを付けて.mcp-root .unity-button(2セレクタ)と同じ詳細度に揃え、
+   ファイル内で後に書かれているこちらが確実に勝つようにする */
+.mcp-root .mcp-theme-tab {
+    flex-grow: 0;
+    min-width: 48px;
+    margin: 0 0 0 4px;
+    padding: 2px 8px;
+    border-radius: 0;
+    border-width: 0;
+    background-color: var(--mcp-card-bg);
+    color: var(--mcp-text-sub);
+}
+
+.mcp-root .mcp-theme-tab--active,
+.mcp-root .mcp-theme-tab--active:hover {
+    background-color: var(--mcp-tab-active-bg);
+    color: var(--mcp-tab-active-text);
+}
+
+.mcp-root-scroll {
+    flex-grow: 1;
+}
+
+.mcp-root-scroll > .unity-scroll-view__content-viewport {
+    padding: 8px;
+}
+
+.mcp-card {
+    position: relative;
+    background-color: var(--mcp-card-bg);
+    color: var(--mcp-text);
+    border-width: 2px;
+    border-color: var(--mcp-card-border);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 8px;
+}
+
+.mcp-card__content {
+    flex-shrink: 0;
+}
+
+/* リサイズ・入れ替えハンドルはカード枠線に重なる位置へ絶対配置する
+   (見た目上、枠線自体を掴んでいるように見せるため) */
+.mcp-reorder-handle {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    top: -2px;
+    height: 6px;
+    border-radius: 2px;
+    background-color: var(--mcp-handle);
+}
+
+.mcp-reorder-handle:hover {
+    background-color: var(--mcp-handle-hover);
+}
+
+.mcp-resize-handle {
+    position: absolute;
+    left: 6px;
+    right: 6px;
+    bottom: -2px;
+    height: 6px;
+    border-radius: 2px;
+    background-color: var(--mcp-handle);
+}
+
+.mcp-resize-handle:hover {
+    background-color: var(--mcp-handle-hover);
+}
+
+.mcp-card__title {
+    -unity-font-style: bold;
+    margin-bottom: 4px;
+}
+
+.mcp-card__title-row {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.mcp-card__title-row > .mcp-card__title {
+    margin-bottom: 0;
+}
+
+.mcp-card__clear-button {
+    margin: 0;
+    font-size: 10px;
+}
+
+.mcp-sub-label {
+    color: var(--mcp-text-sub);
+    font-size: 11px;
+    margin-bottom: 4px;
+}
+
+.mcp-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.mcp-info-row {
+    flex-direction: row;
+    align-items: center;
+    margin: 2px 0;
+}
+
+.mcp-info-row__label {
+    width: 90px;
+    color: var(--mcp-text-sub);
+    font-size: 11px;
+}
+
+.mcp-info-row__value {
+    flex-grow: 1;
+    white-space: normal;
+}
+
+.mcp-tool-list {
+    margin-top: 4px;
+}
+
+.mcp-tool-list-item {
+    font-size: 11px;
+    color: var(--mcp-text-sub);
+}
+
+.mcp-badge {
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    margin-right: 6px;
+    background-color: #9e9e9e;
+}
+
+.mcp-badge--ok {
+    background-color: #4caf50;
+}
+
+.mcp-badge--waiting {
+    background-color: #2196f3;
+}
+
+.mcp-badge--error {
+    background-color: #f44336;
+}
+
+.mcp-badge--idle {
+    background-color: #9e9e9e;
+}
+
+.mcp-button {
+    margin-top: 4px;
+}
+
+.mcp-mode-popup {
+    flex-grow: 1;
+    margin-right: 8px;
+}
+
+.mcp-todo-list {
+    margin-top: 4px;
+}
+
+.mcp-step-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 2px;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.mcp-step-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 4px;
+}
+
+.mcp-step-row--running {
+    background-color: var(--mcp-accent);
+    color: var(--mcp-accent-text);
+}
+
+.mcp-step-row--error {
+    background-color: #f44336;
+    color: #ffffff;
+}
+
+.mcp-log-row {
+    font-size: 11px;
+    -unity-text-align: middle-left;
+}
+
+.mcp-log-row--error {
+    color: #f44336;
+}
+
+.mcp-log-row--warning {
+    color: #ff9800;
+}

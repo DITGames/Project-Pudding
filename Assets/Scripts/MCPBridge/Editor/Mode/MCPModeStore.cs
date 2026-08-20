@@ -25,8 +25,18 @@ namespace MCPBridge.Editor.Mode
         private const string DebugModeName = "Debug";
         private const string SceneEditModeName = "SceneEdit";
 
-        // ディスクへの永続化を伴い、明示モードでのみ許可すべきツール
-        private static readonly string[] sPersistentToolNames = { "save_scene", "edit_asset", "create_terrain" };
+        // ディスクへの永続化を伴い、明示モードでのみ許可すべきツール。
+        // execute_menu_itemは拒否リストによる保護、compile_and_checkは診断用途のため
+        // Debugモードでも常時許可する対象としてここには含めない(SPEC.md/PLAN.mdの合意事項)
+        private static readonly string[] sPersistentToolNames =
+        {
+            "save_scene", "edit_asset", "create_terrain",
+            "create_scene", "load_scene",
+            "set_asset_import_settings", "manage_asset_file",
+            "edit_shader",
+            "set_material_property",
+            "set_vfx_property",
+        };
 
         public static (List<MCPToolMode> Modes, string CurrentModeName) Load()
         {

@@ -17,8 +17,10 @@ namespace MCPBridge.Editor.Server
     public static class MCPProtocolHandler
     {
         private const string ProtocolVersion = "2024-11-05";
-        private const string ServerName = "unity-editor-mcp-bridge";
-        private const string ServerVersion = "0.1.0";
+
+        // MCPBridgeWindowの「サーバー情報」表示でも参照するため公開する
+        public const string ServerName = "unity-editor-mcp-bridge";
+        public const string ServerVersion = "0.1.0";
 
         // HTTPハンドラから呼ばれるエントリポイント。JSON-RPCレスポンス文字列(通知の場合は空文字)を返す
         public static string HandleRequestBody(string aBody)
@@ -48,7 +50,7 @@ namespace MCPBridge.Editor.Server
             {
                 JToken result = request.Method switch
                 {
-                    "initialize" => HandleInitialize(),
+                    "initialize" => HandleInitialize(request.Params),
                     "tools/list" => HandleToolsList(),
                     "tools/call" => HandleToolsCall(request.Params),
                     "ping" => new JObject(),
@@ -66,8 +68,16 @@ namespace MCPBridge.Editor.Server
             }
         }
 
-        private static JToken HandleInitialize()
+        private static JToken HandleInitialize(JObject aParams)
         {
+            // MCPクライアントが送ってくるclientInfoをMCPBridgeWindowの接続状態表示用に記録する。
+            // HandleRequestBodyはHTTPハンドラスレッドから呼ばれるため、記録自体は
+            // MCPMainThreadDispatcher経由でメインスレッドへ委譲する
+            var clientInfo = aParams?["clientInfo"] as JObject;
+            var clientName = clientInfo?.Value<string>("name");
+            var clientVersion = clientInfo?.Value<string>("version");
+            MCPMainThreadDispatcher.Enqueue(() => MCPHttpServer.RecordClientInfo(clientName, clientVersion));
+
             return new JObject
             {
                 ["protocolVersion"] = ProtocolVersion,

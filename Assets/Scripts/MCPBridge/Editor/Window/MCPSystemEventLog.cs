@@ -23,5 +23,13 @@ namespace MCPBridge.Editor.Window
             sEntries.Add($"[{DateTime.Now:HH:mm:ss}] {aMessage}");
             OnChanged?.Invoke();
         }
+
+        // MCPBridgeWindowの「クリア」ボタンから呼ばれる。他のMCPツールから参照されない
+        // 表示専用ログのため、そのまま空にしてよい
+        public static void Clear()
+        {
+            sEntries.Clear();
+            OnChanged?.Invoke();
+        }
     }
 }
