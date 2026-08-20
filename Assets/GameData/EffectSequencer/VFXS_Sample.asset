@@ -40,6 +40,9 @@ MonoBehaviour:
         - 88cd298a506147a0b78a0859c0c0ca1c
         mVisualEffectAsset: {fileID: 8926484042661614526, guid: 7e9b1f638f49316448f1e58146cd1617, type: 3}
         mParameters: []
+        mPositionOffset: {x: -1, y: 0, z: 0}
+        mRotationOffset: {x: 0, y: 0, z: 0}
+        mScaleOffset: 1
         mEventName: Burst
     - rid: 2855699279046246493
       type: {class: VFXSequenceNormalNode, ns: VFXUtility, asm: Assembly-CSharp}
@@ -63,6 +66,9 @@ MonoBehaviour:
           mColorValue: {r: 0, g: 0, b: 0, a: 0}
           mParamName: Rate
           mExposedName: SpawnCount
+        mPositionOffset: {x: 1, y: 0, z: 0}
+        mRotationOffset: {x: 0, y: 0, z: 45}
+        mScaleOffset: 1
     - rid: 2855699279046246498
       type: {class: VFXSequenceSetParameterNode, ns: VFXUtility, asm: Assembly-CSharp}
       data:

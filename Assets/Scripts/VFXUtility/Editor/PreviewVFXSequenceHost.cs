@@ -51,9 +51,12 @@ namespace VFXUtility.Editor
             mPreviewUtility.camera.farClipPlane = 100f;
         }
 
-        object IVFXSequenceHost.PlayVFX(VisualEffectAsset aAsset)
+        object IVFXSequenceHost.PlayVFX(VisualEffectAsset aAsset, Vector3 aPositionOffset, Vector3 aRotationOffset, float aScaleOffset)
         {
             var go = new GameObject($"PreviewVFX_{aAsset.name}");
+            // プレビューにはPlayerに相当する基準Transformが無いため、原点をPlayerのローカル原点相当として扱う
+            go.transform.SetLocalPositionAndRotation(aPositionOffset, Quaternion.Euler(aRotationOffset));
+            go.transform.localScale = Vector3.one * aScaleOffset;
             var visualEffect = go.AddComponent<VisualEffect>();
             visualEffect.visualEffectAsset = aAsset;
             mPreviewUtility.AddSingleGO(go);
