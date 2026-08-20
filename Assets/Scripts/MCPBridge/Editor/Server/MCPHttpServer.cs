@@ -13,7 +13,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
-using CustomConsole;
+using MCPBridge.Editor.Logging;
 using UnityEditor;
 
 namespace MCPBridge.Editor.Server
@@ -68,12 +68,12 @@ namespace MCPBridge.Editor.Server
                 sListenerThread.Start();
 
                 SetState(MCPConnectionState.Listening, null);
-                CustomConsoleLog.Log(LogTag, $"MCPサーバーを起動しました: http://localhost:{Port}{EndpointPath}");
+                MCPLog.Log(LogTag, $"MCPサーバーを起動しました: http://localhost:{Port}{EndpointPath}");
             }
             catch (Exception e)
             {
                 SetState(MCPConnectionState.Error, e.Message);
-                CustomConsoleLog.Error(LogTag, $"MCPサーバーの起動に失敗しました: {e.Message}");
+                MCPLog.Error(LogTag, $"MCPサーバーの起動に失敗しました: {e.Message}");
             }
         }
 
@@ -162,7 +162,7 @@ namespace MCPBridge.Editor.Server
                 {
                     // 既にヘッダを送信済みの場合はステータス変更できないため無視する
                 }
-                CustomConsoleLog.Error(LogTag, $"HTTPリクエスト処理中に例外が発生しました: {e}");
+                MCPLog.Error(LogTag, $"HTTPリクエスト処理中に例外が発生しました: {e}");
             }
             finally
             {

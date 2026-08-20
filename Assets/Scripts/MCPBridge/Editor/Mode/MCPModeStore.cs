@@ -33,7 +33,7 @@ namespace MCPBridge.Editor.Mode
             if (!File.Exists(StorePath))
             {
                 var (defaultModes, defaultCurrentName) = CreateDefault();
-                Save(defaultModes, defaultCurrentName);
+                SaveIfAnyToolAllowed(defaultModes, defaultCurrentName);
                 return (defaultModes, defaultCurrentName);
             }
 
@@ -45,11 +45,23 @@ namespace MCPBridge.Editor.Mode
             if (data?.Modes == null || data.Modes.Count == 0)
             {
                 var (defaultModes, defaultCurrentName) = CreateDefault();
-                Save(defaultModes, defaultCurrentName);
+                SaveIfAnyToolAllowed(defaultModes, defaultCurrentName);
                 return (defaultModes, defaultCurrentName);
             }
 
             return (data.Modes, data.CurrentModeName);
+        }
+
+        // 許可ツールが1件も無い初期モードは永続化しない。
+        // ツールが収集できていない状態(MCPトランスポートを持たないAssetImportWorker等、
+        // MCPToolRegistryが走査を行わないプロセス)で保存すると、許可ツールが空のmodes.jsonが
+        // 本体のEditorプロセスにも残り、以降すべてのtools/callが拒否されてしまう
+        private static void SaveIfAnyToolAllowed(List<MCPToolMode> aModes, string aCurrentModeName)
+        {
+            if (aModes.Any(m => m.AllowedToolNames.Count > 0))
+            {
+                Save(aModes, aCurrentModeName);
+            }
         }
 
         public static void Save(List<MCPToolMode> aModes, string aCurrentModeName)

@@ -3,13 +3,13 @@
  * @file GetLogsTool.cs
  * @author hqrse
  * @date 2026/08/19
- * @brief CustomConsoleLog経由のタグ付きログを取得するMCPツール
- * 既存のCustomConsoleLogStore(Editor専用の静的ストア)をそのまま参照するラッパーであり、
- * CustomConsoleLog/CustomConsoleLogStore/CustomConsoleEntry自体は改変しない
+ * @brief タグ付きログを取得するMCPツール
+ * ログ履歴の実体はIMCPLogSourceに委ねており、導入先プロジェクトが注入した
+ * ログ基盤(本プロジェクトではCustomConsole)の履歴をそのまま返す
  * =====================================*/
 
 using System.Linq;
-using CustomConsole.Editor;
+using MCPBridge.Editor.Logging;
 using MCPBridge.Editor.Server;
 using Newtonsoft.Json.Linq;
 
@@ -19,7 +19,7 @@ namespace MCPBridge.Editor.Tools
     {
         public string Name => "get_logs";
 
-        public string Description => "CustomConsoleLog経由で出力されたタグ付きログを取得します(標準Debug.Logは対象外)。";
+        public string Description => "Unity Editorに出力されたタグ付きログを取得します。";
 
         public JObject InputSchema => new()
         {
@@ -38,7 +38,7 @@ namespace MCPBridge.Editor.Tools
                 var tagFilter = aArguments?.Value<string>("tag");
                 var since = aArguments?["sinceIndex"]?.Value<int>() ?? 0;
 
-                var entries = CustomConsoleLogStore.Entries
+                var entries = MCPLog.Source.Entries
                     .Skip(since)
                     .Where(e => string.IsNullOrEmpty(tagFilter) || e.Category == tagFilter)
                     .Select(e => new JObject
