@@ -8,6 +8,7 @@
  * 実行エンジン側のDelay計算・並列分岐・イベント発火・Stop処理・完了判定ロジックを共有できるようにする
  * =====================================*/
 
+using UnityEngine;
 using UnityEngine.VFX;
 
 namespace VFXUtility
@@ -16,8 +17,11 @@ namespace VFXUtility
     {
         // 指定アセットのVFXを再生する
         // aAsset : 再生するVFXアセット
+        // aPositionOffset : 基準Transform(VFXSequencePlayer)を基準としたローカル位置オフセット
+        // aRotationOffset : 基準Transformを基準としたローカル回転オフセット(オイラー角)
+        // aScaleOffset : 均一スケール倍率(既定1)
         // 戻り値 : 以降のStopVFX/ApplyParameter/IsAliveで使う不透明なハンドル
-        object PlayVFX(VisualEffectAsset aAsset);
+        object PlayVFX(VisualEffectAsset aAsset, Vector3 aPositionOffset, Vector3 aRotationOffset, float aScaleOffset);
 
         // 指定ハンドルのVFXを停止する
         // aVfxHandle : PlayVFXが返したハンドル

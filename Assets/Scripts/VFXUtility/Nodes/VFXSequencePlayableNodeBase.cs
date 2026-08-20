@@ -23,7 +23,19 @@ namespace VFXUtility
         [Label("パラメータ", true)]
         [SerializeField] private List<VFXSequenceNodeParameter> mParameters = new();
 
+        [Label("位置オフセット")]
+        [SerializeField] private Vector3 mPositionOffset;
+
+        [Label("回転オフセット")]
+        [SerializeField] private Vector3 mRotationOffset;
+
+        [Label("スケール倍率")]
+        [SerializeField] private float mScaleOffset = 1f;
+
         public VisualEffectAsset VisualEffectAsset => mVisualEffectAsset;
         public IReadOnlyList<VFXSequenceNodeParameter> Parameters => mParameters;
+        public Vector3 PositionOffset => mPositionOffset;
+        public Vector3 RotationOffset => mRotationOffset;
+        public float ScaleOffset => mScaleOffset;
     }
 }

@@ -41,13 +41,9 @@ namespace MCPBridge.Editor.Tools
             // MCPクライアント側の実装により、オブジェクト型の引数がJSON文字列として
             // 二重エンコードされて届く場合があるため、対象型がプリミティブ/文字列以外で
             // 受け取った値がJSONオブジェクト/配列らしき文字列だった場合は再パースする
-            if (aToken.Type == JTokenType.String && !aTargetType.IsPrimitive && aTargetType != typeof(string))
+            if (!aTargetType.IsPrimitive && aTargetType != typeof(string))
             {
-                var text = aToken.Value<string>()?.TrimStart();
-                if (!string.IsNullOrEmpty(text) && (text[0] == '{' || text[0] == '['))
-                {
-                    aToken = JToken.Parse(text);
-                }
+                aToken = ReparseIfDoubleEncoded(aToken);
             }
 
             if (aTargetType.IsEnum)
@@ -79,6 +75,22 @@ namespace MCPBridge.Editor.Tools
                 Quaternion q => new JObject { ["x"] = q.x, ["y"] = q.y, ["z"] = q.z, ["w"] = q.w },
                 _ => JToken.FromObject(aValue),
             };
+        }
+
+        // JSON文字列として二重エンコードされたオブジェクト/配列らしき値を再パースする
+        // (二重エンコードされていない場合はそのまま返す)
+        private static JToken ReparseIfDoubleEncoded(JToken aToken)
+        {
+            if (aToken.Type != JTokenType.String)
+            {
+                return aToken;
+            }
+            var text = aToken.Value<string>()?.TrimStart();
+            if (!string.IsNullOrEmpty(text) && (text[0] == '{' || text[0] == '['))
+            {
+                return JToken.Parse(text);
+            }
+            return aToken;
         }
 
         public static Vector2 ReadVector2(JToken aToken)
@@ -115,10 +127,10 @@ namespace MCPBridge.Editor.Tools
                     aProperty.enumValueIndex = aValue.Value<int>();
                     break;
                 case SerializedPropertyType.Vector2:
-                    aProperty.vector2Value = ReadVector2(aValue);
+                    aProperty.vector2Value = ReadVector2(ReparseIfDoubleEncoded(aValue));
                     break;
                 case SerializedPropertyType.Vector3:
-                    aProperty.vector3Value = ReadVector3(aValue);
+                    aProperty.vector3Value = ReadVector3(ReparseIfDoubleEncoded(aValue));
                     break;
                 default:
                     throw new NotSupportedException($"未対応のプロパティ型です: {aProperty.propertyType}");

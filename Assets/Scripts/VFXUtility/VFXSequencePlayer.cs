@@ -140,11 +140,11 @@ namespace VFXUtility
         }
 
         // IVFXSequenceHost実装: プールを使用する場合はVFXPoolManager経由でレンタルする
-        object IVFXSequenceHost.PlayVFX(VisualEffectAsset aAsset)
+        object IVFXSequenceHost.PlayVFX(VisualEffectAsset aAsset, Vector3 aPositionOffset, Vector3 aRotationOffset, float aScaleOffset)
         {
             VisualEffect visualEffect = mUsePooling
-                ? VFXPoolManager.Instance.Rent(aAsset, transform.position, transform.rotation)
-                : CreateVisualEffect(aAsset);
+                ? RentPooledVisualEffect(aAsset, aPositionOffset, aRotationOffset, aScaleOffset)
+                : CreateVisualEffect(aAsset, aPositionOffset, aRotationOffset, aScaleOffset);
 
             visualEffect.Play();
             return visualEffect;
@@ -211,12 +211,27 @@ namespace VFXUtility
             return aVfxHandle is VisualEffect visualEffect && visualEffect != null && visualEffect.aliveParticleCount > 0;
         }
 
-        private VisualEffect CreateVisualEffect(VisualEffectAsset aAsset)
+        // 非プール時: Player配下にローカルオフセットのまま配置する(Player本体の移動にオフセット込みで追従する)
+        private VisualEffect CreateVisualEffect(VisualEffectAsset aAsset, Vector3 aPositionOffset, Vector3 aRotationOffset, float aScaleOffset)
         {
             var go = new GameObject($"VFX_{aAsset.name}");
             go.transform.SetParent(transform, false);
+            go.transform.SetLocalPositionAndRotation(aPositionOffset, Quaternion.Euler(aRotationOffset));
+            go.transform.localScale = Vector3.one * aScaleOffset;
             var visualEffect = go.AddComponent<VisualEffect>();
             visualEffect.visualEffectAsset = aAsset;
+            return visualEffect;
+        }
+
+        // プール時: 既存通りワールド座標へ変換して一度だけ配置する(以降Playerには追従しない、という既存挙動は維持)。
+        // Rent自体はスケールを扱わないため、Rent後にlocalScaleを個別設定する
+        // (VFXPoolManagerのルートは常時デフォルトスケールのため、localScaleの値がそのままワールドスケール相当になる)
+        private VisualEffect RentPooledVisualEffect(VisualEffectAsset aAsset, Vector3 aPositionOffset, Vector3 aRotationOffset, float aScaleOffset)
+        {
+            Vector3 worldPosition = transform.TransformPoint(aPositionOffset);
+            Quaternion worldRotation = transform.rotation * Quaternion.Euler(aRotationOffset);
+            VisualEffect visualEffect = VFXPoolManager.Instance.Rent(aAsset, worldPosition, worldRotation);
+            visualEffect.transform.localScale = Vector3.one * aScaleOffset;
             return visualEffect;
         }
     }
