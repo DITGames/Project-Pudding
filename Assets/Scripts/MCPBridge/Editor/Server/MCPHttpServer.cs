@@ -39,6 +39,11 @@ namespace MCPBridge.Editor.Server
         public static string LastErrorMessage { get; private set; }
         public static DateTime? LastRequestReceivedAt { get; private set; }
 
+        // 直近にinitializeハンドシェイクを送ってきたMCPクライアントの情報(MCPBridgeWindowの表示用)。
+        // ステートレスなHTTPサーバーのため厳密な「現在接続中」判定はできず、あくまで直近の情報として扱う
+        public static string ConnectedClientName { get; private set; }
+        public static string ConnectedClientVersion { get; private set; }
+
         private static HttpListener sListener;
         private static Thread sListenerThread;
 
@@ -175,6 +180,14 @@ namespace MCPBridge.Editor.Server
             State = aState;
             LastErrorMessage = aErrorMessage;
             OnConnectionStateChanged?.Invoke();
+        }
+
+        // MCPProtocolHandler.HandleInitializeから呼ばれる。メインスレッドから呼ぶこと
+        // (MCPMainThreadDispatcher.Enqueue経由での呼び出しを前提とする)
+        public static void RecordClientInfo(string aName, string aVersion)
+        {
+            ConnectedClientName = aName;
+            ConnectedClientVersion = aVersion;
         }
     }
 }
