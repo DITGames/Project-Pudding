@@ -50,6 +50,7 @@ namespace MCPBridge.Editor.Tools
 
             // MCPクライアント側の実装により、オブジェクト型の引数がJSON文字列として
             // 二重エンコードされて届く場合があるため、対象型がプリミティブ/文字列以外で
+
             // 受け取った値がJSONオブジェクト/配列らしき文字列だった場合は再パースする。
             // ただしUnityEngine.Object派生はアセットパス文字列を正規の表現として扱うため対象外
             if (aToken.Type == JTokenType.String &&
@@ -108,6 +109,22 @@ namespace MCPBridge.Editor.Tools
             }
         }
 
+        // JSON文字列として二重エンコードされたオブジェクト/配列らしき値を再パースする
+        // (二重エンコードされていない場合はそのまま返す)
+        private static JToken ReparseIfDoubleEncoded(JToken aToken)
+        {
+            if (aToken.Type != JTokenType.String)
+            {
+                return aToken;
+            }
+            var text = aToken.Value<string>()?.TrimStart();
+            if (!string.IsNullOrEmpty(text) && (text[0] == '{' || text[0] == '['))
+            {
+                return JToken.Parse(text);
+            }
+            return aToken;
+        }
+
         public static Vector2 ReadVector2(JToken aToken)
         {
             return (Vector2)ConvertValue(aToken, typeof(Vector2));
@@ -139,10 +156,10 @@ namespace MCPBridge.Editor.Tools
                     ApplyEnum(aProperty, aValue);
                     break;
                 case SerializedPropertyType.Vector2:
-                    aProperty.vector2Value = ReadVector2(aValue);
+                    aProperty.vector2Value = ReadVector2(ReparseIfDoubleEncoded(aValue));
                     break;
                 case SerializedPropertyType.Vector3:
-                    aProperty.vector3Value = ReadVector3(aValue);
+                    aProperty.vector3Value = ReadVector3(ReparseIfDoubleEncoded(aValue));
                     break;
                 case SerializedPropertyType.ObjectReference:
                     aProperty.objectReferenceValue =

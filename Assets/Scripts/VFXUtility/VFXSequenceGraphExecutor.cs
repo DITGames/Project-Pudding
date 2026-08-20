@@ -406,7 +406,7 @@ namespace VFXUtility
                 return;
             }
 
-            object handle = mHost.PlayVFX(aNode.VisualEffectAsset);
+            object handle = mHost.PlayVFX(aNode.VisualEffectAsset, aNode.PositionOffset, aNode.RotationOffset, aNode.ScaleOffset);
             CustomConsoleLog.Verbose("VFXUtility_Verify", $"ノード'{aNode.NodeId}'({aNode.VisualEffectAsset.name})を再生開始。セッション#{session.Handle}, t={session.ElapsedTime:F2}");
 
             foreach (VFXSequenceNodeParameter param in aNode.Parameters)
