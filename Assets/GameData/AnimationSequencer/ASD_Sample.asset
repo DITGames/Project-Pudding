@@ -1,0 +1,84 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 16493f6570354ca989c03b0ae9db1f00, type: 3}
+  m_Name: ASD_Sample
+  m_EditorClassIdentifier: Assembly-CSharp::AnimSequencer2D.AnimSequenceDefinition
+  mEntries:
+  - mKey: Idle
+    mTag: Idle
+    mDuration: 1
+    mTracks:
+    - mTrackId: SPR_CHR0001_Test_00a
+      mVisibilityOverride: 1
+      mPositionKeyframes:
+      - mTime: 0
+        mKeyframeId: bdfbc238a6a54dc589a2c8ea8b67a8ac
+        mValue: {x: -0, y: 0}
+      - mTime: 0.25
+        mKeyframeId: 975d88f057a74cfeb9a485e90168e0d1
+        mValue: {x: 0, y: -5}
+      - mTime: 0.5
+        mKeyframeId: e55eacc7e9484513acaa311b1a8ab0f9
+        mValue: {x: 0, y: 0}
+      - mTime: 0.75
+        mKeyframeId: 010274e6fe974145a376c0e8cd891269
+        mValue: {x: 0, y: 5}
+      - mTime: 1
+        mKeyframeId: 3b32078dcecc471aa71c6d2ab7dbe67b
+        mValue: {x: 0, y: 0}
+      mScaleKeyframes: []
+      mRotationKeyframes: []
+      mColorKeyframes: []
+      mSpriteKeyframes: []
+      mMaterialKeyframes: []
+      mMaterialParameterTracks: []
+    mEventKeys: []
+    mEndBehavior: 1
+    mTransitionTargetKey: 
+    mTimeMode: 0
+    mPlayWhilePaused: 0
+    mGraphPosition: {x: -80.666664, y: 288.66666}
+  - mKey: Attack
+    mTag: Idle
+    mDuration: 1
+    mTracks:
+    - mTrackId: SPR_CHR0001_Test_00a
+      mVisibilityOverride: 1
+      mPositionKeyframes:
+      - mTime: 0
+        mKeyframeId: a8e8414de040402cae9e9b1cc8559dff
+        mValue: {x: 0, y: 0}
+      - mTime: 0.15
+        mKeyframeId: 1f5eae50d73d4199a3b7030792034587
+        mValue: {x: -10, y: 20}
+      mScaleKeyframes: []
+      mRotationKeyframes: []
+      mColorKeyframes: []
+      mSpriteKeyframes: []
+      mMaterialKeyframes: []
+      mMaterialParameterTracks: []
+    mEventKeys: []
+    mEndBehavior: 2
+    mTransitionTargetKey: Idle
+    mTimeMode: 0
+    mPlayWhilePaused: 0
+    mGraphPosition: {x: -276, y: 288.66666}
+  mObjects:
+  - mObjectId: SPR_CHR0001_Test_00a
+    mSprite: {fileID: 21300000, guid: 6aeb6edb34f9ecb4f9ad30bc4453f9d6, type: 3}
+    mPosition: {x: 0, y: 0}
+    mScale: {x: 1, y: 1}
+    mRotation: {x: 0, y: 0, z: 0}
+    mColor: {r: 1, g: 1, b: 1, a: 1}
+    mBaseMaterial: {fileID: 0}
+    mInstantiateMaterial: 0
+    mDefaultVisible: 1
