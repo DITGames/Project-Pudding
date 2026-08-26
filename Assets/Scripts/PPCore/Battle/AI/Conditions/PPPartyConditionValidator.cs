@@ -13,10 +13,10 @@ using UnityEngine;
 namespace PPCore
 {
     // パーティ AI の状況ルールが評価する条件の基底クラス
-    // 「HP が減っている」「リソースが溜まっている」といった判定を 1 つずつクラス化し、
-    // PPBattleTacticsDefinition が複数を AND で束ねて戦術の成立を判断する
+    // 「HP が減っている」「生存数が減っている」といった判定を 1 つずつクラス化し、
+    // AI プロファイル（PPUnitAIProfileDefinition）が複数を AND で束ねて判断のゲートにする
     // PPSkillEffectDefinition と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとし、
-    // PPBattleTacticsDefinition.Conditions にインスタンスとして直接保持される
+    // プロファイルの条件リストにインスタンスとして直接保持される
     // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
     [Serializable]
     public abstract class PPPartyConditionValidator

@@ -13,7 +13,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // 本作固有の要素を追加したユニット定義
-    // 基底の UnitDefinition に対して、属性・追加ステータス・レベル成長曲線を持つ
+    // 基底の UnitDefinition に対して、属性・追加ステータス・レベル成長曲線・AI プロファイルを持つ
     // 成長は「レベルごとの実数値テーブル」ではなく AnimationCurve の倍率で表現する
     // 基礎ステータスに倍率を掛けるだけで済み、成長カーブをインスペクタ上で視覚的に調整できる
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
@@ -26,6 +26,12 @@ namespace PPCore
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
 
+        // このユニットの思考設定。AI はユニット単位で判断するため、プロファイルもユニットに紐づく
+        // 未設定のユニットは思考の対象にならず、そのティックは何もしない
+        [Header("AI")]
+        [Label("AIプロファイル")]
+        [SerializeField]protected PPUnitAIProfileDefinition mAIProfile;
+
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
         [Label("HP成長曲線")][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
         [Label("攻撃力成長曲線")][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
@@ -34,6 +40,7 @@ namespace PPCore
 
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
+        public PPUnitAIProfileDefinition AIProfile => mAIProfile;
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口
         // aDecider : コマンド決定クラス。null なら本作用のランダム AI が入る
@@ -82,6 +89,7 @@ namespace PPCore
         // 行動回数上限は未設定のアセットで 0 になるため、下限 1 に丸めてから渡す
         // return : 生成された追加パラメータ一式
         protected virtual PPParameterSet CreatePPParameterSet()
-            => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount));
+            => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
+                mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.CoinGaugeMax);
     }
 }

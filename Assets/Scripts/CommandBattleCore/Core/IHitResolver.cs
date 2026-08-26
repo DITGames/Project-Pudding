@@ -62,7 +62,8 @@ namespace CommandBattleCore
         public HitResult Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
         {
             float hitChance = 0.95f;
-            if (aContext.Rules.RandomProvider.NextFloat() > hitChance) return HitResult.Miss;
+            // 攻撃側の試行なので、攻撃側の乱数列から引く
+            if (aSource.ResolveRandom(aContext).NextFloat() > hitChance) return HitResult.Miss;
             else return HitResult.Hit;
         }
     }
@@ -89,7 +90,8 @@ namespace CommandBattleCore
             info.IsCritical = false;
             info.CriticalMultiplier = 1.2f;
             float criticalChance = 0.1f;
-            if (aContext.Rules.RandomProvider.NextFloat() < criticalChance) info.IsCritical = true;
+            // 攻撃側の試行なので、攻撃側の乱数列から引く
+            if (aSource.ResolveRandom(aContext).NextFloat() < criticalChance) info.IsCritical = true;
             return info;
         }
     }

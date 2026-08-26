@@ -28,15 +28,27 @@ namespace PPCore
         // スナップショット時点で生存しているアクティブな敵
         public List<PPBattleUnit> AliveEnemies { get; } = new();
 
-        // 思考主体のパーティが持つリソースプール
-        public PPBattleResourcePool ResourcePool { get; private set; }
-        // 指定属性のリソース現在値を取得するショートカット
-        // a : 対象の属性
-        public float Current(PPTypeAttribute a) => ResourcePool.Current(a);
+        // ターゲット検索ノードが絞り込んだ対象候補
+        // 同じユニットを重複して登録でき、重複した分だけランダム選択で選ばれやすくなる
+        // 「複数の検索を重ねるほど優先される」を重み付けとして表現するための持ち方
+        // 直接書き換えず RegisterConditionedUnit / ResetConditionedUnits を通すこと
+        public IReadOnlyList<PPBattleUnit> ConditionedUnits => mConditionedUnits;
+
+        // ConditionedUnits の実体
+        private readonly List<PPBattleUnit> mConditionedUnits = new();
+
+        // この思考で積んだ行動の仮押さえ台帳
+        // 2 手目以降の判断で「1 手目が使う予定のゲージ」を差し引くために、条件・行動の双方から参照する
+        // 未設定の場合は仮押さえを考慮しない（1 手だけ積む従来どおりの判定になる）
+        public PPUnitActionLedger Ledger { get; private set; }
+
+        // 仮押さえ台帳を結び付ける
+        // aLedger : 結び付ける台帳
+        public void AttachLedger(PPUnitActionLedger aLedger) => Ledger = aLedger;
 
         // HP 実数値が最も低い敵。とどめを狙う際の第一候補になる
         public PPBattleUnit LowestHpEnemy { get; private set; }
-        // HP 割合が最も低い敵。戦術の対象選択方針から引かれる
+        // HP 割合が最も低い敵。AI の対象選択から引かれる
         public PPBattleUnit LowestHpRatioEnemy { get; private set; }
         // HP 割合が最も低い味方。回復スキルの対象になる
         public PPBattleUnit LowestHpRatioAlly { get; private set; }
@@ -59,7 +71,6 @@ namespace PPCore
         public static PPPartyAIContext Capture(PPBattleParty aParty, BattleContext aContext)
         {
             var snap = new PPPartyAIContext { Party = aParty, Context = aContext };
-            snap.ResourcePool = aParty.ResourcePool;
 
             float sumCur = 0f;
             float sumMax = 0f;
@@ -141,5 +152,24 @@ namespace PPCore
             float max = aUnit.Parameters.Hp.Max.CurrentValue;
             return max <= 0f ? 0f : aUnit.Parameters.Hp.CurrentValue / max;
         }
+
+        // 対象候補を 1 体登録する
+        // aIsUnique が false のときは同じユニットを何度でも積める
+        // 積まれた回数がそのままランダム選択の重みになるため、
+        // 「複数の条件に合致したユニットほど狙われやすい」を重複登録で表現できる
+        // aUnit : 登録するユニット。null なら何もしない
+        // aIsUnique : 既に登録済みなら積まない場合 true
+        public void RegisterConditionedUnit(PPBattleUnit aUnit, bool aIsUnique = false)
+        {
+            if (aUnit == null) return;
+            if (aIsUnique && mConditionedUnits.Contains(aUnit)) return;
+
+            mConditionedUnits.Add(aUnit);
+        }
+
+        // 登録済みの対象候補を全て捨てる
+        // スナップショットはパーティ内の全ユニットで共有されるため、
+        // 1 体分の思考を始める前に必ず呼んで、前のユニットの検索結果を持ち越さないようにする
+        public void ResetConditionedUnits() => mConditionedUnits.Clear();
     }
 }

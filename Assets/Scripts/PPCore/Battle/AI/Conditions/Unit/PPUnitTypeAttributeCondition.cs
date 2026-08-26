@@ -13,8 +13,8 @@ using UnityEngine;
 namespace PPCore
 {
     // ユニット条件: ユニットの属性が指定と一致するか
-    // 属性ごとにリソースが分かれているため、「火のユニットに火のリソースを使わせる」といった
-    // 属性を軸にした戦術を組む際の実行者絞り込みに使う
+    // 属性相性は弱点・耐性の判定に効くため、
+    // 「弱点を突ける属性のユニットにだけ大技を撃たせる」といった絞り込みに使う
     [Serializable]
     [PPTypeMenuName("ユニット状態/属性")]
     public sealed class PPUnitTypeAttributeCondition : PPUnitConditionValidator

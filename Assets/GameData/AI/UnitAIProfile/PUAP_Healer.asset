@@ -1,0 +1,255 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PUAP_Healer
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  mDescription: "ヒーラーの判断ツリー。味方の回復を最優先し、手が空いていれば支援・攻撃に回る"
+  mRootNodeId: h1000
+  mNodes:
+  - rid: 1000
+  - rid: 1001
+  - rid: 1002
+  - rid: 1003
+  - rid: 1004
+  - rid: 1005
+  - rid: 1006
+  - rid: 1007
+  - rid: 1008
+  - rid: 1009
+  - rid: 1010
+  references:
+    version: 2
+    RefIds:
+    - rid: 1000
+      type: {class: PPUnitAISelectorNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "行動優先度"
+        mIsInterrupt: 0
+        mNodeId: h1000
+        mGraphPosition: {x: 0, y: 0}
+        mChildIds:
+        - h1001
+        - h1004
+        - h1006
+        - h1008
+        - h1010
+    - rid: 1001
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "回復スキルを持っている？"
+        mIsInterrupt: 0
+        mNodeId: h1001
+        mGraphPosition: {x: 340, y: -240}
+        mUnitConditions:
+        - rid: 2001
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: h1002
+        mUnmatchedId:
+    - rid: 1002
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "HPが減った味方がいて回復が撃てる？"
+        mIsInterrupt: 0
+        mNodeId: h1002
+        mGraphPosition: {x: 680, y: -240}
+        mUnitConditions:
+        - rid: 2002
+        mPartyConditions:
+        - rid: 2003
+        mIsInvert: 0
+        mMatchedId: h1003
+        mUnmatchedId:
+    - rid: 1003
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "回復スキルを使う"
+        mIsInterrupt: 0
+        mNodeId: h1003
+        mGraphPosition: {x: 1060, y: -240}
+        mAction:
+          rid: 3003
+        mCommitTicks: 0
+    - rid: 1004
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "支援スキルが撃てる？"
+        mIsInterrupt: 0
+        mNodeId: h1004
+        mGraphPosition: {x: 340, y: -80}
+        mUnitConditions:
+        - rid: 2004
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: h1005
+        mUnmatchedId:
+    - rid: 1005
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "支援スキルを撃つ"
+        mIsInterrupt: 0
+        mNodeId: h1005
+        mGraphPosition: {x: 680, y: -80}
+        mAction:
+          rid: 3005
+        mCommitTicks: 0
+    - rid: 1006
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "通常攻撃で倒せる敵がいる？"
+        mIsInterrupt: 0
+        mNodeId: h1006
+        mGraphPosition: {x: 340, y: 80}
+        mUnitConditions:
+        - rid: 2006
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: h1007
+        mUnmatchedId:
+    - rid: 1007
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "トドメを刺す"
+        mIsInterrupt: 0
+        mNodeId: h1007
+        mGraphPosition: {x: 680, y: 80}
+        mAction:
+          rid: 3007
+        mCommitTicks: 0
+    - rid: 1008
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "攻撃スキルが撃てる？"
+        mIsInterrupt: 0
+        mNodeId: h1008
+        mGraphPosition: {x: 340, y: 240}
+        mUnitConditions:
+        - rid: 2008
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: h1009
+        mUnmatchedId:
+    - rid: 1009
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "攻撃スキルを撃つ"
+        mIsInterrupt: 0
+        mNodeId: h1009
+        mGraphPosition: {x: 680, y: 240}
+        mAction:
+          rid: 3009
+        mCommitTicks: 0
+    - rid: 1010
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "何も無ければ通常攻撃"
+        mIsInterrupt: 0
+        mNodeId: h1010
+        mGraphPosition: {x: 340, y: 400}
+        mAction:
+          rid: 3010
+        mCommitTicks: 0
+    - rid: 2001
+      type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "回復 のスキルを持っている"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 2
+          mTags: []
+        mIsInvert: 0
+    - rid: 2002
+      type: {class: PPUnitCanCastSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "回復 のスキルが撃てる"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 2
+          mTags: []
+        mIsStrongestOnly: 0
+        mIsInvert: 0
+    - rid: 2003
+      type: {class: PPAliveMemberHealthRatio, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "HP割合が60%以下の味方が1体以上"
+        HpThreshold: 0.6
+        HpOp: 3
+        Torelance: 0
+        UnitCount: 1
+        UnitOp: 2
+    - rid: 2004
+      type: {class: PPUnitCanCastSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "支援 のスキルが撃てる"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags: []
+        mIsStrongestOnly: 0
+        mIsInvert: 0
+    - rid: 2006
+      type: {class: PPUnitCanFinishEnemyCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "通常攻撃で倒せる敵がいる"
+        mIsInvert: 0
+    - rid: 2008
+      type: {class: PPUnitCanCastSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "攻撃 のスキルが撃てる"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 0
+          mTags: []
+        mIsStrongestOnly: 0
+        mIsInvert: 0
+    - rid: 3003
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "回復スキル"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 2
+          mTags: []
+        mSelectRule: 0
+        mTargetPolicy: 7
+    - rid: 3005
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "支援スキル"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags: []
+        mSelectRule: 0
+        mTargetPolicy: 0
+    - rid: 3007
+      type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "通常攻撃（トドメ）"
+        mTargetPolicy: 1
+        mIsFallbackAnyEnemy: 0
+    - rid: 3009
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "攻撃スキル"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 0
+          mTags: []
+        mSelectRule: 0
+        mTargetPolicy: 3
+    - rid: 3010
+      type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "通常攻撃"
+        mTargetPolicy: 3
+        mIsFallbackAnyEnemy: 1

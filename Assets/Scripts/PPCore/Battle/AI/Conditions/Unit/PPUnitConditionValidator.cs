@@ -3,7 +3,7 @@
  * @file PPUnitConditionValidator.cs
  * @author hqrse
  * @date 2026/08/11
- * @brief 戦術ステップが使うユニット条件の基底クラス
+ * @brief ユニットAIが使うユニット条件の基底クラス
  * =====================================*/
 
 using System;
@@ -13,12 +13,12 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 戦術ステップが「誰が実行するか」「そのステップは達成済みか」を判定するための条件の基底クラス
+    // ユニット 1 体が「今その行動を取るべきか」を判定するための条件の基底クラス
     // パーティ全体を見る PPPartyConditionValidator に対して、こちらはユニット 1 体を見る
-    // 「指定タグのスキルを持っている」「攻撃力が高い」といった判定を 1 つずつクラス化し、
-    // ステップ側が複数を AND で束ねて実行者を絞り込む
+    // 「指定タグのスキルを持っている」「ゲージが溜まっている」といった判定を 1 つずつクラス化し、
+    // AI プロファイル側が複数を AND で束ねて判断のゲートにする
     // PPPartyConditionValidator と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとし、
-    // ステップのリストにインスタンスとして直接保持される
+    // プロファイルの条件リストにインスタンスとして直接保持される
     // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
     [Serializable]
     public abstract class PPUnitConditionValidator

@@ -46,7 +46,7 @@ MonoBehaviour:
     mTransitionTargetKey: 
     mTimeMode: 0
     mPlayWhilePaused: 0
-    mGraphPosition: {x: -80.666664, y: 288.66666}
+    mGraphPosition: {x: -80.8, y: 288.80002}
   - mKey: Attack
     mTag: Idle
     mDuration: 1
@@ -56,10 +56,25 @@ MonoBehaviour:
       mPositionKeyframes:
       - mTime: 0
         mKeyframeId: a8e8414de040402cae9e9b1cc8559dff
-        mValue: {x: 0, y: 0}
+        mValue: {x: 25, y: 26.827616}
       - mTime: 0.15
         mKeyframeId: 1f5eae50d73d4199a3b7030792034587
         mValue: {x: -10, y: 20}
+      - mTime: 0.2
+        mKeyframeId: f884096ee3604a25affb2e2c15f9d683
+        mValue: {x: -15, y: 20}
+      - mTime: 0.35
+        mKeyframeId: 8424d388092b4cbca66ebd3f963b14fc
+        mValue: {x: -15, y: 0}
+      - mTime: 0.40000004
+        mKeyframeId: 37c52f717806488fa13b493fec41d691
+        mValue: {x: -15, y: 0}
+      - mTime: 0.6000001
+        mKeyframeId: 9b510a086b274f078c3e0ff0e7beae36
+        mValue: {x: -40, y: 0}
+      - mTime: 1
+        mKeyframeId: 1f0d1763e5764c7883bcaa9827585071
+        mValue: {x: 0, y: 0}
       mScaleKeyframes: []
       mRotationKeyframes: []
       mColorKeyframes: []
@@ -71,11 +86,56 @@ MonoBehaviour:
     mTransitionTargetKey: Idle
     mTimeMode: 0
     mPlayWhilePaused: 0
-    mGraphPosition: {x: -276, y: 288.66666}
+    mGraphPosition: {x: -302, y: 288.80002}
   mObjects:
   - mObjectId: SPR_CHR0001_Test_00a
     mSprite: {fileID: 21300000, guid: 6aeb6edb34f9ecb4f9ad30bc4453f9d6, type: 3}
     mPosition: {x: 0, y: 0}
+    mScale: {x: 1, y: 1}
+    mRotation: {x: 0, y: 0, z: 0}
+    mColor: {r: 1, g: 1, b: 1, a: 1}
+    mBaseMaterial: {fileID: 0}
+    mInstantiateMaterial: 0
+    mDefaultVisible: 1
+  - mObjectId: MultipleUsage_0
+    mSprite: {fileID: -2210434942944035985, guid: cd47f6d5edd2c7541a0baf3774a54fdd, type: 3}
+    mPosition: {x: 207.24329, y: 0.9729582}
+    mScale: {x: 1, y: 1}
+    mRotation: {x: 0, y: 0, z: 0}
+    mColor: {r: 1, g: 1, b: 1, a: 1}
+    mBaseMaterial: {fileID: 0}
+    mInstantiateMaterial: 0
+    mDefaultVisible: 1
+  - mObjectId: MultipleUsage_0_1
+    mSprite: {fileID: -2210434942944035985, guid: cd47f6d5edd2c7541a0baf3774a54fdd, type: 3}
+    mPosition: {x: -613.946, y: 67.13508}
+    mScale: {x: 1, y: 1}
+    mRotation: {x: 0, y: 0, z: 0}
+    mColor: {r: 1, g: 1, b: 1, a: 1}
+    mBaseMaterial: {fileID: 0}
+    mInstantiateMaterial: 0
+    mDefaultVisible: 1
+  - mObjectId: Triangle
+    mSprite: {fileID: 7482667652216324306, guid: 75f5f34dc1b5347e0b8351032682f224, type: 3}
+    mPosition: {x: -148.8649, y: -285.08112}
+    mScale: {x: 1, y: 1}
+    mRotation: {x: 0, y: 0, z: 0}
+    mColor: {r: 1, g: 1, b: 1, a: 1}
+    mBaseMaterial: {fileID: 0}
+    mInstantiateMaterial: 0
+    mDefaultVisible: 1
+  - mObjectId: T_Icon_Monster_0
+    mSprite: {fileID: -935554532, guid: 9d14dc6b17639974ba12c044cfb252ad, type: 3}
+    mPosition: {x: 319.1352, y: -118.70275}
+    mScale: {x: 1, y: 1}
+    mRotation: {x: 0, y: 0, z: 0}
+    mColor: {r: 1, g: 1, b: 1, a: 1}
+    mBaseMaterial: {fileID: 0}
+    mInstantiateMaterial: 0
+    mDefaultVisible: 1
+  - mObjectId: T_Icon_Hero_0
+    mSprite: {fileID: 705052327, guid: 6d9eab3de771c714faf5227348812bee, type: 3}
+    mPosition: {x: 65, y: -225}
     mScale: {x: 1, y: 1}
     mRotation: {x: 0, y: 0, z: 0}
     mColor: {r: 1, g: 1, b: 1, a: 1}

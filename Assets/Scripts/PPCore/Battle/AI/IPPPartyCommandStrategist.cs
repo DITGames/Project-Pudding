@@ -11,9 +11,9 @@ using CommandBattleCore;
 namespace PPCore
 {
     // パーティ全体を俯瞰して行動計画を立てる AI のインターフェース
-    // ユニット単位で決める ICommandDecider と違い、
-    // パーティ共有のリソースを誰に割り当てるかまで含めて 1 回で決めるのが役割
-    // 実装は PPPartyTacticsStrategist、駆動は PPEnemyAIDriver が担う
+    // ユニット 1 体ずつ独立に決める ICommandDecider と違い、
+    // パーティ全員分の行動を 1 回の思考でまとめて組み立てるのが役割
+    // 実装は PPUnitAIStrategist、駆動は PPEnemyAIDriver が担う
     public interface IPPPartyCommandStrategist
     {
         // このティックでパーティが取る行動計画を組み立てる

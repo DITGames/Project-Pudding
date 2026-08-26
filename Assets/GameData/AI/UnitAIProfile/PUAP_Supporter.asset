@@ -1,0 +1,140 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PUAP_Supporter
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  mDescription: 
+  mRootNodeId: e120d51460124300b6ef912d453fa27b
+  mNodes:
+  - rid: 1269812240529752145
+  - rid: 1269812240529752146
+  - rid: 1269812240529752150
+  - rid: 1269812240529752151
+  - rid: 1269812240529752160
+  - rid: 1269812263099301954
+  references:
+    version: 2
+    RefIds:
+    - rid: 1269812240529752145
+      type: {class: PPUnitAISelectorNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u30EB\u30FC\u30C8"
+        mIsInterrupt: 0
+        mNodeId: e120d51460124300b6ef912d453fa27b
+        mGraphPosition: {x: 73.333336, y: 356}
+        mChildIds:
+        - 80dd3488012c4fc489b631ab724ecee4
+    - rid: 1269812240529752146
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B\uFF1F"
+        mIsInterrupt: 0
+        mNodeId: 80dd3488012c4fc489b631ab724ecee4
+        mGraphPosition: {x: 339.33334, y: 206}
+        mUnitConditions:
+        - rid: 1269812240529752149
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: 743bacec641a43e4a73bd476cb21a459
+        mUnmatchedId: 
+    - rid: 1269812240529752149
+      type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: 
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags: []
+        mIsInvert: 0
+    - rid: 1269812240529752150
+      type: {class: PPUnitAISelectorNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u652F\u63F4\u512A\u5148\u5EA6"
+        mIsInterrupt: 0
+        mNodeId: 743bacec641a43e4a73bd476cb21a459
+        mGraphPosition: {x: 585.3333, y: 206}
+        mChildIds:
+        - 4f65e335fc1c4b458074ed9daee93be5
+    - rid: 1269812240529752151
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u653B\u6483\u30D0\u30D5\u3092\u4ED8\u4E0E\u3059\u308B\u304B?"
+        mIsInterrupt: 0
+        mNodeId: 4f65e335fc1c4b458074ed9daee93be5
+        mGraphPosition: {x: 794, y: 144}
+        mUnitConditions:
+        - rid: 1269812240529752159
+        mPartyConditions:
+        - rid: 1269812240529752158
+        mIsInvert: 0
+        mMatchedId: 00091d1e4c3e4a43a20fcb2a7de38ac7
+        mUnmatchedId: 
+    - rid: 1269812240529752158
+      type: {class: PPFindHasStatusEffectUnit, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u653B\u6483\u30D0\u30D5\u3092\u6240\u6301\u3057\u3066\u3044\u306A\u3044\u30E6\u30CB\u30C3\u30C8\u304C\u3044\u308B"
+        mEffectId: AttackBuff
+        mTags: 0
+        mIsInvert: 1
+    - rid: 1269812240529752159
+      type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u653B\u6483\u30D0\u30D5\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags:
+          - {fileID: 11400000, guid: a29ea8ef3f13a9348350ea25ae4e5892, type: 2}
+        mIsInvert: 0
+    - rid: 1269812240529752160
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u5BFE\u8C61\u306B\u653B\u6483\u30D0\u30D5"
+        mIsInterrupt: 0
+        mNodeId: 126193b006d448eca0f285522ff2d72f
+        mGraphPosition: {x: 1332.6666, y: 144}
+        mAction:
+          rid: 1269812240529752161
+        mCommitTicks: 0
+    - rid: 1269812240529752161
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "\u5BFE\u8C61\u306B\u653B\u6483\u30D0\u30D5"
+        mFilter:
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags:
+          - {fileID: 11400000, guid: a29ea8ef3f13a9348350ea25ae4e5892, type: 2}
+        mSelectRule: 0
+        mTargetPolicy: 1
+    - rid: 1269812263099301954
+      type: {class: PPUnitAISearchNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u653B\u6483\u30D0\u30D5\u304C\u3064\u3044\u3044\u3066\u306A\u3044\u5473\u65B9\u3092\u691C\u7D22"
+        mIsInterrupt: 0
+        mNodeId: 00091d1e4c3e4a43a20fcb2a7de38ac7
+        mGraphPosition: {x: 1034, y: 144}
+        mScope: 0
+        mConditions:
+        - rid: 1269812263099301960
+        mIsIncludeSelf: 1
+        mIsResetBefore: 1
+        mIsUnique: 1
+        mFoundId: 126193b006d448eca0f285522ff2d72f
+        mNotFoundId: 
+    - rid: 1269812263099301960
+      type: {class: PPUnitStatusEffectCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDescription: "\u653B\u6483\u30D0\u30D5\u304C\u3064\u3044\u3066\u3044\u306A\u3044\u5473\u65B9\u3092\u691C\u7D22\u3059\u308B"
+        mEffectId: AttackBuf
+        mTags: 0
+        mIsInvert: 1

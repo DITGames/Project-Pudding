@@ -53,7 +53,7 @@ namespace CommandBattleCore
         public List<BattleUnit> Fallback(BattleUnit aSource, BattleUnit aNoneTarget,
             List<BattleUnit> aAliveCandidates, BattleContext aContext)
                 => aAliveCandidates.Count > 0
-                    ? new List<BattleUnit> {aAliveCandidates[aContext.Rules.RandomProvider.NextInt(aAliveCandidates.Count)]}
+                    ? new List<BattleUnit> {aAliveCandidates[aSource.ResolveRandom(aContext).NextInt(aAliveCandidates.Count)]}
                     : new List<BattleUnit>();
     }
 }

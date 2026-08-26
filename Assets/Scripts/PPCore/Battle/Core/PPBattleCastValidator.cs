@@ -10,9 +10,9 @@ using CommandBattleCore;
 
 namespace PPCore
 {
-    // リソース消費を考慮するスキル発動バリデータ
+    // スキルゲージの残量を考慮するスキル発動バリデータ
     // 基底の DefaultCastValidator がクールダウンと使用回数を見るのに加えて、
-    // 本作固有の条件（定義の解決可否・パーティ種別・リソース残量）を検証する
+    // 本作固有の条件（定義の解決可否・発動者の型・スキルゲージ残量）を検証する
     // ここでは残量の確認のみで消費は行わない
     // UI のグレーアウト判定や AI の候補絞り込みからも呼ばれるため、状態を変えてはいけない
     // 実際の消費は PPSkillCommand.Execute が行う
@@ -37,13 +37,14 @@ namespace PPCore
             {
                 return CastValidation.Fail(CastFailReason.InvalidDefinition);
             }
-            // パーティの不一致
-            if (aContext.GetParty(aUser.Side) is not PPBattleParty party)
+            // ゲージを持たないユニットはスキルを撃てない
+            if (aUser is not PPBattleUnit ppUser)
             {
-                return CastValidation.Fail(CastFailReason.InvalidParty);
+                return CastValidation.Fail(CastFailReason.InvalidDefinition);
             }
-            // コスト不足
-            if (!party.ResourcePool.CanPay(def.Cost))
+            // スキルゲージ不足
+            // 浮動小数の誤差で「ちょうど足りている」が不足扱いにならないよう、微小値を足して比較する
+            if (ppUser.ExtraParameters.SkillGauge.Current + PPGaugeUtility.CompareEpsilon < def.SkillGaugeCost)
             {
                 return CastValidation.Fail(CastFailReason.NotEnoughResource);
             }

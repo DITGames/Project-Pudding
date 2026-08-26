@@ -30,7 +30,7 @@ namespace PPCore
             {
                 mOwner.SkillMenu.AttachTo(aAnchor);
             }
-            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context);
+            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context, mOwner.ActionLedger);
         }
 
         // スキルメニューを閉じる

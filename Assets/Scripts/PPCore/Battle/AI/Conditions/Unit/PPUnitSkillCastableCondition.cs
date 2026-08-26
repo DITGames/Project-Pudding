@@ -14,9 +14,9 @@ using UnityEngine;
 namespace PPCore
 {
     // ユニット条件: 指定タグのスキルを今すぐ発動できるか
-    // クールダウン・使用回数・リソース残量まで含めて判定する
-    // リソース残量まで見るため、この条件を実行者条件に入れると
-    // 「溜めてから撃つ」戦術が成立しなくなる点に注意（その場合は保持判定の方を使う）
+    // クールダウン・使用回数・スキルゲージ残量まで含めて判定する
+    // ゲージ残量まで見るため、この条件を発動条件に入れると
+    // 「溜めてから撃つ」判断が成立しなくなる点に注意（その場合は保持判定の方を使う）
     [Serializable]
     [PPTypeMenuName("スキル/指定タグが発動可能")]
     public sealed class PPUnitSkillCastableCondition : PPUnitConditionValidator

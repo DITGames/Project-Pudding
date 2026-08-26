@@ -13,9 +13,9 @@ namespace PPCore
 {
     // 本作のコマンドを使うランダム AI
     // 挙動は基底の RandomAICommandDecider と同じだが、
-    // 生成するコマンドがリソース消費に対応した PPAttackCommand / PPSkillCommand になる点が異なる
+    // 生成するコマンドがゲージ消費に対応した PPAttackCommand / PPSkillCommand になる点が異なる
     // ユニット単位で動く簡易 AI で、UnitDefinition.CreateRuntimeUnit の既定値として使われる
-    // 敵パーティの本来の思考は PPPartyTacticsStrategist が担う
+    // 敵パーティの本来の思考は PPUnitAIStrategist が担う
     public class PPRandomAICommandDecider : AICommandDeciderBase
     {
         // 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、その中から等確率で選ぶ
@@ -39,7 +39,7 @@ namespace PPCore
                 }
             }
 
-            return options[aContext.Rules.RandomProvider.NextInt(options.Count)];
+            return options[aSelf.ResolveRandom(aContext).NextInt(options.Count)];
         }
     }
 }

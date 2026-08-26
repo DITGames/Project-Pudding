@@ -25,6 +25,8 @@ namespace AnimSequencer2D.Editor
         private const string PrefKeyEntryListWidth = "AnimSequencer2D.Sequencer.EntryListWidth";
         private const string PrefKeyInspectorWidth = "AnimSequencer2D.Sequencer.InspectorWidth";
         private const string PrefKeyTimelineHeight = "AnimSequencer2D.Sequencer.TimelineHeight";
+        // 最後に開いていたアセットを保存するキー。閉じて開き直しても同じ編集対象へ戻れるようにする
+        private const string PrefKeyLastAsset = "AnimSequencer2D.Sequencer.LastAssetGuid";
         private const string PrefKeyAspectSelected = "AnimSequencer2D.Sequencer.AspectSelected";
         private const string PrefKeyAspectCustomPresets = "AnimSequencer2D.Sequencer.AspectCustomPresets";
         private const string PrefKeyMoveSnap = "AnimSequencer2D.Sequencer.MoveSnap";
@@ -120,7 +122,8 @@ namespace AnimSequencer2D.Editor
             new("4K UHD (3840x2160)", 3840, 2160),
         };
 
-        private AnimSequenceDefinition mTarget;
+        // 編集対象。ドメインリロードをまたいで保持したいのでシリアライズ対象にする
+        [SerializeField] private AnimSequenceDefinition mTarget;
         private SerializedObject mSerializedObject;
 
         private AnimSequenceEntryGraphView mEntryGraphView;
@@ -344,6 +347,9 @@ namespace AnimSequencer2D.Editor
             mCurrentEntryListWidth = EditorPrefs.GetFloat(PrefKeyEntryListWidth, DefaultEntryListWidth);
             mCurrentInspectorWidth = EditorPrefs.GetFloat(PrefKeyInspectorWidth, DefaultInspectorWidth);
             mCurrentTimelineHeight = EditorPrefs.GetFloat(PrefKeyTimelineHeight, DefaultTimelineHeight);
+            // 閉じて開き直した場合は、前回編集していたアセットへ戻す
+            mTarget = mTarget != null ? mTarget : LoadLastTarget();
+            mSerializedObject = mTarget != null ? new SerializedObject(mTarget) : null;
 
             mMoveSnapValue = EditorPrefs.GetFloat(PrefKeyMoveSnap, DefaultMoveSnap);
             mRotateSnapValue = EditorPrefs.GetFloat(PrefKeyRotateSnap, DefaultRotateSnap);
@@ -386,6 +392,26 @@ namespace AnimSequencer2D.Editor
             EditorPrefs.SetFloat(PrefKeyTimelineHeight, mCurrentTimelineHeight);
             SaveAspectPrefs();
             SaveSnapPrefs();
+            SaveLastTarget();
+        }
+
+        // 最後に開いていたアセットを覚えておく
+        private void SaveLastTarget()
+        {
+            string path = mTarget == null ? "" : AssetDatabase.GetAssetPath(mTarget);
+            EditorPrefs.SetString(PrefKeyLastAsset,
+                string.IsNullOrEmpty(path) ? "" : AssetDatabase.AssetPathToGUID(path));
+        }
+
+        // 最後に開いていたアセットを読み直す
+        // return : 復元できたアセット。記録が無い・削除済みなら null
+        private static AnimSequenceDefinition LoadLastTarget()
+        {
+            string guid = EditorPrefs.GetString(PrefKeyLastAsset, "");
+            if (string.IsNullOrEmpty(guid)) return null;
+
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            return string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<AnimSequenceDefinition>(path);
         }
 
         private void SaveAspectPrefs()

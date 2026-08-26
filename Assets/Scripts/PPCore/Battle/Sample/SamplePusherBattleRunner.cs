@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System.Collections;
-using System.Collections.Generic;
 using CommandBattleCore;
 using PPCore;
 using UnityEngine;
@@ -23,14 +22,11 @@ using AttributeUtility;
 // コマンド入力を開始できる（入力中は timeScale が 0 になり盤面が止まる）
 public class SamplePusherBattleRunner : MonoBehaviour
 {
-    // プッシャーのコイン獲得をリソースへ橋渡しするブリッジ
+    // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
     [Header("コイン")]
-    [Label("コインリソースブリッジ")]
+    [Label("コインゲージブリッジ")]
     [SerializeField] private PPCoinResourceBridge mCoinResourceBridge;
-    // 属性ごとのリソース上限
-    [Label("コイン上限")]
-    [SerializeField] private int mMaxCoin = 100;
-    // コイン 1 枚あたりのリソース変換係数の初期値
+    // コイン 1 枚あたりのゲージ変換係数の初期値
     [Label("コイン獲得レート初期値")]
     [SerializeField] private float mBaseCoinConversionRate = 1f;
 
@@ -58,20 +54,16 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Header("敵")]
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mEnemyUnit;
-    // 敵 AI の戦術プロファイル。未設定の場合、敵は常に待機する
-    [Label("敵AIプロファイル")]
-    [SerializeField] private PPPartyAIProfileDefinition mEnemyAIProfile;
-    // プロファイル未設定時に使う、1ティックあたりの思考回数
-    [Label("デフォルト思考回数(1ティックあたり)")][EditCondition("HasEnemyAIProfile", true, true)]
-    [SerializeField] private int mDefaultThinkCountPerTick = 1;
+    // 1 ティックあたりの思考回数。判断の中身はユニット定義側の AI プロファイルが決める
+    [Label("思考回数(1ティックあたり)")]
+    [SerializeField] private int mThinkCountPerTick = 1;
     // 敵 AI を駆動するドライバ
     private PPEnemyAIDriver mEnemyAIDriver;
-    // 敵がティックごとに得るリソース量の範囲（最小, 最大）
-    [Label("コイン取得")]
-    [SerializeField] private Vector2Int mEnemyResourcePerTick = new Vector2Int(5, 10);
-
-    // 敵 AI プロファイルが設定されているか。思考間隔の入力欄の出し分けに使う
-    private bool HasEnemyAIProfile => mEnemyAIProfile != null;
+    // 1 ティック分の行動を集めて並べ替える収集役
+    private readonly PPTickActionCollector mActionCollector = new();
+    // 敵がティックごとに得るゲージ量。敵にはプッシャーが無いため直接補給する
+    [Label("敵ゲージ供給")]
+    [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
 
     // バトル進行を統括するマネージャ
     private BattleManager mBattleManager = new();
@@ -93,14 +85,14 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
         var context = new BattleContext()
         {
-            AllyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Ally, new[]{allyUnit}, null, new Dictionary<PPItemDefinition, int>()),
-            EnemyParty = new PPBattleParty(mMaxCoin, mBaseCoinConversionRate, BattleSide.Enemy, new[]{enemyUnit}, null , new Dictionary<PPItemDefinition, int>()),
+            AllyParty = new PPBattleParty(mBaseCoinConversionRate, BattleSide.Ally, new[]{allyUnit}),
+            EnemyParty = new PPBattleParty(mBaseCoinConversionRate, BattleSide.Enemy, new[]{enemyUnit}),
             Rules = new PPBattleRules(),
         };
-        // リソース消費を検証するバリデータへ差し替える
+        // スキルゲージ残量を検証するバリデータへ差し替える
         context.Rules.CastValidator = new PPBattleCastValidator();
 
-        var enemyStrategist = new PPPartyTacticsStrategist(mEnemyAIProfile);
+        var enemyStrategist = new PPUnitAIStrategist();
         ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
 
         mBattleManager.OnBattleEnded += r =>
@@ -124,11 +116,11 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mCoinResourceBridge.Bind(mBattleManager, BattleSide.Ally);
 
         mController.Bind(mBattleManager);
-        mController.OnCommandFlushed += HandleCommandFlushed;
+        mController.ActionLedger = mActionCollector.Ledger;
+        mController.OnCommandConfirmed += HandleCommandConfirmed;
 
         // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
-        int thinkCount = mEnemyAIProfile != null ? mEnemyAIProfile.ThinkCountPerTick : mDefaultThinkCountPerTick;
-        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, mTurnTickInterval, thinkCount);
+        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, mTurnTickInterval, mThinkCountPerTick);
         mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
         mTickCoroutine = StartCoroutine(AdvanceTick());
     }
@@ -147,7 +139,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     // 今コマンド入力を始める意味があるかを判定する
     // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
-    // リソース不足で何も撃てない状態のときに入力画面が開くのを防ぐ
+    // ゲージ不足で何も撃てない状態のときに入力画面が開くのを防ぐ
     // return : 入力を開始できる場合 true
     private bool CanSelectAnyCommand()
     {
@@ -168,7 +160,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
     }
 
     // 一定間隔でターンを進めるコルーチン
-    // 敵にはプッシャーが無いため、ティックごとにランダム量のリソースを直接補給して
+    // 敵にはプッシャーが無いため、ティックごとにランダム量のゲージを直接補給して
     // プレイヤー側のコイン収入と釣り合いを取っている
     // return : コルーチンの列挙子
     IEnumerator AdvanceTick()
@@ -180,19 +172,39 @@ public class SamplePusherBattleRunner : MonoBehaviour
             yield return new WaitForSeconds(mTurnTickInterval);
 
             var enemyParty = (PPBattleParty)mBattleManager.Context.GetParty(BattleSide.Enemy);
-            if (enemyParty != null)
-            {
-                enemyParty.ResourcePool.Add(PPTypeAttribute.Normal, mBattleManager.Context.Rules.RandomProvider.NextInt(mEnemyResourcePerTick.x, mEnemyResourcePerTick.y));
-            }
+            mEnemyResourceSimulation.Supply(enemyParty, mBattleManager.Context);
 
+            ExecuteTickActions();
             mBattleManager.AdvanceTick();
         }
     }
 
-    // プレイヤーのコマンドがキューへ流された直後に、それを即座に実行する
-    private void HandleCommandFlushed()
+    // このティック分の行動を集めて並べ替え、順に実行する
+    // プレイヤーの予約・指示が無いユニットの通常攻撃・敵 AI の計画をまとめ、
+    // 優先度と速度で並べ直してから流す
+    private void ExecuteTickActions()
     {
-        mBattleManager.ExecuteNextCommand();
+        var context = mBattleManager.Context;
+        mActionCollector.FillDefaultAttacks((PPBattleParty)context.GetParty(BattleSide.Ally), context);
+
+        foreach (var action in mActionCollector.CollectOrdered(context, mEnemyAIDriver?.LatestPlan))
+        {
+            mBattleManager.EnqueueCommand(action.Command);
+        }
+        mBattleManager.ExecuteAllCommands();
+
+        mActionCollector.Clear();
+        mEnemyAIDriver?.ConsumePlan();
+    }
+
+    // プレイヤーが確定したコマンドを、このティックの行動として予約する
+    // aUnit : 行動するユニット
+    // aCommand : 確定したコマンド
+    private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
+    {
+        if (aUnit is not PPBattleUnit unit) return;
+
+        mActionCollector.TryReserve(unit, aCommand);
     }
 
     // コマンド入力の開始操作が行われたかを判定する

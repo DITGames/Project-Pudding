@@ -50,6 +50,11 @@ namespace PPCore
 
         // コマンド確定時(行動ユニット, 確定したコマンド)。キュー投入前に発火する
         public event Action<BattleUnit, BattleCommandBase> OnCommandConfirmed;
+
+        // このティックの行動を仮押さえしている台帳
+        // 既に予約したぶんを差し引いた残量でスキルの発動可否を出すために、UI 側へ渡す
+        // 未設定なら予約を考慮せず、実際のゲージ残量だけで判定される
+        public PPUnitActionLedger ActionLedger { get; set; }
         // コマンドをキューへ流し終えたとき。入力 1 サイクルの完了通知
         public event Action OnCommandFlushed;
 
@@ -161,15 +166,15 @@ namespace PPCore
             if (command == null) return;
 
             OnCommandConfirmed?.Invoke(mContext.Unit, command);
-            Flush(command);
+            Flush();
         }
 
-        // 入力 UI を閉じてコマンドをバトルマネージャのキューへ投入する
-        // aCommand : 投入するコマンド
-        private void Flush(BattleCommandBase aCommand)
+        // 入力 UI を閉じて、確定したコマンドを呼び出し側へ渡す
+        // ここでは実行もキュー投入もしない
+        // 行動はティックの終わりに収集役がまとめて並べ替えてから流すため、予約として扱う
+        private void Flush()
         {
             ClearStack();
-            mManager.EnqueueCommand(aCommand);
             OnCommandFlushed?.Invoke();
         }
 

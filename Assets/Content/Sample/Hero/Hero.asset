@@ -22,9 +22,12 @@ MonoBehaviour:
   mSkills:
   - {fileID: 11400000, guid: 557f6f8f6b1c4df42bb8064d45b14c7b, type: 2}
   mExpandStatBlock:
-    AttackCost: 0
+    AttackCost: 5
     ActionCount: 1
+    SkillGaugeMax: 100
+    CoinGaugeMax: 100
   mTypeAttribute: 0
+  mAIProfile: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

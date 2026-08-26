@@ -33,7 +33,7 @@ MonoBehaviour:
       data:
         mNodeId: c8be3ec349c144289db37c44207dc348
         mDisplayName: "Burst\u30A8\u30D5\u30A7\u30AF\u30C8(Event)"
-        mPosition: {x: 237.33333, y: 396.66666}
+        mPosition: {x: 236.8, y: 396.8}
         mDelaySeconds: 0
         mNotifyEventName: 
         mNextNodeIds:
@@ -49,7 +49,7 @@ MonoBehaviour:
       data:
         mNodeId: a884f405a11441778568ad33c8e49257
         mDisplayName: "Loop\u30A8\u30D5\u30A7\u30AF\u30C8"
-        mPosition: {x: -52.666664, y: 193.33333}
+        mPosition: {x: -52, y: 193.2}
         mDelaySeconds: 0
         mNotifyEventName: 
         mNextNodeIds:
@@ -66,8 +66,8 @@ MonoBehaviour:
           mColorValue: {r: 0, g: 0, b: 0, a: 0}
           mParamName: Rate
           mExposedName: SpawnCount
-        mPositionOffset: {x: 1, y: 0, z: 0}
-        mRotationOffset: {x: 0, y: 0, z: 45}
+        mPositionOffset: {x: 0, y: 0, z: 0}
+        mRotationOffset: {x: 0, y: 0, z: 0}
         mScaleOffset: 1
     - rid: 2855699279046246498
       type: {class: VFXSequenceSetParameterNode, ns: VFXUtility, asm: Assembly-CSharp}
@@ -107,7 +107,7 @@ MonoBehaviour:
       data:
         mNodeId: 63a861cf1d2a44f79e3095c4dd1d425e
         mDisplayName: "Burst\u30A4\u30D9\u30F3\u30C8"
-        mPosition: {x: 794, y: 193.33333}
+        mPosition: {x: 804.4, y: 193.2}
         mDelaySeconds: 1
         mNotifyEventName: 
         mNextNodeIds:
@@ -118,7 +118,7 @@ MonoBehaviour:
       data:
         mNodeId: 88cd298a506147a0b78a0859c0c0ca1c
         mDisplayName: 
-        mPosition: {x: 416, y: 396.66666}
+        mPosition: {x: 415.6, y: 396.8}
         mDelaySeconds: 0.5
         mNotifyEventName: 
         mNextNodeIds: []
@@ -128,7 +128,7 @@ MonoBehaviour:
       data:
         mNodeId: 5b8fe100ed4348fe9fcebbc45d5b4452
         mDisplayName: "\u30B4\u30FC\u30EB"
-        mPosition: {x: 1102, y: 193.33331}
+        mPosition: {x: 1102, y: 193.2}
         mDelaySeconds: 1
         mNotifyEventName: 
         mNextNodeIds: []
@@ -147,7 +147,7 @@ MonoBehaviour:
       data:
         mNodeId: 7e70c375681c4c4eadef82caad604278
         mDisplayName: "Burst\u30EB\u30FC\u30D7"
-        mPosition: {x: 674, y: 193.33333}
+        mPosition: {x: 675.2, y: 193.2}
         mDelaySeconds: 0
         mNotifyEventName: 
         mNextNodeIds:
@@ -158,7 +158,7 @@ MonoBehaviour:
       data:
         mNodeId: da8617a9e54e4e03bd366c3fa28a18c9
         mDisplayName: "\u30EB\u30FC\u30D7\u7D42\u4E86\u30C1\u30A7\u30C3\u30AF"
-        mPosition: {x: 961.3334, y: 193.33333}
+        mPosition: {x: 943.2, y: 193.2}
         mDelaySeconds: 0
         mNotifyEventName: 
         mNextNodeIds:
@@ -169,7 +169,7 @@ MonoBehaviour:
       data:
         mNodeId: c2429695fa4c4b3e8aa165259d67362e
         mDisplayName: 
-        mPosition: {x: 80.666664, y: 193.33333}
+        mPosition: {x: 82.4, y: 193.2}
         mDelaySeconds: 1
         mNotifyEventName: 
         mNextNodeIds:
@@ -187,7 +187,7 @@ MonoBehaviour:
       data:
         mNodeId: 7114d473078b456b91f8f1abe3a04ce4
         mDisplayName: "\u30D1\u30E9\u30E1\u30FC\u30BF\u8A2D\u5B9A2"
-        mPosition: {x: 294, y: 272}
+        mPosition: {x: 294, y: 271.19998}
         mDelaySeconds: 0
         mNotifyEventName: 
         mNextNodeIds:

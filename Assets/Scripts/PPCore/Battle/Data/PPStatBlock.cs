@@ -21,5 +21,11 @@ namespace PPCore
         // 1 ティックあたりに行動できる回数。バフで増減しうるため、ここでは初期値だけを持つ
         [Label("行動回数上限")]
         public int ActionCount;
+        // スキルゲージの上限。スキルの必要スキルゲージ量はこの範囲内で設定する
+        [Label("スキルゲージ上限")]
+        public float SkillGaugeMax;
+        // コインゲージの上限。通常攻撃コストはこの範囲内で設定する
+        [Label("コインゲージ上限")]
+        public float CoinGaugeMax;
     }
 }

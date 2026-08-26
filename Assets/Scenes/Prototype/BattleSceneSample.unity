@@ -1017,19 +1017,16 @@ MonoBehaviour:
   mBattleUnitViewBinder: {fileID: 1909357157}
   mController: {fileID: 1909357156}
   mTurnTickInterval: 5
-  mDefaultThinkCountPerTick: 1
   mEnemyResourceSimulation:
-    mEntries:
-    - mType: 0
-      mAmount: {x: 8, y: 10}
+    mCoinGaugeAmount: {x: 8, y: 10}
+    mSkillGaugeAmount: {x: 0, y: 0}
   mAllyPartyDefinition: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
   mEnemyPartyDefinition: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
   mIsAutoBattle: 1
   mIsSimulateAllyResource: 1
   mAllyResourceSimulation:
-    mEntries:
-    - mType: 0
-      mAmount: {x: 8, y: 10}
+    mCoinGaugeAmount: {x: 8, y: 10}
+    mSkillGaugeAmount: {x: 0, y: 0}
 --- !u!1 &850145642
 GameObject:
   m_ObjectHideFlags: 0

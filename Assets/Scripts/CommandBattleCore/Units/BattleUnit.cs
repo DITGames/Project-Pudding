@@ -45,6 +45,13 @@ namespace CommandBattleCore
         // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }
 
+        // このユニット専用の乱数供給元
+        // 1 本の乱数列を全ユニットで共有すると、他のユニットが 1 回多く引いただけで
+        // 以降の全員の乱数がずれてしまい、そのユニット単体の挙動を追えなくなる
+        // ユニットごとに列を分けることで、他人の消費に影響されずに挙動を再現できる
+        // 未設定なら BattleRules.RandomProvider へフォールバックする
+        public IRandomProvider Random { get; set; }
+
         // ダメージ適用前の介入(ダメージ情報)。ここで Amount を書き換えれば軽減・無効化できる
         public event Action<DamageInfo> OnPreDamaged;
         // ダメージデリゲート(対象ユニット, 値)。実際に HP が減ったときのみ発火する
@@ -86,6 +93,14 @@ namespace CommandBattleCore
             }
         }
 
+        // このユニットが使う乱数供給元を解決する
+        // 自前の列を持っていればそちらを、無ければバトル共通の供給元を返す
+        // 「誰の乱数を引くか」を呼び出し側で分岐させないための入口
+        // aContext : 共通の供給元を引くためのバトルコンテキスト
+        // return : 使用する乱数供給元
+        public IRandomProvider ResolveRandom(BattleContext aContext)
+            => Random ?? aContext.Rules.RandomProvider;
+
         // 状態異常によって今回の行動が失敗するかを抽選する
         // 行動不能エフェクトのうち、失敗率が設定されていれば確率判定（麻痺など）、
         // 未設定なら無条件で失敗（睡眠など）として扱う
@@ -100,7 +115,8 @@ namespace CommandBattleCore
                     continue;
                 if (eff.ActionFailChance is float chance)
                 {
-                    if (aContext.Rules.RandomProvider.NextBool(chance))
+                    // 自分が行動できるかの抽選なので、自分の乱数列から引く
+                    if (ResolveRandom(aContext).NextBool(chance))
                         blocked = true;
                 }
                 else

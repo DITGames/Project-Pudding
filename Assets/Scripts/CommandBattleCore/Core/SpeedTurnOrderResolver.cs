@@ -14,7 +14,7 @@ namespace CommandBattleCore
     // 速度パラメータの降順で行動順を決める標準実装
     // SpeedJitter を設定すると速度に乱数の揺らぎが乗るため、
     // 速度が同値のユニット同士の順序が毎ターン入れ替わるようになる
-    // 乱数はシード管理・再現性のため aContext.Rules.RandomProvider を経由する
+    // 揺らぎはユニットごとの試行なので、それぞれ自分の乱数供給元から引く
     public class SpeedTurnOrderResolver : ITurnOrderResolver
     {
         // 速度に加算する揺らぎの最大値。0 なら揺らぎなしで純粋な速度順になる
@@ -30,7 +30,7 @@ namespace CommandBattleCore
 
             return all
                 .OrderByDescending(u => u.Parameters.Speed.CurrentValue + (SpeedJitter > 0f
-                    ? aContext.Rules.RandomProvider.NextFloat() * SpeedJitter : 0f)).ToList();
+                    ? u.ResolveRandom(aContext).NextFloat() * SpeedJitter : 0f)).ToList();
         }
     }
 }

@@ -81,7 +81,7 @@ namespace CommandBattleCore
     }
 
     // 敵からランダムに 1 体を対象とするリゾルバ
-    // 乱数はシード管理・再現性のため aContext.Rules.RandomProvider を経由する
+    // 乱数はシード管理・再現性のため、行動するユニット自身の供給元を経由する
     public class RandomEnemyResolver : ITargetResolver
     {
         // 敵陣営の生存者から 1 体をランダムに返す。生存者が居なければ空リスト
@@ -91,7 +91,7 @@ namespace CommandBattleCore
         {
             var alive = aContext.GetOpponentParty(aSource.Side).GetAliveActiveMembers();
             return alive.Count > 0
-                ? new List<BattleUnit> { alive[aContext.Rules.RandomProvider.NextInt(alive.Count)] }
+                ? new List<BattleUnit> { alive[aSource.ResolveRandom(aContext).NextInt(alive.Count)] }
                 : new List<BattleUnit>();
         }
     }

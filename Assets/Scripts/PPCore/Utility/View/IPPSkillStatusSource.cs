@@ -17,8 +17,8 @@ namespace PPCore
     {
         // UI 表示名
         string DisplayName { get; }
-        // 消費リソース
-        PPResourceCost Cost { get; }
+        // 発動に必要なスキルゲージ量
+        float SkillGaugeCost { get; }
         // 今このスキルを発動できるか。ボタンの有効・無効に使う
         bool IsCastable { get; }
         // 残りクールダウンターン数
