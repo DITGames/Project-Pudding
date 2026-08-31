@@ -1,0 +1,119 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PSBT_BuffDefense
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  mTreeKind: 4
+  mDescription: 
+  mRootNodeId: 22dbde3c3b604b8486d9eb0f755b2332
+  mNodes:
+  - rid: 1269812297483681891
+  - rid: 1269812297483681895
+  - rid: 1269812297483681897
+  mNotes: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 1269812297483681891
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u9632\u5FA1\u30D0\u30D5\u3092\u4ED8\u4E0E\u3059\u308B\u304B"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 22dbde3c3b604b8486d9eb0f755b2332
+        mGraphPosition: {x: 0, y: 0}
+        mUnitConditions:
+        - rid: 1269812297483681892
+        - rid: 1269812297483681894
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: 799c8d991f5c4c34a709d50ef7502f9d
+        mUnmatchedId: 
+    - rid: 1269812297483681892
+      type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 0
+        mDescription: "\u652F\u63F4/\u9632\u5FA1\u30D0\u30D5 \u306E\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags:
+          - {fileID: 11400000, guid: d0b92475f51bca043aeeac59e6214709, type: 2}
+        mIsInvert: 0
+    - rid: 1269812297483681894
+      type: {class: PPUnitCanCastSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 0
+        mDescription: "\u652F\u63F4/\u9632\u5FA1\u30D0\u30D5 \u306E\u30B9\u30AD\u30EB\u304C\u6483\u3066\u308B"
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags:
+          - {fileID: 11400000, guid: d0b92475f51bca043aeeac59e6214709, type: 2}
+        mIsStrongestOnly: 0
+        mIsInvert: 0
+    - rid: 1269812297483681895
+      type: {class: PPUnitAISearchNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u9632\u5FA1\u30D0\u30D5\u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044\u5473\u65B9\u3092\u63A2\u7D22"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 799c8d991f5c4c34a709d50ef7502f9d
+        mGraphPosition: {x: 320, y: 0}
+        mScope: 0
+        mConditions:
+        - rid: 1269812297483681896
+        mIsIncludeSelf: 1
+        mIsResetBefore: 1
+        mIsUnique: 1
+        mFoundId: 983a9d46388d40b89a1e0a8072ae0c66
+        mNotFoundId: 
+    - rid: 1269812297483681896
+      type: {class: PPUnitStatusEffectCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "DefenseBuff \u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044"
+        mEffectId: DefenseBuff
+        mTags: 0
+        mIsInvert: 1
+    - rid: 1269812297483681897
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u9632\u5FA1\u30D0\u30D5\u3092\u4ED8\u4E0E"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 983a9d46388d40b89a1e0a8072ae0c66
+        mGraphPosition: {x: 640, y: 0}
+        mAction:
+          rid: 1269812297483681898
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 1269812297483681898
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "\u5BFE\u8C61\u306B\u9632\u5FA1\u30D0\u30D5"
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags:
+          - {fileID: 11400000, guid: d0b92475f51bca043aeeac59e6214709, type: 2}
+        mSelectRule: 0
+        mTargetPolicy: 1

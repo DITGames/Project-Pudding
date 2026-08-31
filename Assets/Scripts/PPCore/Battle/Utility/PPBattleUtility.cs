@@ -11,11 +11,11 @@ using UnityEngine;
 namespace PPCore
 {
     // 本作の属性
-    // リソースプールの添字としてそのまま使うため、値は 0 から連番で固定されている
-    // Normal は属性というより「無属性の基準リソース」の位置づけで、相性判定では常に等倍になる
+    // 添字として配列と対応付けるため、値は 0 から連番で固定されている
+    // Normal は属性というより「無属性」の位置づけで、相性判定では常に等倍になる
     public enum PPTypeAttribute
     {
-        // ノーマル。基準リソースであり、相性判定では常に等倍
+        // ノーマル。無属性であり、相性判定では常に等倍
         [InspectorName(PPTypeAttributeDefinition.TypeNormal)]
         Normal = 0,
         // 火。土に強く水に弱い
@@ -38,11 +38,11 @@ namespace PPCore
     // 属性に関する定数とヘルパー。表示名をハードコードせずここを参照する
     public static class PPTypeAttributeDefinition
     {
-        // 属性の総数。リソースプールの配列長として使う（Normal を含む）
+        // 属性の総数。属性別の配列長として使う（Normal を含む）
         public const int TypeCount = 6;
         // Normal を除いた、相性判定の対象になる属性の数
         public const int AttributeCount = 5;
-        // 基準リソース（Normal）のインデックス
+        // 無属性（Normal）のインデックス
         public const int BaseIndex = (int)PPTypeAttribute.Normal;
 
         public const string TypeNormal = "ノーマル";

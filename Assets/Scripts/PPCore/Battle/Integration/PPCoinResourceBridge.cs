@@ -15,7 +15,8 @@ namespace PPCore
 {
     // プッシャー（物理）側とバトル側を繋ぐブリッジ
     // IPPCoinGainNotifier のコイン獲得通知を購読し、
-    // パーティの変換係数と IPPCoinResourceConverter を通して PPBattleResourcePool へリソースとして加算する
+    // パーティの変換係数と IPPCoinResourceConverter を通して
+    // 生存ユニット全員のコインゲージへ均等分配する
     // このクラスを挟むことで、物理側はバトルの存在を知らず、バトル側はコインの存在を知らずに済む
     // 両者を直接結合させず、必ずここを経由させること
     public class PPCoinResourceBridge : MonoBehaviour
@@ -26,7 +27,7 @@ namespace PPCore
 
         // インスペクタで差された通知元をインターフェースとして解決したもの
         private IPPCoinGainNotifier mCoinNotifier;
-        // コイン枚数からリソース量への変換ロジック
+        // コイン枚数からゲージ量への変換ロジック
         private IPPCoinResourceConverter mConverter = new PPLinearCoinResourceConverter();
         // 加算先のパーティ。Bind されるまでは null
         private PPBattleParty mTargetParty;
@@ -43,7 +44,7 @@ namespace PPCore
 
         // 指定陣営のパーティを加算先として設定し、コイン獲得通知の購読を開始する
         // aBattleManager : 対象パーティを引くためのバトルマネージャ
-        // aTargetSide : リソースを加算する陣営
+        // aTargetSide : ゲージを加算する陣営
         public void Bind(BattleManager aBattleManager, BattleSide aTargetSide)
         {
             if (aBattleManager.Context.GetParty(aTargetSide) is not PPBattleParty party)
@@ -70,8 +71,10 @@ namespace PPCore
             mTargetParty = null;
         }
 
-        // コイン獲得通知を受けて、枚数をリソース量へ変換しプールへ加算する
-        // a : 獲得したコインの属性。加算先のリソース種別になる
+        // コイン獲得通知を受けて、枚数をゲージ量へ変換し生存ユニットへ均等分配する
+        // コインゲージは単一スカラーになったため、コインの属性は分配先の選択には使わない
+        // 物理側の通知インターフェースは変えないため引数自体は受け取り続ける
+        // a : 獲得したコインの属性
         // aCoinCount : 獲得枚数
         private void HandleCoinGained(PPTypeAttribute a, int aCoinCount)
         {
@@ -80,11 +83,10 @@ namespace PPCore
             float rate = mTargetParty.CoinConversionRate.CurrentValue;
             float amount = mConverter.Convert(aCoinCount, rate);
             // 実質変化のない変換(0枚など)はログを出さない
-            if (amount > 0f)
-            {
-                CustomConsoleLog.Verbose("Resource", $"コイン{aCoinCount}枚を{a}リソース{amount}に変換します（レートx{rate}）。", this);
-            }
-            mTargetParty.ResourcePool.Add(a, amount);
+            if (amount <= 0f) return;
+
+            CustomConsoleLog.Verbose("Resource", $"コイン{aCoinCount}枚をコインゲージ{amount:0.##}に変換します（レートx{rate}）。", this);
+            PPGaugeUtility.DistributeToAliveUnits(mTargetParty.ActiveMembers, PPGaugeKind.Coin, amount);
         }
 
         // 破棄時にイベント購読が残らないよう解除する

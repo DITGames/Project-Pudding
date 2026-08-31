@@ -23,13 +23,16 @@ namespace VFXUtility.Editor
         private const string PrefKeyCameraPitch = "VFXUtility.Sequencer.CameraPitch";
         private const string PrefKeyCameraDistance = "VFXUtility.Sequencer.CameraDistance";
         private const string PrefKeyShowGrid = "VFXUtility.Sequencer.ShowGrid";
+        // 最後に開いていたアセットを保存するキー。閉じて開き直しても同じ編集対象へ戻れるようにする
+        private const string PrefKeyLastAsset = "VFXUtility.Sequencer.LastAssetGuid";
 
         private const float DefaultInspectorWidth = 320f;
         private const float DefaultPreviewHeight = 220f;
         private const float DefaultCameraPitch = 10f;
         private const float DefaultCameraDistance = 6f;
 
-        private VFXSequenceDefinition mTarget;
+        // 編集対象。ドメインリロードをまたいで保持したいのでシリアライズ対象にする
+        [SerializeField] private VFXSequenceDefinition mTarget;
         private SerializedObject mSerializedObject;
         private VFXSequencerGraphView mGraphView;
         private VFXSequenceNodeInspectorPanel mInspectorPanel;
@@ -113,6 +116,9 @@ namespace VFXUtility.Editor
                 EditorPrefs.GetFloat(PrefKeyCameraPitch, DefaultCameraPitch));
             mCameraDistance = EditorPrefs.GetFloat(PrefKeyCameraDistance, DefaultCameraDistance);
             mShowGrid = EditorPrefs.GetBool(PrefKeyShowGrid, true);
+            // 閉じて開き直した場合は、前回編集していたアセットへ戻す
+            mTarget = mTarget != null ? mTarget : LoadLastTarget();
+            mSerializedObject = mTarget != null ? new SerializedObject(mTarget) : null;
         }
 
         private void SavePrefs()
@@ -123,6 +129,26 @@ namespace VFXUtility.Editor
             EditorPrefs.SetFloat(PrefKeyCameraPitch, mCameraOrbit.y);
             EditorPrefs.SetFloat(PrefKeyCameraDistance, mCameraDistance);
             EditorPrefs.SetBool(PrefKeyShowGrid, mShowGrid);
+            SaveLastTarget();
+        }
+
+        // 最後に開いていたアセットを覚えておく
+        private void SaveLastTarget()
+        {
+            string path = mTarget == null ? "" : AssetDatabase.GetAssetPath(mTarget);
+            EditorPrefs.SetString(PrefKeyLastAsset,
+                string.IsNullOrEmpty(path) ? "" : AssetDatabase.AssetPathToGUID(path));
+        }
+
+        // 最後に開いていたアセットを読み直す
+        // return : 復元できたアセット。記録が無い・削除済みなら null
+        private static VFXSequenceDefinition LoadLastTarget()
+        {
+            string guid = EditorPrefs.GetString(PrefKeyLastAsset, "");
+            if (string.IsNullOrEmpty(guid)) return null;
+
+            string path = AssetDatabase.GUIDToAssetPath(guid);
+            return string.IsNullOrEmpty(path) ? null : AssetDatabase.LoadAssetAtPath<VFXSequenceDefinition>(path);
         }
 
         private void RebuildUI()
@@ -199,6 +225,9 @@ namespace VFXUtility.Editor
             mainSplit.Add(mInspectorPanel);
 
             rootVisualElement.Add(mainSplit);
+
+            // 開いた直後にどこを見ているか分からなくならないよう、ルートノードを画面中央へ寄せる
+            mGraphView.FrameRootNode();
         }
 
         private VisualElement BuildToolbar()

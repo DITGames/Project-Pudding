@@ -34,13 +34,13 @@ namespace PPCore
     }
 
     // 1 ティック分のパーティ行動計画
-    // 割り当てが空であることが、そのまま「今回は動かずリソースを溜める」の意味になる
+    // 割り当てが空であることが、そのまま「今回は動かずゲージを溜める」の意味になる
     // 待機のためだけの状態やフラグを持たせず、空リストで表現している
     public sealed class PPPartyPlan
     {
         // 採用された行動の割り当て。実行前に PPPartyActionAssignment.Order 順へ並べ替えられる
         public IReadOnlyList<PPPartyActionAssignment> Assignments { get; }
-        // 待機（何もせずリソースを溜める）かどうか
+        // 待機（何もせずゲージを溜める）かどうか
         public bool IsWait => Assignments.Count == 0;
 
         // 待機を表す共有インスタンス。毎回の思考で新規生成しないためのもの

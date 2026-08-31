@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PSBT_HealSingle
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  mTreeKind: 3
+  mDescription: 
+  mRootNodeId: 586ca1f5b244408a9ca631d7b108cd70
+  mNodes:
+  - rid: 1269812297483681899
+  mNotes: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 1269812297483681899
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u5BFE\u8C61\u3092\u56DE\u5FA9"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 586ca1f5b244408a9ca631d7b108cd70
+        mGraphPosition: {x: -1.3333334, y: -0.6666641}
+        mAction:
+          rid: 1269812297483681900
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 1269812297483681900
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: "\u5BFE\u8C61\u3092\u56DE\u5FA9\u3059\u308B"
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 2
+          mTags:
+          - {fileID: 11400000, guid: 48a0f632d8ccdf9cf33481f29205bb1b, type: 2}
+        mSelectRule: 0
+        mTargetPolicy: 1

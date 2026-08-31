@@ -24,8 +24,11 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e44c7944da388b0a3e79f511a1f5761d, type: 2}
   mExpandStatBlock:
     AttackCost: 6
-    ActionCount: 1
+    ActionCount: 2
+    SkillGaugeMax: 100
+    CoinGaugeMax: 100
   mTypeAttribute: 3
+  mAIProfile: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

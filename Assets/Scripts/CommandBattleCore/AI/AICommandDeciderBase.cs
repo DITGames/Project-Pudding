@@ -23,7 +23,7 @@ namespace CommandBattleCore
 
     // 通常攻撃と発動可能なスキルから完全にランダムで選ぶ、最も単純な AI
     // UnitDefinition.CreateRuntimeUnit で decider を指定しなかった場合の既定値になる
-    // 乱数はシード管理・再現性のため aContext.Rules.RandomProvider を経由する
+    // 乱数はシード管理・再現性のため、行動するユニット自身の供給元を経由する
     public class RandomAICommandDecider : AICommandDeciderBase
     {
         // 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、
@@ -46,7 +46,7 @@ namespace CommandBattleCore
                     options.Add(new SkillCommand(aSelf, skill));
                 }
             }
-            return options[aContext.Rules.RandomProvider.NextInt(options.Count)];
+            return options[aSelf.ResolveRandom(aContext).NextInt(options.Count)];
         }
     }
 }

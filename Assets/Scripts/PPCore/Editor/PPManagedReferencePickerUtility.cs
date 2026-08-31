@@ -59,8 +59,8 @@ namespace PPCore
                     label.text = condition.Description; break;
                 case PPUnitConditionValidator unitCondition when !string.IsNullOrEmpty(unitCondition.Description):
                     label.text = unitCondition.Description; break;
-                case PPTacticStepBase step when !string.IsNullOrEmpty(step.Description):
-                    label.text = step.Description; break;
+                case PPUnitAINode node: label.text = node.NodeName; break;
+                case PPUnitAIActionBase action: label.text = action.ActionName; break;
             }
             EditorGUI.PropertyField(aPosition, aProperty, label, true);
         }

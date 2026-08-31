@@ -20,9 +20,8 @@ MonoBehaviour:
   mMaxUsesPerBattle: 0
   mTags:
   - {fileID: 11400000, guid: 48a0f632d8ccdf9cf33481f29205bb1b, type: 2}
-  mCost:
-  - Type: 0
-    Amount: 7
+  mGroup: 2
+  mSkillGaugeCost: 7
   mSkillEffects:
   - rid: 7300000000000004001
   mAIScore: 3

@@ -87,6 +87,26 @@ namespace VFXUtility.Editor
         // 現在グラフ上に存在する全ノードの一覧(ノードピッカー等が利用する)
         public IReadOnlyList<VFXSequenceNodeBase> GetAllNodes() => mDefinition.Nodes;
 
+        // ルートノードが画面中央へ来るように表示位置を合わせる
+        // アセットを開いた直後はレイアウトが未確定のため、1フレーム後に実行する
+        public void FrameRootNode()
+        {
+            schedule.Execute(() =>
+            {
+                VFXSequenceRootNode rootNode = mDefinition.GetPlayRootNodeOrNull();
+                if (rootNode == null || !mNodeViews.TryGetValue(rootNode.NodeId, out VFXSequenceNodeView rootView))
+                {
+                    return;
+                }
+
+                Rect rect = rootView.GetPosition();
+                // 生成直後はノードの大きさが未確定なため、その場合は左上を基準にして寄せる
+                Vector2 center = rect.size == Vector2.zero ? rect.position : rect.center;
+                var offset = new Vector3(layout.width * 0.5f - center.x, layout.height * 0.5f - center.y, 0f);
+                UpdateViewTransform(offset, Vector3.one);
+            }).ExecuteLater(50);
+        }
+
         // Inspectorで表示名を編集した際、グラフ上のノードタイトルを即座に反映する
         // aNodeId : 対象ノードのID / aDisplayName : 編集後の表示名(空ならノード種別名にフォールバックする)
         public void RefreshNodeTitle(string aNodeId, string aDisplayName)

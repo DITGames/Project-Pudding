@@ -13,15 +13,21 @@ using UnityEngine;
 namespace PPCore
 {
     // パーティ AI の状況ルールが評価する条件の基底クラス
-    // 「HP が減っている」「リソースが溜まっている」といった判定を 1 つずつクラス化し、
-    // PPBattleTacticsDefinition が複数を AND で束ねて戦術の成立を判断する
+    // 「HP が減っている」「生存数が減っている」といった判定を 1 つずつクラス化し、
+    // AI プロファイル（PPUnitAIProfileDefinition）が複数を AND で束ねて判断のゲートにする
     // PPSkillEffectDefinition と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとし、
-    // PPBattleTacticsDefinition.Conditions にインスタンスとして直接保持される
+    // プロファイルの条件リストにインスタンスとして直接保持される
     // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
     [Serializable]
     public abstract class PPPartyConditionValidator
     {
         [Header("表示")]
+        // 設定内容から説明文を組み立て直すか
+        // 外すと自動生成が止まり、書いた文面がそのまま残る
+        // 自動生成は「何を見る条件か」を機械的に並べるだけなので、
+        // 「開幕の入れ替え用」のような、その枝を置いた意図を書き残したい場合に外す
+        [Label("説明を自動生成する")]
+        [SerializeField] protected bool mIsAutoDescription = true;
         [Label("説明")]
         [TextArea]
         [SerializeField] protected string mDescription;
@@ -49,6 +55,17 @@ namespace PPCore
                 PPCompareOp.LessThan => "未満",
                 _ => ""
             };
+
+        // 設定内容から説明文を組み立て直す
+        // これまで右クリックメニューからしか呼べなかったため、設定を変えても説明文が古いままになっていた
+        // 判断ツリーが編集のたびに呼ぶことで、グラフ上のサマリ表示と設定内容を一致させる
+        // 自動生成を外している場合は書いた文面を残すため、何もしない
+        public void RefreshDescription()
+        {
+            if (!mIsAutoDescription) return;
+
+            BuildDescription();
+        }
 
         // 設定内容から mDescription を組み立てる
         // 派生クラスでオーバーライドして、インスペクタ上で条件の意味が読めるようにする

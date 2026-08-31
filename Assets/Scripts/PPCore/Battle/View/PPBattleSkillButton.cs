@@ -18,7 +18,7 @@ namespace PPCore
 {
     // スキルメニューに並ぶ 1 項目分のボタン
     // 表示内容は IPPSkillStatusSource から取り、変更通知を購読して
-    // コスト表示と押下可否を自動更新する。リソースが溜まった瞬間にボタンが有効化される
+    // コスト表示と押下可否を自動更新する。ゲージが溜まった瞬間にボタンが有効化される
     // フォーカスの出入りを ISelectHandler / IDeselectHandler で拾ってイベントとして流すのは、
     // ゲームパッド操作時にリストを自動スクロールさせるため
     public class PPBattleSkillButton : MonoBehaviour, ISelectHandler, IDeselectHandler
@@ -81,12 +81,12 @@ namespace PPCore
         // コスト表示と押下可否を現在の状態へ更新する
         private void Refresh()
         {
-            mCostLabel.text = mSource.Cost.ToString();
+            mCostLabel.text = mSource.SkillGaugeCost.ToString("0.##");
             mButton.interactable = mSource.IsCastable;
         }
 
         // 破棄時に購読を解除する
-        // 供給元がリソースを購読している場合があるため、そちらの Dispose も通しておく
+        // 供給元がゲージを購読している場合があるため、そちらの Dispose も通しておく
         private void OnDestroy()
         {
             mButton.onClick.RemoveListener(HandleClick);

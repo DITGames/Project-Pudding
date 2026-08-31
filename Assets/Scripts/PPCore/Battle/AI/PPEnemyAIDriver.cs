@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System.Collections;
-using System.Linq;
 using CommandBattleCore;
 using UnityEngine;
 
@@ -29,6 +28,13 @@ namespace PPCore
         // 思考間隔（秒）。ティック間隔を思考回数で割って求める
         private readonly float mThinkInterval;
 
+        // 直近の思考で立てた計画。ティックの終わりに収集役が取りに来る
+        // 複数回思考した場合は最後の内容で上書きされる
+        public PPPartyPlan LatestPlan { get; private set; }
+
+        // 思考対象の陣営。実行待ちの行動を陣営で絞り込む側から参照する
+        public BattleSide Side => mSide;
+
         // aManager : コマンドの投入先
         // aSide : 思考対象の陣営
         // aPartyCommandStrategist : フォールバックの AI
@@ -45,7 +51,10 @@ namespace PPCore
             mThinkInterval = Mathf.Max(0.1f, aTickInterval / Mathf.Max(1, aThinkCountPerTick));
         }
 
-        // バトルが終了するまで、思考間隔ごとに思考と実行を繰り返すコルーチン
+        // 計画を破棄する。ティックの行動を流し終えたタイミングで呼ぶ
+        public void ConsumePlan() => LatestPlan = null;
+
+        // バトルが終了するまで、思考間隔ごとに思考を繰り返すコルーチン
         // 待機オブジェクトを使い回して毎周期の生成を避けている
         // return : コルーチンの列挙子。呼び出し側で StartCoroutine する
         public IEnumerator RunLoop()
@@ -54,14 +63,15 @@ namespace PPCore
             while (mManager != null && mManager.StateMachine.Current != BattleState.BattleEnd)
             {
                 yield return wait;
-                PlanAndExecuteOnce();
+                PlanOnce();
             }
         }
 
-        // 1 回分の思考と実行を行う
-        // 計画を立て、実行順に並べてコマンドを積み、まとめて実行する
+        // 1 回分の思考を行い、結果を保持する
+        // ここでは実行せず、ティックの終わりに収集役がまとめて流す
+        // 1 ティックに複数回思考する場合は、最後に立てた計画が採用される
         // バトル終了時と他のコマンド実行中はスキップし、割り込みが起きないようにする
-        public void PlanAndExecuteOnce()
+        public void PlanOnce()
         {
             if(mManager == null) return;
 
@@ -79,15 +89,7 @@ namespace PPCore
             if(strategist == null)
                 return;
 
-            var plan = strategist.PlanActions(party, mManager.Context);
-            if(plan == null || plan.IsWait) return;
-
-            foreach (var a in plan.Assignments.OrderBy(x => x.Order))
-            {
-                mManager.EnqueueCommand(a.Command);
-            }
-
-            mManager.ExecuteAllCommands();
+            LatestPlan = strategist.PlanActions(party, mManager.Context);
         }
     }
 }

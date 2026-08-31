@@ -111,3 +111,6 @@ InitTestScene*.unity*
 # AI エージェント作業用の要件定義・実装計画ドキュメント
 SPEC.md
 PLAN.md
+
+# dev-flow スキルの個人用プロジェクト設定(チーム共有しない。共有したい場合はコミット対象に変更)
+.dev-flow/

@@ -52,7 +52,7 @@ namespace PPCore
         // リソース不足のスキルは自動的に押せない状態になる
         // aUnit : スキルを表示する対象ユニット
         // aContext : 発動可否の判定に使うバトルコンテキスト
-        public void Show(BattleUnit aUnit, BattleContext aContext)
+        public void Show(BattleUnit aUnit, BattleContext aContext, PPUnitActionLedger aLedger = null)
         {
             if (mContent == null)
             {
@@ -67,7 +67,7 @@ namespace PPCore
             foreach (var skill in aUnit.Skills)
             {
                 var btn = Instantiate(mButtonPrefab, mContent);
-                var src = new PPBattleSkillStatusSource(skill, aUnit, aContext);
+                var src = new PPBattleSkillStatusSource(skill, aUnit, aContext, aLedger);
                 // カタログ未設定、または該当アイコン未登録のどちらもアイコンなしとして扱う
                 var icon = mIconCatalog != null
                     ? mIconCatalog.Resolve(skill.SkillId)?.SkillIcon
