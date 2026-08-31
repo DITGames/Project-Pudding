@@ -17,13 +17,16 @@ namespace PPCore
     // 判断ツリーの入口で役割ごとに枝を分けるのに使う
     [Serializable]
     [PPTypeMenuName("スキル/所持している")]
-    public sealed class PPUnitHasSkillCondition : PPUnitConditionValidator
+    public sealed class PPUnitHasSkillCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
         // 反転すると「そのスキルを持っていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
+
+        // 保持しているスキルの絞り込み条件。エディタの診断から参照する
+        public PPUnitAISkillFilter Filter => mFilter;
 
         // 絞り込みに合致するスキルを所持しているかを判定する
         // aUnit : 判定対象のユニット

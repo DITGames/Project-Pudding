@@ -22,7 +22,7 @@ namespace PPCore
     // 今撃てるスキルが 1 つも無い場合も、上位スキルへ届くなら成立する（溜める価値があるため）
     [Serializable]
     [PPTypeMenuName("スキル/待てば強いスキルが撃てる")]
-    public sealed class PPUnitStrongerSkillReachableCondition : PPUnitConditionValidator
+    public sealed class PPUnitStrongerSkillReachableCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
@@ -35,6 +35,9 @@ namespace PPCore
         // 反転すると「待っても届かない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
+
+        // 保持しているスキルの絞り込み条件。エディタの診断から参照する
+        public PPUnitAISkillFilter Filter => mFilter;
 
         // 待てば今より強いスキルへ届くかを判定する
         // aUnit : 判定対象のユニット

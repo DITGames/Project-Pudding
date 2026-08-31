@@ -42,11 +42,68 @@ namespace PPCore
         private readonly Dictionary<PPBattleUnit, PPUnitAICommit> mCommits = new();
         // この思考で積んだ行動の仮押さえ台帳。2 手目以降の判断で 1 手目の消費予定を差し引くために使う
         private readonly PPUnitActionLedger mLedger = new();
+        // ユニットごとの記憶。クールダウンや一度きりの判定に使う
+        // 書き込みはこのクラスへ集約し、ノード側は読むだけにする
+        private readonly Dictionary<PPBattleUnit, PPUnitAIMemory> mMemories = new();
+        // ユニットごとのバトル中の見聞き。反撃・狙いの継続などの判断材料になる
+        private readonly Dictionary<PPBattleUnit, PPUnitAIBlackboard> mBlackboards = new();
+        // この思考で採用済みになった枝。連携ノードが「もう採った子」を飛ばすために読む
+        // 寿命は仮押さえ台帳と同じ 1 思考分で、思考のたびに捨てる
+        private readonly Dictionary<PPBattleUnit, HashSet<string>> mAdopted = new();
+
+        // バトル進行の管理役。イベントを購読して見聞きを記録するために持つ
+        private BattleManager mBattleManager;
+        // この思考ルーチンが担当する陣営。他陣営の出来事を自分の記録に混ぜないための絞り込みに使う
+        private BattleSide mSide;
+        // 実行待ちの行動の供給元。差し込まれていなければ「敵の次の行動」を見る条件は常に不成立になる
+        private IPPPendingActionSource mPendingSource;
 
         // コミット消化の基準にする、前回思考時のターン数
         private int mLastTurnCount = -1;
         // AI プロファイルを持つユニットが 1 体も居ない旨の警告を出したか。毎思考で出し続けないための抑止
         private bool mIsWarnedEmpty;
+
+        // バトル進行の管理役と、実行待ちの行動の供給元を受け取る
+        // 二重購読を避けるため、既に繋がっている場合は先に外してから繋ぎ直す
+        // aManager : バトル進行の管理役
+        // aSide : この思考ルーチンが担当する陣営
+        // aPendingSource : 実行待ちの行動の供給元
+        public void BindBattle(BattleManager aManager, BattleSide aSide, IPPPendingActionSource aPendingSource)
+        {
+            Unbind();
+
+            mBattleManager = aManager;
+            mSide = aSide;
+            mPendingSource = aPendingSource;
+            if (mBattleManager == null) return;
+
+            mBattleManager.OnDamageResolved += HandleDamageResolved;
+            mBattleManager.OnUnitDefeated += HandleUnitDefeated;
+        }
+
+        // 購読を外す。バトルが終わったあともイベントで記録が更新され続けるのを防ぐ
+        public void Unbind()
+        {
+            if (mBattleManager == null) return;
+
+            mBattleManager.OnDamageResolved -= HandleDamageResolved;
+            mBattleManager.OnUnitDefeated -= HandleUnitDefeated;
+            mBattleManager = null;
+        }
+
+        // ユニットに対応する見聞きを取得する。初回は生成して覚える
+        // 条件クラスから読むため公開している
+        // aUnit : 対象ユニット
+        // return : そのユニットの見聞き
+        public PPUnitAIBlackboard ResolveBlackboard(PPBattleUnit aUnit)
+        {
+            if (!mBlackboards.TryGetValue(aUnit, out var blackboard))
+            {
+                blackboard = new PPUnitAIBlackboard();
+                mBlackboards[aUnit] = blackboard;
+            }
+            return blackboard;
+        }
 
         // このティックでパーティが取る行動計画を組み立てる
         // aSelf : 思考主体のパーティ。PPBattleParty でなければ待機を返す
@@ -62,6 +119,9 @@ namespace PPCore
                 return PPPartyPlan.Wait;
 
             snap.AttachLedger(mLedger);
+            // 条件クラスが受け取るのはこのスナップショットだけなので、見聞きと実行待ちの口をここへ通す
+            snap.AttachBlackboardResolver(ResolveBlackboard);
+            snap.AttachPendingSource(mPendingSource);
 
             // コミットの消化はティックが進んだときだけ行う
             // 思考のたびに減らすと、維持ティック数が思考回数の分だけ短くなってしまう
@@ -69,6 +129,7 @@ namespace PPCore
 
             mThinkEntries.Clear();
             mLedger.Clear();
+            mAdopted.Clear();
             var picks = new List<PPPartyActionAssignment>();
             int order = 0;
             bool hasProfile = false;
@@ -79,19 +140,25 @@ namespace PPCore
                 var profile = ResolveProfile(unit);
                 if (profile != null) hasProfile = true;
 
-                var entry = CreateEntry(unit);
                 // 行動回数の上限まで積む。積むたびに台帳へ仮押さえするため、
                 // 2 手目以降は 1 手目で使う予定のゲージを差し引いた状態で判断される
+                // 思考記録は行動ごとに分ける。1 件に上書きすると 2 手目の判断が追えなくなるため
+                int actionIndex = 0;
                 while (mLedger.HasActionLeft(unit))
                 {
+                    var entry = CreateEntry(unit);
+                    entry.ActionIndex = actionIndex;
+                    entry.Profile = profile;
+
                     var command = DecideUnitAction(unit, profile, snap, aContext, entry);
+                    mThinkEntries.Add(entry);
                     if (command == null) break;
 
                     ReserveCost(unit, command);
                     picks.Add(new PPPartyActionAssignment(unit, command, order));
                     order++;
+                    actionIndex++;
                 }
-                mThinkEntries.Add(entry);
             }
 
             WarnIfNoProfile(hasProfile);
@@ -163,7 +230,11 @@ namespace PPCore
             // 前のユニットが積んだ対象候補を持ち越さないようここで空にする
             aSnap.ResetConditionedUnits();
 
-            var evalContext = new PPUnitAIEvalContext(aUnit, aSnap, aContext, aProfile);
+            var evalContext = new PPUnitAIEvalContext(aUnit, aSnap, aContext, aProfile)
+            {
+                Memory = ResolveMemory(aUnit),
+                AdoptedKeys = ResolveAdopted(aUnit),
+            };
             var commit = ResolveCommit(aUnit);
             if (commit != null)
             {
@@ -185,6 +256,10 @@ namespace PPCore
             }
 
             UpdateCommit(aUnit, evalContext, result, aEntry);
+            RecordVisitedPath(evalContext, result, aEntry);
+            CommitMemory(aUnit, result, evalContext, aContext.TurnCount);
+            CommitBlackboard(aUnit, result, aContext.TurnCount);
+            CommitAdopted(aUnit, result, evalContext);
             return result;
         }
 
@@ -212,6 +287,134 @@ namespace PPCore
                 mCommits.Remove(aUnit);
                 aEntry.CommitRemainingTicks = 0;
             }
+        }
+
+        // ユニットに対応する採用済みの枝を取得する。初回は生成して覚える
+        // aUnit : 対象ユニット
+        // return : そのユニットが この思考で採用済みにした枝のキー
+        protected HashSet<string> ResolveAdopted(PPBattleUnit aUnit)
+        {
+            if (!mAdopted.TryGetValue(aUnit, out var adopted))
+            {
+                adopted = new HashSet<string>();
+                mAdopted[aUnit] = adopted;
+            }
+            return adopted;
+        }
+
+        // 行動が確定したら、その経路上で採用された枝を覚える
+        // 連携ノードが次の手で同じ枝を採らないようにするためのもの
+        // 通過記録には連携ノードが積んだ採用キーも含まれており、確定した経路の分だけがここへ残る
+        // aUnit : 判断対象のユニット
+        // aResult : ツリーが確定させた行動
+        // aEvalContext : 評価に使ったコンテキスト。確定時の通過経路を持つ
+        protected virtual void CommitAdopted(PPBattleUnit aUnit, PPUnitAINodeResult aResult,
+            PPUnitAIEvalContext aEvalContext)
+        {
+            if (!aResult.IsDecided) return;
+
+            var adopted = ResolveAdopted(aUnit);
+            foreach (var nodeId in aEvalContext.VisitedNodeIds)
+            {
+                adopted.Add(nodeId);
+            }
+        }
+
+        // 行動が確定したら、その内容を見聞きへ記録する
+        // ノードは状態を変えない約束のため、狙いの固定もここで張る
+        // aUnit : 判断対象のユニット
+        // aResult : ツリーが確定させた行動
+        // aTurnCount : 確定した時点のターン数
+        protected virtual void CommitBlackboard(PPBattleUnit aUnit, PPUnitAINodeResult aResult, int aTurnCount)
+        {
+            if (!aResult.IsDecided) return;
+
+            var blackboard = ResolveBlackboard(aUnit);
+            var skill = (aResult.Command as SkillCommand)?.Skill?.SourceDefinition as PPSkillDefinition;
+            blackboard.RecordAction(skill, aResult.Target);
+
+            // 固定するティック数を持つ行動だけが狙いを張り直す
+            // 0 の行動で毎回上書きしてしまうと、固定した狙いが 1 手で流れてしまう
+            if (aResult.FocusTicks > 0 && aResult.Target != null)
+            {
+                blackboard.SetFocus(aResult.Target, aTurnCount, aResult.FocusTicks);
+            }
+        }
+
+        // ダメージ結果を自陣営のユニットの見聞きへ記録する
+        // 発生元が取れないダメージ（反射など）は加害者の記録に使わない
+        // aInfo : 解決済みのダメージ情報
+        protected virtual void HandleDamageResolved(DamageInfo aInfo)
+        {
+            if (aInfo.IsMiss || aInfo.IsNullified) return;
+            if (aInfo.Target is not PPBattleUnit target || target.Side != mSide) return;
+
+            ResolveBlackboard(target).RecordDamaged(aInfo.Source as PPBattleUnit, aInfo.Amount, CurrentTurnCount);
+        }
+
+        // 味方が倒された事実を、生き残っている自陣営のユニットへ記録する
+        // 撃破通知には撃破者の情報が無いため「誰に倒されたか」は残せない
+        // aUnit : 倒されたユニット
+        protected virtual void HandleUnitDefeated(BattleUnit aUnit)
+        {
+            if (aUnit is not PPBattleUnit defeated || defeated.Side != mSide) return;
+
+            int turnCount = CurrentTurnCount;
+            foreach (var member in mBattleManager.Context.GetParty(mSide).ActiveMembers)
+            {
+                if (member is PPBattleUnit pp && pp != defeated) ResolveBlackboard(pp).RecordAllyDefeated(turnCount);
+            }
+        }
+
+        // 現在のターン数。バトルへ繋がっていなければ 0
+        private int CurrentTurnCount => mBattleManager?.Context?.TurnCount ?? 0;
+
+        // ユニットに対応する記憶を取得する。初回は生成して覚える
+        // aUnit : 対象ユニット
+        // return : そのユニットの記憶
+        protected PPUnitAIMemory ResolveMemory(PPBattleUnit aUnit)
+        {
+            if (!mMemories.TryGetValue(aUnit, out var memory))
+            {
+                memory = new PPUnitAIMemory();
+                mMemories[aUnit] = memory;
+            }
+            return memory;
+        }
+
+        // 行動が確定したら、その経路上のノードへ記憶を書き込む
+        // ノードは「バトルの状態を変えない」約束を守るため、書き込みはここへ集約する
+        // クールダウン・一度きり・ラッチはいずれも「確定経路上のノード」に対して立つため、書き込み口は 1 つで足りる
+        // aUnit : 判断対象のユニット
+        // aResult : ツリーが確定させた行動
+        // aEvalContext : 評価に使ったコンテキスト。確定時の通過経路を持つ
+        // aTurnCount : 確定した時点のターン数
+        protected virtual void CommitMemory(PPBattleUnit aUnit, PPUnitAINodeResult aResult,
+            PPUnitAIEvalContext aEvalContext, int aTurnCount)
+        {
+            if (!aResult.IsDecided) return;
+
+            var memory = ResolveMemory(aUnit);
+            foreach (var nodeId in aEvalContext.VisitedNodeIds)
+            {
+                memory.MarkFired(nodeId, aTurnCount);
+            }
+        }
+
+        // 評価で通過したノードの経路を思考記録へ写す
+        // 行動が確定した場合は、経路の末尾がその行動を組み立てたノードになる
+        // aEvalContext : 評価に使ったコンテキスト
+        // aResult : ツリーが確定させた行動
+        // aEntry : 判断結果の記録先
+        protected virtual void RecordVisitedPath(PPUnitAIEvalContext aEvalContext, PPUnitAINodeResult aResult,
+            PPUnitAIThinkEntry aEntry)
+        {
+            aEntry.VisitedNodeIds.Clear();
+            aEntry.VisitedNodeIds.AddRange(aEvalContext.VisitedNodeIds);
+
+            aEntry.DecidedNodeId = aResult.IsDecided && aEntry.VisitedNodeIds.Count > 0
+                ? aEntry.VisitedNodeIds[^1]
+                : null;
         }
 
         // ユニットに張られている有効な待機コミットを取得する
@@ -264,6 +467,8 @@ namespace PPCore
         public void ResetForBattle()
         {
             mCommits.Clear();
+            mMemories.Clear();
+            mBlackboards.Clear();
             mLastTurnCount = -1;
         }
 

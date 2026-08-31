@@ -179,14 +179,24 @@ namespace PPCore
         }
 
         // ユニット 1 体分の判断結果を描画する
+        // 行を押すとツリーウィンドウ側でその経路が強調表示される
         // aEntry : 描画する判断結果
-        private static void DrawUnitEntry(PPUnitAIThinkEntry aEntry)
+        private void DrawUnitEntry(PPUnitAIThinkEntry aEntry)
         {
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
             {
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    EditorGUILayout.LabelField(aEntry.UnitName, EditorStyles.boldLabel);
+                    bool isSelected = ReferenceEquals(PPUnitAITreeHighlightHub.Selected, aEntry);
+                    // 行動回数が複数のユニットは何手目かを添えて区別する
+                    string unitLabel = aEntry.ActionIndex > 0
+                        ? $"{aEntry.UnitName}（{aEntry.ActionIndex + 1}手目）"
+                        : aEntry.UnitName;
+                    if (GUILayout.Toggle(isSelected, unitLabel, EditorStyles.miniButton, GUILayout.Width(160f))
+                        && !isSelected)
+                    {
+                        PPUnitAITreeHighlightHub.Select(aEntry);
+                    }
                     EditorGUILayout.LabelField(DecisionLabel(aEntry.Decision), GUILayout.Width(80f));
                     EditorGUILayout.LabelField(aEntry.Decision == PPUnitAIDecision.Wait
                         ? RejectLabel(aEntry.RejectReason) : "-", GUILayout.Width(140f));

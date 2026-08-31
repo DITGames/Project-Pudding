@@ -30,6 +30,11 @@ namespace PPCore
 
         protected override string DefaultActionName => "通常攻撃";
 
+        // 狙う相手と、外れたときの振る舞いを 1 行で示す
+        public override string Summary
+            => $"対象 : {PPUnitAITargeting.ToDisplayString(mTargetPolicy)}"
+               + (mIsFallbackAnyEnemy ? "（居なければ他の敵）" : "");
+
         // コインゲージの残量と対象を確認し、足りていれば通常攻撃コマンドを組み立てる
         // aContext : 評価 1 回分の入力
         // return : 組み立てられた通常攻撃。撃てない場合は Failed

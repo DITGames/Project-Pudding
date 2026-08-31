@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System.Collections;
+using System.Collections.Generic;
 using CommandBattleCore;
 using PPCore;
 using UnityEngine;
@@ -20,7 +21,7 @@ using AttributeUtility;
 // 本作のバトルはターン制ではなく、プッシャーと並行してリアルタイムに進む
 // 一定間隔のティックでターンを進めつつ、プレイヤーは任意のタイミングで
 // コマンド入力を開始できる（入力中は timeScale が 0 になり盤面が止まる）
-public class SamplePusherBattleRunner : MonoBehaviour
+public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
 {
     // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
     [Header("コイン")]
@@ -59,6 +60,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [SerializeField] private int mThinkCountPerTick = 1;
     // 敵 AI を駆動するドライバ
     private PPEnemyAIDriver mEnemyAIDriver;
+    // 敵の思考ルーチン。バトル進行のイベントを購読しているため、終了時に外せるよう持っておく
+    private IPPPartyCommandStrategist mEnemyStrategist;
     // 1 ティック分の行動を集めて並べ替える収集役
     private readonly PPTickActionCollector mActionCollector = new();
     // 敵がティックごとに得るゲージ量。敵にはプッシャーが無いため直接補給する
@@ -92,8 +95,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
         // スキルゲージ残量を検証するバリデータへ差し替える
         context.Rules.CastValidator = new PPBattleCastValidator();
 
-        var enemyStrategist = new PPUnitAIStrategist();
-        ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
+        mEnemyStrategist = new PPUnitAIStrategist();
+        ((PPBattleParty)context.EnemyParty).Strategist = mEnemyStrategist;
 
         mBattleManager.OnBattleEnded += r =>
         {
@@ -109,6 +112,9 @@ public class SamplePusherBattleRunner : MonoBehaviour
                 StopCoroutine(mTickCoroutine);
                 mTickCoroutine = null;
             }
+
+            // 思考ルーチンがバトル進行のイベントを拾い続けないよう、購読も併せて外す
+            mEnemyStrategist?.Unbind();
         };
         PPBattleLogBinder.Bind(mBattleManager, context);
         mBattleManager.StartBattle(context);
@@ -119,8 +125,11 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mController.ActionLedger = mActionCollector.Ledger;
         mController.OnCommandConfirmed += HandleCommandConfirmed;
 
+        // バトル中の出来事と実行待ちの行動は思考ルーチンからは辿れないため、開始時に渡す
+        mEnemyStrategist.BindBattle(mBattleManager, BattleSide.Enemy, this);
+
         // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
-        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, enemyStrategist, mTurnTickInterval, mThinkCountPerTick);
+        mEnemyAIDriver = new PPEnemyAIDriver(mBattleManager, BattleSide.Enemy, mEnemyStrategist, mTurnTickInterval, mThinkCountPerTick);
         mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
         mTickCoroutine = StartCoroutine(AdvanceTick());
     }
@@ -136,6 +145,9 @@ public class SamplePusherBattleRunner : MonoBehaviour
             }
         }
     }
+
+    // バトルが決着しないまま破棄された場合にも、思考ルーチンの購読を外す
+    void OnDestroy() => mEnemyStrategist?.Unbind();
 
     // 今コマンド入力を始める意味があるかを判定する
     // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
@@ -195,6 +207,26 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
         mActionCollector.Clear();
         mEnemyAIDriver?.ConsumePlan();
+    }
+
+    // 指定した陣営の、まだ実行されていない行動を列挙する
+    // 行動はティック終了時にまとめて積まれるため、AI の思考時点ではコマンド列が空になっている
+    // そのため、積まれる前の材料であるプレイヤーの予約と敵 AI の計画を直接読む
+    // aSide : 調べる陣営
+    // return : 実行待ちの行動
+    public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
+    {
+        foreach (var reservation in mActionCollector.Reservations)
+        {
+            if (reservation.Unit != null && reservation.Unit.Side == aSide) yield return reservation;
+        }
+
+        if (mEnemyAIDriver == null || mEnemyAIDriver.Side != aSide || mEnemyAIDriver.LatestPlan == null) yield break;
+
+        foreach (var assignment in mEnemyAIDriver.LatestPlan.Assignments)
+        {
+            yield return PPPendingAction.FromCommand(assignment.Unit, assignment.Command);
+        }
     }
 
     // プレイヤーが確定したコマンドを、このティックの行動として予約する

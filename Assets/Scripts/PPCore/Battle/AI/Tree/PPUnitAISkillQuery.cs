@@ -31,29 +31,81 @@ namespace PPCore
         Random,
     }
 
+    // 候補の採り方を表示用の日本語へ変換するヘルパー
+    // グラフ上の要約表示から使う。インスペクタの表記と揃えてある
+    public static class PPUnitAISkillSelectRuleUtility
+    {
+        // aRule : 候補の採り方
+        // return : 日本語の表記
+        public static string ToDisplayString(PPUnitAISkillSelectRule aRule)
+            => aRule switch
+            {
+                PPUnitAISkillSelectRule.HighestAIScore => "AIスコアが高い",
+                PPUnitAISkillSelectRule.LowestGaugeCost => "消費が少ない",
+                PPUnitAISkillSelectRule.HighestGaugeCost => "消費が多い",
+                PPUnitAISkillSelectRule.Random => "ランダム",
+                _ => "",
+            };
+    }
+
+    // スキルの指定方法
+    public enum PPUnitAISkillFilterMode
+    {
+        // 同種グループとスキルタグで絞り込む
+        [InspectorName("グループ・タグで絞る")]
+        GroupAndTag,
+        // スキル定義を直接指定する
+        [InspectorName("スキルを直接指定")]
+        Direct,
+    }
+
     // 所持スキルの絞り込み条件
-    // 同種グループとスキルタグの両方を掛けられる。どちらも未指定なら全スキルが対象になる
+    //
+    // 既定は同種グループとスキルタグによる絞り込みで、どちらも未指定なら全スキルが対象になる
+    // 直接指定モードでは、そのスキル定義 1 つだけが候補になる
+    // 同じグループ・同じタグのスキルを複数持つユニットで「必ずこのスキル」を確定させたい場合に使う
+    // （絞り込みだけでは候補が同値になり、所持順の先頭が採られてしまうため）
     [Serializable]
     public sealed class PPUnitAISkillFilter
     {
+        [Label("スキルの指定方法")]
+        [SerializeField] private PPUnitAISkillFilterMode mMode = PPUnitAISkillFilterMode.GroupAndTag;
+        [Label("スキル定義")]
+        [EditCondition(nameof(IsDirectMode), true, false)]
+        [SerializeField] private PPSkillDefinition mSkillDefinition;
         [Label("同種グループで絞る")]
+        [EditCondition(nameof(IsFilterMode), true, false)]
         [SerializeField] private bool mIsFilterByGroup = true;
         [Label("同種グループ")]
-        [EditCondition(nameof(mIsFilterByGroup), true, false)]
+        [EditCondition(nameof(IsGroupFilterEnabled), true, false)]
         [SerializeField] private PPSkillGroup mGroup = PPSkillGroup.Attack;
         [Label("スキルタグ", true)]
+        [EditCondition(nameof(IsFilterMode), true, false)]
         [SerializeField] private List<PPSkillTagDefinition> mTags = new();
 
+        public PPUnitAISkillFilterMode Mode => mMode;
+        public PPSkillDefinition SkillDefinition => mSkillDefinition;
         public bool IsFilterByGroup => mIsFilterByGroup;
         public PPSkillGroup Group => mGroup;
         public IReadOnlyList<PPSkillTagDefinition> Tags => mTags;
 
+        // スキル定義を直接指定するモードか。入力欄の出し分けに使う
+        private bool IsDirectMode => mMode == PPUnitAISkillFilterMode.Direct;
+        // 絞り込みモードか。入力欄の出し分けに使う
+        private bool IsFilterMode => mMode == PPUnitAISkillFilterMode.GroupAndTag;
+        // 同種グループの選択欄を出すか。絞り込みモードで、かつグループ絞りが有効なときだけ意味を持つ
+        private bool IsGroupFilterEnabled => IsFilterMode && mIsFilterByGroup;
+
         // 指定スキルがこの絞り込みに合致するかを判定する
+        // ここを通る経路が 1 本なので、直接指定は行動側と条件側の双方へ同時に効く
         // aDefinition : 判定するスキル定義
         // return : 合致する場合 true
         public bool IsMatch(PPSkillDefinition aDefinition)
         {
             if (aDefinition == null) return false;
+            // 未設定のまま直接指定モードにしていると、どのスキルにも合致しない（枝が不成立になる）
+            if (mMode == PPUnitAISkillFilterMode.Direct) return ReferenceEquals(aDefinition, mSkillDefinition);
+
             if (mIsFilterByGroup && aDefinition.Group != mGroup) return false;
             return aDefinition.HasAnyTag(mTags);
         }
@@ -62,6 +114,11 @@ namespace PPCore
         // return : 日本語の表記
         public string ToDisplayString()
         {
+            if (mMode == PPUnitAISkillFilterMode.Direct)
+            {
+                return mSkillDefinition != null ? mSkillDefinition.DisplayName : "スキル未設定";
+            }
+
             string group = mIsFilterByGroup ? PPSkillGroupDefinition.ToDisplayString(mGroup) : "全グループ";
             return mTags == null || mTags.Count == 0
                 ? group

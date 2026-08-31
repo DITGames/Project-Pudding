@@ -30,6 +30,10 @@ namespace PPCore
         // 型ごとの既定表示名。派生側で上書きする
         protected abstract string DefaultActionName { get; }
 
+        // グラフ上のノードへ出す設定内容の要約
+        // 「何を・誰に」が行動ノードのタイトルだけでは読めないため、派生側で示す
+        public virtual string Summary => "";
+
         // 今の状況でこの行動を組み立てる
         // 派生クラスで実装する。バトルの状態を変えず、コマンドを作るだけに留めること
         // aContext : 評価 1 回分の入力

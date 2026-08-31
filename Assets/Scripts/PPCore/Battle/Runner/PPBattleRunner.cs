@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System.Collections;
+using System.Collections.Generic;
 using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -18,7 +19,7 @@ namespace PPCore
     // SamplePusherBattleRunner をベースに、パーティ生成を PPPartyFactory 経由に変更し
     // 味方パーティのデバッグ編集・オートバトル切り替えに対応させたもの
     // パーティ生成・ティック進行・入力接続の基本的な流れはサンプルを踏襲する
-    public class PPBattleRunner : MonoBehaviour
+    public class PPBattleRunner : MonoBehaviour, IPPPendingActionSource
     {
         // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
         [Header("コイン")]
@@ -76,6 +77,11 @@ namespace PPCore
         // 味方AIを駆動するドライバ（オートバトル中のみコルーチンを起動する）
         private PPEnemyAIDriver mAllyAIDriver;
 
+        // 各陣営の思考ルーチン。バトル進行のイベントを購読しているため、
+        // 終了時に購読を外せるようここで持っておく
+        private IPPPartyCommandStrategist mEnemyStrategist;
+        private IPPPartyCommandStrategist mAllyStrategist;
+
         // 敵AIのループを回しているコルーチン
         private Coroutine mEnemyActionCoroutine;
         // 味方AIのループを回しているコルーチン。手動モード中は null
@@ -99,12 +105,12 @@ namespace PPCore
             // スキルゲージ残量を検証するバリデータへ差し替える
             context.Rules.CastValidator = new PPBattleCastValidator();
 
-            var enemyStrategist = CreateStrategist(mEnemyPartyDefinition);
-            ((PPBattleParty)context.EnemyParty).Strategist = enemyStrategist;
+            mEnemyStrategist = CreateStrategist(mEnemyPartyDefinition);
+            ((PPBattleParty)context.EnemyParty).Strategist = mEnemyStrategist;
 
             // 味方も常にStrategistを持たせておき、オートバトルボタンでいつでも思考を開始できるようにする
-            var allyStrategist = CreateStrategist(mAllyPartyDefinition);
-            ((PPBattleParty)context.AllyParty).Strategist = allyStrategist;
+            mAllyStrategist = CreateStrategist(mAllyPartyDefinition);
+            ((PPBattleParty)context.AllyParty).Strategist = mAllyStrategist;
 
             mBattleManager.OnBattleEnded += r =>
             {
@@ -112,6 +118,8 @@ namespace PPCore
                 StopCoroutineIfRunning(ref mEnemyActionCoroutine);
                 StopCoroutineIfRunning(ref mAllyActionCoroutine);
                 StopCoroutineIfRunning(ref mTickCoroutine);
+                // 思考ルーチンがバトル進行のイベントを拾い続けないよう、購読も併せて外す
+                UnbindStrategists();
             };
             PPBattleLogBinder.Bind(mBattleManager, context);
             mBattleManager.StartBattle(context);
@@ -126,10 +134,14 @@ namespace PPCore
             mController.ActionLedger = mActionCollector.Ledger;
             mController.OnCommandConfirmed += HandleCommandConfirmed;
 
-            mEnemyAIDriver = CreateDriver(BattleSide.Enemy, enemyStrategist, mEnemyPartyDefinition);
+            // バトル中の出来事と実行待ちの行動は思考ルーチンからは辿れないため、開始時に渡す
+            mEnemyStrategist.BindBattle(mBattleManager, BattleSide.Enemy, this);
+            mAllyStrategist.BindBattle(mBattleManager, BattleSide.Ally, this);
+
+            mEnemyAIDriver = CreateDriver(BattleSide.Enemy, mEnemyStrategist, mEnemyPartyDefinition);
             mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
 
-            mAllyAIDriver = CreateDriver(BattleSide.Ally, allyStrategist, mAllyPartyDefinition);
+            mAllyAIDriver = CreateDriver(BattleSide.Ally, mAllyStrategist, mAllyPartyDefinition);
             if (mIsAutoBattle)
             {
                 StartAllyAutoBattle();
@@ -163,6 +175,50 @@ namespace PPCore
                 // このティックの予約をやり直せるよう、積んだ行動を全て取り消す
                 mController.Abort();
                 mActionCollector.CancelAll();
+            }
+        }
+
+        // バトルが決着しないまま破棄された場合にも、思考ルーチンの購読を外す
+        void OnDestroy() => UnbindStrategists();
+
+        // 両陣営の思考ルーチンをバトル進行から切り離す
+        // 二重に呼ばれても問題ないよう、Unbind 側で購読済みかを見ている
+        private void UnbindStrategists()
+        {
+            mEnemyStrategist?.Unbind();
+            mAllyStrategist?.Unbind();
+        }
+
+        // 指定した陣営の、まだ実行されていない行動を列挙する
+        //
+        // 行動はティック終了時にまとめて積まれるため、AI の思考時点ではコマンド列が空になっている
+        // そのため、積まれる前の材料であるプレイヤーの予約と AI の計画を直接読む
+        //
+        // aSide : 調べる陣営
+        // return : 実行待ちの行動
+        public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
+        {
+            // プレイヤーが予約した行動。オートバトル中は空になる
+            foreach (var reservation in mActionCollector.Reservations)
+            {
+                if (reservation.Unit != null && reservation.Unit.Side == aSide) yield return reservation;
+            }
+
+            foreach (var action in EnumeratePlan(mEnemyAIDriver, aSide)) yield return action;
+            foreach (var action in EnumeratePlan(mAllyAIDriver, aSide)) yield return action;
+        }
+
+        // ドライバが立てた計画を実行待ちの行動として列挙する
+        // aDriver : 対象のドライバ。未生成なら何も返さない
+        // aSide : 調べる陣営
+        // return : 実行待ちの行動
+        private static IEnumerable<PPPendingAction> EnumeratePlan(PPEnemyAIDriver aDriver, BattleSide aSide)
+        {
+            if (aDriver == null || aDriver.Side != aSide || aDriver.LatestPlan == null) yield break;
+
+            foreach (var assignment in aDriver.LatestPlan.Assignments)
+            {
+                yield return PPPendingAction.FromCommand(assignment.Unit, assignment.Command);
             }
         }
 

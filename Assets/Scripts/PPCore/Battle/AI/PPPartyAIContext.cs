@@ -6,6 +6,7 @@
  * @brief AIの戦略評価用コンテキスト
  * =====================================*/
 
+using System;
 using System.Collections.Generic;
 using CommandBattleCore;
 
@@ -46,12 +47,38 @@ namespace PPCore
         // aLedger : 結び付ける台帳
         public void AttachLedger(PPUnitActionLedger aLedger) => Ledger = aLedger;
 
+        // ユニットごとのバトル中の見聞きを引く口。差し込まれていなければ null
+        // 見聞きを持つのは思考ルーチン側だが、条件クラスが受け取るのはこのスナップショットなので中継する
+        private Func<PPBattleUnit, PPUnitAIBlackboard> mBlackboardResolver;
+
+        // 実行待ちの行動の供給元。差し込まれていなければ null
+        public IPPPendingActionSource PendingSource { get; private set; }
+
+        // 見聞きを引く口を差し込む
+        // aResolver : ユニットから見聞きを引く処理
+        public void AttachBlackboardResolver(Func<PPBattleUnit, PPUnitAIBlackboard> aResolver)
+            => mBlackboardResolver = aResolver;
+
+        // 実行待ちの行動の供給元を差し込む
+        // aSource : 実行待ちの行動の供給元
+        public void AttachPendingSource(IPPPendingActionSource aSource) => PendingSource = aSource;
+
+        // ユニットのバトル中の見聞きを引く
+        // aUnit : 対象ユニット
+        // return : そのユニットの見聞き。差し込まれていなければ null
+        public PPUnitAIBlackboard GetBlackboard(PPBattleUnit aUnit)
+            => aUnit != null ? mBlackboardResolver?.Invoke(aUnit) : null;
+
         // HP 実数値が最も低い敵。とどめを狙う際の第一候補になる
         public PPBattleUnit LowestHpEnemy { get; private set; }
         // HP 割合が最も低い敵。AI の対象選択から引かれる
         public PPBattleUnit LowestHpRatioEnemy { get; private set; }
         // HP 割合が最も低い味方。回復スキルの対象になる
         public PPBattleUnit LowestHpRatioAlly { get; private set; }
+        // HP 実数値が最も高い敵
+        public PPBattleUnit HighestHpEnemy { get; private set; }
+        // HP 割合が最も高い味方
+        public PPBattleUnit HighestHpRatioAlly { get; private set; }
         // 味方内で最も低い HP 割合。0～1 で保持する
         public float LowestAllyHpRatio { get; private set; } = 1f;
         // 攻撃力が最も高い敵。最優先で潰したい相手として扱う
@@ -74,6 +101,7 @@ namespace PPCore
 
             float sumCur = 0f;
             float sumMax = 0f;
+            float highestAllyRatio = float.MinValue;
 
             // 味方パーティの集計
             // 生存者を集めつつ、HP 合計と最低 HP 割合の持ち主を同時に求める
@@ -92,6 +120,12 @@ namespace PPCore
                     snap.LowestAllyHpRatio = ratio;
                     snap.LowestHpRatioAlly = pp;
                 }
+
+                if (ratio > highestAllyRatio)
+                {
+                    highestAllyRatio = ratio;
+                    snap.HighestHpRatioAlly = pp;
+                }
             }
 
             snap.PartyHpRatio = sumMax > 0f ? sumCur / sumMax : 0f;
@@ -104,6 +138,7 @@ namespace PPCore
                 : aContext.EnemyParty;
 
             float lowestHp = float.MaxValue;
+            float highestHp = float.MinValue;
             float lowestEnemyRatio = float.MaxValue;
             float highestAttack = float.MinValue;
             foreach (var e in opponent.GetAliveActiveMembers())
@@ -117,6 +152,12 @@ namespace PPCore
                 {
                     lowestHp = hp;
                     snap.LowestHpEnemy = pp;
+                }
+
+                if (hp > highestHp)
+                {
+                    highestHp = hp;
+                    snap.HighestHpEnemy = pp;
                 }
 
                 float ratio = HpRatio(pp);

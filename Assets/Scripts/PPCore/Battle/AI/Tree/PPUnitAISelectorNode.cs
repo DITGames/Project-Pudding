@@ -35,14 +35,19 @@ namespace PPCore
         public override IReadOnlyList<PPUnitAINodePort> Ports
             => new[] { new PPUnitAINodePort("子ノード", mChildIds, true) };
 
+        // 上から何番目まで並んでいるかを示す。並び順がそのまま優先度になる
+        public override string Summary => $"{mChildIds.Count} 件を上から順に試す";
+
         // 子を上から評価し、最初に確定した結果をそのまま返す
         // 確定した場合は道順（PPUnitAIEvalContext.Path）に自分の子の添字を残す
         // aContext : 評価 1 回分の入力
         // return : 確定した行動。どの子も確定しなければ Failed
-        public override PPUnitAINodeResult Evaluate(PPUnitAIEvalContext aContext)
+        protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             // 自分が木のどの深さに居るかは、ここまでに積まれた道順の長さでわかる
             int depth = aContext.Path.Count;
+            // 引き返した枝の通過記録を残さないため、子を試す前の長さを覚えておく
+            int visitedMark = aContext.VisitedNodeIds.Count;
             bool isConstrained = aContext.IsOnCommitPath(depth);
             int limit = isConstrained ? aContext.CommitChildIndex(depth) : int.MaxValue;
 
@@ -57,8 +62,9 @@ namespace PPCore
                 var result = child.Evaluate(aContext);
                 if (result.IsDecided) return result;
 
-                // 確定しなかった枝の道順は残さない
+                // 確定しなかった枝の道順と通過記録は残さない
                 aContext.Path.RemoveRange(depth, aContext.Path.Count - depth);
+                aContext.TrimVisited(visitedMark);
             }
             return PPUnitAINodeResult.Failed;
         }
@@ -72,6 +78,10 @@ namespace PPCore
 
             mChildIds.Add(aChildId);
         }
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // aMap : 対応表
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap) => RemapChildIds(mChildIds, aMap);
 
         // 子ノードとの接続を外す
         // aPortIndex : 接続口の番号

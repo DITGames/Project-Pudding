@@ -32,6 +32,9 @@ namespace PPCore
         // 複数回思考した場合は最後の内容で上書きされる
         public PPPartyPlan LatestPlan { get; private set; }
 
+        // 思考対象の陣営。実行待ちの行動を陣営で絞り込む側から参照する
+        public BattleSide Side => mSide;
+
         // aManager : コマンドの投入先
         // aSide : 思考対象の陣営
         // aPartyCommandStrategist : フォールバックの AI

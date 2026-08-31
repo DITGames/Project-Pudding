@@ -45,6 +45,12 @@ namespace PPCore
 
         protected override string DefaultNodeName => "条件分岐";
 
+        // 成立側の枝が繋がっているか。エディタの診断から参照する
+        public bool HasMatchedBranch => !string.IsNullOrEmpty(mMatchedId);
+
+        // 判定に使うユニット条件。エディタの診断が設定漏れを調べるために参照する
+        public IReadOnlyList<PPUnitConditionValidator> UnitConditions => mUnitConditions;
+
         public override IReadOnlyList<PPUnitAINodePort> Ports
             => new[]
             {
@@ -52,16 +58,33 @@ namespace PPCore
                 new PPUnitAINodePort("不成立", ToSingle(mUnmatchedId), false),
             };
 
+        // 判定内容を要約する。反転指定はひと目で分かるよう末尾へ付ける
+        public override string Summary
+        {
+            get
+            {
+                string body = BuildConditionSummary(mUnitConditions, mPartyConditions);
+                return mIsInvert ? $"{body} ／ 反転" : body;
+            }
+        }
+
         // 条件を評価し、対応する枝へ進む
         // 枝が未接続の場合は不成立として扱い、親の次の候補へ処理を渡す
         // aContext : 評価 1 回分の入力
         // return : 進んだ枝の結果。枝が無ければ Failed
-        public override PPUnitAINodeResult Evaluate(PPUnitAIEvalContext aContext)
+        protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             bool isMatched = EvaluateConditions(aContext) != mIsInvert;
             var next = aContext.ResolveNode(isMatched ? mMatchedId : mUnmatchedId);
 
             return next == null ? PPUnitAINodeResult.Failed : next.Evaluate(aContext);
+        }
+
+        // 持っている条件の説明文を組み立て直す
+        public override void RefreshConditionDescriptions()
+        {
+            RefreshDescriptions(mUnitConditions);
+            RefreshDescriptions(mPartyConditions);
         }
 
         // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
@@ -71,6 +94,14 @@ namespace PPCore
         {
             if (aPortIndex == PortMatched) mMatchedId = aChildId;
             else if (aPortIndex == PortUnmatched) mUnmatchedId = aChildId;
+        }
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // aMap : 対応表
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
+        {
+            mMatchedId = RemapChildId(mMatchedId, aMap);
+            mUnmatchedId = RemapChildId(mUnmatchedId, aMap);
         }
 
         // 指定した接続口の接続を外す

@@ -1,0 +1,88 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PSBT_FinishAttack
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  mTreeKind: 2
+  mDescription: 
+  mRootNodeId: f6ce64d1e6564305a92f2d83fbe05262
+  mNodes:
+  - rid: 1269812297483681877
+  - rid: 1269812297483681879
+  - rid: 1269812297483681881
+  mNotes: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 1269812297483681877
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u901A\u5E38\u653B\u6483\u3067\u5012\u305B\u308B\u6575\u304C\u3044\u308B\u304B?"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: f6ce64d1e6564305a92f2d83fbe05262
+        mGraphPosition: {x: 46, y: -4.666687}
+        mUnitConditions:
+        - rid: 1269812297483681878
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: 50d0c78f33cc4cc4a2654284393e8708
+        mUnmatchedId: 
+    - rid: 1269812297483681878
+      type: {class: PPUnitCanFinishEnemyCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "\u901A\u5E38\u653B\u6483\u3067\u5012\u305B\u308B\u6575\u304C\u3044\u308B"
+        mIsInvert: 0
+    - rid: 1269812297483681879
+      type: {class: PPUnitAISearchNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u5BFE\u8C61\u3092\u63A2\u7D22"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 50d0c78f33cc4cc4a2654284393e8708
+        mGraphPosition: {x: 342, y: -4.800003}
+        mScope: 1
+        mConditions:
+        - rid: 1269812297483681880
+        mIsIncludeSelf: 0
+        mIsResetBefore: 1
+        mIsUnique: 1
+        mFoundId: 8feac8815be7423e909d1ceda51334cd
+        mNotFoundId: 
+    - rid: 1269812297483681880
+      type: {class: PPUnitCanFinishEnemyCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "\u901A\u5E38\u653B\u6483\u3067\u5012\u305B\u308B\u6575\u304C\u3044\u308B"
+        mIsInvert: 0
+    - rid: 1269812297483681881
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u5BFE\u8C61\u306B\u901A\u5E38\u653B\u6483"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 8feac8815be7423e909d1ceda51334cd
+        mGraphPosition: {x: 579.3333, y: -4.666664}
+        mAction:
+          rid: 1269812297483681882
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 1269812297483681882
+      type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: 
+        mTargetPolicy: 2
+        mIsFallbackAnyEnemy: 1

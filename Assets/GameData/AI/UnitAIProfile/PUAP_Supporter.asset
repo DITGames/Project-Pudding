@@ -12,15 +12,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
   m_Name: PUAP_Supporter
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
-  mDescription: 
+  mTreeKind: 0
+  mDescription: "\u30B5\u30DD\u30FC\u30BF\u30FC\u306E\u30C7\u30D5\u30A9\u30EB\u30C8AI\u30C4\u30EA\u30FC"
   mRootNodeId: e120d51460124300b6ef912d453fa27b
   mNodes:
   - rid: 1269812240529752145
   - rid: 1269812240529752146
   - rid: 1269812240529752150
-  - rid: 1269812240529752151
-  - rid: 1269812240529752160
-  - rid: 1269812263099301954
+  - rid: 1269812297483681884
+  - rid: 1269812297483681886
+  - rid: 1269812297483681887
+  - rid: 1269812297483681888
+  - rid: 1269812297483681890
+  - rid: 1269812297483681901
+  - rid: 1269812297483681906
+  - rid: 1269812297483681909
+  - rid: 1269812376412356624
+  mNotes: []
   references:
     version: 2
     RefIds:
@@ -29,19 +37,27 @@ MonoBehaviour:
       data:
         mNodeName: "\u30EB\u30FC\u30C8"
         mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
         mNodeId: e120d51460124300b6ef912d453fa27b
-        mGraphPosition: {x: 73.333336, y: 356}
+        mGraphPosition: {x: 0, y: 0}
         mChildIds:
+        - a44c7c7b36704de69be006dadf716129
         - 80dd3488012c4fc489b631ab724ecee4
+        - 4f841082909841e7866ad81ef4f53e0c
+        - 2deba3cd75014d11a224b7bd82a4ecac
     - rid: 1269812240529752146
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B\uFF1F"
+        mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB\u304C\u4F7F\u7528\u53EF\u80FD?"
         mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
         mNodeId: 80dd3488012c4fc489b631ab724ecee4
-        mGraphPosition: {x: 339.33334, y: 206}
+        mGraphPosition: {x: 320, y: 150}
         mUnitConditions:
         - rid: 1269812240529752149
+        - rid: 1269812297483681885
         mPartyConditions: []
         mIsInvert: 0
         mMatchedId: 743bacec641a43e4a73bd476cb21a459
@@ -49,8 +65,11 @@ MonoBehaviour:
     - rid: 1269812240529752149
       type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDescription: 
+        mIsAutoDescription: 1
+        mDescription: "\u652F\u63F4 \u306E\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
         mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
           mIsFilterByGroup: 1
           mGroup: 1
           mTags: []
@@ -60,81 +79,173 @@ MonoBehaviour:
       data:
         mNodeName: "\u652F\u63F4\u512A\u5148\u5EA6"
         mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
         mNodeId: 743bacec641a43e4a73bd476cb21a459
-        mGraphPosition: {x: 585.3333, y: 206}
+        mGraphPosition: {x: 640, y: 150}
         mChildIds:
-        - 4f65e335fc1c4b458074ed9daee93be5
-    - rid: 1269812240529752151
+        - 63df00efc767432ab940dfafa932af1c
+        - 49ca54b5dacd47d5a706162f6d43f978
+    - rid: 1269812297483681884
+      type: {class: PPUnitAISubTreeNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u901A\u5E38\u653B\u6483\u3067\u5012\u305B\u308B\u6575\u3092\u653B\u6483"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: a44c7c7b36704de69be006dadf716129
+        mGraphPosition: {x: 320, y: 0}
+        mSubTree: {fileID: 11400000, guid: d2fcc4aef0ca8c34f907a8aebb6fcde8, type: 2}
+    - rid: 1269812297483681885
+      type: {class: PPUnitCanCastSkillCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "\u652F\u63F4 \u306E\u30B9\u30AD\u30EB\u304C\u6483\u3066\u308B"
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags: []
+        mIsStrongestOnly: 0
+        mIsInvert: 0
+    - rid: 1269812297483681886
+      type: {class: PPUnitAISubTreeNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u653B\u6483\u30D0\u30D5\u3092\u4F7F\u7528\u3059\u308B"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: d54211a7cc264d76b07cbbcc6be53df7
+        mGraphPosition: {x: 1280, y: 150}
+        mSubTree: {fileID: 11400000, guid: b392a4e6ea912f24c898732f230a38f6, type: 2}
+    - rid: 1269812297483681887
+      type: {class: PPUnitAIProbabilityNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: 
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 63df00efc767432ab940dfafa932af1c
+        mGraphPosition: {x: 960, y: 150}
+        mProbability: 0.85
+        mChildId: d54211a7cc264d76b07cbbcc6be53df7
+    - rid: 1269812297483681888
+      type: {class: PPUnitAIProbabilityNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: 
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 49ca54b5dacd47d5a706162f6d43f978
+        mGraphPosition: {x: 960, y: 300}
+        mProbability: 0.75
+        mChildId: 7a37dcfb1c1340e4b815044dd9f31492
+    - rid: 1269812297483681890
+      type: {class: PPUnitAISubTreeNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u9632\u5FA1\u30D0\u30D5\u3092\u4F7F\u7528\u3059\u308B"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 7a37dcfb1c1340e4b815044dd9f31492
+        mGraphPosition: {x: 1280, y: 300}
+        mSubTree: {fileID: 11400000, guid: 7dbacba46696cdb46adfc126e6f68dc7, type: 2}
+    - rid: 1269812297483681901
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mNodeName: "\u653B\u6483\u30D0\u30D5\u3092\u4ED8\u4E0E\u3059\u308B\u304B?"
+        mNodeName: "\u56DE\u5FA9\u30B9\u30AD\u30EB\u304C\u4F7F\u7528\u53EF\u80FD?"
         mIsInterrupt: 0
-        mNodeId: 4f65e335fc1c4b458074ed9daee93be5
-        mGraphPosition: {x: 794, y: 144}
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 4f841082909841e7866ad81ef4f53e0c
+        mGraphPosition: {x: 320, y: 300}
         mUnitConditions:
-        - rid: 1269812240529752159
+        - rid: 1269812297483681902
+        - rid: 1269812297483681903
         mPartyConditions:
-        - rid: 1269812240529752158
+        - rid: 1269812297483681904
         mIsInvert: 0
-        mMatchedId: 00091d1e4c3e4a43a20fcb2a7de38ac7
+        mMatchedId: b3f5dd9423ee4d4fb3e07637cd7a5707
         mUnmatchedId: 
-    - rid: 1269812240529752158
-      type: {class: PPFindHasStatusEffectUnit, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mDescription: "\u653B\u6483\u30D0\u30D5\u3092\u6240\u6301\u3057\u3066\u3044\u306A\u3044\u30E6\u30CB\u30C3\u30C8\u304C\u3044\u308B"
-        mEffectId: AttackBuff
-        mTags: 0
-        mIsInvert: 1
-    - rid: 1269812240529752159
+    - rid: 1269812297483681902
       type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDescription: "\u653B\u6483\u30D0\u30D5\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
+        mIsAutoDescription: 1
+        mDescription: "\u56DE\u5FA9\uFF0F\u5358\u4F53\u56DE\u5FA9 \u306E\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B"
         mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
           mIsFilterByGroup: 1
-          mGroup: 1
+          mGroup: 2
           mTags:
-          - {fileID: 11400000, guid: a29ea8ef3f13a9348350ea25ae4e5892, type: 2}
+          - {fileID: 11400000, guid: 48a0f632d8ccdf9cf33481f29205bb1b, type: 2}
         mIsInvert: 0
-    - rid: 1269812240529752160
-      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 1269812297483681903
+      type: {class: PPUnitCanCastSkillCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mNodeName: "\u5BFE\u8C61\u306B\u653B\u6483\u30D0\u30D5"
-        mIsInterrupt: 0
-        mNodeId: 126193b006d448eca0f285522ff2d72f
-        mGraphPosition: {x: 1332.6666, y: 144}
-        mAction:
-          rid: 1269812240529752161
-        mCommitTicks: 0
-    - rid: 1269812240529752161
-      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mActionName: "\u5BFE\u8C61\u306B\u653B\u6483\u30D0\u30D5"
+        mIsAutoDescription: 1
+        mDescription: "\u56DE\u5FA9\uFF0F\u5358\u4F53\u56DE\u5FA9 \u306E\u30B9\u30AD\u30EB\u304C\u6483\u3066\u308B"
         mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
           mIsFilterByGroup: 1
-          mGroup: 1
+          mGroup: 2
           mTags:
-          - {fileID: 11400000, guid: a29ea8ef3f13a9348350ea25ae4e5892, type: 2}
-        mSelectRule: 0
-        mTargetPolicy: 1
-    - rid: 1269812263099301954
+          - {fileID: 11400000, guid: 48a0f632d8ccdf9cf33481f29205bb1b, type: 2}
+        mIsStrongestOnly: 0
+        mIsInvert: 0
+    - rid: 1269812297483681904
+      type: {class: PPAliveMemberHealthRatio, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "HP\u5272\u5408\u304C50% \u4EE5\u4E0B \u30E6\u30CB\u30C3\u30C8\u304C1\u4F53\u4EE5\u4E0A"
+        HpThreshold: 0.5
+        HpOp: 3
+        Torelance: 0
+        UnitCount: 1
+        UnitOp: 2
+    - rid: 1269812297483681906
       type: {class: PPUnitAISearchNode, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mNodeName: "\u653B\u6483\u30D0\u30D5\u304C\u3064\u3044\u3044\u3066\u306A\u3044\u5473\u65B9\u3092\u691C\u7D22"
+        mNodeName: "HP\u304C50%\u4EE5\u4E0B\u306E\u5473\u65B9\u3092\u63A2\u7D22"
         mIsInterrupt: 0
-        mNodeId: 00091d1e4c3e4a43a20fcb2a7de38ac7
-        mGraphPosition: {x: 1034, y: 144}
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: b3f5dd9423ee4d4fb3e07637cd7a5707
+        mGraphPosition: {x: 640, y: 300}
         mScope: 0
         mConditions:
-        - rid: 1269812263099301960
+        - rid: 1269812297483681907
         mIsIncludeSelf: 1
         mIsResetBefore: 1
         mIsUnique: 1
-        mFoundId: 126193b006d448eca0f285522ff2d72f
+        mFoundId: 09ac23d4b28d433ea8a8993f5d77604e
         mNotFoundId: 
-    - rid: 1269812263099301960
-      type: {class: PPUnitStatusEffectCondition, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 1269812297483681907
+      type: {class: PPUnitHpRatioCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDescription: "\u653B\u6483\u30D0\u30D5\u304C\u3064\u3044\u3066\u3044\u306A\u3044\u5473\u65B9\u3092\u691C\u7D22\u3059\u308B"
-        mEffectId: AttackBuf
-        mTags: 0
-        mIsInvert: 1
+        mIsAutoDescription: 1
+        mDescription: "HP\u5272\u5408\u304C50%\u4EE5\u4E0B"
+        mOp: 3
+        mThreshold: 0.5
+    - rid: 1269812297483681909
+      type: {class: PPUnitAISubTreeNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "HP50%\u4EE5\u4E0B\u306E\u5473\u65B9\u3092\u56DE\u5FA9"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 09ac23d4b28d433ea8a8993f5d77604e
+        mGraphPosition: {x: 960, y: 450}
+        mSubTree: {fileID: 11400000, guid: af05137b16a249bcbe1aa348f5e6ae44, type: 2}
+    - rid: 1269812376412356624
+      type: {class: PPUnitAISubTreeNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u901A\u5E38\u653B\u6483\u62BD\u9078"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 2deba3cd75014d11a224b7bd82a4ecac
+        mGraphPosition: {x: 320, y: 450}
+        mSubTree: {fileID: 11400000, guid: 71297fa7f3abd284ca0541204833113d, type: 2}

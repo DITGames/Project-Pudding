@@ -29,6 +29,15 @@ namespace PPCore
         private readonly SerializedObject mSerializedObject;
         private readonly PPUnitAIProfileDefinition mProfile;
         private readonly Dictionary<string, PPUnitAITreeNodeView> mNodeViews = new();
+        // 注記のビュー。ID から引いて削除・保存に使う
+        private readonly Dictionary<string, PPUnitAITreeNoteElement> mNoteViews = new();
+
+        // 貼り付けたノードを複写元からずらす量。真上に重なって見失うのを防ぐ
+        private static readonly Vector2 PasteOffset = new(30f, 30f);
+
+        // 自動整列で使う、深さ 1 段ぶんの横幅とノード 1 つぶんの縦幅
+        private const float LayoutColumnWidth = 320f;
+        private const float LayoutRowHeight = 150f;
 
         // 選択中ノードが変わった際に、対応するノードを渡して通知する(未選択時は null)
         public event Action<PPUnitAINode> OnNodeSelectionChanged;
@@ -52,7 +61,15 @@ namespace PPCore
             Insert(0, grid);
             grid.StretchToParentSize();
 
+            SetupMiniMap();
+            // Ctrl+F でノードを名前検索できるようにする。木が大きくなると目視で探せなくなるため
+            RegisterCallback<KeyDownEvent>(OnKeyDown);
+
             graphViewChanged = OnGraphViewChanged;
+            // Ctrl+C / Ctrl+V / Ctrl+D はこの 3 つの委譲を通って処理される
+            serializeGraphElements = SerializeSelection;
+            canPasteSerializedData = PPUnitAITreeClipboard.CanDeserialize;
+            unserializeAndPaste = PasteSerializedData;
 
             Rebuild();
         }
@@ -83,6 +100,88 @@ namespace PPCore
                 .Where(p => p != aStartPort && p.node != aStartPort.node && p.direction != aStartPort.direction)
                 .ToList();
 
+        // 診断結果をグラフへ反映する
+        // 問題が見つかったノードをグレー表示にし、それ以外は種別ごとの色へ戻す
+        // aIssues : 反映する診断結果
+        public void ApplyIssues(IReadOnlyList<PPUnitAITreeIssue> aIssues)
+        {
+            // 1 つのノードに複数の問題が出ることがあるため、ノードごとにまとめてから渡す
+            // 文言はそのままノード上の警告アイコンのツールチップになる
+            var messages = new Dictionary<string, List<string>>();
+            foreach (var issue in aIssues)
+            {
+                if (string.IsNullOrEmpty(issue.NodeId)) continue;
+
+                if (!messages.TryGetValue(issue.NodeId, out var list))
+                {
+                    list = new List<string>();
+                    messages[issue.NodeId] = list;
+                }
+                list.Add(issue.Message);
+            }
+
+            foreach (var pair in mNodeViews)
+            {
+                pair.Value.SetIssues(messages.TryGetValue(pair.Key, out var found) ? found : null);
+            }
+        }
+
+        // 思考記録 1 件分の通過経路を強調表示する
+        // aVisitedNodeIds : 通過したノードの ID。null や空なら強調を解除する
+        // aDecidedNodeId : 行動が確定したノードの ID
+        public void ApplyHighlight(IReadOnlyList<string> aVisitedNodeIds, string aDecidedNodeId)
+        {
+            var visited = new HashSet<string>();
+            if (aVisitedNodeIds != null)
+            {
+                foreach (var nodeId in aVisitedNodeIds)
+                {
+                    if (!string.IsNullOrEmpty(nodeId)) visited.Add(nodeId);
+                }
+            }
+
+            foreach (var pair in mNodeViews)
+            {
+                var state = PPUnitAITreeHighlight.None;
+                if (pair.Key == aDecidedNodeId) state = PPUnitAITreeHighlight.Decided;
+                else if (visited.Contains(pair.Key)) state = PPUnitAITreeHighlight.Passed;
+
+                pair.Value.SetHighlight(state);
+                // 経路表示と濃淡は排他。切り替えたときに前の表示が残らないよう、こちらで濃淡を解除する
+                pair.Value.SetHeat(-1f);
+            }
+        }
+
+        // 通過回数の集計を濃淡として反映する
+        // aCounts : ノード ID ごとの通過回数
+        public void ApplyHeatmap(IReadOnlyDictionary<string, int> aCounts)
+        {
+            int max = 0;
+            foreach (var count in aCounts.Values)
+            {
+                if (count > max) max = count;
+            }
+
+            foreach (var pair in mNodeViews)
+            {
+                // 一度も通っていないノードが最も薄くなる
+                int count = aCounts.TryGetValue(pair.Key, out int value) ? value : 0;
+                pair.Value.SetHeat(max > 0 ? (float)count / max : 0f);
+                // 濃淡と経路表示は排他。前に出していた経路の強調を解除する
+                pair.Value.SetHighlight(PPUnitAITreeHighlight.None);
+            }
+        }
+
+        // 強調表示・濃淡を解除して、種別ごとの色へ戻す
+        public void ClearHighlight()
+        {
+            foreach (var view in mNodeViews.Values)
+            {
+                view.SetHighlight(PPUnitAITreeHighlight.None);
+                view.SetHeat(-1f);
+            }
+        }
+
         // 指定ノードの表示を現在の値へ更新する
         // インスペクタでノード名や割り込み指定を編集した直後に呼び、グラフ側の表示を追従させる
         // aNodeId : 対象ノードの ID
@@ -97,16 +196,118 @@ namespace PPCore
         // アセットを開いた直後はレイアウトが未確定のため、1 フレーム後に実行する
         public void FrameRootNode()
         {
-            schedule.Execute(() =>
-            {
-                if (!mNodeViews.TryGetValue(mProfile.RootNodeId ?? "", out var rootView)) return;
+            schedule.Execute(() => FrameNodeImmediate(mProfile.RootNodeId)).ExecuteLater(50);
+        }
 
-                var rect = rootView.GetPosition();
-                // 生成直後はノードの大きさが未確定なため、その場合は左上を基準にして寄せる
-                Vector2 center = rect.size == Vector2.zero ? rect.position : rect.center;
-                Vector3 offset = new Vector3(layout.width * 0.5f - center.x, layout.height * 0.5f - center.y, 0f);
-                UpdateViewTransform(offset, Vector3.one);
-            }).ExecuteLater(50);
+        // 指定したノードが画面中央へ来るように表示位置を合わせ、選択状態にする
+        // 検索から呼ぶため、待たずにその場で動かす
+        // aNodeId : 寄せるノードの ID
+        public void FrameNode(string aNodeId)
+        {
+            if (!mNodeViews.TryGetValue(aNodeId ?? "", out var view)) return;
+
+            ClearSelection();
+            AddToSelection(view);
+            FrameNodeImmediate(aNodeId);
+        }
+
+        // 指定したノードを画面中央へ寄せる
+        // aNodeId : 寄せるノードの ID
+        private void FrameNodeImmediate(string aNodeId)
+        {
+            if (!mNodeViews.TryGetValue(aNodeId ?? "", out var view)) return;
+
+            var rect = view.GetPosition();
+            // 生成直後はノードの大きさが未確定なため、その場合は左上を基準にして寄せる
+            Vector2 center = rect.size == Vector2.zero ? rect.position : rect.center;
+            Vector3 offset = new Vector3(layout.width * 0.5f - center.x, layout.height * 0.5f - center.y, 0f);
+            UpdateViewTransform(offset, Vector3.one);
+        }
+
+        // グラフ全体を俯瞰するミニマップを左上へ置く
+        private void SetupMiniMap()
+        {
+            var miniMap = new MiniMap { anchored = true };
+            miniMap.SetPosition(new Rect(10f, 30f, 200f, 140f));
+            Add(miniMap);
+        }
+
+        // ショートカット操作を受け取る
+        // aEvent : キー入力
+        private void OnKeyDown(KeyDownEvent aEvent)
+        {
+            if (aEvent.keyCode != KeyCode.F || !aEvent.actionKey) return;
+
+            ShowNodeSearchWindow();
+            aEvent.StopPropagation();
+        }
+
+        // ノードを名前で検索する窓を開く
+        // 選ぶとそのノードへスクロールし、選択状態にする
+        private void ShowNodeSearchWindow()
+        {
+            var provider = ScriptableObject.CreateInstance<PPUnitAITreeNodeSearchProvider>();
+            provider.Setup(mProfile, FrameNode);
+
+            var context = new SearchWindowContext(GUIUtility.GUIToScreenPoint(Event.current?.mousePosition ?? Vector2.zero));
+            SearchWindow.Open(context, provider);
+        }
+
+        // 根から幅優先でノードを並べ直す
+        //
+        // 優先度リストと連携ノードの子は、現在の並び順を保ったまま縦位置へ写す
+        // 縦位置が優先度そのものなので、整列で順序を書き換えてはならない
+        // 根から辿れないノードは触らず、その場に残す
+        public void AutoLayout()
+        {
+            var root = mProfile.Root;
+            if (root == null) return;
+
+            Undo.RecordObject(mProfile, "ノードの自動整列");
+
+            var placed = new HashSet<string>();
+            // 深さごとに次へ置く縦位置。同じ深さのノードが重ならないようにするためのもの
+            var nextY = new Dictionary<int, float>();
+            PlaceNode(root, 0, 0f, placed, nextY);
+
+            foreach (var pair in mNodeViews)
+            {
+                var position = pair.Value.Node.GraphPosition;
+                pair.Value.SetPosition(new Rect(position, pair.Value.GetPosition().size));
+            }
+            ApplyChanges();
+        }
+
+        // ノードを 1 つ配置し、子を続けて配置する
+        // aNode : 配置するノード
+        // aDepth : 根からの深さ
+        // aPreferredY : 置きたい縦位置。既に埋まっていれば下へずらす
+        // aPlaced : 配置済みのノード ID。循環しても止まるように使う
+        // aNextY : 深さごとの次に空いている縦位置
+        // return : 実際に置いた縦位置
+        private float PlaceNode(PPUnitAINode aNode, int aDepth, float aPreferredY,
+            HashSet<string> aPlaced, Dictionary<int, float> aNextY)
+        {
+            if (!aPlaced.Add(aNode.NodeId)) return aPreferredY;
+
+            aNextY.TryGetValue(aDepth, out float reserved);
+            float y = Mathf.Max(aPreferredY, reserved);
+            aNode.SetGraphPosition(new Vector2(aDepth * LayoutColumnWidth, y));
+            aNextY[aDepth] = y + LayoutRowHeight;
+
+            float childY = y;
+            foreach (var port in aNode.Ports)
+            {
+                // 並び順は触らない。上にあるものほど優先、という規則をそのまま縦位置へ写す
+                foreach (var childId in port.ChildIds)
+                {
+                    var child = mProfile.FindNode(childId);
+                    if (child == null) continue;
+
+                    childY = PlaceNode(child, aDepth + 1, childY, aPlaced, aNextY) + LayoutRowHeight;
+                }
+            }
+            return y;
         }
 
         // アセットの現在の内容からグラフを組み立て直す
@@ -117,6 +318,11 @@ namespace PPCore
                 RemoveElement(view);
             }
             mNodeViews.Clear();
+            foreach (var note in mNoteViews.Values)
+            {
+                RemoveElement(note);
+            }
+            mNoteViews.Clear();
             foreach (var edge in edges.ToList())
             {
                 RemoveElement(edge);
@@ -128,8 +334,81 @@ namespace PPCore
 
                 CreateNodeView(node);
             }
+            foreach (var note in mProfile.Notes)
+            {
+                CreateNoteView(note);
+            }
             ConnectAllEdges();
             OnGraphStructureChanged?.Invoke();
+        }
+
+        // 注記を 1 枚追加する
+        // 画面の中央あたりへ置き、そのまま書き込めるようにする
+        public void AddNote()
+        {
+            Undo.RecordObject(mProfile, "注記の追加");
+
+            Vector2 center = contentViewContainer.WorldToLocal(layout.center);
+            var data = new PPUnitAINoteData(Guid.NewGuid().ToString("N"),
+                new Rect(center.x, center.y, 240f, 160f));
+
+            var notesProperty = mSerializedObject.FindProperty("mNotes");
+            notesProperty.arraySize++;
+            notesProperty.GetArrayElementAtIndex(notesProperty.arraySize - 1).boxedValue = data;
+            mSerializedObject.ApplyModifiedProperties();
+            ApplyChanges();
+
+            CreateNoteView(mProfile.FindNote(data.NoteId));
+        }
+
+        // 注記 1 枚分のビューを作ってグラフへ載せる
+        // 見出し・本文・位置・大きさのいずれが変わってもアセットへ書き戻す
+        // aData : 表示する注記。null なら何もしない
+        private void CreateNoteView(PPUnitAINoteData aData)
+        {
+            if (aData == null) return;
+
+            var note = new PPUnitAITreeNoteElement(aData);
+
+            note.OnChanged += () => SaveNote(note);
+            // 移動と大きさの変更は位置の変化としてしか拾えないため、そちらも見る
+            note.RegisterCallback<GeometryChangedEvent>(_ => SaveNote(note));
+
+            mNoteViews[aData.NoteId] = note;
+            AddElement(note);
+        }
+
+        // 注記の現在の内容をアセットへ書き戻す
+        // aNote : 対象の注記ビュー
+        private void SaveNote(PPUnitAITreeNoteElement aNote)
+        {
+            var data = mProfile.FindNote(aNote.NoteId);
+            if (data == null) return;
+
+            var rect = aNote.GetPosition();
+            if (data.Title == aNote.NoteTitle && data.Color == aNote.NoteColor && data.Rect == rect) return;
+
+            data.SetTitle(aNote.NoteTitle);
+            data.SetColor(aNote.NoteColor);
+            data.SetRect(rect);
+            EditorUtility.SetDirty(mProfile);
+        }
+
+        // 注記を 1 枚削除する
+        // aNoteId : 削除する注記の ID
+        private void RemoveNote(string aNoteId)
+        {
+            var notesProperty = mSerializedObject.FindProperty("mNotes");
+            for (int i = 0; i < notesProperty.arraySize; i++)
+            {
+                if (notesProperty.GetArrayElementAtIndex(i).boxedValue is not PPUnitAINoteData note) continue;
+                if (note.NoteId != aNoteId) continue;
+
+                notesProperty.DeleteArrayElementAtIndex(i);
+                break;
+            }
+            mSerializedObject.ApplyModifiedProperties();
+            mNoteViews.Remove(aNoteId);
         }
 
         // ノード 1 つ分のビューを作ってグラフへ載せる
@@ -176,6 +455,7 @@ namespace PPCore
                 {
                     if (element is Edge edge) DisconnectEdge(edge);
                     else if (element is PPUnitAITreeNodeView nodeView) RemoveNode(nodeView.Node);
+                    else if (element is PPUnitAITreeNoteElement note) RemoveNote(note.NoteId);
                     isStructureChanged = true;
                 }
             }
@@ -278,6 +558,70 @@ namespace PPCore
             ReorderAllSelectors();
             ApplyChanges();
             OnGraphStructureChanged?.Invoke();
+        }
+
+        // 選択中のノードを複写用の文字列にする
+        // Ctrl+C と Ctrl+D の両方からここを通る
+        // aElements : 選択されているグラフ要素。接続線も混ざるためノードだけを拾う
+        // return : 複写に使う文字列
+        private string SerializeSelection(IEnumerable<GraphElement> aElements)
+        {
+            var nodes = aElements.OfType<PPUnitAITreeNodeView>().Select(v => v.Node).ToList();
+            return nodes.Count == 0 ? "" : PPUnitAITreeClipboard.Serialize(nodes);
+        }
+
+        // 複写した文字列からノードを貼り付ける
+        //
+        // 貼り付けたノードには新しい ID を振り、複写元同士で繋がっていた接続だけを張り直す
+        // 複写の範囲外へ出ていた接続は未接続になる（貼り付けた側から元のノードへ線を伸ばさない）
+        // サブツリー参照の参照先はアセットへの参照で ID 参照ではないため、そのまま保たれる
+        //
+        // aOperationName : 操作名。Undo の表示に使う
+        // aData : SerializeSelection が書き出した文字列
+        private void PasteSerializedData(string aOperationName, string aData)
+        {
+            var pasted = PPUnitAITreeClipboard.Deserialize(aData);
+            if (pasted.Count == 0) return;
+
+            Undo.RecordObject(mProfile, aOperationName);
+
+            // 先に全ノードの ID を振り直し、複写元の ID との対応表を作る
+            var idMap = new Dictionary<string, string>();
+            foreach (var node in pasted)
+            {
+                string oldId = node.NodeId;
+                node.ReassignNodeId();
+                if (!string.IsNullOrEmpty(oldId)) idMap[oldId] = node.NodeId;
+            }
+
+            var nodesProperty = mSerializedObject.FindProperty("mNodes");
+            foreach (var node in pasted)
+            {
+                node.RemapChildIds(idMap);
+                // 貼り付け元と重ならないよう少しずらして置く
+                node.SetGraphPosition(node.GraphPosition + PasteOffset);
+
+                nodesProperty.arraySize++;
+                nodesProperty.GetArrayElementAtIndex(nodesProperty.arraySize - 1).managedReferenceValue = node;
+            }
+            mSerializedObject.ApplyModifiedProperties();
+            ApplyChanges();
+
+            // 接続が張り替わっているため、線を引き直すには組み立て直すのが確実
+            Rebuild();
+            SelectNodes(pasted);
+        }
+
+        // 貼り付けたノードを選択状態にする
+        // 続けて動かしたり消したりできるようにするためのもの
+        // aNodes : 選択するノード
+        private void SelectNodes(IReadOnlyList<PPUnitAINode> aNodes)
+        {
+            ClearSelection();
+            foreach (var node in aNodes)
+            {
+                if (mNodeViews.TryGetValue(node.NodeId, out var view)) AddToSelection(view);
+            }
         }
 
         // ノードを 1 つ追加する

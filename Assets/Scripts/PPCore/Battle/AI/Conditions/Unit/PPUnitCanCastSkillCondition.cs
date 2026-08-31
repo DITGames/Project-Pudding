@@ -18,13 +18,16 @@ namespace PPCore
     // 下位スキルで妥協せず本命が撃てるときだけ成立する（待ちの判断と組み合わせて使う）
     [Serializable]
     [PPTypeMenuName("スキル/発動できる")]
-    public sealed class PPUnitCanCastSkillCondition : PPUnitConditionValidator
+    public sealed class PPUnitCanCastSkillCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
         // 絞り込んだ中で最も AI スコアの高いスキルが発動できる場合だけ成立させるか
         [Label("最も強いものに限る")]
         [SerializeField] private bool mIsStrongestOnly = false;
+
+        // 保持しているスキルの絞り込み条件。エディタの診断から参照する
+        public PPUnitAISkillFilter Filter => mFilter;
         // 反転すると「そのスキルが撃てない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;

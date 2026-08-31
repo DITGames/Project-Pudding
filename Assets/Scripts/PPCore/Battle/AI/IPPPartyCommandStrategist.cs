@@ -16,6 +16,22 @@ namespace PPCore
     // 実装は PPUnitAIStrategist、駆動は PPEnemyAIDriver が担う
     public interface IPPPartyCommandStrategist
     {
+        // バトル進行の管理役と、実行待ちの行動の供給元を受け取る
+        //
+        // PlanActions が受け取るバトルコンテキストからは進行の管理役を辿れないため、
+        // 「誰に殴られたか」のようなバトル中の出来事を知るには開始時に別途渡す必要がある
+        // 実行待ちの行動も、思考時点ではコマンド列に積まれていないため進行役から借りる
+        //
+        // aManager : バトル進行の管理役
+        // aSide : この思考ルーチンが担当する陣営
+        // aPendingSource : 実行待ちの行動の供給元。使わない場合は null でよい
+        void BindBattle(BattleManager aManager, BattleSide aSide, IPPPendingActionSource aPendingSource);
+
+        // バトル進行の管理役との繋がりを断つ
+        // BindBattle で張った購読を残したままにすると、バトルが終わったあとや
+        // 進行役を作り直したあとも、古い思考ルーチンがイベントを拾い続けてしまう
+        void Unbind();
+
         // このティックでパーティが取る行動計画を組み立てる
         // aSelf : 思考主体のパーティ
         // aContext : バトルコンテキスト

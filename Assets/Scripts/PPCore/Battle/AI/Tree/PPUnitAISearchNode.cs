@@ -70,6 +70,26 @@ namespace PPCore
 
         protected override string DefaultNodeName => "ターゲット検索";
 
+        // 発見側の枝が繋がっているか。エディタの診断から参照する
+        public bool HasFoundBranch => !string.IsNullOrEmpty(mFoundId);
+
+        // 絞り込みに使う条件。エディタの診断が設定漏れを調べるために参照する
+        public IReadOnlyList<PPUnitConditionValidator> Conditions => mConditions;
+
+        // 探索範囲と抽出条件を要約する
+        public override string Summary
+            => $"{ScopeDisplayName} から探す\n{BuildConditionSummary(mConditions)}";
+
+        // 探索範囲の日本語表記。インスペクタの表記と揃えてある
+        private string ScopeDisplayName
+            => mScope switch
+            {
+                PPUnitAISearchScope.Ally => mIsIncludeSelf ? "味方" : "自分以外の味方",
+                PPUnitAISearchScope.Enemy => "敵",
+                PPUnitAISearchScope.Both => mIsIncludeSelf ? "味方と敵" : "自分以外の味方と敵",
+                _ => "",
+            };
+
         public override IReadOnlyList<PPUnitAINodePort> Ports
             => new[]
             {
@@ -81,7 +101,7 @@ namespace PPCore
         // 1 体でも積めたら発見側の枝へ、1 体も積めなければ なし 側の枝へ進む
         // aContext : 評価 1 回分の入力
         // return : 進んだ枝の結果。枝が未接続なら Failed
-        public override PPUnitAINodeResult Evaluate(PPUnitAIEvalContext aContext)
+        protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             var snapshot = aContext.Snapshot;
             if (mIsResetBefore)
@@ -117,6 +137,9 @@ namespace PPCore
             return count;
         }
 
+        // 持っている条件の説明文を組み立て直す
+        public override void RefreshConditionDescriptions() => RefreshDescriptions(mConditions);
+
         // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
         // aPortIndex : 接続口の番号
         // aChildId : 繋ぐ子ノードの ID
@@ -124,6 +147,14 @@ namespace PPCore
         {
             if (aPortIndex == PortFound) mFoundId = aChildId;
             else if (aPortIndex == PortNotFound) mNotFoundId = aChildId;
+        }
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // aMap : 対応表
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
+        {
+            mFoundId = RemapChildId(mFoundId, aMap);
+            mNotFoundId = RemapChildId(mNotFoundId, aMap);
         }
 
         // 指定した接続口の接続を外す

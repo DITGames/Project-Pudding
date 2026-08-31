@@ -35,6 +35,11 @@ namespace PPCore
         // 抽選の重みを設定する。正規化など、まとめて書き換える処理から使う
         // aWeight : 設定する重み。負値は 0 に丸める
         public void SetWeight(float aWeight) => mWeight = Mathf.Max(0f, aWeight);
+
+        // 抽選対象の子ノード ID を差し替える
+        // 複製・貼り付けで接続を張り直す処理から使う。重みは触らずに残す
+        // aChildId : 差し替える子ノード ID
+        public void SetChildId(string aChildId) => mChildId = aChildId;
     }
 
     // 子ノードを重み付きの抽選で 1 つ選んで評価するノード
@@ -76,11 +81,34 @@ namespace PPCore
             }
         }
 
+        // 各枝の当たりやすさを百分率で並べる
+        // 表示は重みの合計に対する比率で求めるため、正規化を実行していなくても実際の配分と一致する
+        public override string Summary
+        {
+            get
+            {
+                float total = 0f;
+                foreach (var entry in mEntries)
+                {
+                    if (entry != null) total += Mathf.Max(0f, entry.Weight);
+                }
+                if (total <= 0f) return "抽選できる枝がありません";
+
+                var parts = new List<string>(mEntries.Count);
+                foreach (var entry in mEntries)
+                {
+                    float weight = entry != null ? Mathf.Max(0f, entry.Weight) : 0f;
+                    parts.Add($"{Mathf.RoundToInt(weight / total * 100f)}%");
+                }
+                return string.Join(" / ", parts);
+            }
+        }
+
         // 子を重み付き抽選で選んで評価する
         // 確定した場合は道順（PPUnitAIEvalContext.Path）に選ばれた子の添字を残す
         // aContext : 評価 1 回分の入力
         // return : 確定した行動。どの枝も確定しなければ Failed
-        public override PPUnitAINodeResult Evaluate(PPUnitAIEvalContext aContext)
+        protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             int depth = aContext.Path.Count;
 
@@ -144,11 +172,15 @@ namespace PPCore
             var child = ResolveChild(aContext, aIndex);
             if (child == null) return PPUnitAINodeResult.Failed;
 
+            // 引き返した枝の通過記録を残さないため、子を試す前の長さを覚えておく
+            int visitedMark = aContext.VisitedNodeIds.Count;
+
             aContext.Path.Add(aIndex);
             var result = child.Evaluate(aContext);
             if (result.IsDecided) return result;
 
             aContext.Path.RemoveRange(aDepth, aContext.Path.Count - aDepth);
+            aContext.TrimVisited(visitedMark);
             return PPUnitAINodeResult.Failed;
         }
 
@@ -202,6 +234,26 @@ namespace PPCore
             if (string.IsNullOrEmpty(aChildId) || IndexOfChild(aChildId) >= 0) return;
 
             mEntries.Add(new PPUnitAILotteryEntry(aChildId));
+        }
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // 枝を作り直さず ID だけ差し替えるため、複製しても当たりやすさの配分がそのまま残る
+        // aMap : 対応表
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
+        {
+            for (int i = mEntries.Count - 1; i >= 0; i--)
+            {
+                if (mEntries[i] == null)
+                {
+                    mEntries.RemoveAt(i);
+                    continue;
+                }
+
+                string mapped = RemapChildId(mEntries[i].ChildId, aMap);
+                // 複写の範囲外だった枝は、繋ぎ先が無いので枝ごと落とす
+                if (string.IsNullOrEmpty(mapped)) mEntries.RemoveAt(i);
+                else mEntries[i].SetChildId(mapped);
+            }
         }
 
         // 子ノードとの接続を外す。枝ごと取り除くため重みも一緒に消える

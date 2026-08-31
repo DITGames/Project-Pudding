@@ -16,6 +16,11 @@ namespace AttributeUtility
     [CustomPropertyDrawer((typeof(LabelAttribute)))]
     public class LabelAttributeDrawer : PropertyDrawer
     {
+        // ラベルと入力欄のあいだに空ける余白
+        private const float LabelMargin = 8f;
+        // ラベルへ回してよい横幅の上限。入力欄が潰れない範囲に留めるためのもの
+        private const float MaxLabelRatio = 0.6f;
+
         // ラベルを属性の表示名へ置き換えて描画する
         // position : 描画領域
         // property : 対象プロパティ
@@ -28,7 +33,31 @@ namespace AttributeUtility
             // .textを直接書き換えず新しいGUIContentを作る(直接書き換えると他フィールドの表示に文字列が漏れ出す)
             var displayLabel = new GUIContent(labelAttr.Text, label.image, label.tooltip);
 
+            // 日本語の表示名は既定のラベル幅に収まらないことがあり、収まらないと途中で切れて読めなくなる
+            // このフィールドの間だけラベル幅を広げ、描き終えたら元へ戻す
+            float previousWidth = EditorGUIUtility.labelWidth;
+            EditorGUIUtility.labelWidth = ResolveLabelWidth(position, displayLabel, previousWidth);
+
             EditorGUI.PropertyField(position, property, displayLabel, true);
+
+            EditorGUIUtility.labelWidth = previousWidth;
+        }
+
+        // 表示名が収まるラベル幅を求める
+        // 既定の幅で収まっていればそのまま使い、はみ出す場合だけ広げる
+        // 常に広げないのは、揃っている列をむやみに崩さないため
+        // aPosition : 描画領域
+        // aLabel : 表示するラベル
+        // aCurrentWidth : 現在のラベル幅
+        // return : 使用するラベル幅
+        private static float ResolveLabelWidth(Rect aPosition, GUIContent aLabel, float aCurrentWidth)
+        {
+            float required = EditorStyles.label.CalcSize(aLabel).x + LabelMargin;
+            if (required <= aCurrentWidth) return aCurrentWidth;
+
+            // 入力欄が潰れるほどは広げない。上限に当たった場合は従来どおり切り詰められる
+            float limit = Mathf.Max(aCurrentWidth, aPosition.width * MaxLabelRatio);
+            return Mathf.Min(required, limit);
         }
 
         // 描画に必要な高さを返す。ラベルを変えるだけなので標準の高さをそのまま使う

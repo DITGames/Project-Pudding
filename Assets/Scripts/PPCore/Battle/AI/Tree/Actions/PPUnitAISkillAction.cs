@@ -19,7 +19,7 @@ namespace PPCore
     // 発動できるスキルが無い、または対象が居ない場合は組み立てに失敗し、次の候補へ処理が渡る
     [Serializable]
     [PPTypeMenuName("スキル発動")]
-    public sealed class PPUnitAISkillAction : PPUnitAIActionBase
+    public sealed class PPUnitAISkillAction : PPUnitAIActionBase, IPPUnitAISkillFilterOwner
     {
         [Header("スキル")]
         [Label("対象スキル")]
@@ -31,7 +31,15 @@ namespace PPCore
         [Label("対象の選び方")]
         [SerializeField] private PPUnitAITargetPolicy mTargetPolicy = PPUnitAITargetPolicy.ScopeDefault;
 
+        // 保持しているスキルの絞り込み条件。エディタの診断から参照する
+        public PPUnitAISkillFilter Filter => mFilter;
+
         protected override string DefaultActionName => $"スキル発動（{mFilter.ToDisplayString()}）";
+
+        // 「何を・どう選んで・誰に」を 1 行にまとめる
+        public override string Summary
+            => $"{mFilter.ToDisplayString()} ・ {PPUnitAISkillSelectRuleUtility.ToDisplayString(mSelectRule)}"
+               + $"\n対象 : {PPUnitAITargeting.ToDisplayString(mTargetPolicy)}";
 
         // 今発動できるスキルを絞り込んで 1 つ選び、対象を解決してコマンドを組み立てる
         // aContext : 評価 1 回分の入力

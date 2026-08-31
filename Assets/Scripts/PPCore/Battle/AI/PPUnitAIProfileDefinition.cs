@@ -12,6 +12,32 @@ using UnityEngine;
 
 namespace PPCore
 {
+    // 判断ツリーの位置づけ
+    // 評価そのものには影響せず、ツリーを探すときの絞り込みに使う
+    //
+    // 値はアセットへ数値のまま保存されるため、必ず明示的に振ること
+    // 途中へ挿入して後続の値がずれると、既存アセットの種別が黙って別のものへ書き換わる
+    // ツリーウィンドウの絞り込みボタンはこの列挙子から作られるため、足せば絞り込みも増える
+    public enum PPUnitAITreeKind
+    {
+        // ユニットへ直接割り当てる、根から評価が始まるツリー
+        [InspectorName("メインツリー")]
+        Main = 0,
+        // サブツリー参照ノードから呼ばれる、部品として使い回すツリー
+        // 下の役割別に当てはまらないものはこれにする
+        [InspectorName("サブツリー")]
+        SubTree = 1,
+        // 攻撃の組み立てを担うサブツリー
+        [InspectorName("サブツリー(攻撃)")]
+        SubTreeAttack = 2,
+        // 回復の判断を担うサブツリー
+        [InspectorName("サブツリー(回復)")]
+        SubTreeHeal = 3,
+        // バフ・デバフなど支援の判断を担うサブツリー
+        [InspectorName("サブツリー(支援)")]
+        SubTreeSupport = 4,
+    }
+
     // ユニット 1 体分の判断ツリーを持つ ScriptableObject
     // PPUnitDefinition へアタッチし、そのユニットが毎ティック「何をするか」を決める
     //
@@ -26,6 +52,9 @@ namespace PPCore
     public class PPUnitAIProfileDefinition : ScriptableObject
     {
         [Header("表示")]
+        // ツリーの位置づけ。評価には影響せず、ツリーウィンドウの一覧で絞り込むために使う
+        [Label("ツリー種別")]
+        [SerializeField] protected PPUnitAITreeKind mTreeKind = PPUnitAITreeKind.Main;
         [Label("説明")]
         [SerializeField][Multiline] protected string mDescription = "";
 
@@ -38,12 +67,18 @@ namespace PPCore
         [SerializeReference]
         [SerializeField] protected List<PPUnitAINode> mNodes = new();
 
+        // グラフ上へ置く注記。評価には関わらないため、ノードとは別のリストで持つ
+        [Label("注記", true)]
+        [SerializeField] protected List<PPUnitAINoteData> mNotes = new();
+
         // ID からノードを引くための索引。初回アクセス時に組み立てる
         private Dictionary<string, PPUnitAINode> mNodeMap;
 
+        public PPUnitAITreeKind TreeKind => mTreeKind;
         public string Description => mDescription;
         public string RootNodeId => mRootNodeId;
         public IReadOnlyList<PPUnitAINode> Nodes => mNodes;
+        public IReadOnlyList<PPUnitAINoteData> Notes => mNotes;
 
         // 評価を開始するノード。未設定・見つからない場合は null
         public PPUnitAINode Root => FindNode(mRootNodeId);
@@ -80,7 +115,25 @@ namespace PPCore
             {
                 node?.EnsureNodeId();
             }
+            foreach (var note in mNotes)
+            {
+                note?.EnsureNoteId();
+            }
             InvalidateNodeMap();
+        }
+
+        // ID から注記を引く
+        // aNoteId : 引く注記の ID
+        // return : 該当する注記。見つからなければ null
+        public PPUnitAINoteData FindNote(string aNoteId)
+        {
+            if (string.IsNullOrEmpty(aNoteId)) return null;
+
+            foreach (var note in mNotes)
+            {
+                if (note != null && note.NoteId == aNoteId) return note;
+            }
+            return null;
         }
 
         // ID からノードを引く索引を組み立てる
@@ -98,8 +151,23 @@ namespace PPCore
             return map;
         }
 
+        // 全ノードが持つ条件の説明文を組み立て直す
+        // 説明文はグラフ上のサマリ表示に使うため、設定を変えたら追従させる必要がある
+        public void RefreshConditionDescriptions()
+        {
+            foreach (var node in mNodes)
+            {
+                node?.RefreshConditionDescriptions();
+            }
+        }
+
         // アセットの読み込み・インスペクタ編集のたびに索引を捨てる
         // ノードを差し替えたのに古い索引を引き続けるのを防ぐ
-        protected virtual void OnValidate() => InvalidateNodeMap();
+        // 併せて条件の説明文も組み直し、設定とサマリ表示がずれないようにする
+        protected virtual void OnValidate()
+        {
+            InvalidateNodeMap();
+            RefreshConditionDescriptions();
+        }
     }
 }
