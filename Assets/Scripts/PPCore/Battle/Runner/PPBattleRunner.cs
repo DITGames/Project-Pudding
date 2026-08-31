@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System.Collections;
+using BattleInput;
 using CommandBattleCore;
 using CustomConsole;
 using UnityEngine;
@@ -35,6 +36,10 @@ namespace PPCore
         [Header("インプット")]
         [Label("コマンド入力コントローラ")]
         [SerializeField] private PPBattleCommandInputController mController;
+        // 新しい入力システムの試作。PPBattleCommandInputController とは独立した別系統として並行稼働させる
+        // 未アサインでも既存の入力に影響しないよう、Start 側で null チェックしてから Bind する
+        [Label("コマンド入力(新規試作)")]
+        [SerializeField] private BattleCommandInput mNewCommandInput;
 
         // ターン経過の間隔（秒）
         [Header("バトル設定")]
@@ -124,6 +129,12 @@ namespace PPCore
 
             mController.Bind(mBattleManager);
             mController.OnCommandFlushed += HandleCommandFlushed;
+
+            // 新しい入力システムの試作。既存コントローラーとは別に同じ BattleManager を直接 Bind する
+            if (mNewCommandInput != null)
+            {
+                mNewCommandInput.Bind(mBattleManager);
+            }
 
             mEnemyAIDriver = CreateDriver(BattleSide.Enemy, enemyStrategist, mEnemyPartyDefinition);
             mEnemyActionCoroutine = StartCoroutine(mEnemyAIDriver.RunLoop());
