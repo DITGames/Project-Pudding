@@ -31,6 +31,8 @@ namespace PPCore
         private readonly Dictionary<string, PPUnitAITreeNodeView> mNodeViews = new();
         // 注記のビュー。ID から引いて削除・保存に使う
         private readonly Dictionary<string, PPUnitAITreeNoteElement> mNoteViews = new();
+        // 経路強調で色を変えた接続線。強調解除時にまとめて元へ戻すために覚えておく
+        private readonly HashSet<PPUnitAITreeEdge> mHighlightedEdges = new();
 
         // 貼り付けたノードを複写元からずらす量。真上に重なって見失うのを防ぐ
         private static readonly Vector2 PasteOffset = new(30f, 30f);
@@ -38,6 +40,9 @@ namespace PPCore
         // 自動整列で使う、深さ 1 段ぶんの横幅とノード 1 つぶんの縦幅
         private const float LayoutColumnWidth = 320f;
         private const float LayoutRowHeight = 150f;
+
+        // 経路強調で通った接続線に使う色。既定の接続線と見分けが付くよう赤くしている
+        private static readonly Color HighlightedEdgeColor = new(0.95f, 0.25f, 0.15f);
 
         // 選択中ノードが変わった際に、対応するノードを渡して通知する(未選択時は null)
         public event Action<PPUnitAINode> OnNodeSelectionChanged;
@@ -150,6 +155,42 @@ namespace PPCore
                 // 経路表示と濃淡は排他。切り替えたときに前の表示が残らないよう、こちらで濃淡を解除する
                 pair.Value.SetHeat(-1f);
             }
+
+            ApplyEdgeHighlight(aVisitedNodeIds);
+        }
+
+        // 通過経路に沿った接続線を赤く太くする
+        // ノードの枠だけでは大きなツリーで経路を目で辿りにくいため、実際に辿った線もそのまま示す
+        // aVisitedNodeIds : 通過したノードの ID。root → ... → 確定ノードの順に並んでいる
+        private void ApplyEdgeHighlight(IReadOnlyList<string> aVisitedNodeIds)
+        {
+            ResetEdgeHighlight();
+            if (aVisitedNodeIds == null) return;
+
+            for (int i = 0; i < aVisitedNodeIds.Count - 1; i++)
+            {
+                if (!mNodeViews.TryGetValue(aVisitedNodeIds[i], out var parent)) continue;
+                if (!mNodeViews.TryGetValue(aVisitedNodeIds[i + 1], out var child)) continue;
+
+                foreach (var candidate in edges.ToList())
+                {
+                    if (candidate.output?.node != parent || candidate.input?.node != child) continue;
+                    if (candidate is not PPUnitAITreeEdge highlightable) continue;
+
+                    highlightable.SetHighlightColor(HighlightedEdgeColor);
+                    mHighlightedEdges.Add(highlightable);
+                }
+            }
+        }
+
+        // 強調で色を変えた接続線を既定の色・太さへ戻す
+        private void ResetEdgeHighlight()
+        {
+            foreach (var edge in mHighlightedEdges)
+            {
+                edge.SetHighlightColor(null);
+            }
+            mHighlightedEdges.Clear();
         }
 
         // 通過回数の集計を濃淡として反映する
@@ -170,6 +211,7 @@ namespace PPCore
                 // 濃淡と経路表示は排他。前に出していた経路の強調を解除する
                 pair.Value.SetHighlight(PPUnitAITreeHighlight.None);
             }
+            ResetEdgeHighlight();
         }
 
         // 強調表示・濃淡を解除して、種別ごとの色へ戻す
@@ -180,6 +222,7 @@ namespace PPCore
                 view.SetHighlight(PPUnitAITreeHighlight.None);
                 view.SetHeat(-1f);
             }
+            ResetEdgeHighlight();
         }
 
         // 指定ノードの表示を現在の値へ更新する
@@ -327,6 +370,8 @@ namespace PPCore
             {
                 RemoveElement(edge);
             }
+            // 消した接続線への参照を残さない。次に強調をかけるまで使われないが、寿命の切れた参照を持ち続けないため
+            mHighlightedEdges.Clear();
 
             foreach (var node in mProfile.Nodes)
             {
@@ -433,7 +478,7 @@ namespace PPCore
                     {
                         if (!mNodeViews.TryGetValue(childId ?? "", out var childView)) continue;
 
-                        var edge = view.OutputPorts[i].ConnectTo(childView.InputPort);
+                        var edge = view.OutputPorts[i].ConnectTo<PPUnitAITreeEdge>(childView.InputPort);
                         AddElement(edge);
                     }
                 }
@@ -552,7 +597,7 @@ namespace PPCore
             Port outputPort = aIsFromOutput ? aSourcePort : newNodePort;
             Port inputPort = aIsFromOutput ? newNodePort : aSourcePort;
 
-            var edge = outputPort.ConnectTo(inputPort);
+            var edge = outputPort.ConnectTo<PPUnitAITreeEdge>(inputPort);
             AddElement(edge);
             ConnectEdge(edge);
             ReorderAllSelectors();

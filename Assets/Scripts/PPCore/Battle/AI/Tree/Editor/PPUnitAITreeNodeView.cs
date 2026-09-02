@@ -30,6 +30,9 @@ namespace PPCore
         private const float IssueIconSize = 16f;
         // 要約欄の背景色。ノード本体の地の色に合わせた不透明な色
         private static readonly Color SummaryBackgroundColor = new(0.17f, 0.17f, 0.17f, 1f);
+        // ヒートマップの濃淡に使う固定の配色（寒色→暖色）。種別色に依存すると差が読み取りにくいため固定にしている
+        private static readonly Color HeatColorCold = new(0.16f, 0.20f, 0.30f);
+        private static readonly Color HeatColorHot = new(0.95f, 0.20f, 0.10f);
 
         private readonly List<Port> mOutputPorts = new();
         // ノード種別ごとのタイトル色。他の表示から戻す際の基準にする
@@ -77,7 +80,7 @@ namespace PPCore
 
             ApplyTitleColor(aNode);
             RefreshSummary();
-            RefreshInterruptStyle();
+            RefreshBorder();
             RefreshMutedStyle();
             RefreshExpandedState();
             RefreshPorts();
@@ -157,24 +160,43 @@ namespace PPCore
             titleContainer.style.backgroundColor = color;
         }
 
-        // 割り込み指定の縁取りを現在の設定へ合わせる
-        // 待機コミット中の挙動を左右する設定なので、ひと目で分かるように枠で示す
-        // インスペクタで切り替えた直後にも呼ぶため、OFF に戻された場合は枠を消す
-        private void RefreshInterruptStyle()
+        // 枠線を現在の状態へ合わせる
+        // 優先順は「経路強調 > 割り込み指定」。タイトルバーだけの色分けはノードが増えると見落としやすいため、
+        // 経路強調（確定・通過）はノード全体を太い枠で囲んで、グラフを一目見ただけで経路を追えるようにする
+        // インスペクタで割り込み指定を切り替えた直後にも呼ぶため、対象外に戻った場合は枠を消す
+        private void RefreshBorder()
         {
-            float width = Node.IsInterrupt ? 2f : 0f;
-            style.borderTopWidth = width;
-            style.borderBottomWidth = width;
-            style.borderLeftWidth = width;
-            style.borderRightWidth = width;
+            if (mHighlight != PPUnitAITreeHighlight.None)
+            {
+                var color = mHighlight == PPUnitAITreeHighlight.Decided
+                    ? new Color(1f, 0.85f, 0.1f)
+                    : new Color(0.25f, 0.75f, 1f);
+                SetBorder(4f, color);
+                return;
+            }
 
-            if (!Node.IsInterrupt) return;
+            if (Node.IsInterrupt)
+            {
+                SetBorder(2f, new Color(0.95f, 0.65f, 0.20f));
+                return;
+            }
 
-            var borderColor = new Color(0.95f, 0.65f, 0.20f);
-            style.borderTopColor = borderColor;
-            style.borderBottomColor = borderColor;
-            style.borderLeftColor = borderColor;
-            style.borderRightColor = borderColor;
+            SetBorder(0f, Color.clear);
+        }
+
+        // 枠線の太さと色をまとめて設定する
+        // aWidth : 枠線の太さ
+        // aColor : 枠線の色
+        private void SetBorder(float aWidth, Color aColor)
+        {
+            style.borderTopWidth = aWidth;
+            style.borderBottomWidth = aWidth;
+            style.borderLeftWidth = aWidth;
+            style.borderRightWidth = aWidth;
+            style.borderTopColor = aColor;
+            style.borderBottomColor = aColor;
+            style.borderLeftColor = aColor;
+            style.borderRightColor = aColor;
         }
 
         // 評価から外されているノードを半透明にする
@@ -204,19 +226,23 @@ namespace PPCore
 
         // 思考の経路として通過したノードを強調表示する
         // 確定した行動のノードは、経路上の他のノードと区別できるよう別の色にする
+        // タイトルバーの色分けだけだと見落としやすいため、ノード全体を囲む太い枠でも示す
         // aState : 強調の種類
         public void SetHighlight(PPUnitAITreeHighlight aState)
         {
             mHighlight = aState;
             RefreshTitleColor();
+            RefreshBorder();
         }
 
         // 通過回数に応じた濃淡を当てる
-        // 一度も通っていないノードが最も薄くなるよう、種別の色へ通過率を掛ける
+        // 種別の色を薄める従来の濃淡だけでは差が読み取りにくいため、
+        // 濃淡そのものは固定の寒色→暖色の配色（青→赤）へ差し替えて種別色に依存せず見分けられるようにする
         // aRatio : 集計内での通過率（0～1）。負値を渡すと濃淡を解除する
         public void SetHeat(float aRatio)
         {
             mHeatRatio = aRatio;
+            tooltip = aRatio >= 0f ? $"通過率 : {Mathf.RoundToInt(Mathf.Clamp01(aRatio) * 100f)}%" : "";
             RefreshTitleColor();
         }
 
@@ -243,7 +269,7 @@ namespace PPCore
             if (mHeatRatio >= 0f)
             {
                 float t = Mathf.Clamp01(mHeatRatio);
-                titleContainer.style.backgroundColor = Color.Lerp(mTitleColor * 0.35f, mTitleColor, t);
+                titleContainer.style.backgroundColor = Color.Lerp(HeatColorCold, HeatColorHot, t);
                 return;
             }
 
@@ -257,7 +283,7 @@ namespace PPCore
         {
             title = aIsRoot ? $"★ {Node.NodeName}" : Node.NodeName;
             RefreshSummary();
-            RefreshInterruptStyle();
+            RefreshBorder();
             RefreshMutedStyle();
         }
     }

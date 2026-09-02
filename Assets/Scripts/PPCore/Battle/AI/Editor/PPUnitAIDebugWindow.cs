@@ -196,6 +196,7 @@ namespace PPCore
                         && !isSelected)
                     {
                         PPUnitAITreeHighlightHub.Select(aEntry);
+                        OpenTreeWindow(aEntry.Profile);
                     }
                     EditorGUILayout.LabelField(DecisionLabel(aEntry.Decision), GUILayout.Width(80f));
                     EditorGUILayout.LabelField(aEntry.Decision == PPUnitAIDecision.Wait
@@ -212,6 +213,20 @@ namespace PPCore
                     EditorGUILayout.LabelField("判断の維持", $"あと {aEntry.CommitRemainingTicks} ティック");
                 }
             }
+        }
+
+        // 選んだ思考記録のツリーをツリーウィンドウで開く
+        // 経路のハイライトだけでは今どのツリーの話か分かりにくいため、選んだ時点で該当のツリーへ切り替える
+        // aProfile : 開く判断ツリー。null なら何もしない
+        private static void OpenTreeWindow(PPUnitAIProfileDefinition aProfile)
+        {
+            if (aProfile == null) return;
+
+            var window = GetWindow<PPUnitAITreeWindow>();
+            window.titleContent = new GUIContent("Unit AI Tree");
+            window.SetTarget(aProfile);
+            window.Show();
+            window.Focus();
         }
 
         // 表示対象の記録を解決する
