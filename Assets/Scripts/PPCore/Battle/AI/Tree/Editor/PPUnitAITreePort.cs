@@ -26,7 +26,7 @@ namespace PPCore
         public static PPUnitAITreePort Create(Orientation aOrientation, Direction aDirection, Capacity aCapacity)
         {
             var port = new PPUnitAITreePort(aOrientation, aDirection, aCapacity, typeof(bool));
-            port.m_EdgeConnector = new EdgeConnector<Edge>(port);
+            port.m_EdgeConnector = new EdgeConnector<PPUnitAITreeEdge>(port);
             port.AddManipulator(port.m_EdgeConnector);
             return port;
         }
