@@ -12,7 +12,8 @@ using CommandBattleCore;
 namespace PPCore
 {
     // 「誰が行動するか」を選ぶ入力ステート。コマンド入力の起点になる
-    // 味方の生存アクティブメンバーを候補にし、決定するとコマンド選択へ進む
+    // 味方の生存アクティブメンバーを候補にし、決定するとスキル選択へ進む
+    // 通常攻撃・コマンド選択は廃止し、行動はスキルからのみ選ばせる
     public class PPUnitSelectState : PPBattleUnitPickerStateBase
     {
         // aOwner : このステートを保持する入力コントローラー
@@ -35,12 +36,12 @@ namespace PPCore
             return candidates;
         }
 
-        // 選択されたユニットを記録し、コマンド選択ステートへ進む
+        // 選択されたユニットを記録し、スキル選択ステートへ進む
         // aView : 決定されたユニットのビュー
         protected override void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Unit = aView.BattleUnit;
-            mOwner.Push(new PPCommandSelectState(mOwner));
+            mOwner.Push(new PPSkillSelectState(mOwner));
         }
     }
 }

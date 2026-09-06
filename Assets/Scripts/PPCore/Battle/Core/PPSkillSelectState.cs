@@ -36,11 +36,12 @@ namespace PPCore
         // スキルメニューを閉じる
         protected override void HideView() => mOwner.SkillMenu.Hide();
 
-        // スキルの決定と戻る操作を購読する
+        // スキルの決定・戻る・詳細確認操作を購読する
         protected override void Subscribe()
         {
             mOwner.SkillMenu.OnSkillSelected += HandleSkillSelected;
             mOwner.SkillMenu.OnBackRequested += HandleBack;
+            mOwner.SkillMenu.OnDetailRequested += HandleDetail;
         }
 
         // 購読を解除する
@@ -48,6 +49,7 @@ namespace PPCore
         {
             mOwner.SkillMenu.OnSkillSelected -= HandleSkillSelected;
             mOwner.SkillMenu.OnBackRequested -= HandleBack;
+            mOwner.SkillMenu.OnDetailRequested -= HandleDetail;
         }
 
         // スキルが選ばれたときの処理
@@ -70,7 +72,10 @@ namespace PPCore
                 mOwner.Confirm();
         }
 
-        // 戻る操作。1 段ポップしてコマンド選択へ戻る
-        private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
+        // 戻る操作。1 段ポップしてユニット選択へ戻る
+        private void HandleBack() => mOwner.Back();
+
+        // 詳細確認操作。選択中ユニットの詳細ビューへ進む
+        private void HandleDetail() => mOwner.Push(new PPUnitDetailViewState(mOwner));
     }
 }
