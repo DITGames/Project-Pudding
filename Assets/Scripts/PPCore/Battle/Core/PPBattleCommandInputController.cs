@@ -28,6 +28,8 @@ namespace PPCore
     {
         [Label("ユニットビューバインダー")]
         [SerializeField] private PPBattleUnitViewBinder mViewBinder;
+        [Label("ユニット選択メニュー")]
+        [SerializeField] private PPBattleUnitSelectMenuView mUnitSelectMenu;
         [Label("コマンドメニュー")]
         [SerializeField] private PPBattleCommandMenuView mCommandMenu;
         [Label("スキルメニュー")]
@@ -57,6 +59,8 @@ namespace PPCore
         public BattleManager Manager => mManager;
         // ユニットとビューの対応付け。各ステートが対象選択に使う
         public PPBattleUnitViewBinder ViewBinder => mViewBinder;
+        // 自陣ユニット選択メニューのビュー
+        public PPBattleUnitSelectMenuView UnitSelectMenu => mUnitSelectMenu;
         // コマンドメニューのビュー
         public PPBattleCommandMenuView CommandMenu => mCommandMenu;
         // スキルメニューのビュー

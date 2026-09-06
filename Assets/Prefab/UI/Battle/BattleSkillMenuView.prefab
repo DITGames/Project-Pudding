@@ -51,7 +51,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a9eec7dea7d0cd8469141c6506b2e1c3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleSkillMenuView
-  mButtonPrefab: {fileID: 153752814617666, guid: db96bd567bcf4bb380220dfb7052cf52, type: 3}
+  mButtonPrefab: {fileID: 621507569615499, guid: 4d926e1fad7c45fb9ed5bf7df462391c, type: 3}
   mContent: {fileID: 2791157290776867670}
   mBackButton: {fileID: 3888262763632214924}
   mDetailButton: {fileID: 3889162763632214924}

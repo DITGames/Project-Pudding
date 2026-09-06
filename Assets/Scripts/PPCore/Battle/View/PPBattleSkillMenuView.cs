@@ -22,7 +22,7 @@ namespace PPCore
     public class PPBattleSkillMenuView : MonoBehaviour
     {
         [Label("スキルボタンプレハブ")]
-        [SerializeField] private PPBattleSkillButtonElement mButtonPrefab;
+        [SerializeField] private PPBattleCommandButton mButtonPrefab;
         [Label("スキルボタン表示領域")]
         [SerializeField] private RectTransform mContent;
         [Label("戻るボタン")]
@@ -40,7 +40,9 @@ namespace PPCore
         public event Action OnDetailRequested;
 
         // 生成済みのスキルボタン。閉じるときにまとめて破棄する
-        private readonly List<PPBattleSkillButtonElement> mSkillButtons = new();
+        private readonly List<PPBattleCommandButton> mSkillButtons = new();
+        // 生成済みのスキルボタンに対応するステータスソース。閉じるときにまとめて購読解除する
+        private readonly List<IPPSkillStatusSource> mSkillSources = new();
 
         // メニューを指定した位置へ移動させる。レイアウトを崩さないよう worldPositionStays は false
         // aAnchor : 配置先の親となる RectTransform
@@ -67,7 +69,7 @@ namespace PPCore
             Clear();
             gameObject.SetActive(true);
 
-            PPBattleSkillButtonElement firstBtn = null;
+            PPBattleCommandButton firstBtn = null;
             foreach (var skill in aUnit.Skills)
             {
                 var btn = Instantiate(mButtonPrefab, mContent);
@@ -76,8 +78,16 @@ namespace PPCore
                 var icon = mIconCatalog != null
                     ? mIconCatalog.Resolve(skill.SkillId)?.SkillIcon
                     : null;
-                btn.Setup(skill, src, icon, s => OnSkillSelected?.Invoke(s));
+                btn.Setup(icon, src.Cost.ToString(), () => OnSkillSelected?.Invoke(skill));
+                btn.SetInteractable(src.IsCastable);
+                // リソース変動でコスト表示・押下可否を追従させる
+                src.Changed += () =>
+                {
+                    btn.SetContent(icon, src.Cost.ToString());
+                    btn.SetInteractable(src.IsCastable);
+                };
                 mSkillButtons.Add(btn);
+                mSkillSources.Add(src);
 
                 // 初期フォーカス設定
                 firstBtn ??= btn;
@@ -113,7 +123,7 @@ namespace PPCore
             OnDetailRequested?.Invoke();
         }
 
-        // 戻る・詳細ボタンの購読を解除し、生成済みのスキルボタンをすべて破棄する
+        // 戻る・詳細ボタンの購読を解除し、生成済みのスキルボタンとステータスソースをすべて破棄する
         // 表示のたびに作り直すため、開く前と閉じるときの両方から呼ばれる
         private void Clear()
         {
@@ -125,6 +135,13 @@ namespace PPCore
                 Destroy(btn.gameObject);
             }
             mSkillButtons.Clear();
+
+            // 供給元がリソースを購読している場合があるため、そちらの Dispose も通しておく
+            foreach (var src in mSkillSources)
+            {
+                (src as IDisposable)?.Dispose();
+            }
+            mSkillSources.Clear();
         }
     }
 }
