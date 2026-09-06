@@ -39,7 +39,7 @@ namespace PPCore
         // 新しい入力システムの試作。PPBattleCommandInputController とは独立した別系統として並行稼働させる
         // 未アサインでも既存の入力に影響しないよう、Start 側で null チェックしてから Bind する
         [Label("コマンド入力(新規試作)")]
-        [SerializeField] private BattleCommandInput mNewCommandInput;
+        [SerializeField] private BattleCommandInputController mNewController;
 
         // ターン経過の間隔（秒）
         [Header("バトル設定")]
@@ -131,9 +131,10 @@ namespace PPCore
             mController.OnCommandFlushed += HandleCommandFlushed;
 
             // 新しい入力システムの試作。既存コントローラーとは別に同じ BattleManager を直接 Bind する
-            if (mNewCommandInput != null)
+            if (mNewController != null)
             {
-                mNewCommandInput.Bind(mBattleManager);
+                mNewController.Bind(mBattleManager);
+                mNewController.OnCommandFlushed += HandleCommandFlushed;
             }
 
             mEnemyAIDriver = CreateDriver(BattleSide.Enemy, enemyStrategist, mEnemyPartyDefinition);
@@ -158,6 +159,7 @@ namespace PPCore
                 if (CanSelectAnyCommand())
                 {
                     mController.BeginCommandInput();
+                    mNewController.BeginCommandInput();
                 }
             }
 
@@ -165,6 +167,7 @@ namespace PPCore
             {
                 // オートモードへ切り替える。開いている入力UIは強制的に閉じる
                 mController.Abort();
+                mNewController.Abort();
                 StartAllyAutoBattle();
             }
         }
