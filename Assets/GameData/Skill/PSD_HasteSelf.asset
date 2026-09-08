@@ -32,16 +32,5 @@ MonoBehaviour:
       type: {class: PPStatusApplySkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mApplyTarget: 1
-        mEffect:
-          rid: 7300000000000003002
-    - rid: 7300000000000003002
-      type: {class: PPParameterEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mDisplayName: "加速"
-        mDuration: 5
-        mStackPolicy: 1
-        mMaxStack: 1
-        mTargetParam: 5
-        mDirection: 0
-        mModifierType: 0
-        mValue: 1
+        mEffect: {fileID: 11400000, guid: 8b8e972647853dcd0221b0ee850f1aac, type: 2}
+        mApplyChance: 1

@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPSkillEffectDefinitionDrawer.cs
  * @author hqrse
  * @date 2026/08/06
@@ -42,25 +42,15 @@ namespace PPCore
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
             => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
 
-        // PPSkillEffectDefinition 派生と PPEffectDefinition 派生をまとめて 1 本のツリーに並べる
-        // 2 つの異なる型階層を 1 回の選択で扱えるようにするための橋渡し
-        // 属性の無い型（PPStatusApplySkillEffectDefinition のような内部用ラッパー）はツリーに出さない
+        // PPSkillEffectDefinition の具象派生型を候補として集める
         // return : 候補として並べる型のリスト
         private static List<Type> CollectCandidateTypes()
-        {
-            var list = PPTypeTreePickerTreeView.CollectDerived<PPSkillEffectDefinition>(true);
-            PPTypeTreePickerTreeView.AppendDerived<PPEffectDefinition>(list, true);
-            return list;
-        }
+            => PPTypeTreePickerTreeView.CollectDerived<PPSkillEffectDefinition>(true);
 
         // 選ばれた型からインスタンスを組み立てる
-        // PPEffectDefinition 派生（毒・パラメータ変動など）は単体では SkillEffect として扱えないため、
-        // PPStatusApplySkillEffectDefinition でラップして「付与型 SkillEffect ＋ 中身」を一度に作る
         // aType : 選ばれた型
         // return : フィールドへ設定するインスタンス
         private static PPSkillEffectDefinition CreateInstance(Type aType)
-            => typeof(PPEffectDefinition).IsAssignableFrom(aType)
-                ? new PPStatusApplySkillEffectDefinition((PPEffectDefinition)Activator.CreateInstance(aType))
-                : (PPSkillEffectDefinition)Activator.CreateInstance(aType);
+            => (PPSkillEffectDefinition)Activator.CreateInstance(aType);
     }
 }

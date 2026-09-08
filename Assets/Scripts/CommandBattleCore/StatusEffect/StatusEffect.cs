@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file StatusEffect.cs
  * @author hqrse
  * @date 2026/07/31
@@ -28,6 +28,10 @@ namespace CommandBattleCore
 
         // 効果が切れる条件。未指定なら永続
         public IDurationCondition DurationCondition { get; set; }
+        // スタックを消費するきっかけと量を決めるルール。未指定ならスタックは自然には減らない
+        public IStatusEffectConsumeRule ConsumeRule { get; private set; }
+        // 付与されてから経過したターン数。確率消費のカーブなどで参照する
+        public int ElapsedTurns { get; private set; }
         // 同一 ID が重ねて付与されたときの挙動
         public StatusEffectStackPolicy StackPolicy { get; private set; } = StatusEffectStackPolicy.Refresh;
         // スタック数の上限
@@ -73,6 +77,7 @@ namespace CommandBattleCore
             ActionFailChance = aFailChance;
             return this;
         }
+        public StatusEffect WithConsumeRule(IStatusEffectConsumeRule aRule) { ConsumeRule = aRule; return this; }
         public StatusEffect WithStacking(StatusEffectStackPolicy aPolicy, int aMaxStacks = 1)
         {
             StackPolicy = aPolicy;
@@ -107,6 +112,7 @@ namespace CommandBattleCore
         {
             Owner = aOwner;
             CurrentStacks = 1;
+            ElapsedTurns = 0;
             var ctx = new StatusEffectContext(this, aOwner, aContext);
             foreach (var b in mBehaviours) b.OnApply(ctx);
         }
@@ -126,6 +132,7 @@ namespace CommandBattleCore
         // aContext : バトルコンテキスト
         internal void Tick(BattleUnit aOwner, BattleContext aContext)
         {
+            ElapsedTurns++;
             var ctx = new StatusEffectContext(this, aOwner, aContext);
             foreach (var b in mBehaviours) b.OnTick(ctx);
         }
@@ -144,6 +151,29 @@ namespace CommandBattleCore
         // aOwner : 対象のユニット
         // aContext : バトルコンテキスト
         // return : 上限に達しておらず実際に増えた場合 true
+        // スタックを消費する
+        // 0 以下になった場合はエフェクトごと除去する必要があるため、その判断を呼び出し元へ返す
+        // （除去そのものは ActiveStatusEffects を持つ BattleUnit 側の責務）
+        // aStacks : 消費するスタック数
+        // aOwner : 対象のユニット
+        // aContext : バトルコンテキスト
+        // return : スタックを使い切りエフェクトを除去すべき場合 true
+        internal bool ConsumeStacks(int aStacks, BattleUnit aOwner, BattleContext aContext)
+        {
+            if (aStacks <= 0) return false;
+
+            CurrentStacks -= aStacks;
+            if (CurrentStacks <= 0)
+            {
+                CurrentStacks = 0;
+                return true;
+            }
+
+            var ctx = new StatusEffectContext(this, aOwner, aContext);
+            foreach (var b in mBehaviours) b.OnStackChanged(ctx);
+            return false;
+        }
+
         internal bool TryAddStack(BattleUnit aOwner, BattleContext aContext)
         {
             if (CurrentStacks >= MaxStacks) return false;

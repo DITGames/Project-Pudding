@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file IPPBattleCommand.cs
  * @author hqrse
  * @date 2026/06/21

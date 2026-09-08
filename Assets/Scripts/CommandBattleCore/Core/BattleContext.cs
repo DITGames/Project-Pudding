@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file BattleContext.cs
  * @author hqrse
  * @date 2026/06/13
@@ -50,6 +50,12 @@ namespace CommandBattleCore
 
         // 経過ターン数。BattleManager.AdvanceTick で加算される
         public int TurnCount { get; set; }
+
+        // リアクション（反撃など）のコマンドを実行している最中なら true
+        // BattleManager がコマンド実行の前後で設定する
+        // この間に発生した攻撃ダメージは DamageInfo.Reason が Reaction になり、
+        // 反撃に反撃を返すかどうかをリアクション側が判断できるようになる
+        public bool IsExecutingReaction { get; set; }
 
         // スキル発動に失敗したとき(発動ユニット, スキル, 失敗理由)
         public event Action<BattleUnit, BattleSkill, CastFailReason> OnCastFailed;

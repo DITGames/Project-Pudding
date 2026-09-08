@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file IBattleReaction.cs
  * @author hqrse
  * @date 2026/06/13
@@ -12,8 +12,10 @@ namespace CommandBattleCore
     // ユニットの BattleUnit.Reactions に登録しておくと、
     // BattleManager.DispatchReactions がトリガー発生時に走査し、
     // ShouldReact が true を返したものについて BuildReaction のコマンドをキュー先頭へ割り込ませる
-    // 反撃が反撃を呼ぶ連鎖は BattleManager.MaxReactionPerEvent と
-    // リアクション実行中の抑止フラグで止まるため、実装側で気にする必要はない
+    // 反撃が反撃を呼ぶ連鎖を止めたい場合は ShouldReact で ReactionContext.IsReactionDamage を見て false を返すこと
+    // BattleRules.MaxReactionPerEvent は想定外の連鎖に対する安全網であり、
+    // 意図した連鎖の可否はリアクション側の判断に任せている
+    // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで発火できなくなるため）
     public interface IBattleReaction
     {
         // 反応するトリガー種別

@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file BattleCommandBase.cs
  * @author hqrse
  * @date 2026/06/13
@@ -22,6 +22,9 @@ namespace CommandBattleCore
         public virtual int Priority => 0;
         // リアクション（反撃など）として生成されたコマンドなら true。連鎖抑止の判定に使う
         public bool IsReaction { get; protected internal set; }
+        // 攻撃にあたる行動なら true
+        // StatusEffectConsumeTrigger.Attacked の判定に使う。何を攻撃と見なすかはゲーム側の裁量のため派生で上書きする
+        public virtual bool IsAttack => false;
 
         // aSource : コマンドを実行するユニット
         // aTargetResolver : 対象を決定するリゾルバ

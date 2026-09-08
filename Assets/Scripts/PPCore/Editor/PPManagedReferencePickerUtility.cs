@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPManagedReferencePickerUtility.cs
  * @author hqrse
  * @date 2026/08/06
@@ -54,7 +54,7 @@ namespace PPCore
             switch (aProperty.managedReferenceValue)
             {
                 case PPSkillEffectDefinition skillEffect: label.text = skillEffect.BuildString(); break;
-                case PPEffectDefinition statusEffect: label.text = statusEffect.BuildString(); break;
+                case PPStatusEffectBehaviourDefinition behaviour: label.text = behaviour.BuildString(); break;
                 case PPPartyConditionValidator condition when !string.IsNullOrEmpty(condition.Description):
                     label.text = condition.Description; break;
                 case PPUnitConditionValidator unitCondition when !string.IsNullOrEmpty(unitCondition.Description):

@@ -87,8 +87,8 @@ MonoBehaviour:
       type: {class: PPUnitStatusEffectCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mIsAutoDescription: 1
-        mDescription: "DefenseBuff \u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044"
-        mEffectId: DefenseBuff
+        mDescription: "\u4F55\u3089\u304B\u306E\u72B6\u614B\u7570\u5E38 \u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044"
+        mEffect: {fileID: 0}
         mTags: 0
         mIsInvert: 1
     - rid: 1269812297483681897

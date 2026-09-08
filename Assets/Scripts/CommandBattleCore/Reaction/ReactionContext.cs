@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file ReactionContext.cs
  * @author hqrse
  * @date 2026/06/13
@@ -23,6 +23,10 @@ namespace CommandBattleCore
         public DamageInfo Damage { get; }
         // トリガーの追加データ。ターン系では BattleContext が入る
         public object Payload { get; }
+
+        // 引き金になったダメージがリアクション（反撃など）によるものなら true
+        // 「反撃に反撃を返さない」を実装する際は ShouldReact でこれを見て false を返す
+        public bool IsReactionDamage => Damage?.Reason == DamageReason.Reaction;
 
         // aTrigger : トリガー種別
         // aInstigator : トリガーを起こしたユニット

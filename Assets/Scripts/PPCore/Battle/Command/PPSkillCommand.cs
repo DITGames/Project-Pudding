@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPSkillCommand.cs
  * @author hqrse
  * @date 2026/07/16
@@ -18,6 +18,11 @@ namespace PPCore
     // それぞれ理由付きで BattleContext.NotifyCastFailed を通知する
     public class PPSkillCommand : SkillCommand
     {
+        // 攻撃系統のスキルのみ「攻撃時」のスタック消費のきっかけとして扱う
+        // 支援・回復は敵にダメージを与える行動ではないため攻撃に含めない
+        public override bool IsAttack
+            => Skill?.SourceDefinition is PPSkillDefinition definition && definition.Group == PPSkillGroup.Attack;
+
         // aSource : スキルを使用するユニット
         // aSkill : 使用するスキル
         // aResolverOverride : 対象を明示指定する場合のリゾルバ。null ならスキル既定を使う

@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PercentLabelDrawer.cs
  * @author hqrse
  * @date 2026/07/30
