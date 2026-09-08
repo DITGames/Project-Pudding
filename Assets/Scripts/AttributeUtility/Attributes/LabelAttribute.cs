@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file LabelAttribute.cs
  * @author hqrse
  * @date 2026/06/13

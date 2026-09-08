@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPDamageInfo.cs
  * @author hqrse
  * @date 2026/07/27
@@ -32,9 +32,11 @@ namespace PPCore
         // aCategory : スキル種別
         // aAttribute : 攻撃属性
         // aSourceAbility : 発生源のスキル定義やエフェクト
+        // aReason : 何によって発生したダメージか
         public PPDamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, PPSkillCategory aCategory,
-            PPTypeAttribute aAttribute = PPTypeAttribute.Normal, object aSourceAbility = null)
-            : base(aSource, aTarget, aAmount, aSourceAbility)
+            PPTypeAttribute aAttribute = PPTypeAttribute.Normal, object aSourceAbility = null,
+            DamageReason aReason = DamageReason.Attack)
+            : base(aSource, aTarget, aAmount, aSourceAbility, aReason)
         {
             Category = aCategory;
             Attribute = aAttribute;

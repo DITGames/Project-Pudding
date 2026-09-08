@@ -127,13 +127,15 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 
 ```csharp
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file <FileName>.cs
- * @author hqrse
+ * @author UserName
  * @date YYYY/MM/DD
  * @brief <日本語1行説明>
  * =====================================*/
 ```
+
+`Copyright` はプロジェクトの権利表記に合わせる（本プロジェクトは `WabisabiAndons`）。`@author` の `UserName` はそのファイルを新規作成した人の名前に置き換える。
 
 **命名**
 
@@ -145,7 +147,7 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 | PPCore の型 | `PP` プレフィックス必須 | `PPBattleUnit`, `PPSkillCommand` |
 | ローカル変数 | camelCase | `snap`, `candidates` |
 
-- コメント・`Label` / `InspectorName` の表示文字列は **日本語**。ログメッセージは英語が混在（`BattleManager` のバトルログは英語）
+- `Label` / `InspectorName` の表示文字列は **日本語**
 - `[SerializeField] private` + `[Label("表示名")]` をセットで書く。インスペクタに素の英語フィールド名を出さない
 - 日本語表示文字列は再利用されるものを `PPBattleUtilityDefinition` / `PPTypeAttributeDefinition` の `const` に集約している。ロール名・属性名はハードコードせずこの定数を使う
 - 拡張ポイントは `virtual` / `protected` を積極的に付ける（`BattleManager` の各メソッド、AI のスコア計算群）
@@ -158,6 +160,7 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 - タグには機能領域を表す**大分類のみ**を指定する（サブタグ・階層構造は用いない）。バトル進行・パーティ AI・UI・入力など、本ファイルのアーキテクチャ節に登場する機能領域に対応する名前を付ける。大分類の正式な一覧は定めない
 - 検証・デバッグ用の一時的なログは、大分類タグの末尾にアンダースコア区切りで `_Verify` を付けて区別する（例: `CustomConsoleLog.Verbose("Battle_Verify", $"...")`）
 - ログレベル（`Verbose` / `Log` / `Warning` / `Error` / `Critical`）はタグ運用と独立した軸であり、状況に応じて自由に選択してよい
+- ログメッセージの言語は日本語・英語どちらでもよい（既存の `BattleManager` のバトルログは英語）
 
 ## Unity 固有の注意点
 

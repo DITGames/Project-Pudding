@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file MCPMainThreadDispatcher.cs
  * @author hqrse
  * @date 2026/08/19

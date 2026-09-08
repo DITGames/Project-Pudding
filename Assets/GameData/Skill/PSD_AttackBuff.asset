@@ -32,16 +32,5 @@ MonoBehaviour:
       type: {class: PPStatusApplySkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mApplyTarget: 0
-        mEffect:
-          rid: 7300000000000001002
-    - rid: 7300000000000001002
-      type: {class: PPParameterEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mDisplayName: "攻撃強化"
-        mDuration: 5
-        mStackPolicy: 1
-        mMaxStack: 1
-        mTargetParam: 0
-        mDirection: 0
-        mModifierType: 1
-        mValue: 1.5
+        mEffect: {fileID: 11400000, guid: 09f7ea01d0b50a353f688c0e2a1714b7, type: 2}
+        mApplyChance: 1

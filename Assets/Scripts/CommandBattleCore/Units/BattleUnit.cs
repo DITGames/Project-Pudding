@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file BattleUnit.cs
  * @author hqrse
  * @date 2026/06/13
@@ -138,7 +138,8 @@ namespace CommandBattleCore
         // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
         public void ApplyDamage(float aAmount, BattleContext aContext = null)
         {
-            ApplyDamage(new DamageInfo(null, this, aAmount), aContext);
+            // 発生源が分からない経路のため、攻撃とは見なさない
+            ApplyDamage(new DamageInfo(null, this, aAmount, null, DamageReason.Other), aContext);
         }
 
         // ダメージを適用する
@@ -149,6 +150,15 @@ namespace CommandBattleCore
         public void ApplyDamage(DamageInfo aDamageInfo, BattleContext aContext = null)
         {
             if (!IsAlive) return;
+
+            // リアクション実行中に発生した攻撃ダメージは Reaction として扱う
+            // ここで一度だけ行うことで、ダメージを組み立てる側（通常攻撃・スキル・反射など）が
+            // 自分が反撃の最中かどうかを意識しなくて済む
+            // 継続ダメージなど攻撃以外の種別は、リアクション中に起きても種別を書き換えない
+            if (aContext != null && aContext.IsExecutingReaction && aDamageInfo.Reason == DamageReason.Attack)
+            {
+                aDamageInfo.Reason = DamageReason.Reaction;
+            }
 
             // ミスの場合は結果通知だけ行って終了する
             if (aDamageInfo.IsMiss)
@@ -180,6 +190,12 @@ namespace CommandBattleCore
             OnDamaged?.Invoke(this, applied);
             OnPostDamaged?.Invoke(aDamageInfo);
             OnDamageResolved?.Invoke(aDamageInfo);
+
+            // ダメージ量への介入（NotifyIncomingDamage）が済んだ後に消費させる
+            // 先に消費すると「次に受けるダメージを変化させる」効果が自分の出番で消えてしまう
+            // ダメージ情報を渡すことで、消費ルール側が「攻撃によるダメージのみ」等の絞り込みを行える
+            NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Damaged, aContext, aDamageInfo);
+
             if(!IsAlive) OnDefeated?.Invoke(this);
         }
 
@@ -264,7 +280,48 @@ namespace CommandBattleCore
                 if (!effect.DurationCondition.Tick())
                 {
                     RemoveStatusEffect(effect, aContext);
+                    continue;
                 }
+
+                // 寿命が残っていても、ターン経過をきっかけにしたスタック消費で切れることがある
+                ApplyConsumeRule(effect, StatusEffectConsumeTrigger.TurnEnded, aContext, null);
+            }
+        }
+
+        // スタック消費のきっかけが起きたことを、掛かっている全エフェクトへ知らせる
+        // 消費でスタックを使い切ったエフェクトはその場で除去される
+        // 除去中にリストが縮むため、末尾から逆順に走査している
+        // aTrigger : 発生したきっかけ
+        // aContext : バトルコンテキスト
+        // aDamage : Damaged のきっかけで渡すダメージ情報。それ以外のきっかけでは null
+        public void NotifyStatusEffectTrigger(StatusEffectConsumeTrigger aTrigger, BattleContext aContext,
+            DamageInfo aDamage = null)
+        {
+            for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
+            {
+                // 直前の消費で他のエフェクトが除去され、添字がずれる可能性を考慮する
+                if (i >= ActiveStatusEffects.Count) continue;
+                ApplyConsumeRule(ActiveStatusEffects[i], aTrigger, aContext, aDamage);
+            }
+        }
+
+        // 1 つのエフェクトへ消費ルールを適用する
+        // aEffect : 対象のエフェクト
+        // aTrigger : 発生したきっかけ
+        // aContext : バトルコンテキスト
+        // aDamage : 被ダメージのきっかけで渡されるダメージ情報
+        private void ApplyConsumeRule(StatusEffect aEffect, StatusEffectConsumeTrigger aTrigger, BattleContext aContext,
+            DamageInfo aDamage)
+        {
+            if (aEffect?.ConsumeRule == null) return;
+
+            var effectContext = new StatusEffectContext(aEffect, this, aContext);
+            int consume = aEffect.ConsumeRule.ResolveConsumeStacks(aTrigger, effectContext, aDamage);
+            if (consume <= 0) return;
+
+            if (aEffect.ConsumeStacks(consume, this, aContext))
+            {
+                RemoveStatusEffect(aEffect, aContext);
             }
         }
 

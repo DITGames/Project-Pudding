@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file BattleRules.cs
  * @author hqrse
  * @date 2026/06/13
@@ -10,9 +10,10 @@ using System.Collections.Generic;
 
 namespace CommandBattleCore
 {
-    // バトル中の判定ロジックを差し替え可能な形でまとめた設定オブジェクト
-    // 命中・クリティカル・乱数・詠唱可否・ターゲット絞り込み・死亡対象の扱いといった
+    // バトル中の判定ロジックと調整値を差し替え可能な形でまとめた設定オブジェクト
+    // 命中・クリティカル・乱数・詠唱可否・ターゲット絞り込み・死亡対象の扱い・行動順・勝敗判定といった
     // 「どう判定するか」をすべてインターフェースで保持し、既定実装をあらかじめ入れてある
+    // 進行そのもの（キュー・ステート・演出やログの出力先）は BattleManager 側の持ち物で、ここには入れない
     public class BattleRules
     {
         // 命中判定を行うリゾルバ
@@ -27,5 +28,12 @@ namespace CommandBattleCore
         public List<ITargetFilter> TargetFilters { get; } = new();
         // 対象が死亡していた場合の代替ターゲット決定ポリシー
         public IDeadTargetPolicy DeadTargetPolicy { get; set; } = new FirstAliveFallback();
+        // ターンごとの行動順並び替えクラス。既定は素早さ順
+        public ITurnOrderResolver TurnOrderResolver { get; set; } = new SpeedTurnOrderResolver();
+        // 勝敗判定クラス。差し替えることで引き分け条件などを追加できる
+        public IBattleResultChecker ResultChecker { get; set; } = new DefaultBattleResultChecker();
+        // 1 イベント当たりのリアクション上限
+        // 想定外の連鎖に対する安全網であり、意図した連鎖の制御はリアクション側の条件判定で行う
+        public int MaxReactionPerEvent { get; set; } = 1;
     }
 }

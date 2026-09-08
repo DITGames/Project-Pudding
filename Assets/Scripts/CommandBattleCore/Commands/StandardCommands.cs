@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file StandardCommands.cs
  * @author hqrse
  * @date 2026/06/13
@@ -21,6 +21,9 @@ namespace CommandBattleCore
         public static Func<BattleUnit, BattleUnit, float> DamageFormula { get; set; } =
             (src, tgt) =>
                 Mathf.Max(1f, src.Parameters.Attack.CurrentValue - tgt.Parameters.Defense.CurrentValue * 0.5f);
+
+        // 通常攻撃は常に攻撃として扱う
+        public override bool IsAttack => true;
 
         // aSource : 攻撃するユニット
         // aResolver : 対象を決めるリゾルバ

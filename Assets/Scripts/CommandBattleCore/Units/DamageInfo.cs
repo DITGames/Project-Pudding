@@ -1,11 +1,12 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file DamageInfo.cs
  * @author hqrse
  * @date 2026/06/13
  * @brief ダメージ情報定義
  * =====================================*/
 using System;
+using UnityEngine;
 
 namespace CommandBattleCore
 {
@@ -20,6 +21,25 @@ namespace CommandBattleCore
         // 魔法ダメージ
         Magical = 1 << 1,
         // 属性などを拡張
+    }
+
+    // そのダメージが何によって発生したか
+    // 「攻撃を受けたときだけ消費する」といった、ダメージの出どころで挙動を変えたい場合に参照する
+    public enum DamageReason
+    {
+        // 通常攻撃・攻撃スキルなど、他者の攻撃行動によるダメージ
+        [InspectorName("攻撃")]
+        Attack,
+        // 毒などステータスエフェクトによる継続ダメージ
+        [InspectorName("継続ダメージ")]
+        StatusEffect,
+        // 反撃・とげなど、リアクションとして発生したダメージ
+        // 攻撃ではあるが Attack とは区別する。反撃に反撃を返さないための判定に使う
+        [InspectorName("反撃")]
+        Reaction,
+        // 上記のいずれでもないもの（環境ダメージ・デバッグ用など）
+        [InspectorName("その他")]
+        Other,
     }
 
     // 1 回分のダメージに関する情報をまとめて持ち回るクラス
@@ -40,6 +60,10 @@ namespace CommandBattleCore
         public float Amount { get; set; }
         // ダメージの発生源となったスキル定義やエフェクトなど
         public object SourceAbility { get; set; }
+        // 何によって発生したダメージか
+        // 大半のダメージは攻撃由来のため既定値は Attack。継続ダメージ等を作る側が明示的に変更する
+        // Attack のダメージがリアクション実行中に発生した場合は、BattleUnit.ApplyDamage が Reaction へ上書きする
+        public DamageReason Reason { get; set; } = DamageReason.Attack;
 
         // クリティカルヒットしたか
         public bool IsCritical { get; set; } = false;
@@ -53,12 +77,15 @@ namespace CommandBattleCore
         // aTarget : ダメージを受けるユニット
         // aAmount : 初期ダメージ量
         // aSourceAbility : 発生源のスキル定義やエフェクト
-        public DamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, object aSourceAbility = null)
+        // aReason : 何によって発生したダメージか
+        public DamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, object aSourceAbility = null,
+            DamageReason aReason = DamageReason.Attack)
         {
             Source = aSource;
             Target = aTarget;
             Amount = aAmount;
             SourceAbility = aSourceAbility;
+            Reason = aReason;
         }
     }
 }

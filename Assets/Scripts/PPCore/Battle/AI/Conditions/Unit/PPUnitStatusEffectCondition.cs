@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPUnitStatusEffectCondition.cs
  * @author hqrse
  * @date 2026/08/11
@@ -20,9 +20,9 @@ namespace PPCore
     [PPTypeMenuName("ユニット状態/状態異常の付与")]
     public sealed class PPUnitStatusEffectCondition : PPUnitConditionValidator
     {
-        // 判定するエフェクト ID。空なら ID では絞り込まない
-        [Label("エフェクトID")]
-        [SerializeField] private string mEffectId = "";
+        // 判定するエフェクト。未設定なら特定のエフェクトでは絞り込まない
+        [Label("エフェクト")]
+        [SerializeField] private PPEffectDefinition mEffect;
         // 判定するタグ。None なら タグでは絞り込まない
         [Label("エフェクトタグ")]
         [SerializeField] private StatusEffectTag mTags = StatusEffectTag.None;
@@ -46,7 +46,7 @@ namespace PPCore
             foreach (var effect in aUnit.ActiveStatusEffects)
             {
                 if (effect == null) continue;
-                if (!string.IsNullOrEmpty(mEffectId) && effect.EffectId != mEffectId) continue;
+                if (mEffect != null && effect.EffectId != mEffect.EffectId) continue;
                 if (mTags != StatusEffectTag.None && (effect.Tags & mTags) == 0) continue;
 
                 return true;
@@ -58,9 +58,9 @@ namespace PPCore
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
         {
-            string target = string.IsNullOrEmpty(mEffectId)
+            string target = mEffect == null
                 ? (mTags == StatusEffectTag.None ? "何らかの状態異常" : $"{mTags} の効果")
-                : mEffectId;
+                : mEffect.DisplayName;
             mDescription = mIsInvert ? $"{target} が付与されていない" : $"{target} が付与されている";
         }
     }

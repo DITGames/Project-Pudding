@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file BattleManager.cs
  * @author hqrse
  * @date 2026/06/13
@@ -29,18 +29,10 @@ namespace CommandBattleCore
         public IBattlePresenter Presenter { get; set; }
         // 進行中の演出スキップ用。各コマンド演出ごとに作り直す
         public CancellationTokenSource PresentationCts { get; protected set; }
-        // 勝敗判定クラス。差し替えることで引き分け条件などを追加できる
-        public IBattleResultChecker ResultChecker { get; set; } = new DefaultBattleResultChecker();
-        // バトルログの出力先
+        // バトルログの出力先。判定ではなく出力先のため BattleRules ではなくこちらが持つ
         public IBattleLogger Logger { get; set; } = new DefaultBattleLogger();
-        // ターンごとの行動順並び替えクラス。既定は素早さ順
-        public ITurnOrderResolver TurnOrderResolver { get; set; } = new SpeedTurnOrderResolver();
-        // 1 イベント当たりのリアクション上限。反撃の連鎖が無限に続くのを抑止する
-        public int MaxReactionPerEvent { get; set; } = 1;
-        // 現在のコマンドが誘発したリアクション総数。MaxReactionPerEvent との比較に使う
+        // 現在のコマンドが誘発したリアクション総数。Rules.MaxReactionPerEvent との比較に使う
         protected int mReactionsThisCommand = 0;
-        // リアクション実行中は true。この間は新たなリアクションを発生させない
-        protected bool mIsSuppressReactions = false;
 
         // ステート変更時(バトル状態)
         public event Action<BattleState> OnStateChanged;
@@ -197,21 +189,36 @@ namespace CommandBattleCore
             StateMachine.TransitionTo(BattleState.ActionExecution);
             OnPreCommand?.Invoke(command.Source, command);
 
-            // オブジェクトが生存 + 行動不可の制限がかかっていなければ実行する
-            // 麻痺などの確率による行動制限がある場合は別で判別する必要がありそう
-            if (command.Source.IsAlive && (command.Source.CurrentRestrictions & ActionRestriction.CannotAct) == 0)
+            // 通常コマンドならリアクション数を数え直す
+            // 実行中がリアクションかどうかは、この間に発生したダメージへ印を付けるために公開する
+            bool isReaction = command.IsReaction;
+            if (!isReaction) mReactionsThisCommand = 0;
+            Context.IsExecutingReaction = isReaction;
+
+            try
             {
-                if (command.Source.RollActionBlocked(Context))
+                // オブジェクトが生存 + 行動不可の制限がかかっていなければ実行する
+                // 麻痺などの確率による行動制限がある場合は別で判別する必要がありそう
+                if (command.Source.IsAlive && (command.Source.CurrentRestrictions & ActionRestriction.CannotAct) == 0)
                 {
-                    OnActionBlocked?.Invoke(command.Source, command);
-                    Log(BattleLogType.ActionBlocked, command.Source, null,
-                        $"{command.Source.DisplayName}'s action was blocked by a status effect.");
+                    if (command.Source.RollActionBlocked(Context))
+                    {
+                        OnActionBlocked?.Invoke(command.Source, command);
+                        Log(BattleLogType.ActionBlocked, command.Source, null,
+                            $"{command.Source.DisplayName}'s action was blocked by a status effect.");
+                    }
+                    else
+                    {
+                        command.Execute(Context);
+                        OnCommandExecuted?.Invoke(command.Source, command);
+                        NotifyActionConsumeTriggers(command);
+                    }
                 }
-                else
-                {
-                    command.Execute(Context);
-                    OnCommandExecuted?.Invoke(command.Source, command);
-                }
+            }
+            finally
+            {
+                // 例外で抜けてもフラグを残さない
+                Context.IsExecutingReaction = false;
             }
 
             // 行動回数の消費
@@ -251,16 +258,11 @@ namespace CommandBattleCore
             if (StateMachine.Current == BattleState.BattleEnd) return;
             if(!ActionQueue.TryDequeue(out var command)) return;
 
-            // リアクション中は新たなリアクションを抑止し、通常コマンドならリアクション数を数え直す
+            // 通常コマンドならリアクション数を数え直す
+            // 実行中がリアクションかどうかは、この間に発生したダメージへ印を付けるために公開する
             bool isReaction = command.IsReaction;
-            if (isReaction)
-            {
-                mIsSuppressReactions = true;
-            }
-            else
-            {
-                mReactionsThisCommand = 0;
-            }
+            if (!isReaction) mReactionsThisCommand = 0;
+            Context.IsExecutingReaction = isReaction;
 
             StateMachine.TransitionTo(BattleState.ActionExecution);
 
@@ -288,6 +290,7 @@ namespace CommandBattleCore
                         // 実際のコマンド実行
                         command.Execute(Context);
                         OnCommandExecuted?.Invoke(command.Source, command);
+                        NotifyActionConsumeTriggers(command);
 
                         // コマンド実行後演出
                         if (Presenter != null)
@@ -299,8 +302,8 @@ namespace CommandBattleCore
             }
             finally
             {
-                // 例外や演出スキップで抜けても抑止フラグを残さない
-                if(isReaction) mIsSuppressReactions = false;
+                // 例外や演出スキップで抜けてもフラグを残さない
+                Context.IsExecutingReaction = false;
             }
 
             // コマンド実行後イベントの通知
@@ -341,20 +344,34 @@ namespace CommandBattleCore
             }
         }
 
+        // 行動をきっかけにしたスタック消費を、コマンドを実行したユニットへ通知する
+        // 攻撃にあたるコマンドの場合は「行動時」と「攻撃時」の両方を発火する
+        // aCommand : 実行し終えたコマンド
+        protected virtual void NotifyActionConsumeTriggers(BattleCommandBase aCommand)
+        {
+            var source = aCommand?.Source;
+            if (source == null) return;
+
+            source.NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Acted, Context);
+            if (aCommand.IsAttack)
+            {
+                source.NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Attacked, Context);
+            }
+        }
+
         // リアクショントリガーを発火し、条件を満たしたユニットの反撃コマンドをキュー先頭へ割り込ませる
-        // MaxReactionPerEvent に達した時点で打ち切り、リアクション実行中は何もしない
+        // Rules.MaxReactionPerEvent に達した時点で打ち切る
+        // 「反撃に反撃を返さない」といった連鎖の制御は、リアクション側が ReactionContext.IsReactionDamage を見て判断する
+        // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで死んでしまうため）
         // aContext : 発生したトリガーと関係ユニットを持つリアクションコンテキスト
         protected virtual void DispatchReactions(ReactionContext aContext)
         {
-            // 反撃の実行中には新たな反撃は起こさないようにする
-            if(mIsSuppressReactions) return;
-
             foreach (var unit in EnumerateAllAliveUnits())
             {
-                if (mReactionsThisCommand >= MaxReactionPerEvent) break;
+                if (mReactionsThisCommand >= Context.Rules.MaxReactionPerEvent) break;
                 foreach (var reaction in unit.Reactions)
                 {
-                    if (mReactionsThisCommand >= MaxReactionPerEvent) break;
+                    if (mReactionsThisCommand >= Context.Rules.MaxReactionPerEvent) break;
                     // トリガー種別が一致し、反撃側が生存し、条件を満たすものだけを採用する
                     if (reaction.Trigger != aContext.Trigger) continue;
                     if (!unit.IsAlive) break;
@@ -401,9 +418,9 @@ namespace CommandBattleCore
                 ReactionTrigger.OnTurnStarted, null, null, null, Context));
         }
 
-        // 現在の行動順を取得する。並び替えロジックは TurnOrderResolver に委譲する
+        // 現在の行動順を取得する。並び替えロジックは Rules.TurnOrderResolver に委譲する
         // return : 行動順に並んだユニットのリスト
-        public List<BattleUnit> GetTurnOrder() => TurnOrderResolver.ResolveOrder(Context);
+        public List<BattleUnit> GetTurnOrder() => Context.Rules.TurnOrderResolver.ResolveOrder(Context);
 
         // 勝敗をチェックし、決着していれば EndBattle を呼んでバトルを終了させる
         // return : 判定結果。コンテキスト未設定または終了済みなら null
@@ -411,7 +428,7 @@ namespace CommandBattleCore
         {
             if(Context == null || StateMachine.Current == BattleState.BattleEnd) return null;
 
-            var result = ResultChecker.CheckResult(Context);
+            var result = Context.Rules.ResultChecker.CheckResult(Context);
             if (result.Type != BattleResultType.InProgress)
             {
                 EndBattle(result);

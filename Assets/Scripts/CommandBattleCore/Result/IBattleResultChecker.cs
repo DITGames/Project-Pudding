@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file IBattleResultChecker.cs
  * @author hqrse
  * @date 2026/06/13
@@ -8,7 +8,7 @@
 
 namespace CommandBattleCore
 {
-    // 勝敗を判定するチェッカー。BattleManager.ResultChecker に差し込む
+    // 勝敗を判定するチェッカー。BattleRules.ResultChecker に差し込む
     // 「ボスだけ倒せば勝ち」「規定ターン生存で勝ち」といった条件を差し替えられるようにしてある
     public interface IBattleResultChecker
     {

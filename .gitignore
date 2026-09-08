@@ -114,3 +114,6 @@ PLAN.md
 
 # dev-flow スキルの個人用プロジェクト設定(チーム共有しない。共有したい場合はコミット対象に変更)
 .dev-flow/
+
+# sheet-flow スキルの個人用設定
+.sheet-flow/

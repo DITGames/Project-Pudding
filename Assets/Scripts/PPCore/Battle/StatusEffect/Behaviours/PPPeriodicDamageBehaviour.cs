@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPPeriodicDamageBehaviour.cs
  * @author hqrse
  * @date 2026/07/31
@@ -22,6 +22,7 @@ namespace PPCore
 
         protected override DamageInfo CreateDamage(StatusEffectContext aContext)
             => new PPDamageInfo(aContext.Source, aContext.Owner,
-                mAmountPerStack * aContext.Stacks, PPSkillCategory.Debuff, mAttribute, aContext.Effect);
+                mAmountPerStack * aContext.Stacks, PPSkillCategory.Debuff, mAttribute, aContext.Effect,
+                DamageReason.StatusEffect);
     }
 }

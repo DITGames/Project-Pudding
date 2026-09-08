@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file ActionRestriction.cs
  * @author hqrse
  * @date 2026/06/13
@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System;
+using UnityEngine;
 
 namespace CommandBattleCore
 {
@@ -19,14 +20,19 @@ namespace CommandBattleCore
         // 制限なし
         None = 0,
         // 行動不可。麻痺、睡眠など
+        [InspectorName("行動不可")]
         CannotAct = 1 << 0,
         // 行動のランダム化。混乱、魅了など
+        [InspectorName("行動のランダム化")]
         Confused = 1 << 1,
         // スキル使用不可。沈黙など
+        [InspectorName("スキル使用不可")]
         Silenced = 1 << 2,
         // 逃走不可
+        [InspectorName("逃走不可")]
         CannotEscape = 1 << 3,
         // メンバー入れ替え不可
+        [InspectorName("入れ替え不可")]
         CannotSwap = 1 << 4,
     }
 }

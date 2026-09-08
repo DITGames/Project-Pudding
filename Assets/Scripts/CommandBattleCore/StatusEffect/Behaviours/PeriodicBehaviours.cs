@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright hqrse. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PeriodicBehaviours.cs
  * @author hqrse
  * @date 2026/07/31
@@ -24,7 +24,7 @@ namespace CommandBattleCore
         // ダメージ情報の生成だけを差し替えられるようにしておく(PP側で属性付きにする等)
         protected virtual DamageInfo CreateDamage(StatusEffectContext aContext)
             => new DamageInfo(aContext.Source, aContext.Owner,
-                mAmountPerStack * aContext.Stacks, aContext.Effect);
+                mAmountPerStack * aContext.Stacks, aContext.Effect, DamageReason.StatusEffect);
     }
 
     // リジェネなど。更新のたびに固定量を回復する
