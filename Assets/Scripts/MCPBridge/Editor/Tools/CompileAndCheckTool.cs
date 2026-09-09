@@ -9,7 +9,7 @@
  * そのためメインスレッドでは購読とトリガーのみ行い(Enqueueで投げっぱなし)、
  * 完了待ち自体はHTTPハンドラスレッド側でManualResetEventSlimを使って行う。
  * 同時に複数のtools/callが来てもCompilationPipelineの購読/解除が競合しないようlockで直列化する。
- * 診断用途のツールのためMCPModeStore.sPersistentToolNamesには登録せずDebugモードでも許可する
+ * 診断用途のツールのためMCPToolPermissionStore.sInitiallyDisabledToolNamesには登録せず初期状態から許可する
  * =====================================*/
 
 using System;
