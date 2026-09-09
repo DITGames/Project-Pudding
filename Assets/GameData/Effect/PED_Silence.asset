@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
+  m_Name: PED_Silence
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
+  mEffectId: Silenced
+  mDisplayName: "封印"
+  mDurationCondition:
+    rid: 7300000000000001000
+  mStackPolicy: 1
+  mMaxStack: 1
+  mCategory: 32
+  mTags: 6
+  mBehaviours:
+  - rid: 7300000000000001001
+  references:
+    version: 2
+    RefIds:
+    - rid: 7300000000000001000
+      type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDuration: 3
+    - rid: 7300000000000001001
+      type: {class: PPActionRestrictionBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mRestriction: 4
+        mIsAlwaysBlock: 1
+        mBaseChance: 0.5
+        mChancePerElapsedTurn: 0

@@ -10,16 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_ActionCountBuff
+  m_Name: PED_Confuse
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: ActionCountBuff
-  mDisplayName: "加速"
+  mEffectId: Confused
+  mDisplayName: "混乱"
   mDurationCondition:
     rid: 7300000000000001000
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 67108864
-  mTags: 9
+  mCategory: 16
+  mTags: 6
   mBehaviours:
   - rid: 7300000000000001001
   references:
@@ -28,11 +28,11 @@ MonoBehaviour:
     - rid: 7300000000000001000
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDuration: 5
+        mDuration: 3
     - rid: 7300000000000001001
-      type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+      type: {class: PPActionRestrictionBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mTargetParam: 5
-        mDirection: 0
-        mModifierType: 0
-        mValue: 1
+        mRestriction: 2
+        mIsAlwaysBlock: 0
+        mBaseChance: 0.33
+        mChancePerElapsedTurn: 0
