@@ -22,6 +22,12 @@ namespace PPCore
         Poison = 1 << 0,
         Burn = 1 << 1,
         Paralyze = 1 << 2,
+        // 脆弱：被ダメージ増加
+        Vulnerable = 1 << 3,
+        // 混乱：行動のランダム化
+        Confused = 1 << 4,
+        // 封印：スキル使用不可
+        Silenced = 1 << 5,
 
         /* ---- パラメータ変動系 ---- */
         AttackBuff = 1 << 16,
@@ -38,7 +44,7 @@ namespace PPCore
         ActionCountDebuff = 1 << 27,
 
         /* ---- まとめ(解除スキルのマスクとしてそのまま使う) ---- */
-        AllAilment = Poison | Burn | Paralyze,
+        AllAilment = Poison | Burn | Paralyze | Vulnerable | Confused | Silenced,
         AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | CostBuff | ActionCountBuff,
         AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | CostDebuff | ActionCountDebuff,
     }

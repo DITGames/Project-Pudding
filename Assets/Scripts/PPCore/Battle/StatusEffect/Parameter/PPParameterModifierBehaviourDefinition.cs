@@ -33,19 +33,11 @@ namespace PPCore
         ActionCount,
     }
 
-    // 変動の向き。設定側は常に正の変動量を入れ、増減の別はこちらで指定する
-    public enum PPModifierDirection
-    {
-        [InspectorName("バフ")]
-        Increase,
-        [InspectorName("デバフ")]
-        Decrease,
-    }
-
     // パラメータを増減させるバフ・デバフの振る舞い定義
-    // 「どのパラメータを」「上げるか下げるか」「加算か乗算か」「どれだけ」の 4 つを
-    // インスペクタで組み合わせて表現する。変動量は常に正の値で入力し、
-    // 符号や倍率への変換は ResolveModifier が引き受ける
+    // 「どのパラメータを」「加算か乗算か」「どれだけ」の 3 つをインスペクタで組み合わせて表現する
+    // バフ／デバフの別は個別のフィールドを持たず、変動量の符号（加算）・1 を挟んだ大小（乗算）でそのまま表す
+    // （対になるバフ・デバフが互いを検索して打ち消す実装は避け、最終計算時の合算に委ねる設計のため、
+    //   個々の振る舞い定義に「向き」という概念自体を持たせない）
     [Serializable]
     [PPTypeMenuName("パラメータ変動")]
     public class PPParameterModifierBehaviourDefinition : PPStatusEffectBehaviourDefinition
@@ -53,35 +45,20 @@ namespace PPCore
         [Header("パラメータ変動")]
         [Label("対象パラメータ")]
         [SerializeField]protected PPModifierTargetParam mTargetParam = PPModifierTargetParam.Attack;
-        [Label("種別")]
-        [SerializeField]protected PPModifierDirection mDirection = PPModifierDirection.Increase;
         [Label("変動タイプ")]
         [SerializeField]protected ParameterModifierType mModifierType = ParameterModifierType.Add;
-        // 変動量。常に正の値で入力する
-        [Label("変動量")][Min(0)]
-        [SerializeField]protected float mValue = 10f;
+        // 加算：正で増加・負で減少。乗算：最終倍率をそのまま入力する（1.5で1.5倍＝バフ、0.5で半分＝デバフ）
+        [Label("変動量")]
+        [SerializeField]protected float mAmount = 10f;
 
         public PPModifierTargetParam TargetParam => mTargetParam;
-        public PPModifierDirection Direction => mDirection;
         public ParameterModifierType ModifierType => mModifierType;
-        public float Value => mValue;
+        public float Amount => mAmount;
 
-        // 入力された変動量を、実際に修飾子へ渡す値へ変換する
-        // 加算はデバフなら符号を反転させる。乗算は変動方向と矛盾する値
-        // （バフなのに 1 未満、デバフなのに 1 超）が設定された場合、
-        // 意図と逆の効果になるのを避けて等倍へ丸める
-        // return : 修飾子に設定する値
-        private float ResolveModifier()
-            => (mModifierType, mDirection) switch
-            {
-                (ParameterModifierType.Add, PPModifierDirection.Increase) => mValue,
-                (ParameterModifierType.Add, PPModifierDirection.Decrease) => -mValue,
-                (ParameterModifierType.Multiply, PPModifierDirection.Increase) when mValue < 1 => 1f,
-                (ParameterModifierType.Multiply, PPModifierDirection.Increase) => mValue,
-                (ParameterModifierType.Multiply, PPModifierDirection.Decrease) when mValue > 1 => 1f,
-                (ParameterModifierType.Multiply, PPModifierDirection.Decrease) => mValue,
-                (_,_) => mValue,
-            };
+        // 変動量がバフ・デバフのどちら向きかを表示用に判定する
+        // 加算は符号、乗算は 1 を基準に判定する
+        private bool IsBuff
+            => mModifierType == ParameterModifierType.Multiply ? mAmount >= 1f : mAmount >= 0f;
 
         // 対象パラメータに対応するパラメータ ID
         // コストと行動回数上限のみ追加パラメータ側の ID を返す点に注意
@@ -103,10 +80,10 @@ namespace PPCore
         // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            aEffect.AddBehaviour(new ParameterModifierBehaviour(ParamId, mModifierType, ResolveModifier()));
+            aEffect.AddBehaviour(new ParameterModifierBehaviour(ParamId, mModifierType, mAmount));
         }
 
         public override string BuildString()
-            => $"{mTargetParam} {mDirection}：{mValue}（{mModifierType}）";
+            => $"{mTargetParam} {(IsBuff ? "バフ" : "デバフ")}：{mAmount}（{mModifierType}）";
     }
 }
