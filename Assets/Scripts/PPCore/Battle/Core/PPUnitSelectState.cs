@@ -26,29 +26,36 @@ namespace PPCore
         public PPUnitSelectState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
 
         // ユニット選択メニューを開き、決定イベントを購読する
-        public void Enter()
-        {
-            mOwner.UnitSelectMenu.Show(Candidates());
-            mOwner.UnitSelectMenu.OnUnitSelected += HandleDecided;
-        }
+        // 先へ進む方向からの遷移なので、上から現れる演出（Down）で表示する
+        public void Enter() => ShowMenu(PPBattleTransitionDirection.Down);
 
         // コマンド入力の起点（スタック最下段）のため、戻ってきたときは選択内容を最初から選び直す
+        // 戻ってきた方向からの遷移なので、下から現れる演出（Up）で表示する
         public void Resume()
         {
             mOwner.Context.Clear();
-            Enter();
+            ShowMenu(PPBattleTransitionDirection.Up);
         }
 
-        // 先へ進むため退避する。購読を解除してメニューを隠す
-        public void Suspend() => Detach();
-        // 破棄する。購読を解除してメニューを隠す
-        public void Exit() => Detach();
+        // 先へ進むため退避する。購読を解除し、下へ抜ける演出でメニューを隠す
+        public void Suspend() => Detach(PPBattleTransitionDirection.Down);
+        // 破棄する。購読を解除し、上へ抜ける演出でメニューを隠す
+        public void Exit() => Detach(PPBattleTransitionDirection.Up);
+
+        // メニューを表示し、決定イベントを購読する
+        // aDirection : 入場演出の向き
+        private void ShowMenu(PPBattleTransitionDirection aDirection)
+        {
+            mOwner.UnitSelectMenu.Show(Candidates(), aDirection);
+            mOwner.UnitSelectMenu.OnUnitSelected += HandleDecided;
+        }
 
         // 購読解除とメニューの非表示をまとめて行う
-        private void Detach()
+        // aDirection : 退場演出の向き
+        private void Detach(PPBattleTransitionDirection aDirection)
         {
             mOwner.UnitSelectMenu.OnUnitSelected -= HandleDecided;
-            mOwner.UnitSelectMenu.Hide();
+            mOwner.UnitSelectMenu.Hide(aDirection);
         }
 
         // 味方陣営の生存アクティブメンバーのうち、まだ行動回数が残っているものを候補として返す

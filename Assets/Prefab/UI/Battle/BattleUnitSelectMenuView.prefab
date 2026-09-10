@@ -51,7 +51,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleUnitSelectMenuView
   mButtonPrefab: {fileID: 621507569615499, guid: 4d926e1fad7c45fb9ed5bf7df462391c, type: 3}
   mContent: {fileID: 77757242305078}
-  mIconCatalog: {fileID: 0}
+  mIconCatalog: {fileID: 11400000, guid: f7175a8729fe38843938b32f92c4f399, type: 2}
 --- !u!1 &5271081914431472
 GameObject:
   m_ObjectHideFlags: 0

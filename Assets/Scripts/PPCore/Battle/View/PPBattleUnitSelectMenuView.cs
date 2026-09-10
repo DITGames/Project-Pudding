@@ -37,7 +37,8 @@ namespace PPCore
 
         // 候補ユニット分のボタンを生成して表示する
         // aUnits : 選択候補のユニット
-        public void Show(IEnumerable<BattleUnit> aUnits)
+        // aDirection : 入場演出の向き。Down なら上から、Up なら下から現れる
+        public void Show(IEnumerable<BattleUnit> aUnits, PPBattleTransitionDirection aDirection)
         {
             if (mContent == null)
             {
@@ -45,18 +46,20 @@ namespace PPCore
                 return;
             }
 
-            Clear();
+            Clear(aDirection);
             gameObject.SetActive(true);
 
             PPBattleCommandButton firstBtn = null;
             foreach (var unit in aUnits)
             {
                 var btn = Instantiate(mButtonPrefab, mContent);
+                // 複製直後は全ボタンが同名になり階層上で見分けがつかないため、対象ユニットが分かる名前を付ける
+                btn.gameObject.name = $"UnitButton_{unit.UnitId}";
                 // カタログ未設定、または該当アイコン未登録のどちらもアイコンなしとして扱う
                 var icon = mIconCatalog != null
                     ? mIconCatalog.Resolve(unit.UnitId)?.UnitIcon
                     : null;
-                btn.Setup(icon, null, () => OnUnitSelected?.Invoke(unit));
+                btn.Setup(icon, unit.DisplayName, () => OnUnitSelected?.Invoke(unit));
                 mUnitButtons.Add(btn);
 
                 // 初期フォーカス設定
@@ -66,6 +69,12 @@ namespace PPCore
             // 直後にフォーカスを当てるため、レイアウトの反映を次フレームまで待たない
             LayoutRebuilder.ForceRebuildLayoutImmediate(mContent);
 
+            // レイアウト確定後の定位置を基準に、入場演出を開始する
+            foreach (var btn in mUnitButtons)
+            {
+                btn.PlayEnter(aDirection);
+            }
+
             if (firstBtn != null)
             {
                 EventSystem.current.SetSelectedGameObject(firstBtn.FocusTarget);
@@ -73,20 +82,26 @@ namespace PPCore
         }
 
         // メニューを閉じ、生成したボタンを破棄する
-        public void Hide()
+        // aDirection : 退場演出の向き。Down なら下へ、Up なら上へ抜ける
+        public void Hide(PPBattleTransitionDirection aDirection)
         {
-            Clear();
-            gameObject.SetActive(false);
+            Clear(aDirection);
         }
 
-        // 生成済みのユニットボタンをすべて破棄する
+        // 生成済みのユニットボタンをすべて退場演出付きで破棄する
         // 表示のたびに作り直すため、開く前と閉じるときの両方から呼ばれる
-        private void Clear()
+        // ルートを即座に非アクティブにすると子ボタンの退場コルーチンが Unity 側で強制停止し、
+        // フェードアウトが再生されないまま破棄もされず残ってしまうため、非アクティブ化はしない
+        // （退場後は子が居なくなるだけで、見た目にも入力にも影響しない）
+        // aDirection : 退場演出の向き
+        private void Clear(PPBattleTransitionDirection aDirection)
         {
             foreach (var btn in mUnitButtons)
             {
                 if (btn == null) continue;
-                Destroy(btn.gameObject);
+                // mContent（ContentSizeFitter付き）に残したままだと、全ボタン退場でコンテナが
+                // 収縮した瞬間に基準位置がずれてワープして見えるため、自身のルートへ退避させてから消す
+                btn.PlayExit(aDirection, transform, () => Destroy(btn.gameObject));
             }
             mUnitButtons.Clear();
         }

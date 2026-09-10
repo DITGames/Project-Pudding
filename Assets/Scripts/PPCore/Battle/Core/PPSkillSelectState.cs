@@ -7,37 +7,59 @@
  * =====================================*/
 
 using CommandBattleCore;
-using UnityEngine;
 
 namespace PPCore
 {
     // 使用するスキルを選ばせる入力ステート
     // 選んだスキルのターゲット範囲に応じて、対象選択へ進むかその場で確定するかが分かれる
-    public class PPSkillSelectState : PPBattleMenuStateBase
+    // ユニット選択メニューと同じ固定位置に表示し、Push/Back の方向に応じた
+    // スライド+フェードの入退場演出を出したいため、PPBattleMenuStateBase は使わず
+    // PPUnitSelectState と同様に IPPBattleInputState を直接実装する
+    public class PPSkillSelectState : IPPBattleInputState
     {
+        // このステートを保持する入力コントローラー
+        private readonly PPBattleCommandInputController mOwner;
+
         // aOwner : このステートを保持する入力コントローラー
-        public PPSkillSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
+        public PPSkillSelectState(PPBattleCommandInputController aOwner) => mOwner = aOwner;
+
+        // スキルメニューを開き、各操作を購読する
+        // 先へ進む方向からの遷移なので、上から現れる演出（Down）で表示する
+        public void Enter() => ShowMenu(PPBattleTransitionDirection.Down);
+
+        // 先のステート（対象選択・詳細確認）から戻ってきたときの復帰処理
+        // ユニットの選択は保ったまま、その先で選んだ内容（スキル・対象）だけを破棄して開き直す
+        // 戻ってきた方向からの遷移なので、下から現れる演出（Up）で表示する
+        public void Resume()
         {
+            mOwner.Context.ClearSelectionKeepingUnit();
+            ShowMenu(PPBattleTransitionDirection.Up);
         }
 
-        // 選択中ユニットの隣にスキルメニューを出す
+        // 先へ進むため退避する。購読を解除し、下へ抜ける演出でメニューを隠す
+        public void Suspend() => Detach(PPBattleTransitionDirection.Down);
+        // 破棄する。購読を解除し、上へ抜ける演出でメニューを隠す
+        public void Exit() => Detach(PPBattleTransitionDirection.Up);
+
+        // 選択中ユニットのスキルメニューを表示し、決定・戻る・詳細確認を購読する
         // コンテキストを渡すことで、メニュー側が発動可否を見て項目の有効・無効を切り替える
-        // aUnit : 選択中のユニット
-        // aAnchor : メニューを配置する位置の基準
-        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
+        // aDirection : 入場演出の向き
+        private void ShowMenu(PPBattleTransitionDirection aDirection)
         {
-            if (aAnchor != null)
-            {
-                mOwner.SkillMenu.AttachTo(aAnchor);
-            }
-            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context);
+            mOwner.SkillMenu.Show(mOwner.Context.Unit, mOwner.Manager.Context, aDirection);
+            Subscribe();
         }
 
-        // スキルメニューを閉じる
-        protected override void HideView() => mOwner.SkillMenu.Hide();
+        // 購読解除とメニューの非表示をまとめて行う
+        // aDirection : 退場演出の向き
+        private void Detach(PPBattleTransitionDirection aDirection)
+        {
+            Unsubscribe();
+            mOwner.SkillMenu.Hide(aDirection);
+        }
 
         // スキルの決定・戻る・詳細確認操作を購読する
-        protected override void Subscribe()
+        private void Subscribe()
         {
             mOwner.SkillMenu.OnSkillSelected += HandleSkillSelected;
             mOwner.SkillMenu.OnBackRequested += HandleBack;
@@ -45,7 +67,7 @@ namespace PPCore
         }
 
         // 購読を解除する
-        protected override void Unsubscribe()
+        private void Unsubscribe()
         {
             mOwner.SkillMenu.OnSkillSelected -= HandleSkillSelected;
             mOwner.SkillMenu.OnBackRequested -= HandleBack;
