@@ -15,6 +15,11 @@ namespace PPCore
     // 攻撃はその場で対象選択へ、スキルと詳細はそれぞれ専用のステートへ進む
     public class PPCommandSelectState : PPBattleMenuStateBase
     {
+        // スキル選択との間で入れ替え演出中かどうか
+        // HandleSkill で true にし、スキル選択から戻ってきて ShowView が一度使ったら false に戻す
+        // （攻撃・詳細への遷移では立てないので、それらの Suspend/Resume では従来どおり即時に表示・非表示する）
+        private bool mTransitioningWithSkill;
+
         // aOwner : このステートを保持する入力コントローラー
         public PPCommandSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
@@ -22,6 +27,7 @@ namespace PPCore
 
         // 選択中ユニットの隣にコマンドメニューを出す
         // スキルを 1 つも持たないユニットではスキル項目を出さない
+        // スキル選択から戻ってきた場合だけ、下からスライドする入れ替え演出にする
         // aUnit : 選択中のユニット
         // aAnchor : メニューを配置する位置の基準
         protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
@@ -30,11 +36,32 @@ namespace PPCore
             {
                 mOwner.CommandMenu.AttachTo(aAnchor);
             }
-            mOwner.CommandMenu.Show(aUnit.Skills.Count > 0);
+
+            bool canSkill = aUnit.Skills.Count > 0;
+            if (mTransitioningWithSkill)
+            {
+                mTransitioningWithSkill = false;
+                mOwner.CommandMenu.ShowFromBelow(canSkill);
+            }
+            else
+            {
+                mOwner.CommandMenu.Show(canSkill);
+            }
         }
 
         // コマンドメニューを閉じる
-        protected override void HideView() => mOwner.CommandMenu.Hide();
+        // スキル選択へ遷移する場合だけ、下にスライドする入れ替え演出にする
+        protected override void HideView()
+        {
+            if (mTransitioningWithSkill)
+            {
+                mOwner.CommandMenu.HideSlideDown();
+            }
+            else
+            {
+                mOwner.CommandMenu.Hide();
+            }
+        }
 
         // 各コマンドの決定と戻る操作を購読する
         protected override void Subscribe()
@@ -67,7 +94,12 @@ namespace PPCore
         }
 
         // スキルを選んだときの処理。スキル選択ステートへ進む
-        private void HandleSkill() => mOwner.Push(new PPSkillSelectState(mOwner));
+        // 入れ替え演出をするため、Push で Suspend が呼ばれる前にフラグを立てておく
+        private void HandleSkill()
+        {
+            mTransitioningWithSkill = true;
+            mOwner.Push(new PPSkillSelectState(mOwner));
+        }
 
         // 詳細を選んだときの処理。ユニット詳細ステートへ進む
         private void HandleDetail() => mOwner.Push(new PPUnitDetailViewState(mOwner));

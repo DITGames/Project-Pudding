@@ -15,6 +15,14 @@ namespace PPCore
     // 選んだスキルのターゲット範囲に応じて、対象選択へ進むかその場で確定するかが分かれる
     public class PPSkillSelectState : PPBattleMenuStateBase
     {
+        // このステートが一度でも表示されたか
+        // 最初の表示（コマンド選択からの遷移）だけ上からスライドする入れ替え演出にし、
+        // 対象選択から戻ってきた場合（Resume）は従来どおり即時に表示する
+        private bool mHasShownOnce;
+        // 対象選択へ進むための一時退避（Suspend）かどうか
+        // true のときだけ HideView を即時にする。コマンド選択へ戻る（Exit）場合は常にスライド演出にする
+        private bool mSuspendingForTarget;
+
         // aOwner : このステートを保持する入力コントローラー
         public PPSkillSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
@@ -30,11 +38,32 @@ namespace PPCore
             {
                 mOwner.SkillMenu.AttachTo(aAnchor);
             }
-            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context);
+
+            if (!mHasShownOnce)
+            {
+                mHasShownOnce = true;
+                mOwner.SkillMenu.ShowFromAbove(aUnit, mOwner.Manager.Context);
+            }
+            else
+            {
+                mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context);
+            }
         }
 
         // スキルメニューを閉じる
-        protected override void HideView() => mOwner.SkillMenu.Hide();
+        // 対象選択への一時退避なら即時に、コマンド選択へ戻るなら上にスライドする入れ替え演出にする
+        protected override void HideView()
+        {
+            if (mSuspendingForTarget)
+            {
+                mSuspendingForTarget = false;
+                mOwner.SkillMenu.Hide();
+            }
+            else
+            {
+                mOwner.SkillMenu.HideSlideUp();
+            }
+        }
 
         // スキルの決定と戻る操作を購読する
         protected override void Subscribe()
@@ -64,10 +93,16 @@ namespace PPCore
                 new PPSkillCommand(unit, aSkill, mOwner.BuildResolver(aSkill.DefaultTargetResolver, tgt));
 
             // スキルの効果対象によってターゲット選択と行動決定を分岐
-            if(PPTargeting.NeedsManualTarget(scope))
+            // 対象選択へ進む場合は一時退避であることを示すフラグを立ててから Push する（入れ替え演出をしないため）
+            if (PPTargeting.NeedsManualTarget(scope))
+            {
+                mSuspendingForTarget = true;
                 mOwner.Push(new PPTargetSelectState(mOwner));
+            }
             else
+            {
                 mOwner.Confirm();
+            }
         }
 
         // 戻る操作。1 段ポップしてコマンド選択へ戻る
