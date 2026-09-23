@@ -4,8 +4,8 @@
  * @author hqrse
  * @date 2026/08/19
  * @brief 全MCPツールの登録・解決を行う
- * tools/list(現在のモードで許可されたツールの列挙)・tools/call(名前解決してInvoke)の
- * 両ハンドラから利用する。モードによる許可チェックもここで一元的に行う。
+ * tools/list(現在許可されているツールの列挙)・tools/call(名前解決してInvoke)の
+ * 両ハンドラから利用する。許可状態のチェックもここで一元的に行う。
  * IMCPTool実装はTypeCacheで自動収集するため、導入先はクラスを置くだけでツールを追加できる
  * =====================================*/
 
@@ -14,7 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using MCPBridge.Editor.Logging;
-using MCPBridge.Editor.Mode;
+using MCPBridge.Editor.Permission;
 using MCPBridge.Editor.Server;
 using MCPBridge.Editor.Window;
 using Newtonsoft.Json.Linq;
@@ -38,14 +38,14 @@ namespace MCPBridge.Editor.Tools
             }
         }
 
-        // 現在のモードで許可されているツールのみを返す(tools/list用)
+        // 現在許可されているツールのみを返す(tools/list用)
         public static IEnumerable<IMCPTool> ListAllowedTools()
         {
             EnsureInitialized();
-            return sTools.Values.Where(t => MCPModeRegistry.IsAllowed(t.Name));
+            return sTools.Values.Where(t => MCPToolPermissionRegistry.IsAllowed(t.Name));
         }
 
-        // tools/callのディスパッチ。未知のツール名、またはモードで許可されていないツールはエラーにする
+        // tools/callのディスパッチ。未知のツール名、または許可されていないツールはエラーにする
         public static JToken Call(string aName, JObject aArguments)
         {
             EnsureInitialized();
@@ -54,10 +54,10 @@ namespace MCPBridge.Editor.Tools
             {
                 throw new MCPToolException(-32601, $"Unknown tool: {aName}");
             }
-            if (!MCPModeRegistry.IsAllowed(aName))
+            if (!MCPToolPermissionRegistry.IsAllowed(aName))
             {
                 throw new MCPToolException(-32001,
-                    $"Tool '{aName}' is not allowed in current mode '{MCPModeRegistry.CurrentMode.Name}'.");
+                    $"Tool '{aName}' is not allowed. Enable it in the MCP Bridge window.");
             }
 
             try
@@ -76,7 +76,7 @@ namespace MCPBridge.Editor.Tools
         }
 
         // 静的コンストラクタで走査すると[InitializeOnLoad]の実行順序に依存してしまうため、
-        // 各入口からの遅延初期化にしている。MCPModeStore.CreateDefault()がAllToolNamesを
+        // 各入口からの遅延初期化にしている。MCPToolPermissionStore.CreateDefault()がAllToolNamesを
         // 参照する経路があり、走査中に再入する可能性があるためフラグは走査前に立てる
         private static void EnsureInitialized()
         {

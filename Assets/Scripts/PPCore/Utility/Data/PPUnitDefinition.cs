@@ -76,14 +76,20 @@ namespace PPCore
         // return : 成長を反映したパラメータ一式
         protected virtual ParameterSet CreateParameterSet(int aLevel)
         {
-            var b = mBaseStatBlock;
+            var b = EvaluateStats(aLevel);
             return new ParameterSet(
-                b.MaxHP * Mathf.Max(1f, mHpGrowth.Evaluate(aLevel)),
-                b.Attack * Mathf.Max(1f, mAttackGrowth.Evaluate(aLevel)),
-                b.Defense * Mathf.Max(1f, mDefenseGrowth.Evaluate(aLevel)),
-                b.Speed * Mathf.Max(1f, mSpeedGrowth.Evaluate(aLevel))
+                b.MaxHP, b.Attack, b.Defense, b.Speed
                 );
         }
+
+        // スキルやランタイムユニットを生成せず、表示と生成で同じ成長値を評価する
+        public virtual StatBlock EvaluateStats(int aLevel) => new()
+        {
+            MaxHP = mBaseStatBlock.MaxHP * Mathf.Max(1f, mHpGrowth.Evaluate(aLevel)),
+            Attack = mBaseStatBlock.Attack * Mathf.Max(1f, mAttackGrowth.Evaluate(aLevel)),
+            Defense = mBaseStatBlock.Defense * Mathf.Max(1f, mDefenseGrowth.Evaluate(aLevel)),
+            Speed = mBaseStatBlock.Speed * Mathf.Max(1f, mSpeedGrowth.Evaluate(aLevel)),
+        };
 
         // 追加パラメータ一式を組み立てる。こちらはレベル成長の対象外
         // 行動回数上限は未設定のアセットで 0 になるため、下限 1 に丸めてから渡す

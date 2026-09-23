@@ -255,9 +255,8 @@
     margin-top: 4px;
 }
 
-.mcp-tool-list-item {
+.mcp-tool-toggle {
     font-size: 11px;
-    color: var(--mcp-text-sub);
 }
 
 .mcp-badge {
@@ -286,11 +285,6 @@
 
 .mcp-button {
     margin-top: 4px;
-}
-
-.mcp-mode-popup {
-    flex-grow: 1;
-    margin-right: 8px;
 }
 
 .mcp-todo-list {

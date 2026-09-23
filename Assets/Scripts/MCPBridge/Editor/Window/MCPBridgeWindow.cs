@@ -5,7 +5,7 @@
  * @date 2026/08/19
  * @brief 接続状態・TODO進行状況・実行ログを表示する可視化パネル
  * TODOの手動編集・実行の中断/再開など、実行中の計画そのものへの介入は行わない(SPEC anti-goal)。
- * 一方でツール利用モードの切替・新規作成はSPECで明示的に許可された操作面のため、
+ * 一方でツールごとの許可切替はSPECで明示的に許可された操作面のため、
  * このウィンドウ上のUIから行えるようにする。
  * UI Toolkit(UIElements)ベースで実装しており、各セクションは「カード構築(Build〜)」と
  * 「差分更新(Refresh〜)」のペアで構成する(IMGUI時代のRepaint()全体再描画をやめ、
@@ -22,7 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MCPBridge.Editor.Execution;
-using MCPBridge.Editor.Mode;
+using MCPBridge.Editor.Permission;
 using MCPBridge.Editor.Server;
 using MCPBridge.Editor.Tools;
 using UnityEditor;
@@ -48,9 +48,8 @@ namespace MCPBridge.Editor.Window
 
         private VisualElement mConnectionBadge;
 
-        private PopupField<string> mModePopup;
-        private Label mModeCountLabel;
-        private VisualElement mModeToolListContainer;
+        private Label mPermissionCountLabel;
+        private VisualElement mPermissionListContainer;
 
         private ProgressBar mTodoProgressBar;
         private Label mTodoStatusLabel;
@@ -77,7 +76,7 @@ namespace MCPBridge.Editor.Window
             MCPHttpServer.OnConnectionStateChanged += RefreshConnectionSection;
             PlanExecutionState.OnChanged += RefreshTodoSection;
             PlanExecutionState.OnChanged += RefreshExecutionLogSection;
-            MCPModeRegistry.OnModeChanged += RefreshModeSection;
+            MCPToolPermissionRegistry.OnPermissionsChanged += RefreshPermissionSection;
             MCPToolCallLog.OnChanged += RefreshToolCallLogSection;
             MCPSystemEventLog.OnChanged += RefreshSystemLogSection;
             EditorApplication.update += PeriodicRefresh;
@@ -88,7 +87,7 @@ namespace MCPBridge.Editor.Window
             MCPHttpServer.OnConnectionStateChanged -= RefreshConnectionSection;
             PlanExecutionState.OnChanged -= RefreshTodoSection;
             PlanExecutionState.OnChanged -= RefreshExecutionLogSection;
-            MCPModeRegistry.OnModeChanged -= RefreshModeSection;
+            MCPToolPermissionRegistry.OnPermissionsChanged -= RefreshPermissionSection;
             MCPToolCallLog.OnChanged -= RefreshToolCallLogSection;
             MCPSystemEventLog.OnChanged -= RefreshSystemLogSection;
             EditorApplication.update -= PeriodicRefresh;
@@ -128,7 +127,7 @@ namespace MCPBridge.Editor.Window
             var sections = new (string Id, VisualElement Card)[]
             {
                 ("Connection", BuildConnectionSection()),
-                ("Mode", BuildModeSection()),
+                ("Permission", BuildPermissionSection()),
                 ("Todo", BuildTodoSection()),
                 ("ExecutionLog", BuildExecutionLogSection()),
                 ("ToolCallLog", BuildToolCallLogSection()),
@@ -142,7 +141,7 @@ namespace MCPBridge.Editor.Window
             }
 
             RefreshConnectionSection();
-            RefreshModeSection();
+            RefreshPermissionSection();
             RefreshTodoSection();
             RefreshExecutionLogSection();
             RefreshToolCallLogSection();
@@ -459,71 +458,77 @@ namespace MCPBridge.Editor.Window
             }
         }
 
-        // ===== モード =====
+        // ===== ツール権限 =====
 
-        private VisualElement BuildModeSection()
+        private VisualElement BuildPermissionSection()
         {
-            var card = CreateCard("モード");
+            var card = CreateCard("ツール権限");
 
-            // モード選択・新規作成ボタンはリサイズ/スクロール対象に含めず、カード上部に固定表示する
+            // 一括切替ボタンはリサイズ/スクロール対象に含めず、カード上部に固定表示する
             var row = new VisualElement();
             row.AddToClassList("mcp-row");
 
-            var modeNames = MCPModeRegistry.Modes.Select(m => m.Name).ToList();
-            mModePopup = new PopupField<string>(modeNames, MCPModeRegistry.CurrentMode.Name);
-            mModePopup.AddToClassList("mcp-mode-popup");
-            mModePopup.RegisterValueChangedCallback(evt =>
+            var allowAllButton = new Button(() =>
             {
-                if (evt.newValue != MCPModeRegistry.CurrentMode.Name)
+                foreach (var toolName in MCPToolRegistry.AllToolNames.ToList())
                 {
-                    MCPModeRegistry.SwitchTo(evt.newValue);
+                    MCPToolPermissionRegistry.SetAllowed(toolName, true);
                 }
-            });
-            row.Add(mModePopup);
-
-            var createButton = new Button(() => MCPModeCreateWindow.Open(MCPToolRegistry.AllToolNames))
+            })
             {
-                text = "新規モード作成",
+                text = "すべて許可",
             };
-            createButton.AddToClassList("mcp-button");
-            row.Add(createButton);
+            allowAllButton.AddToClassList("mcp-button");
+            row.Add(allowAllButton);
+
+            var denyAllButton = new Button(() =>
+            {
+                foreach (var toolName in MCPToolRegistry.AllToolNames.ToList())
+                {
+                    MCPToolPermissionRegistry.SetAllowed(toolName, false);
+                }
+            })
+            {
+                text = "すべて拒否",
+            };
+            denyAllButton.AddToClassList("mcp-button");
+            row.Add(denyAllButton);
             card.Add(row);
 
             var content = new ScrollView(ScrollViewMode.Vertical);
             content.AddToClassList("mcp-card__content");
             card.Add(content);
 
-            mModeCountLabel = new Label();
-            mModeCountLabel.AddToClassList("mcp-sub-label");
-            content.Add(mModeCountLabel);
+            mPermissionCountLabel = new Label();
+            mPermissionCountLabel.AddToClassList("mcp-sub-label");
+            content.Add(mPermissionCountLabel);
 
-            mModeToolListContainer = new VisualElement();
-            mModeToolListContainer.AddToClassList("mcp-tool-list");
-            content.Add(mModeToolListContainer);
+            mPermissionListContainer = new VisualElement();
+            mPermissionListContainer.AddToClassList("mcp-tool-list");
+            content.Add(mPermissionListContainer);
 
-            AddResizeHandle(card, content, DefaultCompactContentHeight, "Mode");
+            AddResizeHandle(card, content, DefaultListContentHeight, "Permission");
             return card;
         }
 
-        private void RefreshModeSection()
+        private void RefreshPermissionSection()
         {
-            if (mModePopup == null)
+            if (mPermissionListContainer == null)
             {
                 return;
             }
 
-            var modeNames = MCPModeRegistry.Modes.Select(m => m.Name).ToList();
-            mModePopup.choices = modeNames;
-            mModePopup.SetValueWithoutNotify(MCPModeRegistry.CurrentMode.Name);
-            mModeCountLabel.text =
-                $"許可ツール数: {MCPModeRegistry.CurrentMode.AllowedToolNames.Count} / {MCPToolRegistry.AllToolNames.Count()}";
+            var allToolNames = MCPToolRegistry.AllToolNames.OrderBy(n => n).ToList();
+            mPermissionCountLabel.text =
+                $"許可ツール数: {allToolNames.Count(MCPToolPermissionRegistry.IsAllowed)} / {allToolNames.Count}";
 
-            mModeToolListContainer.Clear();
-            foreach (var toolName in MCPModeRegistry.CurrentMode.AllowedToolNames.OrderBy(n => n))
+            mPermissionListContainer.Clear();
+            foreach (var toolName in allToolNames)
             {
-                var item = new Label(toolName);
-                item.AddToClassList("mcp-tool-list-item");
-                mModeToolListContainer.Add(item);
+                var toggle = new Toggle(toolName) { value = MCPToolPermissionRegistry.IsAllowed(toolName) };
+                toggle.AddToClassList("mcp-tool-toggle");
+                toggle.RegisterValueChangedCallback(evt => MCPToolPermissionRegistry.SetAllowed(toolName, evt.newValue));
+                mPermissionListContainer.Add(toggle);
             }
         }
 
