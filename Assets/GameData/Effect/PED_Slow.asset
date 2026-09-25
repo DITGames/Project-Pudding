@@ -33,5 +33,5 @@ MonoBehaviour:
       type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mTargetParam: 2
-        mModifierType: 1
-        mAmount: 0.7
+        mModifierType: 3
+        mAmount: -0.3

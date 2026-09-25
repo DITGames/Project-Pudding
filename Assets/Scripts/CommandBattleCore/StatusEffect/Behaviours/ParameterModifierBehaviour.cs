@@ -51,7 +51,8 @@ namespace CommandBattleCore
             param.AddModifier(mApplied);
         }
 
-        // 加算・上書きはスタック数倍、乗算はスタック数乗にする
+        // 加算・割合加算・上書きはスタック数倍、乗算はスタック数乗にする
+        // 割合加算は +20% × 2 スタック = +40% のように線形に積み上がる
         private float ResolveValue(int aStacks)
             => mType == ParameterModifierType.Multiply
                 ? Mathf.Pow(mValuePerStack, aStacks)

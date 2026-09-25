@@ -57,9 +57,12 @@ namespace PPCore
         public string[] CreatedGuids => mCreatedGuids;
         public string CreatedUnitId => mCreatedUnitId;
         public bool IsCreated => mCreatedPaths.Length > 0;
-        public static readonly string[] StatNames = { "HP", "攻撃力", "防御力", "素早さ" };
-        public static readonly string[] BaseFields = { "MaxHP", "Attack", "Defense", "Speed" };
-        public static readonly string[] CurveFields = { "mHpGrowth", "mAttackGrowth", "mDefenseGrowth", "mSpeedGrowth" };
+        // 成長する能力値の一覧。きようさだけは基礎値が追加ステータス側（mExpandStatBlock）にある
+        public static readonly string[] StatNames = { "HP", "攻撃力", "防御力", "素早さ", "きようさ" };
+        public static readonly string[] BaseFields = { "mBaseStatBlock.MaxHP", "mBaseStatBlock.Attack", "mBaseStatBlock.Defense", "mBaseStatBlock.Speed", "mExpandStatBlock.Dexterity" };
+        public static readonly string[] CurveFields = { "mHpGrowth", "mAttackGrowth", "mDefenseGrowth", "mSpeedGrowth", "mDexterityGrowth" };
+        // レーダーチャートに載せる軸の数（HP・攻撃力・防御力・素早さ）。チャート基準値（Scales）もこの数だけ持つ
+        public const int ChartAxisCount = 4;
 
         // 初期アセットを作らず、編集専用インスタンスを組み立てる
         public static PPUnitCreationDraft Create()
@@ -76,6 +79,7 @@ namespace PPCore
             so.FindProperty("mExpandStatBlock.ActionCount").intValue = 1;
             so.FindProperty("mExpandStatBlock.SkillGaugeMax").floatValue = 100;
             so.FindProperty("mExpandStatBlock.CoinGaugeMax").floatValue = 100;
+            so.FindProperty("mExpandStatBlock.Dexterity").floatValue = PPStatBlock.DefaultDexterity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return draft;
         }
@@ -138,7 +142,7 @@ namespace PPCore
             var oldEnd = curve.Evaluate(MaxLevel);
             var ratio = aInitial > 0 ? aFinal / aInitial : 1;
             curve = PPUnitGrowthTemplate.Rescale(curve, MaxLevel, MaxLevel, oldEnd, ratio);
-            so.FindProperty("mBaseStatBlock." + BaseFields[aIndex]).floatValue = aInitial;
+            so.FindProperty(BaseFields[aIndex]).floatValue = aInitial;
             so.FindProperty(CurveFields[aIndex]).animationCurveValue = curve;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
@@ -148,7 +152,7 @@ namespace PPCore
         {
             if (aLevel < 1 || aLevel > 100000) throw new ArgumentOutOfRangeException(nameof(aLevel), "最大レベルは1〜100000です。");
             var so = new SerializedObject(Unit);
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < StatNames.Length; i++)
             {
                 var curve = GetCurve(i);
                 so.FindProperty(CurveFields[i]).animationCurveValue = PPUnitGrowthTemplate.Rescale(curve, mMaxLevel, aLevel, curve.Evaluate(mMaxLevel), curve.Evaluate(mMaxLevel));
@@ -159,7 +163,7 @@ namespace PPCore
         }
 
         public AnimationCurve GetCurve(int aIndex) => new SerializedObject(Unit).FindProperty(CurveFields[aIndex]).animationCurveValue;
-        public float GetInitial(int aIndex) => new SerializedObject(Unit).FindProperty("mBaseStatBlock." + BaseFields[aIndex]).floatValue;
+        public float GetInitial(int aIndex) => new SerializedObject(Unit).FindProperty(BaseFields[aIndex]).floatValue;
         public float GetFinal(int aIndex) => GetInitial(aIndex) * Mathf.Max(1, GetCurve(aIndex).Evaluate(MaxLevel));
 
         // カスタム曲線の始点と終点の時刻を固定する

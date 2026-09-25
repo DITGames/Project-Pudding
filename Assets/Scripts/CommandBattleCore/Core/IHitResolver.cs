@@ -81,18 +81,37 @@ namespace CommandBattleCore
     }
 
     // 標準のクリティカルリゾルバ。発生率 10%・倍率 1.2 倍の固定値で判定する暫定実装
+    // 発生率の求め方だけを変えたい場合は、派生して ResolveCriticalChance をオーバーライドする
     public class StandardCriticalResolver : ICriticalResolver
     {
-        // 固定確率でクリティカル判定を行う。倍率は発生有無に関わらず設定される
-        public CriticalInfo Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
+        // 既定の発生率（0～1）
+        public const float DefaultCriticalChance = 0.1f;
+        // 既定のクリティカル倍率
+        public const float DefaultCriticalMultiplier = 1.2f;
+
+        // 発生率に応じてクリティカル判定を行う。倍率は発生有無に関わらず設定される
+        public virtual CriticalInfo Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
         {
             CriticalInfo info = new CriticalInfo();
             info.IsCritical = false;
-            info.CriticalMultiplier = 1.2f;
-            float criticalChance = 0.1f;
+            info.CriticalMultiplier = DefaultCriticalMultiplier;
+            float criticalChance = ResolveCriticalChance(aSource, aTarget, aInfo, aContext);
             // 攻撃側の試行なので、攻撃側の乱数列から引く
-            if (aSource.ResolveRandom(aContext).NextFloat() < criticalChance) info.IsCritical = true;
+            // 発生率 1 以上は必ず発生させる（float 変換で乱数が 1.0 に丸まる場合があるため）
+            // 乱数列の消費数を発生率によって変えないよう、判定前に必ず 1 回引いておく
+            float roll = aSource.ResolveRandom(aContext).NextFloat();
+            if (criticalChance >= 1f || roll < criticalChance) info.IsCritical = true;
             return info;
         }
+
+        // クリティカル発生率（0～1）を求める。既定は固定値
+        // 1 以上を返せば必ず発生し、0 以下なら発生しない
+        // aSource : 攻撃側ユニット
+        // aTarget : 防御側ユニット
+        // aInfo : 判定対象のダメージ情報
+        // aContext : バトルコンテキスト
+        // return : 発生率
+        protected virtual float ResolveCriticalChance(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
+            => DefaultCriticalChance;
     }
 }

@@ -34,6 +34,11 @@ namespace PPCore
         public static readonly string ParameterIdAttackCost = "AttackCost";
         // 行動回数上限のパラメータ ID
         public static readonly string ParameterIdActionCount = "ActionCount";
+        // きようさのパラメータ ID。会心率の算出に使う
+        public static readonly string ParameterIdDexterity = "Dexterity";
+        // スキルゲージ上限の ID。PPBaseParameterTable でスキル効果値を集計する際のキーにだけ使い、
+        // バフ・デバフの対象（mParameters）には登録しない（上限をバフで増減させない仕様のため）
+        public static readonly string ParameterIdSkillGaugeMax = "SkillGaugeMax";
 
         // 通常攻撃 1 回あたりの消費コインゲージ量。バフで増減しうる
         public Parameter AttackCost { get; }
@@ -43,6 +48,10 @@ namespace PPCore
         // 実際の消費・リセットは基底の ActionBudget が担うため、
         // この値は PPBattleUnit.UnitTick が ActionBudget.Max へ同期する
         public Parameter ActionCount { get; }
+
+        // きようさ。会心率(%) = 現在値 × 0.25 で求める（PPCriticalResolver 参照）
+        // Parameter で持つことで、既存のパラメータ変動エフェクトから ID 指定でバフ・デバフを掛けられる
+        public Parameter Dexterity { get; }
 
         // スキル発動に使うゲージ。HP と同じ ResourceParameter で残量と上限を表す
         public ResourceParameter SkillGauge { get; }
@@ -58,10 +67,12 @@ namespace PPCore
         // aActionCount : 行動回数上限の初期値。1 未満が渡された場合は 1 に丸める
         // aSkillGaugeMax : スキルゲージの上限
         // aCoinGaugeMax : コインゲージの上限
-        public PPParameterSet(float aAttackCost, int aActionCount, float aSkillGaugeMax, float aCoinGaugeMax)
+        // aDexterity : きようさの育成値（レベル成長を反映した値）
+        public PPParameterSet(float aAttackCost, int aActionCount, float aSkillGaugeMax, float aCoinGaugeMax, float aDexterity)
         {
             AttackCost = RegisterModifiable(ParameterIdAttackCost, new Parameter(aAttackCost));
             ActionCount = RegisterModifiable(ParameterIdActionCount, new Parameter(Mathf.Max(1, aActionCount)));
+            Dexterity = RegisterModifiable(ParameterIdDexterity, new Parameter(aDexterity));
 
             SkillGauge = CreateEmptyGauge(aSkillGaugeMax);
             CoinGauge = CreateEmptyGauge(aCoinGaugeMax);

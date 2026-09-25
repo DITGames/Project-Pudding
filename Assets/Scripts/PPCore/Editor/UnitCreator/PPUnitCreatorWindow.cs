@@ -21,7 +21,7 @@ namespace PPCore
         [Label("上下比率")][SerializeField] private float mSplitY = 0.58f;
         private PPUnitCreationDraft mDraft;
         private readonly Vector2[] mScroll = new Vector2[5];
-        private readonly int[] mTemplates = new int[4];
+        private readonly int[] mTemplates = new int[PPUnitCreationDraft.StatNames.Length];
         private readonly bool[] mSeries = { true, true, true };
         private int mDragging;
         private int mSkillIndex = -1;
@@ -173,8 +173,8 @@ namespace PPCore
             }
             mDraft.PreviewLevel = EditorGUILayout.IntSlider("プレビューレベル", mDraft.PreviewLevel, 1, mDraft.MaxLevel);
             var stats = mDraft.Unit.EvaluateStats(mDraft.PreviewLevel);
-            var values = new[] { stats.MaxHP, stats.Attack, stats.Defense, stats.Speed };
-            for (var i = 0; i < 4; i++)
+            var values = new[] { stats.MaxHP, stats.Attack, stats.Defense, stats.Speed, mDraft.Unit.EvaluateDexterity(mDraft.PreviewLevel) };
+            for (var i = 0; i < PPUnitCreationDraft.StatNames.Length; i++)
             {
                 GUILayout.Label(PPUnitCreationDraft.StatNames[i], EditorStyles.boldLabel);
                 EditorGUILayout.BeginHorizontal();
@@ -208,11 +208,20 @@ namespace PPCore
                     try { mDraft.SetCurve(i, curve); mError = null; }
                     catch (Exception error) { mError = error.Message; }
                 }
-                mDraft.Scales[i] = EditorGUILayout.FloatField("チャート基準値", mDraft.Scales[i]);
+                if (i < PPUnitCreationDraft.ChartAxisCount)
+                    mDraft.Scales[i] = EditorGUILayout.FloatField("チャート基準値", mDraft.Scales[i]);
+                else // チャートに載らないきようさは、基準値の代わりに補正なしの会心率を表示する
+                    EditorGUILayout.LabelField("会心率（補正なし）", PPCriticalResolver.ToCriticalPercent(values[i]).ToString("0.##") + "%");
             }
             DrawRadar();
             var so = new SerializedObject(mDraft.Unit);
-            EditorGUILayout.PropertyField(so.FindProperty("mExpandStatBlock"), new GUIContent("追加パラメータ（成長なし）"), true);
+            // きようさは上で成長曲線と一緒に編集するため、成長しない追加パラメータだけを並べる
+            var expand = so.FindProperty("mExpandStatBlock");
+            GUILayout.Label("追加パラメータ（成長なし）", EditorStyles.boldLabel);
+            var end = expand.GetEndProperty();
+            var child = expand.Copy();
+            for (var enter = true; child.NextVisible(enter) && !SerializedProperty.EqualContents(child, end); enter = false)
+                if (child.name != nameof(PPStatBlock.Dexterity)) EditorGUILayout.PropertyField(child, true);
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
