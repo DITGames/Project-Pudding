@@ -58,10 +58,14 @@ namespace PPCore
         public string CreatedUnitId => mCreatedUnitId;
         public bool IsCreated => mCreatedPaths.Length > 0;
         // 成長する能力値の一覧。きようさだけは基礎値が追加ステータス側（mExpandStatBlock）にある
-        public static readonly string[] StatNames = { "HP", "攻撃力", "防御力", "素早さ", "きようさ" };
+        public static readonly string[] StatNames =
+        {
+            PPUnitAbilityDefinition.NameHp, PPUnitAbilityDefinition.NameStrength, PPUnitAbilityDefinition.NameGuard,
+            PPUnitAbilityDefinition.NameAgility, PPUnitAbilityDefinition.NameDexterity,
+        };
         public static readonly string[] BaseFields = { "mBaseStatBlock.MaxHP", "mBaseStatBlock.Attack", "mBaseStatBlock.Defense", "mBaseStatBlock.Speed", "mExpandStatBlock.Dexterity" };
         public static readonly string[] CurveFields = { "mHpGrowth", "mAttackGrowth", "mDefenseGrowth", "mSpeedGrowth", "mDexterityGrowth" };
-        // レーダーチャートに載せる軸の数（HP・攻撃力・防御力・素早さ）。チャート基準値（Scales）もこの数だけ持つ
+        // レーダーチャートに載せる軸の数（HP・ちから・まもり・はやさ）。チャート基準値（Scales）もこの数だけ持つ
         public const int ChartAxisCount = 4;
 
         // 初期アセットを作らず、編集専用インスタンスを組み立てる

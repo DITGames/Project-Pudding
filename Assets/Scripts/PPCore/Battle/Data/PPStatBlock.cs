@@ -36,7 +36,7 @@ namespace PPCore
         // 会心率の元になる基礎能力（レベル 1 時点の値）。PPUnitDefinition の成長曲線でレベル成長する
         // 会心率(%) = 補正後きようさ × 0.25（0～100 に丸める）。既定値 20 で会心率 5%
         // 構造体のためフィールド初期化子を持てず、既定値は PPUnitDefinition 側で与える
-        [Label("きようさ")]
+        [Label(PPUnitAbilityDefinition.NameDexterity)]
         public float Dexterity;
     }
 }

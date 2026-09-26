@@ -41,11 +41,11 @@ namespace PPCore
         [SerializeField]protected PPUnitAIProfileDefinition mAIProfile;
 
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
-        [Label("HP成長曲線")][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("攻撃力成長曲線")][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("防御力成長曲線")][SerializeField]protected AnimationCurve mDefenseGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("素早さ成長曲線")][SerializeField]protected AnimationCurve mSpeedGrowth = AnimationCurve.Linear(1, 1, 50, 3);
-        [Label("きようさ成長曲線")][SerializeField]protected AnimationCurve mDexterityGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label(PPUnitAbilityDefinition.NameHp + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label(PPUnitAbilityDefinition.NameStrength + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label(PPUnitAbilityDefinition.NameGuard + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mDefenseGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label(PPUnitAbilityDefinition.NameAgility + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mSpeedGrowth = AnimationCurve.Linear(1, 1, 50, 3);
+        [Label(PPUnitAbilityDefinition.NameDexterity + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mDexterityGrowth = AnimationCurve.Linear(1, 1, 50, 3);
 
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
