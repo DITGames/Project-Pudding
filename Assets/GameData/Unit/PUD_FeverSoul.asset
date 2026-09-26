@@ -28,6 +28,7 @@ MonoBehaviour:
     ActionCount: 1
     SkillGaugeMax: 100
     CoinGaugeMax: 100
+    Dexterity: 20
   mTypeAttribute: 1
   mAIProfile: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
   mHpGrowth:
@@ -103,6 +104,30 @@ MonoBehaviour:
     m_PostInfinity: 2
     m_RotationOrder: 4
   mSpeedGrowth:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0.040816326
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 50
+      value: 3
+      inSlope: 0.040816326
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  mDexterityGrowth:
     serializedVersion: 2
     m_Curve:
     - serializedVersion: 3

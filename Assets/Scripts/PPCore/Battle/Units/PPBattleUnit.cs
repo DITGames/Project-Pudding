@@ -22,6 +22,11 @@ namespace PPCore
         // ユニットの属性。弱点・耐性倍率の判定に使う
         public PPTypeAttribute TypeAttribute { get; }
 
+        // 育成値とスキル効果値（S）から BaseValue を組み立てるテーブル
+        // 最大 HP・攻撃力・防御力・素早さ・きようさ・スキルゲージ上限が登録される
+        // パッシブスキルやパーティ効果は、ここへ効果値を足すことで BaseValue に反映させる
+        public PPBaseParameterTable BaseParameters { get; }
+
         // aUnitId : ユニットID
         // aDisplayName : UI表示名
         // aParameterSet : 基本パラメータ一式
@@ -32,6 +37,8 @@ namespace PPCore
         {
             ExtraParameters = aExtraParameterSet;
             TypeAttribute = aTypeAttribute;
+            // 生成時点の BaseValue は定義側で評価した育成値そのものなので、それを育成値として登録する
+            BaseParameters = CreateBaseParameterTable();
 
             // 最初のティックが来るまで既定値の 1 で据え置かれないよう、生成時点で上限を反映しておく
             Actions.Max = ResolveActionCount();
@@ -74,6 +81,21 @@ namespace PPCore
         {
             var parameter = ExtraParameters.Get(PPParameterSet.ParameterIdActionCount);
             return parameter == null ? 1 : Mathf.Max(1, Mathf.CeilToInt(parameter.CurrentValue));
+        }
+
+        // 育成値テーブルを組み立てる。コンストラクタから呼ばれる
+        // スキルゲージ上限はバフの対象外だが、パッシブによる上限上昇（S）の対象にはなるため登録する
+        // return : 各パラメータの現在の BaseValue を育成値として登録したテーブル
+        protected virtual PPBaseParameterTable CreateBaseParameterTable()
+        {
+            var table = new PPBaseParameterTable();
+            table.Register(ParameterSet.ParamIdMaxHp, Parameters.Hp.Max);
+            table.Register(ParameterSet.ParamIdAttack, Parameters.Attack);
+            table.Register(ParameterSet.ParamIdDefense, Parameters.Defense);
+            table.Register(ParameterSet.ParamIdSpeed, Parameters.Speed);
+            table.Register(PPParameterSet.ParameterIdDexterity, ExtraParameters.Dexterity);
+            table.Register(PPParameterSet.ParameterIdSkillGaugeMax, ExtraParameters.SkillGauge.Max);
+            return table;
         }
 
         // ID からパラメータを解決する。基本パラメータを先に探し、無ければ拡張パラメータを探す

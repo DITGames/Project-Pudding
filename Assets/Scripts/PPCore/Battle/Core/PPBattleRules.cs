@@ -31,5 +31,12 @@ namespace PPCore
         // 通常攻撃 1 回あたりに回復するスキルゲージ量
         // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
         public float NormalAttackSkillGaugeRecover = 5f;
+
+        // 本作の既定リゾルバを差し込む
+        // クリティカルは固定確率ではなく、攻撃側のきようさから会心率を求める
+        public PPBattleRules()
+        {
+            CriticalResolver = new PPCriticalResolver();
+        }
     }
 }

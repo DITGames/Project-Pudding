@@ -62,7 +62,7 @@ namespace PPCore
             if (LoadAll<PPUnitVisualDefinition>().Any(aVisual => aVisual.UnitId == unit.UnitId)) result.Errors.Add("既存ビジュアルとIDが重複しています。");
             if (aDraft.MaxLevel < 1 || aDraft.MaxLevel > 100000 || aDraft.PreviewLevel < 1 || aDraft.PreviewLevel > aDraft.MaxLevel)
                 result.Errors.Add("レベルの範囲が不正です（最大レベル1〜100000）。");
-            for (var i = 0; i < 4; i++) ValidateCurve(aDraft, i, result);
+            for (var i = 0; i < PPUnitCreationDraft.StatNames.Length; i++) ValidateCurve(aDraft, i, result);
             var expand = unit.ExpandStatBlock;
             if (expand.ActionCount < 1) result.Errors.Add("行動回数は1以上です。");
             if (new[] { expand.AttackCost, expand.SkillGaugeMax, expand.CoinGaugeMax }.Any(aValue => !IsFinite(aValue) || aValue < 0))
@@ -120,7 +120,8 @@ namespace PPCore
             var curve = aDraft.GetCurve(aIndex);
             if (!IsFinite(initial) || initial < 0) aResult.Errors.Add(label + ": 初期値は有限の0以上の値が必要です。");
             if (aIndex == 0 && initial == 0) aResult.Warnings.Add("HPが0のユニットは戦闘開始時点で戦闘不能になります。");
-            if (!IsFinite(aDraft.Scales[aIndex]) || aDraft.Scales[aIndex] <= 0) aResult.Errors.Add(label + ": チャート基準値は正の有限値が必要です。");
+            // チャートに載らない能力値（きようさ）は基準値を持たない
+            if (aIndex < PPUnitCreationDraft.ChartAxisCount && (!IsFinite(aDraft.Scales[aIndex]) || aDraft.Scales[aIndex] <= 0)) aResult.Errors.Add(label + ": チャート基準値は正の有限値が必要です。");
             if (curve == null || curve.length < (aDraft.MaxLevel == 1 ? 1 : 2)) { aResult.Errors.Add(label + ": 曲線のキーが不足しています。"); return; }
             var keys = curve.keys;
             if (keys[0].time != 1 || keys[0].value != 1 || keys[keys.Length - 1].time != aDraft.MaxLevel)

@@ -39,6 +39,7 @@ namespace CommandBattleCore
 
         // 基礎値。レベルアップなど恒久的な変化はこちらを書き換える
         // なお設定しただけでは再計算されないため、必要なら RecalculateCurrentValue を呼ぶ
+        // （設定と再計算をまとめて行う場合は SetBaseValue を使う）
         public float BaseValue
         {
             get => mBaseValue;
@@ -56,6 +57,22 @@ namespace CommandBattleCore
         {
             mBaseValue = aBaseValue;
             CurrentValue = aBaseValue;
+        }
+
+        // 割合の合計値を倍率へ変換する（+20% と +30% の合計 0.5 → 1.5 倍）
+        // 倍率は 0 未満に丸めるため、減少が 100% を超えても値が負になることはない
+        // 割合加算の修飾子に限らず、同じ規則で倍率を求めたい呼び出し側からも使えるよう公開している
+        // aRatioSum : 割合の合計値。補正なしは 0
+        // return : 0 以上の倍率
+        public static float RatioSumToMultiplier(float aRatioSum) => Mathf.Max(0f, 1f + aRatioSum);
+
+        // 基礎値を設定し、そのまま現在値を再計算して変化を通知する
+        // BaseValue の setter は再計算しないため、設定と再計算を 1 回で済ませたい場合はこちらを使う
+        // aValue : 新しい基礎値
+        public void SetBaseValue(float aValue)
+        {
+            mBaseValue = aValue;
+            RecalculateCurrentValue();
         }
 
         // 修飾子を追加して現在値を再計算する。バフ・デバフが掛かったときに呼ぶ
@@ -89,7 +106,8 @@ namespace CommandBattleCore
         }
 
         // 基礎値と全修飾子から現在値を計算し直し、変化を通知する
-        // Override が 1 つでもあれば優先度最上位の値で確定し、無ければ加算 → 乗算の順に適用する
+        // Override が 1 つでもあれば優先度最上位の値で確定し、無ければ
+        // (基礎値 + 加算の合計) × max(0, 1 + 割合の合計) × 乗算の総乗 で求める
         public void RecalculateCurrentValue()
         {
             // オーバーライドタイプを優先する
@@ -98,10 +116,13 @@ namespace CommandBattleCore
             {
                 // 加算の合計値
                 float add = mModifiers.Where(m => m.Type == ParameterModifierType.Add).Sum(m => m.Value);
+                // 割合加算。同種は合計してから倍率にするため、+40% と -10% は 1.3 倍になる
+                float percent = RatioSumToMultiplier(
+                    mModifiers.Where(m => m.Type == ParameterModifierType.Percent).Sum(m => m.Value));
                 // 乗算
                 float mul = mModifiers.Where(m => m.Type == ParameterModifierType.Multiply)
                     .Aggregate(1f, (acc, m) => acc * m.Value);
-                CurrentValue = (mBaseValue + add) * mul;
+                CurrentValue = (mBaseValue + add) * percent * mul;
             }
             else
             {
