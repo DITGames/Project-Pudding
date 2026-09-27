@@ -37,15 +37,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -61,15 +61,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -85,15 +85,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -109,15 +109,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -133,15 +133,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.2222222
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.2222222
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -150,3 +150,22 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &4468891634445690678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc176839844b16f408402c331a592acb, type: 3}
+  m_Name: "\u4F5C\u6210\u8A2D\u5B9A"
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitCreationSettings
+  mMaxLevel: 10
+  mScales:
+  - 9999
+  - 999
+  - 999
+  - 999
+  - 999
