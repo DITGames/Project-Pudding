@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
   m_Name: PSD_AttackBuff
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: AttackBuff
+  mSkillId: PSD_0003
   mDisplayName: "攻撃強化"
   mDescription: "味方1体の攻撃力を上げる"
   mTargetScope: 2

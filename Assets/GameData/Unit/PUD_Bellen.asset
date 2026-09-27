@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 290b26bbb7fd2bc489ee681d64ebb418, type: 3}
   m_Name: PUD_Bellen
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitDefinition
-  mUnitId: Bellen
+  mUnitId: PUD_0001
   mDisplayName: Bellen
   mBaseStatBlock:
     MaxHP: 120

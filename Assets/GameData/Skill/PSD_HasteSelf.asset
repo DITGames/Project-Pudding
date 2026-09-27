@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
   m_Name: PSD_HasteSelf
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: HasteSelf
+  mSkillId: PSD_0004
   mDisplayName: "加速"
   mDescription: "自分の1ティックあたりの行動回数上限を1つ増やす。行動回数上限の検証用"
   mTargetScope: 5

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 290b26bbb7fd2bc489ee681d64ebb418, type: 3}
   m_Name: Hero
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitDefinition
-  mUnitId: Hero
+  mUnitId: PUD_0004
   mDisplayName: Hero
   mBaseStatBlock:
     MaxHP: 100

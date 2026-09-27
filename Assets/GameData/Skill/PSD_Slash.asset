@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
   m_Name: PSD_Slash
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: 
-  mDisplayName: 
+  mSkillId: PSD_0001
+  mDisplayName: "斬撃"
   mDescription: 
   mTargetScope: 0
   mMaxCooldown: 0

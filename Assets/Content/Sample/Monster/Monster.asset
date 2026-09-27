@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 290b26bbb7fd2bc489ee681d64ebb418, type: 3}
   m_Name: Monster
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitDefinition
-  mUnitId: Monster
+  mUnitId: PUD_0005
   mDisplayName: Monster
   mBaseStatBlock:
     MaxHP: 100
