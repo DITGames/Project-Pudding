@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
   m_Name: PSD_Finisher
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: Finisher
+  mSkillId: PSD_0002
   mDisplayName: "大技"
   mDescription: "コストの高い決め手。バフを乗せてから撃つ想定"
   mTargetScope: 0

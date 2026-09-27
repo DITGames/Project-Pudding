@@ -1,5 +1,24 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-1121523066751417812
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc176839844b16f408402c331a592acb, type: 3}
+  m_Name: "\u4F5C\u6210\u8A2D\u5B9A"
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitCreationSettings
+  mMaxLevel: 10
+  mScales:
+  - 9999
+  - 999
+  - 999
+  - 999
+  - 999
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12,7 +31,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 290b26bbb7fd2bc489ee681d64ebb418, type: 3}
   m_Name: PUD_FeverSoul
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitDefinition
-  mUnitId: FeverSoul
+  mUnitId: PUD_0002
   mDisplayName: FeverSoul
   mBaseStatBlock:
     MaxHP: 130
@@ -38,15 +57,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -62,15 +81,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -86,15 +105,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -110,15 +129,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0
@@ -134,15 +153,15 @@ MonoBehaviour:
       time: 1
       value: 1
       inSlope: 0
-      outSlope: 0.040816326
+      outSlope: 0.22222221
       tangentMode: 0
       weightedMode: 0
       inWeight: 0
       outWeight: 0
     - serializedVersion: 3
-      time: 50
+      time: 10
       value: 3
-      inSlope: 0.040816326
+      inSlope: 0.22222221
       outSlope: 0
       tangentMode: 0
       weightedMode: 0

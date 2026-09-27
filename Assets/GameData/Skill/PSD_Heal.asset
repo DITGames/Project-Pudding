@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
   m_Name: PSD_Heal
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
-  mSkillId: Heal
+  mSkillId: PSD_0005
   mDisplayName: "回復"
   mDescription: "味方1体のHPを回復する"
   mTargetScope: 2

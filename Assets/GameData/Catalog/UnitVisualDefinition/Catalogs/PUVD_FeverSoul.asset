@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de27464d551ab2e42a5356a16a30f18e, type: 3}
   m_Name: PUVD_FeverSoul
   m_EditorClassIdentifier: Assembly-CSharp::PPUnitVisualDefinition
-  UnitId: FeverSoul
+  UnitId: PUD_0002
   UnitIcon: {fileID: 21300000, guid: bdf26cf8111321e46928913ae7217934, type: 3}
   UnitPortrait: {fileID: 21300000, guid: bdf26cf8111321e46928913ae7217934, type: 3}
   ViewPrefab: {fileID: 0}
