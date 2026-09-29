@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "notion": {
+    "parent": "https://app.notion.com/p/Project-Pudding-379ef121339f805d8cc3e488b4f52534",
+    "data_source": "3765b8f4-8b96-4e58-9d32-260731669769",
+    "property_map": {
+      "id": "タスクID",
+      "title": "タスク",
+      "status": "ステータス",
+      "dependencies": "前提タスク",
+      "assignee": "所有者",
+      "parent": "親タスク"
+    }
+  },
+  "google_drive": {
+    "root": "12zyixteW2a-wG3IymSeTgUZCKLeOtexT"
+  },
+  "git": {
+    "base_ref": "main"
+  }
+}
