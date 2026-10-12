@@ -1,0 +1,117 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PUAP_VERIFY_B_Enemy
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  mTreeKind: 0
+  mDescription: "\u691C\u8A3CB \u6575: \u884C\u52D5\u53EF\u80FD\uFF08\u78BA\u5B9A\u306E\u884C\u52D5\u4E0D\u80FD\u3067\u306A\u3044\uFF09\u306A\u3089
+    \u78BA\u8A8D\u7528\u30B9\u30AD\u30EB \u2192 \u6483\u3066\u306A\u3051\u308C\u3070\u901A\u5E38\u653B\u6483\uFF08HP\u6700\u5927\u306E\u76F8\u624B\uFF09"
+  mRootNodeId: 7c91db0c326e4129a35a6e7de7f38da1
+  mNodes:
+  - rid: 6803203126385967274
+  - rid: 6803203126385967275
+  - rid: 6803203126385967276
+  - rid: 6803203126385967277
+  - rid: 6803203126385967278
+  mNotes: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 6803203126385967274
+      type: {class: PPUnitAISelectorNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u30EB\u30FC\u30C8"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 7c91db0c326e4129a35a6e7de7f38da1
+        mGraphPosition: {x: 0, y: 0}
+        mChildIds:
+        - 354dab40bf7a4279a9c3d1a204768f2c
+    - rid: 6803203126385967275
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u884C\u52D5\u53EF\u80FD?"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 354dab40bf7a4279a9c3d1a204768f2c
+        mGraphPosition: {x: 320, y: 0}
+        mUnitConditions:
+        - rid: 6803203126385967279
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: 9806962f3bb04102a5c13fbc38f7eba8
+        mUnmatchedId: 
+    - rid: 6803203126385967276
+      type: {class: PPUnitAISelectorNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u884C\u52D5"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 9806962f3bb04102a5c13fbc38f7eba8
+        mGraphPosition: {x: 640, y: 0}
+        mChildIds:
+        - 6643527a93964f78a7657971f7bd1669
+        - 9eee0abc39a6453cadfbdd26e92e77da
+    - rid: 6803203126385967277
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u691C\u8A3C:\u30B9\u30AD\u30EB\u5C01\u3058\u78BA\u8A8D"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 6643527a93964f78a7657971f7bd1669
+        mGraphPosition: {x: 960, y: 0}
+        mAction:
+          rid: 6803203126385967280
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 6803203126385967278
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u901A\u5E38\u653B\u6483"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 9eee0abc39a6453cadfbdd26e92e77da
+        mGraphPosition: {x: 960, y: 150}
+        mAction:
+          rid: 6803203126385967281
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 6803203126385967279
+      type: {class: PPUnitAliveCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "\u884C\u52D5\u3067\u304D\u308B"
+        mIsCheckRestriction: 1
+        mIsInvert: 0
+    - rid: 6803203126385967280
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: 
+        mFilter:
+          mMode: 1
+          mSkillDefinition: {fileID: 11400000, guid: 373ec270276e7814e9f5c71f3479f3b1, type: 2}
+          mIsFilterByGroup: 0
+          mGroup: 0
+          mTags: []
+        mSelectRule: 0
+        mTargetPolicy: 0
+    - rid: 6803203126385967281
+      type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: 
+        mTargetPolicy: 11
+        mIsFallbackAnyEnemy: 1

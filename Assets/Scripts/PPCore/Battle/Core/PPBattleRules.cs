@@ -32,11 +32,13 @@ namespace PPCore
         // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
         public float NormalAttackSkillGaugeRecover = 5f;
 
-        // 本作の既定リゾルバを差し込む
+        // 本作の既定リゾルバと既定ルール値を差し込む
         // クリティカルは固定確率ではなく、攻撃側のきようさから会心率を求める
+        // 戦闘不能になったユニットの状態異常はすべて解除する（状態異常仕様）
         public PPBattleRules()
         {
             CriticalResolver = new PPCriticalResolver();
+            ClearStatusEffectsOnDefeat = true;
         }
     }
 }

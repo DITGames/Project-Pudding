@@ -134,7 +134,13 @@ namespace CommandBattleCore
         {
             ElapsedTurns++;
             var ctx = new StatusEffectContext(this, aOwner, aContext);
-            foreach (var b in mBehaviours) b.OnTick(ctx);
+            foreach (var b in mBehaviours)
+            {
+                b.OnTick(ctx);
+                // 振る舞いの Tick（毒ダメージ等）で対象が撃破され、このエフェクトが除去されることがある
+                // 除去済みのエフェクトから残りの振る舞いを走らせない
+                if (Owner != aOwner) break;
+            }
         }
 
         // 被ダメージ確定前に全Behaviourへ介入させる

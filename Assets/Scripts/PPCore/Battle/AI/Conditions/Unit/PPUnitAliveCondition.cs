@@ -36,7 +36,9 @@ namespace PPCore
             bool canAct = aUnit != null && aUnit.IsAlive;
             if (canAct && mIsCheckRestriction)
             {
-                canAct = (aUnit.CurrentRestrictions & ActionRestriction.CannotAct) == 0;
+                // 確定で行動できない（睡眠など）場合だけを「行動できない」とする
+                // 麻痺のような確率付きの行動不能は、行動すれば成功する可能性があるため行動を割り当てる
+                canAct = !aUnit.IsActionCertainlyBlocked;
             }
             return canAct != mIsInvert;
         }

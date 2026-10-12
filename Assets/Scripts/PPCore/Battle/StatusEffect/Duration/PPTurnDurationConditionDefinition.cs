@@ -19,7 +19,7 @@ namespace PPCore
     [PPTypeMenuName("ターン経過")]
     public class PPTurnDurationConditionDefinition : PPDurationConditionDefinition
     {
-        [Header("ターン経過")]
+        // 持続条件のドロワーが種類のプルダウンと同じ行に並べるため、[Header] は付けない
         [Label("期間")][Min(1)]
         [SerializeField]protected int mDuration = 3;
 

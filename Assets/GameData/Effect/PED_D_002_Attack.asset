@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
+  m_Name: PED_D_002_Attack
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
+  mEffectId: D_002_Attack
+  mDisplayName: "\u653B\u6483\u529B\u30C0\u30A6\u30F3Lv2"
+  mDurationCondition:
+    rid: 6803203126385967179
+  mStackPolicy: 1
+  mMaxStack: 1
+  mConsumeRule:
+    rid: -2
+  mCategory: 131072
+  mTags: 10
+  mBehaviours:
+  - rid: 6803203126385967180
+  references:
+    version: 2
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6803203126385967179
+      type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mDuration: 3
+    - rid: 6803203126385967180
+      type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mTargetParam: 0
+        mModifierType: 3
+        mAmount: -0.5

@@ -31,7 +31,7 @@ namespace PPCore
         // 持続条件。ターン経過で切れるのか永続なのかを条件の種類として選ぶ
         // 未設定の場合は StatusEffect 側の既定に従い永続になる
         // 単一フィールドのため applyToCollection による回避ができず、[Label] を付けると
-        // 属性側の PropertyDrawer が型の PropertyDrawer より優先されて型選択ツリーを出せなくなる
+        // 属性側の PropertyDrawer が型の PropertyDrawer より優先されて種類のプルダウンを出せなくなる
         // そのため表示名はドロワーが読む [PPFieldLabel] で与える
         [PPFieldLabel("持続条件")]
         [SerializeReference]
@@ -74,18 +74,12 @@ namespace PPCore
         // aSource : エフェクトの付与元ユニット
         // aTarget : 付与される対象ユニット
         // aContext : バトルコンテキスト
-        // aDurationOverride : スキル側から差し替える持続条件。null なら本定義の設定を使う
         // return : 生成されたステータスエフェクト
-        public StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext,
-            PPDurationConditionDefinition aDurationOverride = null)
+        public StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            // 効き目は同じで持続だけスキルごとに変えたい場合があるため、スキル側の指定を優先する
-            // エフェクト ID は変えないので、上書きしてもスタック・解除・AI 判定は同じエフェクトとして扱われる
-            var durationSource = aDurationOverride ?? mDurationCondition;
-
             // 持続条件は付与のたびに作り直す（残りターン数のような状態を持つため使い回さない）
             // 未設定なら null を渡し、StatusEffect 側の既定である PermanentDurationCondition に委ねる
-            var effect = new StatusEffect(mEffectId, mDisplayName, durationSource?.CreateDurationCondition())
+            var effect = new StatusEffect(mEffectId, mDisplayName, mDurationCondition?.CreateDurationCondition())
                 .WithSource(aSource)
                 .WithSourceDefinition(this)
                 .WithStacking(mStackPolicy, mMaxStack)

@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d461c5d5a499aa8429085858aa8a7aaf, type: 3}
+  m_Name: PSD_VERIFY_SE_Ailment
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPSkillDefinition
+  mSkillId: VERIFY_SE_Ailment
+  mDisplayName: "\u691C\u8A3C:\u72B6\u614B\u7570\u5E38"
+  mDescription: "\u6575\u5168\u4F53\u3078\u88AB\u30C0\u30E1\u30FC\u30B8\u30A2\u30C3\u30D7\u30FB\u6BD2\u30FB\u9EBB\u75FA\u30FB\u30B9\u30AD\u30EB\u5C01\u3058"
+  mTargetScope: 1
+  mMaxCooldown: 2
+  mMaxUsesPerBattle: 0
+  mTags: []
+  mGroup: 1
+  mActionPriority: 1
+  mSkillGaugeCost: 0
+  mSkillEffects:
+  - rid: 6803203126385967213
+  - rid: 6803203126385967214
+  - rid: 6803203126385967215
+  - rid: 6803203126385967216
+  mAIScore: 1
+  references:
+    version: 2
+    RefIds:
+    - rid: 6803203126385967213
+      type: {class: PPStatusApplySkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mApplyTarget: 0
+        mEffect: {fileID: 11400000, guid: afaa7d38ec0f4d138fe422a11e1e647a, type: 2}
+        mApplyChance: 1
+    - rid: 6803203126385967214
+      type: {class: PPStatusApplySkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mApplyTarget: 0
+        mEffect: {fileID: 11400000, guid: cd68fecc0ffe34d46230cca22cbd49a6, type: 2}
+        mApplyChance: 1
+    - rid: 6803203126385967215
+      type: {class: PPStatusApplySkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mApplyTarget: 0
+        mEffect: {fileID: 11400000, guid: 70c5839b486220f142f10d367cd4ba0c, type: 2}
+        mApplyChance: 1
+    - rid: 6803203126385967216
+      type: {class: PPStatusApplySkillEffectDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mApplyTarget: 0
+        mEffect: {fileID: 11400000, guid: 076939f541647047846e6a6de3eec0a4, type: 2}
+        mApplyChance: 1

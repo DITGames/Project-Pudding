@@ -24,6 +24,10 @@ namespace PPCore
         [SerializeField]protected float mScale = 0.5f;
         [Label("適用順")]
         [SerializeField]protected int mOrder = 0;
+        // 毒などの状態異常によるダメージには倍率を掛けない（被ダメージアップなど）
+        // 既定は false で、防御姿勢などは従来どおりすべてのダメージに掛かる
+        [Label("状態異常ダメージには掛けない")]
+        [SerializeField]protected bool mIsExcludeStatusEffectDamage = false;
 
         // aEffect : 組み立て先のエフェクト
         // aSource : エフェクトの付与元ユニット
@@ -31,10 +35,10 @@ namespace PPCore
         // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            aEffect.AddBehaviour(new DamageScaleBehaviour(mScale, mOrder));
+            aEffect.AddBehaviour(new DamageScaleBehaviour(mScale, mOrder, mIsExcludeStatusEffectDamage));
         }
 
         public override string BuildString()
-            => $"被ダメージ倍率：{mScale}倍";
+            => $"被ダメージ倍率：{mScale}倍{(mIsExcludeStatusEffectDamage ? "（状態異常ダメージを除く）" : string.Empty)}";
     }
 }

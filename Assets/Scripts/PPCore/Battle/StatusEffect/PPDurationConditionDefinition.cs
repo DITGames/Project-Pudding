@@ -13,7 +13,7 @@ namespace PPCore
 {
     // StatusEffect の持続条件（IDurationCondition）をインスペクタ上で選ぶためのデータ定義
     // 「何ターンで切れるのか」「永続なのか」を、ターン数の数値ではなく条件の種類として選択させる
-    // PPStatusEffectBehaviourDefinition と同じ形（[PPTypeMenuName] + ツリー選択 + SerializeReference）
+    // [PPTypeMenuName] + SerializeReference で、種類はドロワー（PPDurationConditionDefinitionDrawer）のプルダウンから選ぶ
     [Serializable]
     public abstract class PPDurationConditionDefinition
     {

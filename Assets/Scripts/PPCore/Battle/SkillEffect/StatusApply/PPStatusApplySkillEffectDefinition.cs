@@ -32,14 +32,6 @@ namespace PPCore
         // 表示と判定で扱いを揃えるため、常に 0～1 へ丸めた値を使う
         private float ApplyChance => Mathf.Clamp01(mApplyChance);
 
-        // 持続条件の上書き。未設定ならエフェクト定義側の設定に従う
-        // 同じエフェクトを持続ターン数だけ変えて撃ち分けるためのもので、エフェクト ID は変わらない
-        // （持続違いを別アセットにすると ID が別になり、本来リフレッシュされるべき効果が二重に付いてしまう）
-        // 表示名を [Label] で与えると型選択ツリーが出せなくなるため [PPFieldLabel] を使う
-        [PPFieldLabel("持続条件の上書き")]
-        [SerializeReference]
-        private PPDurationConditionDefinition mDurationOverride;
-
         // aSource : スキル発動者
         // aTarget : StatusEffect を付与する対象
         // aSourceSkill : この効果を保有するスキル定義
@@ -50,7 +42,7 @@ namespace PPCore
             if (!RollApplyChance(aTarget, aContext)) return;
 
             aTarget.AddStatusEffect(
-                mEffect.CreateRuntimeStatusEffect(aSource, aTarget, aContext, mDurationOverride), aContext);
+                mEffect.CreateRuntimeStatusEffect(aSource, aTarget, aContext), aContext);
         }
 
         // 付与確率の抽選を行う
@@ -84,10 +76,9 @@ namespace PPCore
         {
             if (mEffect == null) return "StatusEffect付与（未設定）";
 
-            // 必中・上書きなしのときは付けない（大半のスキルがそうなので、毎行に付くと読みにくくなるため）
+            // 必中のときは付けない（大半のスキルがそうなので、毎行に付くと読みにくくなるため）
             string chance = ApplyChance >= 1f ? string.Empty : $"（{ApplyChance:P0}）";
-            string duration = mDurationOverride != null ? $"［{mDurationOverride.BuildString()}］" : string.Empty;
-            return $"StatusEffect付与{chance}{duration}：{mEffect.BuildString()}";
+            return $"StatusEffect付与{chance}：{mEffect.BuildString()}";
         }
     }
 }
