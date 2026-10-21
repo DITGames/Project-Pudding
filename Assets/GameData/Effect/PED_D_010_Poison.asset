@@ -10,23 +10,30 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PPEffectDefinition
+  m_Name: PED_D_010_Poison
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: 
-  mDisplayName: 
+  mEffectId: D_010_Poison
+  mDisplayName: "\u6BD2"
   mDurationCondition:
-    rid: 683784166160990286
+    rid: 6803203126385967203
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 0
-  mTags: 0
+  mConsumeRule:
+    rid: -2
+  mCategory: 1
+  mTags: 22
   mBehaviours:
-  - rid: -2
+  - rid: 7300000000000001001
   references:
     version: 2
     RefIds:
     - rid: -2
       type: {class: , ns: , asm: }
-    - rid: 683784166160990286
+    - rid: 6803203126385967203
       type: {class: PPPermanentDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data: 
+    - rid: 7300000000000001001
+      type: {class: PPHpRatePeriodicDamageBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mHpRatePerTurn: 0.05
+        mAttribute: 0

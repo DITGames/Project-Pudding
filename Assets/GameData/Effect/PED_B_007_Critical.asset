@@ -10,28 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_ActionCountBuff
+  m_Name: PED_B_007_Critical
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: ActionCountBuff
-  mDisplayName: "加速"
+  mEffectId: B_007_Critical
+  mDisplayName: "\u4F1A\u5FC3\u7387\u30A2\u30C3\u30D7Lv1"
   mDurationCondition:
-    rid: 7300000000000001000
+    rid: 6803203126385967195
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 67108864
+  mConsumeRule:
+    rid: -2
+  mCategory: 268435456
   mTags: 9
   mBehaviours:
-  - rid: 7300000000000001001
+  - rid: 6803203126385967196
   references:
     version: 2
     RefIds:
-    - rid: 7300000000000001000
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6803203126385967195
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mDuration: 5
-    - rid: 7300000000000001001
+    - rid: 6803203126385967196
       type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mTargetParam: 5
-        mModifierType: 0
-        mAmount: 1
+        mTargetParam: 6
+        mModifierType: 3
+        mAmount: 0.5

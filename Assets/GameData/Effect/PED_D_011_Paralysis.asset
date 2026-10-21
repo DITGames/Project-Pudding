@@ -10,28 +10,33 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_AttackBuff
+  m_Name: PED_D_011_Paralysis
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: AttackBuff
-  mDisplayName: "攻撃強化"
+  mEffectId: D_011_Paralysis
+  mDisplayName: "\u9EBB\u75FA"
   mDurationCondition:
     rid: 7300000000000001000
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 65536
-  mTags: 9
+  mConsumeRule:
+    rid: -2
+  mCategory: 4
+  mTags: 6
   mBehaviours:
   - rid: 7300000000000001001
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 7300000000000001000
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mDuration: 5
     - rid: 7300000000000001001
-      type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+      type: {class: PPActionRestrictionBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mTargetParam: 0
-        mModifierType: 3
-        mAmount: 0.5
+        mRestriction: 1
+        mIsAlwaysBlock: 0
+        mBaseChance: 0.3
+        mChancePerElapsedTurn: 0

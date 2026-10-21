@@ -10,29 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_Silence
+  m_Name: PED_B_008_Critical
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: Silenced
-  mDisplayName: "封印"
+  mEffectId: B_008_Critical
+  mDisplayName: "\u4F1A\u5FC3\u7387\u30A2\u30C3\u30D7Lv2"
   mDurationCondition:
-    rid: 7300000000000001000
+    rid: 6803203126385967197
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 32
-  mTags: 6
+  mConsumeRule:
+    rid: -2
+  mCategory: 268435456
+  mTags: 9
   mBehaviours:
-  - rid: 7300000000000001001
+  - rid: 6803203126385967198
   references:
     version: 2
     RefIds:
-    - rid: 7300000000000001000
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6803203126385967197
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mDuration: 3
-    - rid: 7300000000000001001
-      type: {class: PPActionRestrictionBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 6803203126385967198
+      type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mRestriction: 4
-        mIsAlwaysBlock: 1
-        mBaseChance: 0.5
-        mChancePerElapsedTurn: 0
+        mTargetParam: 6
+        mModifierType: 3
+        mAmount: 1

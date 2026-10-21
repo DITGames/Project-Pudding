@@ -10,29 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_Confuse
+  m_Name: PED_D_007_Critical
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: Confused
-  mDisplayName: "混乱"
+  mEffectId: D_007_Critical
+  mDisplayName: "\u4F1A\u5FC3\u7387\u30C0\u30A6\u30F3Lv1"
   mDurationCondition:
-    rid: 7300000000000001000
+    rid: 6803203126385967199
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 16
-  mTags: 6
+  mConsumeRule:
+    rid: -2
+  mCategory: 536870912
+  mTags: 10
   mBehaviours:
-  - rid: 7300000000000001001
+  - rid: 6803203126385967200
   references:
     version: 2
     RefIds:
-    - rid: 7300000000000001000
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6803203126385967199
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDuration: 3
-    - rid: 7300000000000001001
-      type: {class: PPActionRestrictionBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+        mDuration: 5
+    - rid: 6803203126385967200
+      type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mRestriction: 2
-        mIsAlwaysBlock: 0
-        mBaseChance: 0.33
-        mChancePerElapsedTurn: 0
+        mTargetParam: 6
+        mModifierType: 3
+        mAmount: -0.25

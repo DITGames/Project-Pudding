@@ -10,27 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_Vulnerable
+  m_Name: PED_B_003_Defense
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: Vulnerable
-  mDisplayName: "脆弱"
+  mEffectId: B_003_Defense
+  mDisplayName: "\u9632\u5FA1\u529B\u30A2\u30C3\u30D7Lv1"
   mDurationCondition:
-    rid: 7300000000000001000
+    rid: 6803203126385967181
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 8
-  mTags: 2
+  mConsumeRule:
+    rid: -2
+  mCategory: 262144
+  mTags: 9
   mBehaviours:
-  - rid: 7300000000000001001
+  - rid: 6803203126385967182
   references:
     version: 2
     RefIds:
-    - rid: 7300000000000001000
+    - rid: -2
+      type: {class: , ns: , asm: }
+    - rid: 6803203126385967181
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDuration: 3
-    - rid: 7300000000000001001
-      type: {class: PPDamageScaleBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
+        mDuration: 5
+    - rid: 6803203126385967182
+      type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mScale: 1.3
-        mOrder: 0
+        mTargetParam: 1
+        mModifierType: 3
+        mAmount: 0.5

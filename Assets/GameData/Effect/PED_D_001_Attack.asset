@@ -10,14 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_AttackDebuff
+  m_Name: PED_D_001_Attack
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: AttackDebuff
-  mDisplayName: "攻撃低下"
+  mEffectId: D_001_Attack
+  mDisplayName: "\u653B\u6483\u529B\u30C0\u30A6\u30F3Lv1"
   mDurationCondition:
     rid: 7300000000000001000
   mStackPolicy: 1
   mMaxStack: 1
+  mConsumeRule:
+    rid: -2
   mCategory: 131072
   mTags: 10
   mBehaviours:
@@ -25,6 +27,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 7300000000000001000
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -34,4 +38,4 @@ MonoBehaviour:
       data:
         mTargetParam: 0
         mModifierType: 3
-        mAmount: -0.3
+        mAmount: -0.25

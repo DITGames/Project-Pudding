@@ -197,9 +197,10 @@ namespace CommandBattleCore
 
             try
             {
-                // オブジェクトが生存 + 行動不可の制限がかかっていなければ実行する
-                // 麻痺などの確率による行動制限がある場合は別で判別する必要がありそう
-                if (command.Source.IsAlive && (command.Source.CurrentRestrictions & ActionRestriction.CannotAct) == 0)
+                // 生存していれば、状態異常による行動阻害を抽選してから実行する
+                // 行動不能の判定は確定（睡眠など）・確率（麻痺など）ともに RollActionBlocked に任せる
+                // （ここで CannotAct のビットだけを見て弾くと、確率付きの行動不能まで毎回失敗になるため）
+                if (command.Source.IsAlive)
                 {
                     if (command.Source.RollActionBlocked(Context))
                     {

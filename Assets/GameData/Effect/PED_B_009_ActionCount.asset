@@ -10,28 +10,32 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 86c6ab5bc3044cb4db22ad0c1620c771, type: 3}
-  m_Name: PED_Slow
+  m_Name: PED_B_009_ActionCount
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEffectDefinition
-  mEffectId: SpeedDebuff
-  mDisplayName: "鈍足"
+  mEffectId: B_009_ActionCount
+  mDisplayName: "\u884C\u52D5\u56DE\u6570\u30A2\u30C3\u30D7"
   mDurationCondition:
     rid: 7300000000000001000
   mStackPolicy: 1
   mMaxStack: 1
-  mCategory: 2097152
-  mTags: 10
+  mConsumeRule:
+    rid: -2
+  mCategory: 67108864
+  mTags: 9
   mBehaviours:
   - rid: 7300000000000001001
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 7300000000000001000
       type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDuration: 4
+        mDuration: 3
     - rid: 7300000000000001001
       type: {class: PPParameterModifierBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mTargetParam: 2
-        mModifierType: 3
-        mAmount: -0.3
+        mTargetParam: 5
+        mModifierType: 0
+        mAmount: 1

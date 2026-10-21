@@ -127,6 +127,25 @@ namespace CommandBattleCore
             return blocked;
         }
 
+        // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）
+        // 麻痺のように失敗率が設定された行動不能は「行動しようとすれば成功する可能性がある」ため含まない
+        // AI が「このユニットに行動を割り当てても無駄か」を判断するときに使う
+        // 失敗率が 1 以上のものは抽選しても必ず失敗するため、確定扱いにする
+        public bool IsActionCertainlyBlocked
+        {
+            get
+            {
+                foreach (var eff in ActiveStatusEffects)
+                {
+                    if ((eff.Restriction & ActionRestriction.CannotAct) == 0)
+                        continue;
+                    if (eff.ActionFailChance is not float chance || chance >= 1f)
+                        return true;
+                }
+                return false;
+            }
+        }
+
         // パラメータをIDで解決する
         // 追加のパラメータ群を持つ派生クラスはここをoverrideする
         // aParamId : パラメータID
@@ -196,7 +215,18 @@ namespace CommandBattleCore
             // ダメージ情報を渡すことで、消費ルール側が「攻撃によるダメージのみ」等の絞り込みを行える
             NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Damaged, aContext, aDamageInfo);
 
-            if(!IsAlive) OnDefeated?.Invoke(this);
+            if (!IsAlive)
+            {
+                // 撃破を通知する前に状態異常を解除しておく
+                // OnDefeated の購読側（リアクション発火・勝敗判定・バトル終了通知）が
+                // 解除済みの状態を見られるようにし、バトル終了後に除去通知が届くことも防ぐ
+                // バトルコンテキストが無い経路ではルールを参照できないため解除しない
+                if (aContext?.Rules != null && aContext.Rules.ClearStatusEffectsOnDefeat)
+                {
+                    RemoveAllStatusEffects(aContext);
+                }
+                OnDefeated?.Invoke(this);
+            }
         }
 
         // 回復を適用する。戦闘不能状態のユニットは回復対象にならない
@@ -267,6 +297,24 @@ namespace CommandBattleCore
             OnStatusEffectRemoved?.Invoke(this, aStatusEffect);
         }
 
+        // 掛かっているステータスエフェクトをすべて除去する
+        // 1 件ずつ RemoveStatusEffect を通すため、効果の巻き戻しと除去通知はエフェクトごとに行われる
+        // 除去中にリストが縮むため、末尾から逆順に走査している
+        // aContext : バトルコンテキスト
+        // return : 除去したエフェクトの件数
+        public int RemoveAllStatusEffects(BattleContext aContext)
+        {
+            int removedCount = 0;
+            for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
+            {
+                // 除去通知の購読側で他のエフェクトが除去され、添字がずれる可能性を考慮する
+                if (i >= ActiveStatusEffects.Count) continue;
+                RemoveStatusEffect(ActiveStatusEffects[i], aContext);
+                removedCount++;
+            }
+            return removedCount;
+        }
+
         // 状況更新の度に呼び出す。各エフェクトの Tick（毒ダメージ等）を実行し、
         // 持続条件が切れたものを除去する
         // 除去中にリストが縮むため、末尾から逆順に走査している
@@ -275,8 +323,16 @@ namespace CommandBattleCore
         {
             for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
             {
+                // 毒などで撃破され、撃破時の全解除でリストが空になっている場合がある
+                if (i >= ActiveStatusEffects.Count) continue;
+
                 var effect = ActiveStatusEffects[i];
                 effect.Tick(this, aContext);
+
+                // 自身の Tick の中で除去された（毒で撃破されて全解除された等）エフェクトは、
+                // 持続の消化やスタック消費を行わない。除去済みのエフェクトへ効果を掛け直さないため
+                if (!ActiveStatusEffects.Contains(effect)) continue;
+
                 if (!effect.DurationCondition.Tick())
                 {
                     RemoveStatusEffect(effect, aContext);

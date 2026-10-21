@@ -6,6 +6,7 @@
  * @brief 最大HPの割合で継続ダメージを与える振る舞い
  * =====================================*/
 
+using System;
 using UnityEngine;
 using CommandBattleCore;
 
@@ -35,12 +36,18 @@ namespace PPCore
         }
 
         // 対象の最大HPとスタック数からダメージ情報を組み立てる
+        // ダメージは整数へ四捨五入する（0.5 は 0 から遠い側へ丸める）
+        // Mathf.RoundToInt は 0.5 を偶数側へ丸める（2.5 → 2）ため使わない
+        // 計算は decimal で行う。float のまま掛けると 0.35 などが 0.3499999… になり、
+        // ちょうど 0.5 になるはずの値が切り捨てられてしまうため
+        // （float から decimal への変換は有効桁 7 桁で丸められるので、入力値の誤差もここで落ちる）
         // aContext : 振る舞いの実行コンテキスト
         // return : 与えるダメージの情報
         private DamageInfo CreateDamage(StatusEffectContext aContext)
         {
-            float amount = aContext.Owner.Parameters.Hp.Max.CurrentValue
-                         * Mathf.Clamp01(mRatePerStack) * aContext.Stacks;
+            decimal rawAmount = (decimal)aContext.Owner.Parameters.Hp.Max.CurrentValue
+                              * (decimal)Mathf.Clamp01(mRatePerStack) * aContext.Stacks;
+            float amount = (float)Math.Round(rawAmount, MidpointRounding.AwayFromZero);
 
             return new PPDamageInfo(aContext.Source, aContext.Owner, amount,
                 PPSkillCategory.Debuff, mAttribute, aContext.Effect, DamageReason.StatusEffect);

@@ -35,5 +35,9 @@ namespace CommandBattleCore
         // 1 イベント当たりのリアクション上限
         // 想定外の連鎖に対する安全網であり、意図した連鎖の制御はリアクション側の条件判定で行う
         public int MaxReactionPerEvent { get; set; } = 1;
+        // ユニットが撃破されたとき、掛かっているステータスエフェクトをすべて解除するか
+        // 解除は撃破通知（BattleUnit.OnDefeated）の直前に行われる
+        // 既定は従来どおり解除しない。採用先のルールで有効にする
+        public bool ClearStatusEffectsOnDefeat { get; set; } = false;
     }
 }

@@ -23,11 +23,14 @@ namespace CommandBattleCore
         MaxUses,
         // 有効な対象が居ない
         InvalidTarget,
-        // コア実装のデフォルトはここまで
+        // コア実装のデフォルトはここまで（Silenced を除く）
         // ここから下は採用先が独自に使う理由
         InvalidDefinition,
         InvalidParty,
         NotEnoughResource,
+        // 発動者にスキル使用不可（ActionRestriction.Silenced）の制限が掛かっている。コア実装のデフォルトが返す
+        // 既存の値の整数がずれないよう末尾に追加している
+        Silenced,
     }
 
     // スキル発動可否の判定結果。可否と、不可の場合の理由を持つ
@@ -67,16 +70,23 @@ namespace CommandBattleCore
         CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext);
     }
 
-    // コア標準のバリデータ。クールダウンと使用回数のみを見る
+    // コア標準のバリデータ。発動者のスキル使用不可の制限と、クールダウン・使用回数を見る
     public class DefaultCastValidator : ICastValidator
     {
         // スキルが使用可能な状態かを検証し、不可なら理由を特定して返す
+        // 発動者側の制限（スキル使用不可）を、スキル側の状態（クールダウン等）より先に見る
         // aUser : 発動しようとしているユニット
         // aSkill : 対象のスキル
         // aContext : バトルコンテキスト
         // return : 判定結果
         public virtual CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext)
         {
+            // スキル使用不可の制限が掛かっていればスキルは撃てない（通常攻撃はこの検証を通らないため使える）
+            if (aUser != null && (aUser.CurrentRestrictions & ActionRestriction.Silenced) != 0)
+            {
+                return CastValidation.Fail(CastFailReason.Silenced);
+            }
+
             if (!aSkill.IsReady)
             {
                 if(aSkill.IsLimit) return CastValidation.Fail(CastFailReason.MaxUses);
