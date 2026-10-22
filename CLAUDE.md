@@ -182,7 +182,6 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 作業中に遭遇し得る、既存の未整理箇所。**ついでに直すのではなく、触る必要が生じたときに対処する。**
 
 - **ランタイムスクリプトに `UnityEditor` の未使用 using が混入している**（`PPCore/UI/SlotListComponent.cs`, `PPCore/Battle/StatusEffect/PPEffectDefinition.cs`, `PPCore/Battle/AI/PPPartyAIProfileDefinition.cs`, `CommandBattleCore/Commands/ActionQueue.cs`）。エディタ上では通るがプレイヤービルドで壊れる。該当ファイルを編集する際は削除する
-- **初期プロトタイプのプッシャー系スクリプトが Shift-JIS 保存**（`CoinSpawner.cs`, `CoinGenerator.cs` 等）。UTF-8 前提のツールで開くと `[Header]` の日本語が文字化けする。編集時は UTF-8 に変換してから文字列を直す
 - `Assets/Scripts/*.cs` 直下のプッシャー系スクリプト群は命名規約・ヘッダコメント規約の対象外の旧コード。namespace も持たない
 - `PPCore/Battle/AI/Conditions/NewMonoBehaviourScript.cs` はデバッグ用の残骸
 - `PPSkillDefinition.BuildEffectWithEntries()` が定義されているが `CreateRuntimeSkill()` から呼ばれておらず、`mEffectEntries` のエフェクト付与が実際には走っていない

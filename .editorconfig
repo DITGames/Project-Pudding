@@ -1,0 +1,5 @@
+root = true
+
+# Visual Studio などで保存したときに BOM なし UTF-8 を維持する
+[*.cs]
+charset = utf-8

@@ -7,19 +7,19 @@ public class CoinGenerator : MonoBehaviour
     [SerializeField]
     GameObject coin;
 
-    [SerializeField, Header("‰Šú¶¬”")]
+    [SerializeField, Header("åˆæœŸç”Ÿæˆæ•°")]
     int genarateNum = 100;
 
-    [SerializeField, Header("ŠJŽn‚©‚ç¶¬‚Ü‚Å‚ÌƒIƒtƒZƒbƒgŽžŠÔ")]
+    [SerializeField, Header("é–‹å§‹ã‹ã‚‰ç”Ÿæˆã¾ã§ã®ã‚ªãƒ•ã‚»ãƒƒãƒˆæ™‚é–“")]
     float genarateOffsetTime = 1.0f;
     
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        //ƒIƒuƒWƒFƒNƒg‚ÌƒŒƒ“ƒ_[‚ð–³Œø
+        //ã‚ªãƒ–ã‚¸ã‚§ã‚¯ãƒˆã®ãƒ¬ãƒ³ãƒ€ãƒ¼ã‚’ç„¡åŠ¹
         this.GetComponent<MeshRenderer>().enabled = false;
 
-        //‰ŠúƒRƒCƒ“¶¬
+        //åˆæœŸã‚³ã‚¤ãƒ³ç”Ÿæˆ
         StartCoroutine(generateCoin());
     }
 
