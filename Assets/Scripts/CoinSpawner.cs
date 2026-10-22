@@ -6,29 +6,29 @@ using UnityEngine.InputSystem.LowLevel;
 
 public class CoinSpawner : MonoBehaviour
 {
-    [SerializeField, Header("ŠƒRƒCƒ“")]
+    [SerializeField, Header("æ‰€æŒã‚³ã‚¤ãƒ³")]
     int currentCoinCount = 0;
 
-    [SerializeField, Header("ƒRƒCƒ“Prefab")]
+    [SerializeField, Header("ã‚³ã‚¤ãƒ³Prefab")]
     GameObject coin;
 
-    [SerializeField, Header("ŠƒRƒCƒ“ƒJƒEƒ“ƒ^[ƒeƒLƒXƒgiUIj")]
+    [SerializeField, Header("æ‰€æŒã‚³ã‚¤ãƒ³ã‚«ã‚¦ãƒ³ã‚¿ãƒ¼ãƒ†ã‚­ã‚¹ãƒˆï¼ˆUIï¼‰")]
     TextMeshProUGUI currentCoinCounterText;
 
-    [SerializeField, Header("“Š“ü‚ÌÅ‘å‘¬“x")]
+    [SerializeField, Header("æŠ•å…¥ã®æœ€å¤§é€Ÿåº¦")]
     float throwMaxSpeed = 10.0f;
 
-    [SerializeField, Header("“Š“üˆÊ’ui‰Ej")]
+    [SerializeField, Header("æŠ•å…¥ä½ç½®ï¼ˆå³ï¼‰")]
     Transform spawnPositionRight;
 
-    [SerializeField, Header("“Š“üˆÊ’ui¶j")]
+    [SerializeField, Header("æŠ•å…¥ä½ç½®ï¼ˆå·¦ï¼‰")]
     Transform spawnPositionLeft;
 
     private void Update()
     {
         if (currentCoinCount > 0)
         {
-            //‰E‘}“ü
+            //å³æŒ¿å…¥
             if (Keyboard.current.rightArrowKey.wasPressedThisFrame)
             {
                 spawnCoin(
@@ -37,7 +37,7 @@ public class CoinSpawner : MonoBehaviour
                     );
             }
 
-            //¶‘}“ü
+            //å·¦æŒ¿å…¥
             if (Keyboard.current.leftArrowKey.wasPressedThisFrame)
             {
                 spawnCoin(
