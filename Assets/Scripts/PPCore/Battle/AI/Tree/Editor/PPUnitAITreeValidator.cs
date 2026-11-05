@@ -36,27 +36,27 @@ namespace PPCore
     public static class PPUnitAITreeValidator
     {
         // ツリーを検査して問題を列挙する
-        // aProfile : 検査する判断ツリー
+        // aTree : 検査する判断ツリー
         // return : 見つかった問題の一覧。問題が無ければ空
-        public static List<PPUnitAITreeIssue> Validate(PPUnitAIProfileDefinition aProfile)
+        public static List<PPUnitAITreeIssue> Validate(PPUnitBehaviourTree aTree)
         {
             var issues = new List<PPUnitAITreeIssue>();
-            if (aProfile == null) return issues;
+            if (aTree == null) return issues;
 
-            var reachable = CollectReachable(aProfile);
-            if (aProfile.Root == null)
+            var reachable = CollectReachable(aTree);
+            if (aTree.Root == null)
             {
                 issues.Add(new PPUnitAITreeIssue("", "ルートノードが設定されていません。"));
             }
-            else if (aProfile.Root.IsMuted)
+            else if (aTree.Root.IsMuted)
             {
                 // ミュートはノードを引く経路で効くが、ルートだけは別経路で取得するため効かない
                 // 意図せず「外したつもり」になるのを防ぐため、明示的に知らせる
-                issues.Add(new PPUnitAITreeIssue(aProfile.Root.NodeId,
-                    $"ルートノード「{aProfile.Root.NodeName}」は評価から外せません。"));
+                issues.Add(new PPUnitAITreeIssue(aTree.Root.NodeId,
+                    $"ルートノード「{aTree.Root.NodeName}」は評価から外せません。"));
             }
 
-            foreach (var node in aProfile.Nodes)
+            foreach (var node in aTree.Nodes)
             {
                 if (node == null) continue;
 
@@ -69,7 +69,7 @@ namespace PPCore
                 CollectNodeIssues(node, issues);
             }
 
-            CollectCycleIssues(aProfile, issues);
+            CollectCycleIssues(aTree, issues);
             return issues;
         }
 
@@ -78,19 +78,19 @@ namespace PPCore
         // 循環はランタイム側でも打ち切られるが、その場合その枝は必ず不成立になる
         // 意図した行動が「なぜか一度も出ない」形で表面化するため、組んだ時点で気付けるようにする
         //
-        // aProfile : 検査する判断ツリー
+        // aTree : 検査する判断ツリー
         // aIssues : 見つかった問題の追加先
-        private static void CollectCycleIssues(PPUnitAIProfileDefinition aProfile,
+        private static void CollectCycleIssues(PPUnitBehaviourTree aTree,
             List<PPUnitAITreeIssue> aIssues)
         {
-            foreach (var node in aProfile.Nodes)
+            foreach (var node in aTree.Nodes)
             {
                 if (node is not PPUnitAISubTreeNode subTreeNode || subTreeNode.SubTree == null) continue;
 
                 // 参照先から辿って、検査中のツリーへ戻ってくるかを見る
                 // 自己参照（参照先が自分自身）もこの判定で捕まる
-                var visited = new HashSet<PPUnitAIProfileDefinition> { aProfile };
-                if (!ReachesProfile(subTreeNode.SubTree, aProfile, visited)) continue;
+                var visited = new HashSet<PPUnitBehaviourTree> { aTree };
+                if (!ReachesTree(subTreeNode.SubTree, aTree, visited)) continue;
 
                 aIssues.Add(new PPUnitAITreeIssue(node.NodeId,
                     $"「{node.NodeName}」の参照先「{subTreeNode.SubTree.name}」が循環参照しています。"));
@@ -98,20 +98,20 @@ namespace PPCore
         }
 
         // 指定したツリーから辿って、目的のツリーへ到達するかを調べる
-        // aProfile : 辿り始めるツリー
+        // aTree : 辿り始めるツリー
         // aTarget : 到達を調べる対象のツリー
         // aVisited : 既に辿ったツリー。同じツリーを二度辿らないための記録
         // return : 到達するなら true
-        private static bool ReachesProfile(PPUnitAIProfileDefinition aProfile,
-            PPUnitAIProfileDefinition aTarget, HashSet<PPUnitAIProfileDefinition> aVisited)
+        private static bool ReachesTree(PPUnitBehaviourTree aTree,
+            PPUnitBehaviourTree aTarget, HashSet<PPUnitBehaviourTree> aVisited)
         {
-            if (aProfile == aTarget) return true;
-            if (!aVisited.Add(aProfile)) return false;
+            if (aTree == aTarget) return true;
+            if (!aVisited.Add(aTree)) return false;
 
-            foreach (var node in aProfile.Nodes)
+            foreach (var node in aTree.Nodes)
             {
                 if (node is not PPUnitAISubTreeNode subTreeNode || subTreeNode.SubTree == null) continue;
-                if (ReachesProfile(subTreeNode.SubTree, aTarget, aVisited)) return true;
+                if (ReachesTree(subTreeNode.SubTree, aTarget, aVisited)) return true;
             }
             return false;
         }
@@ -225,12 +225,12 @@ namespace PPCore
         // ルートから辿り着けるノードの ID を集める
         // ミュートされたノードも「構造としては繋がっている」ものとして辿る
         // 一時的に外しただけのノードが到達不能として警告されるのを避けるため
-        // aProfile : 検査する判断ツリー
+        // aTree : 検査する判断ツリー
         // return : 到達できるノードの ID
-        private static HashSet<string> CollectReachable(PPUnitAIProfileDefinition aProfile)
+        private static HashSet<string> CollectReachable(PPUnitBehaviourTree aTree)
         {
             var reachable = new HashSet<string>();
-            var root = aProfile.Root;
+            var root = aTree.Root;
             if (root == null) return reachable;
 
             var stack = new Stack<PPUnitAINode>();
@@ -246,7 +246,7 @@ namespace PPCore
                     {
                         if (string.IsNullOrEmpty(childId) || !reachable.Add(childId)) continue;
 
-                        var child = aProfile.FindNode(childId);
+                        var child = aTree.FindNode(childId);
                         if (child != null) stack.Push(child);
                     }
                 }

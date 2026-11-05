@@ -20,16 +20,16 @@ namespace PPCore
     internal sealed class PPUnitAITreeNodeSearchProvider : ScriptableObject, ISearchWindowProvider
     {
         // 検索対象の判断ツリー
-        private PPUnitAIProfileDefinition mProfile;
+        private PPUnitBehaviourTree mTree;
         // ノードが選ばれたときに呼ぶ処理。ノード ID を渡す
         private Action<string> mOnSelected;
 
         // 検索対象と選択時の処理を差し込む
-        // aProfile : 検索対象の判断ツリー
+        // aTree : 検索対象の判断ツリー
         // aOnSelected : ノードが選ばれたときに呼ぶ処理
-        public void Setup(PPUnitAIProfileDefinition aProfile, Action<string> aOnSelected)
+        public void Setup(PPUnitBehaviourTree aTree, Action<string> aOnSelected)
         {
-            mProfile = aProfile;
+            mTree = aTree;
             mOnSelected = aOnSelected;
         }
 
@@ -42,9 +42,9 @@ namespace PPCore
             {
                 new SearchTreeGroupEntry(new GUIContent("ノードを検索"), 0),
             };
-            if (mProfile == null) return entries;
+            if (mTree == null) return entries;
 
-            foreach (var node in mProfile.Nodes)
+            foreach (var node in mTree.Nodes)
             {
                 if (node == null) continue;
 

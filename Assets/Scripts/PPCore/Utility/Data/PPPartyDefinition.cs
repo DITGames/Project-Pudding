@@ -37,7 +37,7 @@ namespace PPCore
     // メンバー構成・コイン変換設定・AI の駆動設定をまとめて持つ
     // ランタイムの PPBattleParty への変換は PPPartyFactory が担う
     // 敵の遭遇パターンを 1 アセット = 1 戦闘の単位で用意できる
-    // AI の判断内容はユニット側（PPUnitDefinition.AIProfile）が持つため、ここには駆動設定だけを置く
+    // AI の判断内容はユニット側（PPUnitDefinition.BehaviourTree）が持つため、ここには駆動設定だけを置く
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
     public class PPPartyDefinition : ScriptableObject
     {

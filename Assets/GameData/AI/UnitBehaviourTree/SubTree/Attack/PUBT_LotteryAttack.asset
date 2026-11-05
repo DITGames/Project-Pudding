@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
-  m_Name: PSBT_LotteryAttack
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  m_Name: PUBT_LotteryAttack
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitBehaviourTree
   mTreeKind: 2
   mDescription: 
   mRootNodeId: f4c64cd3e7ee48559cd8e1120efb3926

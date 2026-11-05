@@ -18,7 +18,7 @@ using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    // PPUnitAIProfileDefinition をノードグラフとして編集するウィンドウ
+    // PPUnitBehaviourTree をノードグラフとして編集するウィンドウ
     //
     // 左の列にタブ・グラフ・ツリー一覧を縦へ積み、右の列に選択中ノードの詳細を全高で置く
     // 詳細は条件や行動の設定欄が縦に伸びるため、他と高さを分け合わない 1 本の列にしてある
@@ -58,10 +58,10 @@ namespace PPCore
         private const float MaxNodeInspectorLabelWidth = 280f;
 
         // 編集対象。ドメインリロードをまたいで保持したいのでシリアライズ対象にする
-        [SerializeField] private PPUnitAIProfileDefinition mTarget;
+        [SerializeField] private PPUnitBehaviourTree mTarget;
         // タブとして開いているツリー。並び順がそのままタブの並びになる
         // ドメインリロードをまたいで保持したいのでシリアライズ対象にする
-        [SerializeField] private List<PPUnitAIProfileDefinition> mOpenTargets = new();
+        [SerializeField] private List<PPUnitBehaviourTree> mOpenTargets = new();
         private SerializedObject mSerializedObject;
         private PPUnitAITreeGraphView mGraphView;
         private VisualElement mInspectorContainer;
@@ -88,9 +88,9 @@ namespace PPCore
         // タブ列の中身。並べ替えのたびにここだけ組み直す（ウィンドウ全体を作り直すとグラフまで再生成されるため）
         private VisualElement mTabStripContent;
         // 表示中のタブと、その要素の対応。ドロップ位置を要素の配置から求めるために持つ
-        private readonly List<(PPUnitAIProfileDefinition Profile, VisualElement Element)> mTabElements = new();
+        private readonly List<(PPUnitBehaviourTree Tree, VisualElement Element)> mTabElements = new();
         // 掴んでいるタブ。掴んでいなければ null
-        private PPUnitAIProfileDefinition mDraggingTab;
+        private PPUnitBehaviourTree mDraggingTab;
         // 掴んだ位置。ここからの移動量でクリックと並べ替えを見分ける
         private Vector2 mTabDragStart;
         // 差し込み位置を示す線の色
@@ -107,14 +107,14 @@ namespace PPCore
             window.Show();
         }
 
-        // Project ウィンドウで PPUnitAIProfileDefinition をダブルクリックした際にこのウィンドウで開く
+        // Project ウィンドウで PPUnitBehaviourTree をダブルクリックした際にこのウィンドウで開く
         // aInstanceId : 開かれたアセットのインスタンス ID
         // aLine : 行番号（テキストアセット用。ここでは使わない）
         // return : このウィンドウで処理した場合 true
         [OnOpenAsset]
         public static bool OnOpenAsset(int aInstanceId, int aLine)
         {
-            if (EditorUtility.EntityIdToObject(aInstanceId) is not PPUnitAIProfileDefinition asset)
+            if (EditorUtility.EntityIdToObject(aInstanceId) is not PPUnitBehaviourTree asset)
             {
                 return false;
             }
@@ -223,10 +223,10 @@ namespace PPCore
             }
 
             // 別のツリーを開いている状態で強調しても意味が無いため、その旨だけ知らせる
-            if (!ReferenceEquals(entry.Profile, mTarget))
+            if (!ReferenceEquals(entry.Tree, mTarget))
             {
                 mGraphView.ClearHighlight();
-                string name = entry.Profile != null ? entry.Profile.name : "不明";
+                string name = entry.Tree != null ? entry.Tree.name : "不明";
                 SetHighlightNotice($"選択中の思考は「{name}」のものです。同じツリーを開くと経路が表示されます。");
                 return;
             }
@@ -244,7 +244,7 @@ namespace PPCore
             {
                 foreach (var entry in report.Units)
                 {
-                    if (!ReferenceEquals(entry.Profile, mTarget)) continue;
+                    if (!ReferenceEquals(entry.Tree, mTarget)) continue;
 
                     foreach (var nodeId in entry.VisitedNodeIds)
                     {
@@ -272,7 +272,7 @@ namespace PPCore
 
         // 編集対象を差し替えてグラフを組み立て直す
         // aTarget : 編集する判断ツリー
-        public void SetTarget(PPUnitAIProfileDefinition aTarget)
+        public void SetTarget(PPUnitBehaviourTree aTarget)
         {
             mTarget = aTarget;
             OpenAsTab(aTarget);
@@ -434,9 +434,9 @@ namespace PPCore
             mBrowserListContainer.Clear();
 
             int count = 0;
-            foreach (var profile in EnumerateProfiles())
+            foreach (var tree in EnumerateTrees())
             {
-                mBrowserListContainer.Add(BuildBrowserRow(profile));
+                mBrowserListContainer.Add(BuildBrowserRow(tree));
                 count++;
             }
 
@@ -451,22 +451,22 @@ namespace PPCore
 
         // 絞り込みに合う判断ツリーを名前順で列挙する
         // return : 該当するツリー
-        private IEnumerable<PPUnitAIProfileDefinition> EnumerateProfiles()
+        private IEnumerable<PPUnitBehaviourTree> EnumerateTrees()
         {
-            var found = new List<PPUnitAIProfileDefinition>();
-            foreach (string guid in AssetDatabase.FindAssets($"t:{nameof(PPUnitAIProfileDefinition)}"))
+            var found = new List<PPUnitBehaviourTree>();
+            foreach (string guid in AssetDatabase.FindAssets($"t:{nameof(PPUnitBehaviourTree)}"))
             {
                 string path = AssetDatabase.GUIDToAssetPath(guid);
-                var profile = AssetDatabase.LoadAssetAtPath<PPUnitAIProfileDefinition>(path);
-                if (profile == null) continue;
-                if (mBrowserFilter >= 0 && (int)profile.TreeKind != mBrowserFilter) continue;
+                var tree = AssetDatabase.LoadAssetAtPath<PPUnitBehaviourTree>(path);
+                if (tree == null) continue;
+                if (mBrowserFilter >= 0 && (int)tree.TreeKind != mBrowserFilter) continue;
                 if (!string.IsNullOrEmpty(mBrowserSearch)
-                    && profile.name.IndexOf(mBrowserSearch, System.StringComparison.OrdinalIgnoreCase) < 0)
+                    && tree.name.IndexOf(mBrowserSearch, System.StringComparison.OrdinalIgnoreCase) < 0)
                 {
                     continue;
                 }
 
-                found.Add(profile);
+                found.Add(tree);
             }
 
             found.Sort((a, b) => string.Compare(a.name, b.name, System.StringComparison.OrdinalIgnoreCase));
@@ -475,13 +475,13 @@ namespace PPCore
 
         // 一覧の 1 行分を組み立てる
         // 押すとタブとして開き、そのツリーへ切り替わる
-        // aProfile : 対象のツリー
+        // aTree : 対象のツリー
         // return : 行の要素
-        private VisualElement BuildBrowserRow(PPUnitAIProfileDefinition aProfile)
+        private VisualElement BuildBrowserRow(PPUnitBehaviourTree aTree)
         {
-            bool isActive = ReferenceEquals(aProfile, mTarget);
+            bool isActive = ReferenceEquals(aTree, mTarget);
 
-            var row = new Button(() => SetTarget(aProfile)) { text = aProfile.name };
+            var row = new Button(() => SetTarget(aTree)) { text = aTree.name };
             row.style.unityTextAlign = TextAnchor.MiddleLeft;
             row.style.marginLeft = 2f;
             row.style.marginRight = 2f;
@@ -495,9 +495,9 @@ namespace PPCore
                 row.style.unityFontStyleAndWeight = FontStyle.Bold;
             }
 
-            string kind = aProfile.TreeKind == PPUnitAITreeKind.SubTree ? "サブツリー" : "メインツリー";
-            string description = string.IsNullOrEmpty(aProfile.Description) ? "" : $"\n{aProfile.Description}";
-            row.tooltip = $"{kind}\n{AssetDatabase.GetAssetPath(aProfile)}{description}";
+            string kind = aTree.TreeKind == PPUnitAITreeKind.SubTree ? "サブツリー" : "メインツリー";
+            string description = string.IsNullOrEmpty(aTree.Description) ? "" : $"\n{aTree.Description}";
+            row.tooltip = $"{kind}\n{AssetDatabase.GetAssetPath(aTree)}{description}";
             return row;
         }
 
@@ -528,23 +528,23 @@ namespace PPCore
             mTabStripContent.Clear();
             mTabElements.Clear();
 
-            foreach (var profile in mOpenTargets)
+            foreach (var tree in mOpenTargets)
             {
-                if (profile == null) continue;
+                if (tree == null) continue;
 
-                var element = BuildTab(profile);
-                mTabElements.Add((profile, element));
+                var element = BuildTab(tree);
+                mTabElements.Add((tree, element));
                 mTabStripContent.Add(element);
             }
         }
 
         // タブ 1 枚分を組み立てる
         // 本体を押すと切り替え、右端の × で閉じる
-        // aProfile : 対象のツリー
+        // aTree : 対象のツリー
         // return : タブの要素
-        private VisualElement BuildTab(PPUnitAIProfileDefinition aProfile)
+        private VisualElement BuildTab(PPUnitBehaviourTree aTree)
         {
-            bool isActive = ReferenceEquals(aProfile, mTarget);
+            bool isActive = ReferenceEquals(aTree, mTarget);
 
             var tab = new VisualElement { style = { flexDirection = FlexDirection.Row, alignItems = Align.Center } };
             tab.style.marginLeft = 2f;
@@ -556,18 +556,18 @@ namespace PPCore
             tab.style.borderBottomWidth = isActive ? 2f : 0f;
             tab.style.borderBottomColor = new Color(0.35f, 0.60f, 0.85f);
 
-            var label = new Label(aProfile.name)
+            var label = new Label(aTree.name)
             {
                 style = { unityFontStyleAndWeight = isActive ? FontStyle.Bold : FontStyle.Normal },
             };
             label.style.paddingTop = 3f;
             label.style.paddingBottom = 3f;
             label.style.paddingRight = 6f;
-            label.tooltip = $"{AssetDatabase.GetAssetPath(aProfile)}\n左右へドラッグすると並べ替えられます";
-            RegisterTabDrag(label, aProfile);
+            label.tooltip = $"{AssetDatabase.GetAssetPath(aTree)}\n左右へドラッグすると並べ替えられます";
+            RegisterTabDrag(label, aTree);
             tab.Add(label);
 
-            var close = new Button(() => CloseTab(aProfile)) { text = "×" };
+            var close = new Button(() => CloseTab(aTree)) { text = "×" };
             close.style.width = 16f;
             close.style.height = 16f;
             close.style.marginLeft = 0f;
@@ -587,14 +587,14 @@ namespace PPCore
         // ドラッグ中にタブ列を組み立て直すと、掴んでいる要素ごと作り替わってポインタの捕捉が外れるため
         //
         // aLabel : つまみになる要素
-        // aProfile : そのタブが指すツリー
-        private void RegisterTabDrag(VisualElement aLabel, PPUnitAIProfileDefinition aProfile)
+        // aTree : そのタブが指すツリー
+        private void RegisterTabDrag(VisualElement aLabel, PPUnitBehaviourTree aTree)
         {
             aLabel.RegisterCallback<PointerDownEvent>(evt =>
             {
                 if (evt.button != 0) return;
 
-                mDraggingTab = aProfile;
+                mDraggingTab = aTree;
                 mTabDragStart = evt.position;
                 mIsTabDragging = false;
                 aLabel.CapturePointer(evt.pointerId);
@@ -603,7 +603,7 @@ namespace PPCore
 
             aLabel.RegisterCallback<PointerMoveEvent>(evt =>
             {
-                if (!ReferenceEquals(mDraggingTab, aProfile) || !aLabel.HasPointerCapture(evt.pointerId)) return;
+                if (!ReferenceEquals(mDraggingTab, aTree) || !aLabel.HasPointerCapture(evt.pointerId)) return;
 
                 // 少し動かすまではクリックとして扱う。押しただけで並びが変わるのを防ぐ
                 if (!mIsTabDragging
@@ -616,7 +616,7 @@ namespace PPCore
 
             aLabel.RegisterCallback<PointerUpEvent>(evt =>
             {
-                if (!ReferenceEquals(mDraggingTab, aProfile)) return;
+                if (!ReferenceEquals(mDraggingTab, aTree)) return;
 
                 aLabel.ReleasePointer(evt.pointerId);
                 bool isDragged = mIsTabDragging;
@@ -629,11 +629,11 @@ namespace PPCore
                 // 動かしていなければ、ただ押しただけなのでタブの切り替えにする
                 if (!isDragged)
                 {
-                    SetTarget(aProfile);
+                    SetTarget(aTree);
                     return;
                 }
 
-                MoveTab(aProfile, dropIndex);
+                MoveTab(aTree, dropIndex);
                 evt.StopPropagation();
             });
 
@@ -689,11 +689,11 @@ namespace PPCore
         }
 
         // タブを指定した位置へ動かす
-        // aProfile : 動かすタブ
+        // aTree : 動かすタブ
         // aDropIndex : 差し込む位置。動かす前の並びを基準にした値
-        private void MoveTab(PPUnitAIProfileDefinition aProfile, int aDropIndex)
+        private void MoveTab(PPUnitBehaviourTree aTree, int aDropIndex)
         {
-            int from = mOpenTargets.IndexOf(aProfile);
+            int from = mOpenTargets.IndexOf(aTree);
             if (from < 0) return;
 
             // 自分を抜いた後の並びで数え直す。自分より後ろへ動かす場合は 1 つ手前になる
@@ -702,7 +702,7 @@ namespace PPCore
             if (to == from) return;
 
             mOpenTargets.RemoveAt(from);
-            mOpenTargets.Insert(to, aProfile);
+            mOpenTargets.Insert(to, aTree);
             SaveOpenTargets();
             RefreshTabStrip();
         }
@@ -710,7 +710,7 @@ namespace PPCore
         // ツリーをタブとして開く。既に開いていれば並びを変えずそのまま使う
         // 上限を超えた場合は、いま開いているもの以外で最も古いタブを閉じる
         // aTarget : 開くツリー
-        private void OpenAsTab(PPUnitAIProfileDefinition aTarget)
+        private void OpenAsTab(PPUnitBehaviourTree aTarget)
         {
             if (aTarget == null) return;
 
@@ -731,7 +731,7 @@ namespace PPCore
         // タブを 1 つ閉じる
         // 閉じたのが表示中のタブだった場合は、隣のタブへ移る
         // aTarget : 閉じるツリー
-        private void CloseTab(PPUnitAIProfileDefinition aTarget)
+        private void CloseTab(PPUnitBehaviourTree aTarget)
         {
             int index = mOpenTargets.IndexOf(aTarget);
             if (index < 0) return;
@@ -768,7 +768,7 @@ namespace PPCore
         // アセットの GUID を引く
         // aTarget : 対象のツリー
         // return : GUID。アセットでなければ空文字
-        private static string ToGuid(PPUnitAIProfileDefinition aTarget)
+        private static string ToGuid(PPUnitBehaviourTree aTarget)
         {
             string path = aTarget == null ? "" : AssetDatabase.GetAssetPath(aTarget);
             return string.IsNullOrEmpty(path) ? "" : AssetDatabase.AssetPathToGUID(path);
@@ -788,14 +788,14 @@ namespace PPCore
                 string path = AssetDatabase.GUIDToAssetPath(guid);
                 if (string.IsNullOrEmpty(path)) continue;
 
-                var profile = AssetDatabase.LoadAssetAtPath<PPUnitAIProfileDefinition>(path);
-                if (profile != null && !mOpenTargets.Contains(profile)) mOpenTargets.Add(profile);
+                var tree = AssetDatabase.LoadAssetAtPath<PPUnitBehaviourTree>(path);
+                if (tree != null && !mOpenTargets.Contains(tree)) mOpenTargets.Add(tree);
             }
         }
 
         // 最後に開いていたアセットを読み直す
         // return : 復元できたアセット。記録が無い・削除済みなら null
-        private static PPUnitAIProfileDefinition LoadLastTarget()
+        private static PPUnitBehaviourTree LoadLastTarget()
         {
             string guid = EditorPrefs.GetString(PrefKeyLastAsset, "");
             if (string.IsNullOrEmpty(guid)) return null;
@@ -803,16 +803,16 @@ namespace PPCore
             string path = AssetDatabase.GUIDToAssetPath(guid);
             return string.IsNullOrEmpty(path)
                 ? null
-                : AssetDatabase.LoadAssetAtPath<PPUnitAIProfileDefinition>(path);
+                : AssetDatabase.LoadAssetAtPath<PPUnitBehaviourTree>(path);
         }
 
-        // Project ウィンドウで別のプロファイルを選んだら、そちらへ追従する
+        // Project ウィンドウで別のツリーを選んだら、そちらへ追従する
         private void HandleSelectionChanged()
         {
-            if (Selection.activeObject is not PPUnitAIProfileDefinition profile) return;
-            if (ReferenceEquals(profile, mTarget)) return;
+            if (Selection.activeObject is not PPUnitBehaviourTree tree) return;
+            if (ReferenceEquals(tree, mTarget)) return;
 
-            SetTarget(profile);
+            SetTarget(tree);
         }
 
         // ウィンドウの中身を組み立て直す

@@ -20,6 +20,8 @@ namespace PPCore
     {
         private static readonly string[] TabNames = { "ビジュアル", "パラメータ", "スキル", "ディテイル" };
         private static readonly string[] ParameterViews = { "編集", "比較", "ランキング" };
+        // ビヘイビアツリーの割り当て方。並びは PPUnitTreeAssignMode の値と揃える
+        private static readonly string[] TreeModeNames = { "個別ツリーなし", "既存を選ぶ", "雛形から新規" };
         private static readonly Color[] SeriesColors = { new(0.4f, 0.8f, 1), new(1, 0.7f, 0.2f), new(0.6f, 1, 0.5f) };
         private static readonly Color[] CompareColors = { new(0.4f, 0.8f, 1), new(1, 0.45f, 0.45f) };
         // 編集ビューの表の列幅と棒グラフの高さ。既定サイズ付近で1画面に収まるよう詰めている
@@ -254,15 +256,32 @@ namespace PPCore
         {
             var so = new SerializedObject(mDraft.Unit);
             EditorGUILayout.PropertyField(so.FindProperty("mTypeAttribute"));
-            mDraft.NewAI = EditorGUILayout.Toggle("空のAIを新規作成", mDraft.NewAI);
-            using (new EditorGUI.DisabledScope(mDraft.NewAI)) EditorGUILayout.PropertyField(so.FindProperty("mAIProfile"));
+            // 選び直した割り当て方は描画後に反映し、同じイベント内で表示内容が切り替わらないようにする
+            var mode = mDraft.TreeMode;
+            var selected = (PPUnitTreeAssignMode)EditorGUILayout.Popup("ビヘイビアツリー", (int)mode, TreeModeNames);
+            using (new EditorGUI.DisabledScope(mode != PPUnitTreeAssignMode.Existing))
+                EditorGUILayout.PropertyField(so.FindProperty("mBehaviourTree"), new GUIContent("使用するツリー"));
+            EditorGUILayout.HelpBox(TreeModeHelp(mode), mode == PPUnitTreeAssignMode.None ? MessageType.Warning : MessageType.Info);
+            if (selected != mode)
+            {
+                mDraft.TreeMode = selected;
+                // 既存の選択は「既存を選ぶ」でだけ使う。ほかへ切り替えたら外し、個別ツリーなし・雛形の生成物と食い違わないようにする
+                if (selected != PPUnitTreeAssignMode.Existing) so.FindProperty("mBehaviourTree").objectReferenceValue = null;
+            }
             so.ApplyModifiedPropertiesWithoutUndo();
-            EditorGUILayout.HelpBox("新規AIは生成後にUnit AI Treeで設定します。", MessageType.Info);
             GUILayout.Label("カタログ登録（任意）", EditorStyles.boldLabel);
             mDraft.UnitCatalog = (PPUnitCatalog)EditorGUILayout.ObjectField("ユニット", mDraft.UnitCatalog, typeof(PPUnitCatalog), false);
             mDraft.VisualCatalog = (PPUnitVisualCatalog)EditorGUILayout.ObjectField("ビジュアル", mDraft.VisualCatalog, typeof(PPUnitVisualCatalog), false);
             mDraft.SkillCatalog = (PPSkillCatalog)EditorGUILayout.ObjectField("スキル", mDraft.SkillCatalog, typeof(PPSkillCatalog), false);
         }
+
+        // 割り当て方ごとの説明
+        private string TreeModeHelp(PPUnitTreeAssignMode aMode) => aMode switch
+        {
+            PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",
+            PPUnitTreeAssignMode.Template => "保存時に雛形（優先度リスト＋末尾に通常攻撃）から " + PPUnitCreationValidator.TreeFileName(mDraft.Unit.UnitId) + " を作成して割り当てます。生成後にUnit AI Treeで調整します。",
+            _ => PPUnitCreationValidator.NoTreeWarning,
+        };
 
         private void DrawParameterTab()
         {
@@ -546,8 +565,8 @@ namespace PPCore
                     if (GUILayout.Button(path)) Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(path);
                 KeepChanged(() => EditorGUILayout.EndScrollView());
                 RecordRect("footerScroll");
-                if (mDraft.NewAI && GUILayout.Button("生成したAIをUnit AI Treeで編集"))
-                    GetWindow<PPUnitAITreeWindow>().SetTarget(AssetDatabase.LoadAssetAtPath<PPUnitAIProfileDefinition>(mDraft.CreatedPaths[2]));
+                if (mDraft.IsNewTree && GUILayout.Button("生成したツリーをUnit AI Treeで編集"))
+                    GetWindow<PPUnitAITreeWindow>().SetTarget(AssetDatabase.LoadAssetAtPath<PPUnitBehaviourTree>(mDraft.CreatedPaths[2]));
             }
             else
             {

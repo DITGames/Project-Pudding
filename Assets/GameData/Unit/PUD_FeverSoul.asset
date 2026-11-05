@@ -49,7 +49,7 @@ MonoBehaviour:
     CoinGaugeMax: 100
     Dexterity: 20
   mTypeAttribute: 1
-  mAIProfile: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
+  mBehaviourTree: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

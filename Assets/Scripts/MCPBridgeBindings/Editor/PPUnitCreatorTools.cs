@@ -403,9 +403,9 @@ namespace MCPBridgeBindings.Editor
             {
                 ["unitId"] = new JObject { ["type"] = "string" }, ["displayName"] = new JObject { ["type"] = "string" },
                 ["folder"] = new JObject { ["type"] = "string" }, ["maxLevel"] = new JObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100000 },
-                ["previewLevel"] = new JObject { ["type"] = "integer" }, ["newAI"] = new JObject { ["type"] = "boolean" },
+                ["previewLevel"] = new JObject { ["type"] = "integer" }, ["newAI"] = new JObject { ["type"] = "boolean", ["description"] = "trueで雛形からPUBT_<unitId>.assetを新規作成して割り当てる。falseならbehaviourTreeがあれば既存を使い、なければ個別ツリーなし" },
                 ["typeAttribute"] = new JObject { ["type"] = "string", ["enum"] = new JArray(Enum.GetNames(typeof(PPTypeAttribute))) },
-                ["icon"] = ReferenceSchema(), ["portrait"] = ReferenceSchema("立ち絵のSprite"), ["aiProfile"] = ReferenceSchema(),
+                ["icon"] = ReferenceSchema(), ["portrait"] = ReferenceSchema("立ち絵のSprite"), ["behaviourTree"] = ReferenceSchema("既存のPPUnitBehaviourTree。newAIがfalseのときに使う。nullなら個別ツリーなし"),
                 ["unitCatalog"] = ReferenceSchema(), ["visualCatalog"] = ReferenceSchema(), ["skillCatalog"] = ReferenceSchema(),
                 ["compareTarget"] = ReferenceSchema("比較ビューとcompareの既定の比較対象PPUnitDefinition"),
                 ["scales"] = new JObject { ["type"] = "array", ["minItems"] = 4, ["maxItems"] = 5, ["description"] = "棒グラフの基準値。" + StatLegend + "の順。4要素ならきようさは変更しない", ["items"] = new JObject { ["type"] = "number", ["exclusiveMinimum"] = 0 } },
@@ -483,7 +483,7 @@ namespace MCPBridgeBindings.Editor
             ["unitId"] = aDraft.Unit.UnitId, ["displayName"] = aDraft.Unit.DisplayName,
             ["folder"] = aDraft.Folder, ["maxLevel"] = aDraft.MaxLevel, ["previewLevel"] = aDraft.PreviewLevel,
             ["typeAttribute"] = aDraft.Unit.TypeAttribute.ToString(), ["icon"] = Reference(aDraft.Icon), ["portrait"] = Reference(aDraft.Portrait),
-            ["newAI"] = aDraft.NewAI, ["aiProfile"] = Reference(aDraft.Unit.AIProfile),
+            ["newAI"] = aDraft.IsNewTree, ["behaviourTree"] = Reference(aDraft.Unit.BehaviourTree),
             ["unitCatalog"] = Reference(aDraft.UnitCatalog), ["visualCatalog"] = Reference(aDraft.VisualCatalog), ["skillCatalog"] = Reference(aDraft.SkillCatalog),
             ["compareTarget"] = Reference(aDraft.CompareTarget),
             ["scales"] = new JArray(aDraft.Scales), ["extra"] = JObject.FromObject(aDraft.Unit.ExpandStatBlock),
@@ -518,7 +518,6 @@ namespace MCPBridgeBindings.Editor
             if (aPatch["maxLevel"] != null) aDraft.SetMaxLevel(aPatch.Value<int>("maxLevel"));
             if (aPatch["previewLevel"] != null) aDraft.PreviewLevel = aPatch.Value<int>("previewLevel");
             if (aPatch["folder"] != null) aDraft.Folder = aPatch.Value<string>("folder") ?? "";
-            if (aPatch["newAI"] != null) aDraft.NewAI = aPatch.Value<bool>("newAI");
             if (aPatch["icon"] != null) aDraft.Icon = Resolve<Sprite>(aPatch["icon"]);
             if (aPatch["portrait"] != null) aDraft.Portrait = Resolve<Sprite>(aPatch["portrait"]);
             if (aPatch["unitCatalog"] != null) aDraft.UnitCatalog = Resolve<PPUnitCatalog>(aPatch["unitCatalog"]);
@@ -533,7 +532,16 @@ namespace MCPBridgeBindings.Editor
                 if (!Enum.TryParse<PPTypeAttribute>(aPatch.Value<string>("typeAttribute"), out var type) || !Enum.IsDefined(typeof(PPTypeAttribute), type)) throw new ArgumentException("不正な属性です。");
                 so.FindProperty("mTypeAttribute").intValue = (int)type;
             }
-            if (aPatch["aiProfile"] != null) so.FindProperty("mAIProfile").objectReferenceValue = Resolve<PPUnitAIProfileDefinition>(aPatch["aiProfile"]);
+            if (aPatch["behaviourTree"] != null) so.FindProperty("mBehaviourTree").objectReferenceValue = Resolve<PPUnitBehaviourTree>(aPatch["behaviourTree"]);
+            // 割り当て方は newAI（雛形から新規）を優先し、次に behaviourTree（既存）の有無で決める。どちらも無ければ個別ツリーなし
+            // 既存の選択はウィンドウと同じく「既存を選ぶ」でだけ持たせる
+            if (aPatch["newAI"] != null || aPatch["behaviourTree"] != null)
+            {
+                var isNewTree = aPatch["newAI"] != null && aPatch.Value<bool>("newAI");
+                if (isNewTree) so.FindProperty("mBehaviourTree").objectReferenceValue = null;
+                aDraft.TreeMode = isNewTree ? PPUnitTreeAssignMode.Template
+                    : so.FindProperty("mBehaviourTree").objectReferenceValue != null ? PPUnitTreeAssignMode.Existing : PPUnitTreeAssignMode.None;
+            }
             if (aPatch["extra"] is JObject extra) ApplyValue(so.FindProperty("mExpandStatBlock"), extra);
             so.ApplyModifiedPropertiesWithoutUndo();
             if (aPatch["scales"] is JArray scales)

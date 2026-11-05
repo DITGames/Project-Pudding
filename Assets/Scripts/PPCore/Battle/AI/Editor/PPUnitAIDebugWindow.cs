@@ -196,7 +196,7 @@ namespace PPCore
                         && !isSelected)
                     {
                         PPUnitAITreeHighlightHub.Select(aEntry);
-                        OpenTreeWindow(aEntry.Profile);
+                        OpenTreeWindow(aEntry.Tree);
                     }
                     EditorGUILayout.LabelField(DecisionLabel(aEntry.Decision), GUILayout.Width(80f));
                     EditorGUILayout.LabelField(aEntry.Decision == PPUnitAIDecision.Wait
@@ -217,14 +217,14 @@ namespace PPCore
 
         // 選んだ思考記録のツリーをツリーウィンドウで開く
         // 経路のハイライトだけでは今どのツリーの話か分かりにくいため、選んだ時点で該当のツリーへ切り替える
-        // aProfile : 開く判断ツリー。null なら何もしない
-        private static void OpenTreeWindow(PPUnitAIProfileDefinition aProfile)
+        // aTree : 開く判断ツリー。null なら何もしない
+        private static void OpenTreeWindow(PPUnitBehaviourTree aTree)
         {
-            if (aProfile == null) return;
+            if (aTree == null) return;
 
             var window = GetWindow<PPUnitAITreeWindow>();
             window.titleContent = new GUIContent("Unit AI Tree");
-            window.SetTarget(aProfile);
+            window.SetTarget(aTree);
             window.Show();
             window.Focus();
         }
@@ -286,7 +286,7 @@ namespace PPCore
         private static string RejectLabel(PPUnitAIRejectReason aReason)
             => aReason switch
             {
-                PPUnitAIRejectReason.NoProfile => "AIプロファイル未設定",
+                PPUnitAIRejectReason.NoTree => "ビヘイビアツリー未設定",
                 PPUnitAIRejectReason.NoActionBudget => "行動回数なし",
                 PPUnitAIRejectReason.NoMatchedNode => "成立した枝なし",
                 PPUnitAIRejectReason.DecidedToWait => "意図的な待機",

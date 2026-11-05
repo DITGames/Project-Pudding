@@ -223,7 +223,7 @@ namespace PPCore
         }
 
         // パーティ定義に対応する思考ルーチンを生成する
-        // 判断の中身はユニット側の AI プロファイル（判断ツリー）が決めるため、ここでは生成するだけ
+        // 判断の中身はユニット側のビヘイビアツリーが決めるため、ここでは生成するだけ
         // aDefinition : 生成元のパーティ定義
         // return : 生成された思考ルーチン
         private IPPPartyCommandStrategist CreateStrategist(PPPartyDefinition aDefinition)

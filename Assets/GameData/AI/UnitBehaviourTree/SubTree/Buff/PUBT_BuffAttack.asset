@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
-  m_Name: PSBT_BuffAttack
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  m_Name: PUBT_BuffAttack
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitBehaviourTree
   mTreeKind: 4
   mDescription: 
   mRootNodeId: b3b276fa261146e9a6029ece9084ab21
@@ -70,7 +70,7 @@ MonoBehaviour:
       type: {class: PPUnitStatusEffectCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mIsAutoDescription: 1
-        mDescription: "\u653B\u6483\u5F37\u5316 \u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044"
+        mDescription: "\u653B\u6483\u529B\u30A2\u30C3\u30D7Lv1 \u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044"
         mEffect: {fileID: 11400000, guid: 09f7ea01d0b50a353f688c0e2a1714b7, type: 2}
         mTags: 0
         mIsInvert: 1
@@ -108,7 +108,7 @@ MonoBehaviour:
       type: {class: PPFindHasStatusEffectUnit, ns: PPCore, asm: Assembly-CSharp}
       data:
         mIsAutoDescription: 1
-        mDescription: "\u653B\u6483\u5F37\u5316\u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u308B\u30E6\u30CB\u30C3\u30C8\u304C\u3044\u306A\u3044"
+        mDescription: "\u653B\u6483\u529B\u30A2\u30C3\u30D7Lv1\u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u308B\u30E6\u30CB\u30C3\u30C8\u304C\u3044\u306A\u3044"
         mEffect: {fileID: 11400000, guid: 09f7ea01d0b50a353f688c0e2a1714b7, type: 2}
         mTags: 0
         mIsInvert: 1

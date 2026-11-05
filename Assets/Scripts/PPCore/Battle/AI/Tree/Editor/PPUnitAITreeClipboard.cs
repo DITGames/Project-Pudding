@@ -20,7 +20,7 @@ namespace PPCore
     // EditorJsonUtility を使う。そのために ScriptableObject を 1 枚挟んでいる
     //
     // 文字列にしてから読み直すことで、元のノードとインスタンスが完全に切り離される
-    // 貼り付け先が別のプロファイルでも同じ手順で扱える
+    // 貼り付け先が別のツリーでも同じ手順で扱える
     internal sealed class PPUnitAITreeClipboard : ScriptableObject
     {
         // 複写するノード。EditorJsonUtility が読み書きする実体

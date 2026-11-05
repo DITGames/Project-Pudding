@@ -40,7 +40,7 @@ namespace PPCore
         // 行動回数が複数のユニットは、同じティックに複数件の記録が並ぶ
         public int ActionIndex;
         // 評価した判断ツリー。ツリーウィンドウで開いているものと同じかを見分けるのに使う
-        public PPUnitAIProfileDefinition Profile;
+        public PPUnitBehaviourTree Tree;
         // 評価中に通過したノードの ID。引き返した枝は含まない
         public List<string> VisitedNodeIds = new();
         // 行動が確定したノードの ID。経路上の他のノードと区別して表示するために持つ

@@ -84,7 +84,7 @@ namespace PPCore
         public BattleContext Battle { get; }
         // 評価中の判断ツリー。子ノードを ID から引くのに使う
         // サブツリー参照で評価先が切り替わるため、入れ子の最上段を「今のツリー」として扱う
-        public PPUnitAIProfileDefinition Profile => mProfileStack[^1];
+        public PPUnitBehaviourTree Tree => mTreeStack[^1];
         // 思考主体の記憶。ノードは読むだけで、書き込みはストラテジストが行う
         public PPUnitAIMemory Memory { get; set; }
         // 思考主体のバトル中の見聞き。こちらもノードは読むだけ
@@ -113,7 +113,7 @@ namespace PPCore
 
         // 評価中の判断ツリーの入れ子。根が [0]、サブツリー参照で潜るたびに積まれる
         // 循環参照の検出も、この並びに同じツリーが既に居るかで判定する
-        private readonly List<PPUnitAIProfileDefinition> mProfileStack = new();
+        private readonly List<PPUnitBehaviourTree> mTreeStack = new();
 
         // 前回の待機コミットで記録した道順。コミット中でなければ null
         // 優先度リストはこれを見て「待ちを宣言した枝より下は見ない」を実現する
@@ -122,34 +122,34 @@ namespace PPCore
         // aUnit : 思考対象のユニット
         // aSnapshot : パーティ状況のスナップショット
         // aBattle : バトルコンテキスト
-        // aProfile : 評価中の判断ツリー
+        // aTree : 評価中の判断ツリー
         public PPUnitAIEvalContext(PPBattleUnit aUnit, PPPartyAIContext aSnapshot, BattleContext aBattle,
-            PPUnitAIProfileDefinition aProfile)
+            PPUnitBehaviourTree aTree)
         {
             Unit = aUnit;
             Snapshot = aSnapshot;
             Battle = aBattle;
-            mProfileStack.Add(aProfile);
+            mTreeStack.Add(aTree);
         }
 
         // サブツリー参照で参照先のツリーへ潜る
         // 既に入れ子へ積まれているツリーは循環しているため、潜らずに false を返す
         // 自己参照も相互参照も同じ判定で捕まえられる
-        // aProfile : 潜る先のツリー
+        // aTree : 潜る先のツリー
         // return : 潜れたら true。null または循環していれば false
-        public bool TryPushProfile(PPUnitAIProfileDefinition aProfile)
+        public bool TryPushTree(PPUnitBehaviourTree aTree)
         {
-            if (aProfile == null || mProfileStack.Contains(aProfile)) return false;
+            if (aTree == null || mTreeStack.Contains(aTree)) return false;
 
-            mProfileStack.Add(aProfile);
+            mTreeStack.Add(aTree);
             return true;
         }
 
         // 潜った参照先から元のツリーへ戻る
         // 参照先の評価が不成立で終わった場合も必ず戻す必要があるため、呼び出し側は try / finally で通す
-        public void PopProfile()
+        public void PopTree()
         {
-            if (mProfileStack.Count > 1) mProfileStack.RemoveAt(mProfileStack.Count - 1);
+            if (mTreeStack.Count > 1) mTreeStack.RemoveAt(mTreeStack.Count - 1);
         }
 
         // ID からノードを引く
@@ -157,14 +157,14 @@ namespace PPCore
         // 評価から外されたノードは未接続と同じ扱いにするため null を返す
         // 判定をこの 1 箇所へ寄せることで、ノード種別ごとの個別対応が要らなくなる
         // 優先度リストは null を読み飛ばすだけで子の添字は進むため、優先度が繰り上がることもない
-        // なお PPUnitAIProfileDefinition.FindNode 側には入れない
+        // なお PPUnitBehaviourTree.FindNode 側には入れない
         // そちらはエディタのノード名解決や到達判定からも呼ぶため、外したノードも引けている必要がある
         //
         // aNodeId : 引くノードの ID
         // return : 該当ノード。未接続（ID が空）・見つからない・評価から外されている場合は null
         public PPUnitAINode ResolveNode(string aNodeId)
         {
-            var node = Profile != null ? Profile.FindNode(aNodeId) : null;
+            var node = Tree != null ? Tree.FindNode(aNodeId) : null;
             return node is { IsMuted: false } ? node : null;
         }
 
@@ -226,7 +226,7 @@ namespace PPCore
     // 手順を跨いで状態を持たないため、毎ティック同じ木を評価すれば状況の変化がそのまま判断に反映される
     // 例外は待機コミットで、これだけは「決めた判断を数ティック維持する」ためにストラテジスト側が状態を持つ
     //
-    // ノードはプロファイル側のフラットなリストに並び、親子関係はノード ID の参照で表す
+    // ノードはツリー側のフラットなリストに並び、親子関係はノード ID の参照で表す
     // 入れ子で持たないのは、ノードエディタ上で「作ってから繋ぐ」「一旦切り離す」を成立させるため
     //
     // PPSkillEffectDefinition と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとする
@@ -276,7 +276,7 @@ namespace PPCore
         protected virtual string DefaultNodeName => GetType().Name;
 
         // ID が未採番なら採番する。既に持っている場合は何もしない
-        // 生成直後とアセット読み込み時にプロファイル側から呼ばれる
+        // 生成直後とアセット読み込み時にツリー側から呼ばれる
         public void EnsureNodeId()
         {
             if (string.IsNullOrEmpty(mNodeId))

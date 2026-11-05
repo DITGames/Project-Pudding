@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPUnitAIProfileNamePostprocessor.cs
+ * @file PPUnitBehaviourTreeNamePostprocessor.cs
  * @author hqrse
  * @date 2026/08/31
  * @brief 判断ツリーのオブジェクト名をファイル名へ揃える
@@ -17,11 +17,11 @@ namespace PPCore
     // 「Main Object Name '◯◯' does not match filename '△△'」の警告が出続ける
     //
     // ずれる経路は 1 つではない
-    //   ・同じ名前で作ろうとしてファイル名だけ連番になった（PUAP_Verify と PUAP_Verify1）
+    //   ・同じ名前で作ろうとしてファイル名だけ連番になった（PUBT_Verify と PUBT_Verify1）
     //   ・複製した
     //   ・Unity の外でファイル名を変えた
     // 作る側で塞いでも取りこぼすため、取り込みの時点で揃える
-    public sealed class PPUnitAIProfileNamePostprocessor : AssetPostprocessor
+    public sealed class PPUnitBehaviourTreeNamePostprocessor : AssetPostprocessor
     {
         // 取り込まれたアセットのうち、判断ツリーの名前がファイル名と食い違っていれば直す
         // aImportedAssets : 取り込まれたアセットのパス
@@ -44,16 +44,16 @@ namespace PPCore
             {
                 if (!path.EndsWith(".asset")) continue;
 
-                var profile = AssetDatabase.LoadAssetAtPath<PPUnitAIProfileDefinition>(path);
-                if (profile == null) continue;
+                var tree = AssetDatabase.LoadAssetAtPath<PPUnitBehaviourTree>(path);
+                if (tree == null) continue;
 
                 string fileName = Path.GetFileNameWithoutExtension(path);
-                if (profile.name == fileName) continue;
+                if (tree.name == fileName) continue;
 
                 // 揃えた結果また取り込みが走るが、次はここで弾かれるため繰り返しにはならない
-                profile.name = fileName;
-                EditorUtility.SetDirty(profile);
-                AssetDatabase.SaveAssetIfDirty(profile);
+                tree.name = fileName;
+                EditorUtility.SetDirty(tree);
+                AssetDatabase.SaveAssetIfDirty(tree);
             }
         }
     }
