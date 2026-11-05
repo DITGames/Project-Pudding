@@ -12,3 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e96d778d4d49d54dbd574297a91d4e7, type: 3}
   m_Name: PPRuntimeSettings
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPRuntimeSettings
+  mUnitAIDefaults: {fileID: 11400000, guid: 24f32c0ffe948784c8c3ab4597e3e615, type: 2}

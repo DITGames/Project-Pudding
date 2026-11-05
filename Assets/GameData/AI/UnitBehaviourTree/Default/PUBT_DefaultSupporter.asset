@@ -1,0 +1,133 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
+  m_Name: PUBT_DefaultSupporter
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitBehaviourTree
+  mTreeKind: 0
+  mDescription: "\u652F\u63F4\u578B\u306E\u65E2\u5B9A\u3002\u652F\u63F4\u30B9\u30AD\u30EB\u3092\u9593\u9694\u3092\u7A7A\u3051\u3066\u6483\u3061\u3001\u30B2\u30FC\u30B8\u306B\u4F59\u88D5\u304C\u3042\u308C\u3070\u653B\u6483\u30B9\u30AD\u30EB\u3001\u672B\u5C3E\u306B\u7121\u6761\u4EF6\u306E\u901A\u5E38\u653B\u6483"
+  mRootNodeId: 33a047bf68c041239ed20882ebb1aed0
+  mNodes:
+  - rid: 2919751056307257449
+  - rid: 2919751056307257450
+  - rid: 2919751056307257451
+  - rid: 2919751056307257452
+  - rid: 2919751056307257453
+  mNotes: []
+  references:
+    version: 2
+    RefIds:
+    - rid: 2919751056307257449
+      type: {class: PPUnitAISelectorNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: 
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 33a047bf68c041239ed20882ebb1aed0
+        mGraphPosition: {x: 0, y: 0}
+        mChildIds:
+        - e048c7a8abff4a04913115c11d986be5
+        - 04a72430f4324e8aaffb4b46af8d3b41
+        - 7cac9019994d4b11a88be6cdd62d9cb2
+    - rid: 2919751056307257450
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 3
+        mNodeId: e048c7a8abff4a04913115c11d986be5
+        mGraphPosition: {x: 320, y: 0}
+        mAction:
+          rid: 2919751056307257454
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 2919751056307257451
+      type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u30B2\u30FC\u30B8\u306B\u4F59\u88D5\u304C\u3042\u308B\u304B"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 04a72430f4324e8aaffb4b46af8d3b41
+        mGraphPosition: {x: 320, y: 160}
+        mUnitConditions:
+        - rid: 2919751056307257455
+        mPartyConditions: []
+        mIsInvert: 0
+        mMatchedId: 02e96912be07483f8ebf10ca6a8315f8
+        mUnmatchedId: 
+    - rid: 2919751056307257452
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u653B\u6483\u30B9\u30AD\u30EB"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 02e96912be07483f8ebf10ca6a8315f8
+        mGraphPosition: {x: 640, y: 160}
+        mAction:
+          rid: 2919751056307257456
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 2919751056307257453
+      type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mNodeName: "\u901A\u5E38\u653B\u6483"
+        mIsInterrupt: 0
+        mIsMuted: 0
+        mCooldownTicks: 0
+        mNodeId: 7cac9019994d4b11a88be6cdd62d9cb2
+        mGraphPosition: {x: 320, y: 320}
+        mAction:
+          rid: 2919751056307257457
+        mCommitTicks: 0
+        mFocusTicks: 0
+    - rid: 2919751056307257454
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: 
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 1
+          mTags: []
+        mSelectRule: 0
+        mTargetPolicy: 0
+    - rid: 2919751056307257455
+      type: {class: PPUnitGaugeRatioCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "\u30B9\u30AD\u30EB\u30B2\u30FC\u30B8\u304C20%\u4EE5\u4E0A"
+        mKind: 0
+        mOp: 2
+        mThreshold: 0.2
+        mTolerance: 0.01
+    - rid: 2919751056307257456
+      type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: 
+        mFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 0
+          mTags: []
+        mSelectRule: 1
+        mTargetPolicy: 0
+    - rid: 2919751056307257457
+      type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mActionName: 
+        mTargetPolicy: 4
+        mIsFallbackAnyEnemy: 1

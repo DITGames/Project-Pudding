@@ -405,6 +405,7 @@ namespace MCPBridgeBindings.Editor
                 ["folder"] = new JObject { ["type"] = "string" }, ["maxLevel"] = new JObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100000 },
                 ["previewLevel"] = new JObject { ["type"] = "integer" }, ["newAI"] = new JObject { ["type"] = "boolean", ["description"] = "trueで雛形からPUBT_<unitId>.assetを新規作成して割り当てる。falseならbehaviourTreeがあれば既存を使い、なければ個別ツリーなし" },
                 ["typeAttribute"] = new JObject { ["type"] = "string", ["enum"] = new JArray(Enum.GetNames(typeof(PPTypeAttribute))) },
+                ["role"] = new JObject { ["type"] = "string", ["enum"] = new JArray(Enum.GetNames(typeof(PPUnitRole))) },
                 ["icon"] = ReferenceSchema(), ["portrait"] = ReferenceSchema("立ち絵のSprite"), ["behaviourTree"] = ReferenceSchema("既存のPPUnitBehaviourTree。newAIがfalseのときに使う。nullなら個別ツリーなし"),
                 ["unitCatalog"] = ReferenceSchema(), ["visualCatalog"] = ReferenceSchema(), ["skillCatalog"] = ReferenceSchema(),
                 ["compareTarget"] = ReferenceSchema("比較ビューとcompareの既定の比較対象PPUnitDefinition"),
@@ -482,7 +483,7 @@ namespace MCPBridgeBindings.Editor
             ["lastSave"] = aDraft.SavedRevision >= 0 ? new JObject { ["requestId"] = aDraft.SavedRequestId, ["revision"] = aDraft.SavedRevision, ["paths"] = new JArray(aDraft.SavedPaths) } : JValue.CreateNull(),
             ["unitId"] = aDraft.Unit.UnitId, ["displayName"] = aDraft.Unit.DisplayName,
             ["folder"] = aDraft.Folder, ["maxLevel"] = aDraft.MaxLevel, ["previewLevel"] = aDraft.PreviewLevel,
-            ["typeAttribute"] = aDraft.Unit.TypeAttribute.ToString(), ["icon"] = Reference(aDraft.Icon), ["portrait"] = Reference(aDraft.Portrait),
+            ["typeAttribute"] = aDraft.Unit.TypeAttribute.ToString(), ["role"] = aDraft.Unit.Role.ToString(), ["icon"] = Reference(aDraft.Icon), ["portrait"] = Reference(aDraft.Portrait),
             ["newAI"] = aDraft.IsNewTree, ["behaviourTree"] = Reference(aDraft.Unit.BehaviourTree),
             ["unitCatalog"] = Reference(aDraft.UnitCatalog), ["visualCatalog"] = Reference(aDraft.VisualCatalog), ["skillCatalog"] = Reference(aDraft.SkillCatalog),
             ["compareTarget"] = Reference(aDraft.CompareTarget),
@@ -531,6 +532,11 @@ namespace MCPBridgeBindings.Editor
             {
                 if (!Enum.TryParse<PPTypeAttribute>(aPatch.Value<string>("typeAttribute"), out var type) || !Enum.IsDefined(typeof(PPTypeAttribute), type)) throw new ArgumentException("不正な属性です。");
                 so.FindProperty("mTypeAttribute").intValue = (int)type;
+            }
+            if (aPatch["role"] != null)
+            {
+                if (!Enum.TryParse<PPUnitRole>(aPatch.Value<string>("role"), out var role) || !Enum.IsDefined(typeof(PPUnitRole), role)) throw new ArgumentException("不正なロールです。");
+                so.FindProperty("mRole").intValue = (int)role;
             }
             if (aPatch["behaviourTree"] != null) so.FindProperty("mBehaviourTree").objectReferenceValue = Resolve<PPUnitBehaviourTree>(aPatch["behaviourTree"]);
             // 割り当て方は newAI（雛形から新規）を優先し、次に behaviourTree（既存）の有無で決める。どちらも無ければ個別ツリーなし
