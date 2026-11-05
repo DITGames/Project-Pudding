@@ -55,7 +55,7 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     [Header("敵")]
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mEnemyUnit;
-    // 1 ティックあたりの思考回数。判断の中身はユニット定義側の AI プロファイルが決める
+    // 1 ティックあたりの思考回数。判断の中身はユニット定義側のビヘイビアツリーが決める
     [Label("思考回数(1ティックあたり)")]
     [SerializeField] private int mThinkCountPerTick = 1;
     // 敵 AI を駆動するドライバ

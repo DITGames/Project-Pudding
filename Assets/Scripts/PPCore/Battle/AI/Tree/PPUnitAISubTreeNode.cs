@@ -13,7 +13,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 別の判断ツリー（PPUnitAIProfileDefinition）へ評価をそのまま委ねるノード
+    // 別の判断ツリー（PPUnitBehaviourTree）へ評価をそのまま委ねるノード
     //
     // 「瀕死の味方を回復する」「弱点を突く」といった定番の枝を 1 つのアセットへ切り出し、
     // 複数のユニットのツリーから同じものを指して使い回すためのもの
@@ -33,7 +33,7 @@ namespace PPCore
     {
         [Header("参照先")]
         [Label("判断ツリー")]
-        [SerializeField] private PPUnitAIProfileDefinition mSubTree;
+        [SerializeField] private PPUnitBehaviourTree mSubTree;
 
         // 循環参照の警告を既に出したか
         // 評価は思考のたびに走るため、抑止しないと同じ警告でコンソールが埋まり他のトレースが読めなくなる
@@ -47,7 +47,7 @@ namespace PPCore
         public bool HasSubTree => mSubTree != null;
 
         // 参照先の判断ツリー。エディタの診断が循環参照を辿るために参照する
-        public PPUnitAIProfileDefinition SubTree => mSubTree;
+        public PPUnitBehaviourTree SubTree => mSubTree;
 
         // 参照先のアセット名を示す
         public override string Summary => mSubTree != null ? mSubTree.name : "参照先が未設定";
@@ -59,7 +59,7 @@ namespace PPCore
         {
             if (mSubTree == null) return PPUnitAINodeResult.Failed;
 
-            if (!aContext.TryPushProfile(mSubTree))
+            if (!aContext.TryPushTree(mSubTree))
             {
                 if (!mIsWarnedCycle)
                 {
@@ -78,7 +78,7 @@ namespace PPCore
             {
                 // 参照先が不成立で終わっても必ず元のツリーへ戻す
                 // 戻し忘れると、以降の兄弟ノードが参照先のツリーから子を引こうとして全て不成立になる
-                aContext.PopProfile();
+                aContext.PopTree();
             }
         }
     }

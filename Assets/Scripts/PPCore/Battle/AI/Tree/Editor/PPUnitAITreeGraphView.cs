@@ -17,7 +17,7 @@ using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    // 判断ツリー（PPUnitAIProfileDefinition）をノードグラフとして編集する GraphView
+    // 判断ツリー（PPUnitBehaviourTree）をノードグラフとして編集する GraphView
     //
     // ノードの追加・削除・接続・移動は全て SerializedObject を通してアセットへ反映する
     // Undo とダーティ管理を Unity 側に任せられるため、独自の履歴を持たずに済む
@@ -27,7 +27,7 @@ namespace PPCore
     internal sealed class PPUnitAITreeGraphView : GraphView
     {
         private readonly SerializedObject mSerializedObject;
-        private readonly PPUnitAIProfileDefinition mProfile;
+        private readonly PPUnitBehaviourTree mTree;
         private readonly Dictionary<string, PPUnitAITreeNodeView> mNodeViews = new();
         // 注記のビュー。ID から引いて削除・保存に使う
         private readonly Dictionary<string, PPUnitAITreeNoteElement> mNoteViews = new();
@@ -50,12 +50,12 @@ namespace PPCore
         // グラフ構造が変わった際に通知する。ルート未設定などの警告表示を更新するのに使う
         public event Action OnGraphStructureChanged;
 
-        // aSerializedObject : 編集対象のプロファイルの SerializedObject
-        // aProfile : 表示対象の判断ツリー
-        public PPUnitAITreeGraphView(SerializedObject aSerializedObject, PPUnitAIProfileDefinition aProfile)
+        // aSerializedObject : 編集対象のツリーの SerializedObject
+        // aTree : 表示対象の判断ツリー
+        public PPUnitAITreeGraphView(SerializedObject aSerializedObject, PPUnitBehaviourTree aTree)
         {
             mSerializedObject = aSerializedObject;
-            mProfile = aProfile;
+            mTree = aTree;
 
             SetupZoom(ContentZoomer.DefaultMinScale, ContentZoomer.DefaultMaxScale);
             this.AddManipulator(new ContentDragger());
@@ -232,14 +232,14 @@ namespace PPCore
         {
             if (!mNodeViews.TryGetValue(aNodeId ?? "", out var view)) return;
 
-            view.RefreshView(view.Node.NodeId == mProfile.RootNodeId);
+            view.RefreshView(view.Node.NodeId == mTree.RootNodeId);
         }
 
         // ルートノードが画面中央へ来るように表示位置を合わせる
         // アセットを開いた直後はレイアウトが未確定のため、1 フレーム後に実行する
         public void FrameRootNode()
         {
-            schedule.Execute(() => FrameNodeImmediate(mProfile.RootNodeId)).ExecuteLater(50);
+            schedule.Execute(() => FrameNodeImmediate(mTree.RootNodeId)).ExecuteLater(50);
         }
 
         // 指定したノードが画面中央へ来るように表示位置を合わせ、選択状態にする
@@ -290,7 +290,7 @@ namespace PPCore
         private void ShowNodeSearchWindow()
         {
             var provider = ScriptableObject.CreateInstance<PPUnitAITreeNodeSearchProvider>();
-            provider.Setup(mProfile, FrameNode);
+            provider.Setup(mTree, FrameNode);
 
             var context = new SearchWindowContext(GUIUtility.GUIToScreenPoint(Event.current?.mousePosition ?? Vector2.zero));
             SearchWindow.Open(context, provider);
@@ -303,10 +303,10 @@ namespace PPCore
         // 根から辿れないノードは触らず、その場に残す
         public void AutoLayout()
         {
-            var root = mProfile.Root;
+            var root = mTree.Root;
             if (root == null) return;
 
-            Undo.RecordObject(mProfile, "ノードの自動整列");
+            Undo.RecordObject(mTree, "ノードの自動整列");
 
             var placed = new HashSet<string>();
             // 深さごとに次へ置く縦位置。同じ深さのノードが重ならないようにするためのもの
@@ -344,7 +344,7 @@ namespace PPCore
                 // 並び順は触らない。上にあるものほど優先、という規則をそのまま縦位置へ写す
                 foreach (var childId in port.ChildIds)
                 {
-                    var child = mProfile.FindNode(childId);
+                    var child = mTree.FindNode(childId);
                     if (child == null) continue;
 
                     childY = PlaceNode(child, aDepth + 1, childY, aPlaced, aNextY) + LayoutRowHeight;
@@ -373,13 +373,13 @@ namespace PPCore
             // 消した接続線への参照を残さない。次に強調をかけるまで使われないが、寿命の切れた参照を持ち続けないため
             mHighlightedEdges.Clear();
 
-            foreach (var node in mProfile.Nodes)
+            foreach (var node in mTree.Nodes)
             {
                 if (node == null) continue;
 
                 CreateNodeView(node);
             }
-            foreach (var note in mProfile.Notes)
+            foreach (var note in mTree.Notes)
             {
                 CreateNoteView(note);
             }
@@ -391,7 +391,7 @@ namespace PPCore
         // 画面の中央あたりへ置き、そのまま書き込めるようにする
         public void AddNote()
         {
-            Undo.RecordObject(mProfile, "注記の追加");
+            Undo.RecordObject(mTree, "注記の追加");
 
             Vector2 center = contentViewContainer.WorldToLocal(layout.center);
             var data = new PPUnitAINoteData(Guid.NewGuid().ToString("N"),
@@ -403,7 +403,7 @@ namespace PPCore
             mSerializedObject.ApplyModifiedProperties();
             ApplyChanges();
 
-            CreateNoteView(mProfile.FindNote(data.NoteId));
+            CreateNoteView(mTree.FindNote(data.NoteId));
         }
 
         // 注記 1 枚分のビューを作ってグラフへ載せる
@@ -427,7 +427,7 @@ namespace PPCore
         // aNote : 対象の注記ビュー
         private void SaveNote(PPUnitAITreeNoteElement aNote)
         {
-            var data = mProfile.FindNote(aNote.NoteId);
+            var data = mTree.FindNote(aNote.NoteId);
             if (data == null) return;
 
             var rect = aNote.GetPosition();
@@ -436,7 +436,7 @@ namespace PPCore
             data.SetTitle(aNote.NoteTitle);
             data.SetColor(aNote.NoteColor);
             data.SetRect(rect);
-            EditorUtility.SetDirty(mProfile);
+            EditorUtility.SetDirty(mTree);
         }
 
         // 注記を 1 枚削除する
@@ -461,7 +461,7 @@ namespace PPCore
         private void CreateNodeView(PPUnitAINode aNode)
         {
             var view = new PPUnitAITreeNodeView(aNode);
-            view.RefreshView(aNode.NodeId == mProfile.RootNodeId);
+            view.RefreshView(aNode.NodeId == mTree.RootNodeId);
             mNodeViews[aNode.NodeId] = view;
             AddElement(view);
         }
@@ -492,7 +492,7 @@ namespace PPCore
         private GraphViewChange OnGraphViewChanged(GraphViewChange aChange)
         {
             bool isStructureChanged = false;
-            Undo.RecordObject(mProfile, "判断ツリーの編集");
+            Undo.RecordObject(mTree, "判断ツリーの編集");
 
             if (aChange.elementsToRemove != null)
             {
@@ -628,7 +628,7 @@ namespace PPCore
             var pasted = PPUnitAITreeClipboard.Deserialize(aData);
             if (pasted.Count == 0) return;
 
-            Undo.RecordObject(mProfile, aOperationName);
+            Undo.RecordObject(mTree, aOperationName);
 
             // 先に全ノードの ID を振り直し、複写元の ID との対応表を作る
             var idMap = new Dictionary<string, string>();
@@ -675,7 +675,7 @@ namespace PPCore
         // return : 追加されたノード
         private PPUnitAINode AddNode(Type aType, Vector2 aPosition)
         {
-            Undo.RecordObject(mProfile, "ノードの追加");
+            Undo.RecordObject(mTree, "ノードの追加");
 
             var node = (PPUnitAINode)Activator.CreateInstance(aType);
             node.EnsureNodeId();
@@ -685,10 +685,10 @@ namespace PPCore
             nodesProperty.arraySize++;
             nodesProperty.GetArrayElementAtIndex(nodesProperty.arraySize - 1).managedReferenceValue = node;
             mSerializedObject.ApplyModifiedProperties();
-            mProfile.InvalidateNodeMap();
+            mTree.InvalidateNodeMap();
 
             // 最初の 1 つは自動的にルートにしておく。ルート未設定のまま気付かないのを防ぐ
-            if (string.IsNullOrEmpty(mProfile.RootNodeId))
+            if (string.IsNullOrEmpty(mTree.RootNodeId))
             {
                 SetRootProperty(node.NodeId);
             }
@@ -702,7 +702,7 @@ namespace PPCore
         // aNode : 削除するノード
         private void RemoveNode(PPUnitAINode aNode)
         {
-            foreach (var other in mProfile.Nodes)
+            foreach (var other in mTree.Nodes)
             {
                 if (other == null || ReferenceEquals(other, aNode)) continue;
 
@@ -723,10 +723,10 @@ namespace PPCore
                 break;
             }
             mSerializedObject.ApplyModifiedProperties();
-            mProfile.InvalidateNodeMap();
+            mTree.InvalidateNodeMap();
 
             mNodeViews.Remove(aNode.NodeId);
-            if (mProfile.RootNodeId == aNode.NodeId)
+            if (mTree.RootNodeId == aNode.NodeId)
             {
                 SetRootProperty("");
             }
@@ -736,12 +736,12 @@ namespace PPCore
         // aNode : ルートにするノード
         private void SetRoot(PPUnitAINode aNode)
         {
-            Undo.RecordObject(mProfile, "ルートノードの変更");
+            Undo.RecordObject(mTree, "ルートノードの変更");
             SetRootProperty(aNode.NodeId);
 
             foreach (var view in mNodeViews.Values)
             {
-                view.RefreshView(view.Node.NodeId == mProfile.RootNodeId);
+                view.RefreshView(view.Node.NodeId == mTree.RootNodeId);
             }
             OnGraphStructureChanged?.Invoke();
         }
@@ -778,8 +778,8 @@ namespace PPCore
         private void ApplyChanges()
         {
             mSerializedObject.ApplyModifiedProperties();
-            mProfile.InvalidateNodeMap();
-            EditorUtility.SetDirty(mProfile);
+            mTree.InvalidateNodeMap();
+            EditorUtility.SetDirty(mTree);
         }
 
         // 選択が変わった際に通知する。インスペクタ側の表示切り替えに使う

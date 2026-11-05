@@ -47,6 +47,7 @@ namespace PPCore
                 var unit = UnityEngine.Object.Instantiate(aDraft.Unit);
                 transient.Add(unit);
                 unit.name = aDraft.Unit.UnitId;
+                if (aDraft.TreeMode == PPUnitTreeAssignMode.None) AssignTree(unit, null);
                 var visual = ScriptableObject.CreateInstance<PPUnitVisualDefinition>();
                 transient.Add(visual);
                 visual.UnitId = unit.UnitId;
@@ -61,14 +62,13 @@ namespace PPCore
                 settings.Initialize(aDraft.MaxLevel, aDraft.Scales);
                 AssetDatabase.AddObjectToAsset(settings, unit);
                 var index = 2;
-                if (aDraft.NewAI)
+                if (aDraft.IsNewTree)
                 {
-                    var ai = ScriptableObject.CreateInstance<PPUnitAIProfileDefinition>();
-                    transient.Add(ai);
-                    SaveNew(ai, paths[index++], created);
-                    var so = new SerializedObject(unit);
-                    so.FindProperty("mAIProfile").objectReferenceValue = ai;
-                    so.ApplyModifiedPropertiesWithoutUndo();
+                    var treePath = paths[index++];
+                    var tree = PPUnitBehaviourTreeTemplateFactory.Create(Path.GetFileNameWithoutExtension(treePath));
+                    transient.Add(tree);
+                    SaveNew(tree, treePath, created);
+                    AssignTree(unit, tree);
                 }
                 foreach (var draftSkill in aDraft.NewSkills)
                 {
@@ -128,7 +128,7 @@ namespace PPCore
         }
 
         // 編集モードの保存。元ユニット・既存ビジュアルはオブジェクトを差し替えず値だけを書き写すため、GUID・localFileId・位置は変わらない
-        // 新規に作るのは AI・スキル・（既存がなければ）ビジュアルだけで、失敗時に削除するのもそれらに限る。書き換えたアセットは事前の内容へ戻す
+        // 新規に作るのはツリー・スキル・（既存がなければ）ビジュアルだけで、失敗時に削除するのもそれらに限る。書き換えたアセットは事前の内容へ戻す
         // 同じ保存要求IDの再送は記録済みの結果を返し、新しい要求IDなら何度でも保存できる
         private static string[] Save(PPUnitCreationDraft aDraft, int aRevision, string aRequestId)
         {
@@ -155,21 +155,20 @@ namespace PPCore
             var created = new Dictionary<string, string>();
             var transient = new List<UnityEngine.Object>();
             var savedSkills = new Dictionary<PPSkillDefinition, PPSkillDefinition>();
-            PPUnitAIProfileDefinition ai = null;
+            PPUnitBehaviourTree tree = null;
             PPUnitCreationSettings addedSettings = null;
             try
             {
                 var edited = UnityEngine.Object.Instantiate(aDraft.Unit);
                 transient.Add(edited);
-                if (plan.AIPath != null)
+                if (plan.TreePath != null)
                 {
-                    ai = ScriptableObject.CreateInstance<PPUnitAIProfileDefinition>();
-                    transient.Add(ai);
-                    SaveNew(ai, plan.AIPath, created);
-                    var aiSo = new SerializedObject(edited);
-                    aiSo.FindProperty("mAIProfile").objectReferenceValue = ai;
-                    aiSo.ApplyModifiedPropertiesWithoutUndo();
+                    tree = PPUnitBehaviourTreeTemplateFactory.Create(Path.GetFileNameWithoutExtension(plan.TreePath));
+                    transient.Add(tree);
+                    SaveNew(tree, plan.TreePath, created);
+                    AssignTree(edited, tree);
                 }
+                else if (aDraft.TreeMode == PPUnitTreeAssignMode.None) AssignTree(edited, null);
                 for (var i = 0; i < aDraft.NewSkills.Count; i++)
                 {
                     var draftSkill = aDraft.NewSkills[i];
@@ -263,7 +262,7 @@ namespace PPCore
             }
             // 書き戻しの成功後に下書きをそろえる。ここで失敗しても書き戻し済みのアセットは消さない
             var paths = plan.AllPaths.ToArray();
-            aDraft.RecordSave(aRequestId, aRevision, paths, visual, ai, savedSkills);
+            aDraft.RecordSave(aRequestId, aRevision, paths, visual, tree, savedSkills);
             return paths;
         }
 
@@ -276,6 +275,14 @@ namespace PPCore
             for (var enter = true; property.NextVisible(enter); enter = false)
                 if (property.name != "m_Script") to.CopyFromSerializedProperty(property);
             to.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        // ユニットのビヘイビアツリーを差し替える。null なら個別ツリーなしにする
+        private static void AssignTree(PPUnitDefinition aUnit, PPUnitBehaviourTree aTree)
+        {
+            var so = new SerializedObject(aUnit);
+            so.FindProperty("mBehaviourTree").objectReferenceValue = aTree;
+            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SaveNew(ScriptableObject aObject, string aPath, Dictionary<string, string> aCreated)

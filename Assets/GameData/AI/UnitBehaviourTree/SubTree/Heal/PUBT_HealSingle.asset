@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de9a784c9c58436e89a738ba72430b0c, type: 3}
-  m_Name: PSBT_HealSingle
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIProfileDefinition
+  m_Name: PUBT_HealSingle
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitBehaviourTree
   mTreeKind: 3
   mDescription: 
   mRootNodeId: 586ca1f5b244408a9ca631d7b108cd70

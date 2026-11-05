@@ -34,10 +34,11 @@ namespace PPCore
         // 既存のビジュアル定義、または新規作成するパス。アイコン・立ち絵がなく既存もない場合は null（作らない）
         public string VisualPath { get; set; }
         public bool NewVisual { get; set; }
-        public string AIPath { get; set; }
+        // 雛形から新規作成するビヘイビアツリーのパス。作らない場合は null
+        public string TreePath { get; set; }
         public List<string> SkillPaths { get; } = new();
-        public IEnumerable<string> NewPaths => new[] { NewVisual ? VisualPath : null, AIPath }.Concat(SkillPaths).Where(aPath => aPath != null);
-        public IEnumerable<string> AllPaths => new[] { UnitPath, VisualPath, AIPath }.Concat(SkillPaths).Where(aPath => aPath != null);
+        public IEnumerable<string> NewPaths => new[] { NewVisual ? VisualPath : null, TreePath }.Concat(SkillPaths).Where(aPath => aPath != null);
+        public IEnumerable<string> AllPaths => new[] { UnitPath, VisualPath, TreePath }.Concat(SkillPaths).Where(aPath => aPath != null);
     }
 
     public static class PPUnitCreationValidator
@@ -52,7 +53,13 @@ namespace PPCore
 
         public static string OutputFolder(PPUnitCreationDraft aDraft) => aDraft.Folder + "/" + aDraft.Unit.UnitId;
 
-        // 新規のAI・スキル・ビジュアルは元ユニットと同じフォルダーへ「<ユニットID>_〜」の名前で作る
+        // 雛形から新規作成するビヘイビアツリーのファイル名
+        public static string TreeFileName(string aUnitId) => "PUBT_" + aUnitId + ".asset";
+
+        // 個別ツリーなしを選んだときの警告。ロール既定・全体既定への解決はまだ無い
+        public const string NoTreeWarning = "個別ツリーなし: ロール既定・全体既定への解決は PP-00019 で対応予定です。現状、このユニットは待機します。";
+
+        // 新規のスキル・ビジュアルは元ユニットと同じフォルダーへ「<ユニットID>_〜」の名前で、新規のツリーは「PUBT_<ユニットID>」の名前で作る
         public static PPUnitEditPlan EditPlan(PPUnitCreationDraft aDraft)
         {
             var plan = new PPUnitEditPlan { UnitPath = aDraft.Source != null ? AssetDatabase.GetAssetPath(aDraft.Source) : "" };
@@ -65,7 +72,7 @@ namespace PPCore
                 plan.VisualPath = plan.Folder + "/" + id + "_Visual.asset";
                 plan.NewVisual = true;
             }
-            if (aDraft.NewAI) plan.AIPath = plan.Folder + "/" + id + "_AI.asset";
+            if (aDraft.IsNewTree) plan.TreePath = plan.Folder + "/" + TreeFileName(id);
             for (var i = 0; i < aDraft.NewSkills.Count; i++) plan.SkillPaths.Add(plan.Folder + "/" + id + "_Skill_" + i + ".asset");
             return plan;
         }
@@ -100,7 +107,7 @@ namespace PPCore
                     if (Directory.Exists(folder) || File.Exists(folder) || File.Exists(folder + ".meta")) result.Errors.Add("生成先が既に存在します: " + folder);
                     result.Paths.Add(folder + "/" + unit.UnitId + ".asset");
                     result.Paths.Add(folder + "/" + unit.UnitId + "_Visual.asset");
-                    if (aDraft.NewAI) result.Paths.Add(folder + "/" + unit.UnitId + "_AI.asset");
+                    if (aDraft.IsNewTree) result.Paths.Add(folder + "/" + TreeFileName(unit.UnitId));
                     for (var i = 0; i < aDraft.NewSkills.Count; i++)
                         result.Paths.Add(folder + "/Skill_" + i + ".asset");
                 }
@@ -121,11 +128,22 @@ namespace PPCore
             if (aDraft.Icon == null) result.Warnings.Add("アイコンが未設定です。");
             ValidateReference(aDraft.Portrait, "立ち絵", result);
             if (aDraft.Portrait == null) result.Warnings.Add("立ち絵が未設定です。");
-            if (aDraft.NewAI) result.Warnings.Add("空のAIプロファイルを作成します。生成後にUnit AI Treeで設定してください。");
-            else
+            switch (aDraft.TreeMode)
             {
-                ValidateReference(unit.AIProfile, "AIプロファイル", result);
-                if (unit.AIProfile == null || unit.AIProfile.Root == null) result.Warnings.Add("AIのルートが未設定です。");
+                case PPUnitTreeAssignMode.Template:
+                    result.Warnings.Add("雛形（優先度リスト＋末尾に通常攻撃）からビヘイビアツリーを作成します。生成後にUnit AI Treeで調整してください。");
+                    break;
+                case PPUnitTreeAssignMode.Existing:
+                    if (unit.BehaviourTree == null) result.Errors.Add("ビヘイビアツリーを選択してください。割り当てない場合は「個別ツリーなし」を選びます。");
+                    else
+                    {
+                        ValidateReference(unit.BehaviourTree, "ビヘイビアツリー", result);
+                        if (unit.BehaviourTree.Root == null) result.Warnings.Add("ビヘイビアツリーのルートが未設定です。");
+                    }
+                    break;
+                default:
+                    result.Warnings.Add(NoTreeWarning);
+                    break;
             }
             ValidateReference(aDraft.UnitCatalog, "ユニットカタログ", result);
             ValidateReference(aDraft.VisualCatalog, "ビジュアルカタログ", result);

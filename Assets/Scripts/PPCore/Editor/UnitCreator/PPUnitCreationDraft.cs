@@ -18,6 +18,21 @@ using UnityEngine;
 
 namespace PPCore
 {
+    // ユニットへビヘイビアツリーをどう割り当てるか
+    // 値は下書きへ数値のまま保存されるため、明示的に振る
+    public enum PPUnitTreeAssignMode
+    {
+        // 個別ツリーを持たせない。ロール既定・全体既定への解決は PP-00019 で対応予定で、現状は待機する
+        [InspectorName("個別ツリーなし")]
+        None = 0,
+        // 既存のツリーアセットを選んで割り当てる
+        [InspectorName("既存を選ぶ")]
+        Existing = 1,
+        // 雛形（優先度リスト＋末尾に通常攻撃）から PUBT_<ユニットID>.asset を新規作成して割り当てる
+        [InspectorName("雛形から新規")]
+        Template = 2,
+    }
+
     public sealed class PPUnitCreationDraft : ScriptableObject
     {
         [Label("下書きID")][SerializeField] private string mDraftId;
@@ -28,7 +43,7 @@ namespace PPCore
         [Label("最大レベル")][SerializeField] private int mMaxLevel = 50;
         [Label("表示レベル")][SerializeField] private int mPreviewLevel = 25;
         [Label("軸基準値")][SerializeField] private float[] mScales = (float[])PPUnitCreationSettings.DefaultScales.Clone();
-        [Label("新規AIを作成")][SerializeField] private bool mNewAI;
+        [Label("ビヘイビアツリーの割り当て")][SerializeField] private PPUnitTreeAssignMode mTreeMode;
         [Label("新規スキル")][SerializeField] private List<PPSkillDefinition> mNewSkills = new();
         [Label("ユニットカタログ")][SerializeField] private PPUnitCatalog mUnitCatalog;
         [Label("ビジュアルカタログ")][SerializeField] private PPUnitVisualCatalog mVisualCatalog;
@@ -67,7 +82,9 @@ namespace PPCore
                 return mScales;
             }
         }
-        public bool NewAI { get => mNewAI; set => mNewAI = value; }
+        public PPUnitTreeAssignMode TreeMode { get => mTreeMode; set => mTreeMode = value; }
+        // 生成・保存のときに雛形からツリーを新規作成するか
+        public bool IsNewTree => mTreeMode == PPUnitTreeAssignMode.Template;
         public List<PPSkillDefinition> NewSkills => mNewSkills;
         public PPUnitCatalog UnitCatalog { get => mUnitCatalog; set => mUnitCatalog = value; }
         public PPUnitVisualCatalog VisualCatalog { get => mVisualCatalog; set => mVisualCatalog = value; }
@@ -132,6 +149,7 @@ namespace PPCore
             draft.mDraftId = Guid.NewGuid().ToString("N");
             draft.mUnit = Instantiate(aSource);
             draft.mUnit.name = aSource.name;
+            draft.mTreeMode = aSource.BehaviourTree != null ? PPUnitTreeAssignMode.Existing : PPUnitTreeAssignMode.None;
             draft.mSource = aSource;
             draft.mSourceGuid = AssetDatabase.AssetPathToGUID(path);
             draft.mSourceHash = HashOf(aSource);
@@ -176,20 +194,20 @@ namespace PPCore
             return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
         }
 
-        // 編集モードの保存後に、下書きを保存済みの状態へそろえる。新規スキル・新規AIは作成したアセットの参照に置き換え、
+        // 編集モードの保存後に、下書きを保存済みの状態へそろえる。新規スキル・新規ツリーは作成したアセットの参照に置き換え、
         // ハッシュを取り直して続けて編集・再保存できるようにする
-        public void RecordSave(string aRequestId, int aRevision, string[] aPaths, PPUnitVisualDefinition aVisual, PPUnitAIProfileDefinition aAI, Dictionary<PPSkillDefinition, PPSkillDefinition> aSkills)
+        public void RecordSave(string aRequestId, int aRevision, string[] aPaths, PPUnitVisualDefinition aVisual, PPUnitBehaviourTree aTree, Dictionary<PPSkillDefinition, PPSkillDefinition> aSkills)
         {
             for (var i = 0; i < Unit.Skills.Count; i++)
                 if (Unit.Skills[i] is PPSkillDefinition skill && aSkills.TryGetValue(skill, out var saved)) Unit.Skills[i] = saved;
             foreach (var skill in mNewSkills) if (skill != null) DestroyImmediate(skill);
             mNewSkills.Clear();
-            if (aAI != null)
+            if (aTree != null)
             {
                 var so = new SerializedObject(Unit);
-                so.FindProperty("mAIProfile").objectReferenceValue = aAI;
+                so.FindProperty("mBehaviourTree").objectReferenceValue = aTree;
                 so.ApplyModifiedPropertiesWithoutUndo();
-                mNewAI = false;
+                mTreeMode = PPUnitTreeAssignMode.Existing;
             }
             mSourceVisual = aVisual;
             mSourceHash = HashOf(mSource);

@@ -14,7 +14,7 @@ namespace PPCore
     // 抽選ノードの枝 1 本を「子ノード名 ： 重み」の 1 行で描く
     //
     // 枝は接続先をノード ID で持つが、ID は自動採番の GUID なのでそのまま出しても読めない
-    // プロファイル本体から ID を引き直してノード名を表示することで、
+    // ツリー本体から ID を引き直してノード名を表示することで、
     // どの枝に何割振っているかをインスペクタ上で見比べられるようにしている
     [CustomPropertyDrawer(typeof(PPUnitAILotteryEntry))]
     public class PPUnitAILotteryEntryDrawer : PropertyDrawer
@@ -62,12 +62,12 @@ namespace PPCore
         {
             if (string.IsNullOrEmpty(aChildId)) return "(未接続)";
 
-            if (aProperty.serializedObject.targetObject is not PPUnitAIProfileDefinition profile)
+            if (aProperty.serializedObject.targetObject is not PPUnitBehaviourTree tree)
             {
                 return aChildId;
             }
 
-            var node = profile.FindNode(aChildId);
+            var node = tree.FindNode(aChildId);
             return node != null ? node.NodeName : "(削除されたノード)";
         }
     }

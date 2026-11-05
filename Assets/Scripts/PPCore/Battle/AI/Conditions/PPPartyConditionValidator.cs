@@ -14,9 +14,9 @@ namespace PPCore
 {
     // パーティ AI の状況ルールが評価する条件の基底クラス
     // 「HP が減っている」「生存数が減っている」といった判定を 1 つずつクラス化し、
-    // AI プロファイル（PPUnitAIProfileDefinition）が複数を AND で束ねて判断のゲートにする
+    // ビヘイビアツリー（PPUnitBehaviourTree）が複数を AND で束ねて判断のゲートにする
     // PPSkillEffectDefinition と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとし、
-    // プロファイルの条件リストにインスタンスとして直接保持される
+    // ツリーの条件リストにインスタンスとして直接保持される
     // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
     [Serializable]
     public abstract class PPPartyConditionValidator

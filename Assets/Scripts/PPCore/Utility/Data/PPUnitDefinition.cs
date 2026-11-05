@@ -14,7 +14,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // 本作固有の要素を追加したユニット定義
-    // 基底の UnitDefinition に対して、属性・追加ステータス・レベル成長曲線・AI プロファイルを持つ
+    // 基底の UnitDefinition に対して、属性・追加ステータス・レベル成長曲線・ビヘイビアツリーを持つ
     // 成長は「レベルごとの実数値テーブル」ではなく AnimationCurve の倍率で表現する
     // 基礎ステータスに倍率を掛けるだけで済み、成長カーブをインスペクタ上で視覚的に調整できる
     // 成長後の値（育成値）は四捨五入（0.5 は 0 から遠い側）で整数に丸める
@@ -34,11 +34,11 @@ namespace PPCore
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
 
-        // このユニットの思考設定。AI はユニット単位で判断するため、プロファイルもユニットに紐づく
+        // このユニットの思考設定。AI はユニット単位で判断するため、ツリーもユニットに紐づく
         // 未設定のユニットは思考の対象にならず、そのティックは何もしない
         [Header("AI")]
-        [Label("AIプロファイル")]
-        [SerializeField]protected PPUnitAIProfileDefinition mAIProfile;
+        [Label("ビヘイビアツリー")]
+        [SerializeField]protected PPUnitBehaviourTree mBehaviourTree;
 
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
         [Label(PPUnitAbilityDefinition.NameHp + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
@@ -49,7 +49,7 @@ namespace PPCore
 
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
-        public PPUnitAIProfileDefinition AIProfile => mAIProfile;
+        public PPUnitBehaviourTree BehaviourTree => mBehaviourTree;
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口
         // aDecider : コマンド決定クラス。null なら本作用のランダム AI が入る

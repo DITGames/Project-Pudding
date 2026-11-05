@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPUnitAIProfileDefinition.cs
+ * @file PPUnitBehaviourTree.cs
  * @author hqrse
  * @date 2026/08/24
  * @brief ユニット単位の判断ツリー
@@ -48,8 +48,8 @@ namespace PPCore
     // ノードは入れ子ではなくフラットなリストで保持し、親子関係はノード ID の参照で表す
     // ノードエディタ（Window > Unit AI Tree）で「作ってから繋ぐ」「一旦切り離す」を成立させるための構成で、
     // 評価時は根から ID を辿って木として読む
-    [CreateAssetMenu(fileName = "PPUnitAIProfileDefinition", menuName = "Project-Pudding/AI/PPUnitAIProfileDefinition")]
-    public class PPUnitAIProfileDefinition : ScriptableObject
+    [CreateAssetMenu(fileName = "PPUnitBehaviourTree", menuName = "Project-Pudding/AI/PPUnitBehaviourTree")]
+    public class PPUnitBehaviourTree : ScriptableObject
     {
         [Header("表示")]
         // ツリーの位置づけ。評価には影響せず、ツリーウィンドウの一覧で絞り込むために使う

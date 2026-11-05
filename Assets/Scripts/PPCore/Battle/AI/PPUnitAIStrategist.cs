@@ -16,14 +16,14 @@ namespace PPCore
     // ユニット単位で判断ツリーを評価する AI
     //
     // パーティ共有のリソースを誰に割り当てるかを調停するのではなく、
-    // ゲージを専有する各ユニットが自分の判断ツリー（PPUnitAIProfileDefinition）を評価して行動を決める
+    // ゲージを専有する各ユニットが自分の判断ツリー（PPUnitBehaviourTree）を評価して行動を決める
     // このクラス自体は判断を持たず、次の 4 つだけを担当する
     //   1. 生存ユニットを順に回して、それぞれのツリーを評価する
     //   2. 待機コミット（決めた判断を数ティック維持する）の記録と消化
     //   3. 確定した行動を 1 ティック分の計画へ積む
     //   4. 判断の経過をログとデバッグウィンドウへ流す
     //
-    // 判断そのものはツリーが持つため、挙動のチューニングはコードではなくプロファイルアセットで行う
+    // 判断そのものはツリーが持つため、挙動のチューニングはコードではなくツリーアセットで行う
     public class PPUnitAIStrategist : IPPPartyCommandStrategist
     {
         // ユニット 1 体分の待機コミット
@@ -60,7 +60,7 @@ namespace PPCore
 
         // コミット消化の基準にする、前回思考時のターン数
         private int mLastTurnCount = -1;
-        // AI プロファイルを持つユニットが 1 体も居ない旨の警告を出したか。毎思考で出し続けないための抑止
+        // ビヘイビアツリーを持つユニットが 1 体も居ない旨の警告を出したか。毎思考で出し続けないための抑止
         private bool mIsWarnedEmpty;
 
         // バトル進行の管理役と、実行待ちの行動の供給元を受け取る
@@ -132,13 +132,13 @@ namespace PPCore
             mAdopted.Clear();
             var picks = new List<PPPartyActionAssignment>();
             int order = 0;
-            bool hasProfile = false;
+            bool hasTree = false;
 
             // ユニットごとに独立して判断する。順序はパーティの編成順で固定される
             foreach (var unit in snap.AliveMembers)
             {
-                var profile = ResolveProfile(unit);
-                if (profile != null) hasProfile = true;
+                var tree = ResolveTree(unit);
+                if (tree != null) hasTree = true;
 
                 // 行動回数の上限まで積む。積むたびに台帳へ仮押さえするため、
                 // 2 手目以降は 1 手目で使う予定のゲージを差し引いた状態で判断される
@@ -148,9 +148,9 @@ namespace PPCore
                 {
                     var entry = CreateEntry(unit);
                     entry.ActionIndex = actionIndex;
-                    entry.Profile = profile;
+                    entry.Tree = tree;
 
-                    var command = DecideUnitAction(unit, profile, snap, aContext, entry);
+                    var command = DecideUnitAction(unit, tree, snap, aContext, entry);
                     mThinkEntries.Add(entry);
                     if (command == null) break;
 
@@ -161,7 +161,7 @@ namespace PPCore
                 }
             }
 
-            WarnIfNoProfile(hasProfile);
+            WarnIfNoTree(hasTree);
 
             var plan = picks.Count == 0 ? PPPartyPlan.Wait : new PPPartyPlan(picks);
             ReportThink(party, aContext, plan);
@@ -170,17 +170,17 @@ namespace PPCore
 
         // ユニット 1 体分の判断ツリーを評価して行動を決める
         // aUnit : 判断対象のユニット
-        // aProfile : そのユニットの判断ツリー。null なら思考せず待機する
+        // aTree : そのユニットの判断ツリー。null なら思考せず待機する
         // aSnap : パーティ状況スナップショット
         // aContext : バトルコンテキスト
         // aEntry : 判断結果の記録先
         // return : 採用されたコマンド。何もしない場合は null
-        protected virtual BattleCommandBase DecideUnitAction(PPBattleUnit aUnit, PPUnitAIProfileDefinition aProfile,
+        protected virtual BattleCommandBase DecideUnitAction(PPBattleUnit aUnit, PPUnitBehaviourTree aTree,
             PPPartyAIContext aSnap, BattleContext aContext, PPUnitAIThinkEntry aEntry)
         {
-            if (aProfile == null)
+            if (aTree == null)
             {
-                aEntry.RejectReason = PPUnitAIRejectReason.NoProfile;
+                aEntry.RejectReason = PPUnitAIRejectReason.NoTree;
                 return null;
             }
             // 行動回数を使い切っているユニットはコマンドを積んでも空振りするため、ここで外す
@@ -190,7 +190,7 @@ namespace PPCore
                 return null;
             }
 
-            var result = EvaluateTree(aUnit, aProfile, aSnap, aContext, aEntry);
+            var result = EvaluateTree(aUnit, aTree, aSnap, aContext, aEntry);
             if (!result.IsDecided)
             {
                 // どの枝も成立しなかった。ツリーの取りこぼしなので、末尾に無条件の行動を置けば埋められる
@@ -218,19 +218,19 @@ namespace PPCore
         // コミット中は前回の道順で評価範囲を絞るが、その枝が崩れていた場合は制約を外して評価し直す
         // 待ち条件が成立しなくなったまま何もできない、という状態を避けるため
         // aUnit : 判断対象のユニット
-        // aProfile : そのユニットの判断ツリー
+        // aTree : そのユニットの判断ツリー
         // aSnap : パーティ状況スナップショット
         // aContext : バトルコンテキスト
         // aEntry : 判断結果の記録先
         // return : ツリーが確定させた行動
-        protected virtual PPUnitAINodeResult EvaluateTree(PPBattleUnit aUnit, PPUnitAIProfileDefinition aProfile,
+        protected virtual PPUnitAINodeResult EvaluateTree(PPBattleUnit aUnit, PPUnitBehaviourTree aTree,
             PPPartyAIContext aSnap, BattleContext aContext, PPUnitAIThinkEntry aEntry)
         {
             // スナップショットはパーティ内の全ユニットで共有されるため、
             // 前のユニットが積んだ対象候補を持ち越さないようここで空にする
             aSnap.ResetConditionedUnits();
 
-            var evalContext = new PPUnitAIEvalContext(aUnit, aSnap, aContext, aProfile)
+            var evalContext = new PPUnitAIEvalContext(aUnit, aSnap, aContext, aTree)
             {
                 Memory = ResolveMemory(aUnit),
                 AdoptedKeys = ResolveAdopted(aUnit),
@@ -242,7 +242,7 @@ namespace PPCore
                 aEntry.CommitRemainingTicks = commit.RemainingTicks;
             }
 
-            var result = aProfile.Evaluate(evalContext);
+            var result = aTree.Evaluate(evalContext);
 
             // コミットした枝が崩れていたら、制約を外して普通に選び直す
             if (!result.IsDecided && commit != null)
@@ -251,7 +251,7 @@ namespace PPCore
                 evalContext.ResetPath();
                 // 1 回目の評価で積まれた候補は、通らなかった枝のものなので捨ててから引き直す
                 aSnap.ResetConditionedUnits();
-                result = aProfile.Evaluate(evalContext);
+                result = aTree.Evaluate(evalContext);
                 aEntry.CommitRemainingTicks = 0;
             }
 
@@ -499,8 +499,8 @@ namespace PPCore
         // ユニット定義から判断ツリーを引く
         // aUnit : 対象ユニット
         // return : そのユニットの判断ツリー。未設定なら null
-        protected static PPUnitAIProfileDefinition ResolveProfile(PPBattleUnit aUnit)
-            => (aUnit.SourceDefinition as PPUnitDefinition)?.AIProfile;
+        protected static PPUnitBehaviourTree ResolveTree(PPBattleUnit aUnit)
+            => (aUnit.SourceDefinition as PPUnitDefinition)?.BehaviourTree;
 
         // ユニット 1 体分の判断記録を、判断前の状態で初期化する
         // aUnit : 対象ユニット
@@ -519,14 +519,14 @@ namespace PPCore
                 CoinGaugeMax = aUnit.ExtraParameters.CoinGauge.Max.CurrentValue,
             };
 
-        // AI プロファイルを持つユニットが 1 体も居ない場合に一度だけ警告する
-        // aHasProfile : プロファイルを持つユニットが 1 体でも居たか
-        protected void WarnIfNoProfile(bool aHasProfile)
+        // ビヘイビアツリーを持つユニットが 1 体も居ない場合に一度だけ警告する
+        // aHasTree : ツリーを持つユニットが 1 体でも居たか
+        protected void WarnIfNoTree(bool aHasTree)
         {
-            if (aHasProfile || mIsWarnedEmpty) return;
+            if (aHasTree || mIsWarnedEmpty) return;
 
             mIsWarnedEmpty = true;
-            CustomConsoleLog.Warning("AI", "AIプロファイルを持つユニットが 1 体も居ないため、このパーティは常に待機します。");
+            CustomConsoleLog.Warning("AI", "ビヘイビアツリーを持つユニットが 1 体も居ないため、このパーティは常に待機します。");
         }
 
         // 思考記録をログとデバッグハブへ流す
