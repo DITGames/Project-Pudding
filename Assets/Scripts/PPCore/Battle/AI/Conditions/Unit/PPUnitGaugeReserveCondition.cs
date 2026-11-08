@@ -31,7 +31,7 @@ namespace PPCore
         [Label("撃つ予定のスキルの選び方")]
         [SerializeField] private PPUnitAISkillSelectRule mSpendRule = PPUnitAISkillSelectRule.LowestGaugeCost;
         [Label("残したいスキル")]
-        [SerializeField] private PPUnitAISkillFilter mReserveFilter = new();
+        [SerializeField] private PPUnitAISkillFilter mReserveFilter = new(PPSkillGroup.Heal);
         // 反転すると「残らない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
@@ -55,7 +55,8 @@ namespace PPCore
             float remaining = aSnapShot.Ledger != null
                 ? aSnapShot.Ledger.RemainingSkillGauge(aUnit)
                 : aUnit.ExtraParameters.SkillGauge.Current;
-            bool isReserved = remaining - spendCost >= ResolveReserveCost(aUnit);
+            // 浮動小数の誤差でちょうど残る場合を落とさないよう、発動可否の判定と同じ許容誤差を足す
+            bool isReserved = remaining - spendCost + PPGaugeUtility.CompareEpsilon >= ResolveReserveCost(aUnit);
             return isReserved != mIsInvert;
         }
 
