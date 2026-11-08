@@ -500,7 +500,7 @@ namespace PPCore
         // aUnit : 対象ユニット
         // aSource : 解決した判断ツリーの出どころ
         // return : そのユニットの判断ツリー。どれも未設定なら null
-        protected static PPUnitBehaviourTree ResolveTree(PPBattleUnit aUnit, out PPUnitAITreeSource aSource)
+        protected virtual PPUnitBehaviourTree ResolveTree(PPBattleUnit aUnit, out PPUnitAITreeSource aSource)
             => PPUnitAIDefaultsDefinition.ResolveTree(aUnit.SourceDefinition as PPUnitDefinition,
                 PPRuntimeSettings.Current.UnitAIDefaults, out aSource);
 

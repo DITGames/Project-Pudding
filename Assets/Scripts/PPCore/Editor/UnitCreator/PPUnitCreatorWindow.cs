@@ -263,7 +263,9 @@ namespace PPCore
             using (new EditorGUI.DisabledScope(mode != PPUnitTreeAssignMode.Existing))
                 EditorGUILayout.PropertyField(so.FindProperty("mBehaviourTree"), new GUIContent("使用するツリー"));
             // 個別ツリーなしのときは実際に使うツリーを示す。どこからも解決できないときだけ警告にする
-            var effectiveTree = PPUnitCreationValidator.ResolveEffectiveTree(mDraft.Unit, out var treeSource);
+            PPUnitBehaviourTree effectiveTree = null;
+            var treeSource = PPUnitAITreeSource.None;
+            if (mode == PPUnitTreeAssignMode.None) effectiveTree = PPUnitCreationValidator.ResolveEffectiveTree(mDraft.Unit, out treeSource);
             var isUnresolved = mode == PPUnitTreeAssignMode.None && effectiveTree == null;
             EditorGUILayout.HelpBox(TreeModeHelp(mode, effectiveTree, treeSource), isUnresolved ? MessageType.Warning : MessageType.Info);
             if (selected != mode)
@@ -279,7 +281,11 @@ namespace PPCore
             mDraft.SkillCatalog = (PPSkillCatalog)EditorGUILayout.ObjectField("スキル", mDraft.SkillCatalog, typeof(PPSkillCatalog), false);
         }
 
-        // 割り当て方ごとの説明
+        // 割り当て方ごとの説明文を返す
+        // aMode : ビヘイビアツリーの割り当て方
+        // aEffectiveTree : 個別ツリーなしのときに実際に使うツリー。解決できなければ null
+        // aTreeSource : aEffectiveTree の出どころ
+        // return : HelpBox に出す説明文
         private string TreeModeHelp(PPUnitTreeAssignMode aMode, PPUnitBehaviourTree aEffectiveTree, PPUnitAITreeSource aTreeSource) => aMode switch
         {
             PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",

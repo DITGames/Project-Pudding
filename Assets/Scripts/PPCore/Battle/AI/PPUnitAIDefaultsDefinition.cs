@@ -42,8 +42,10 @@ namespace PPCore
         [Label("全体既定ツリー")]
         [SerializeField] protected PPUnitBehaviourTree mGlobalTree;
 
-        // ロールから既定ツリーを引くための索引。初回アクセス時に組み立てる
+        // ロールから既定ツリーを引くための索引。FindRoleTree の初回アクセス時にだけ組み立てる
         private Dictionary<PPUnitRole, PPUnitBehaviourTree> mRoleTreeMap;
+        // エディタで設定の問題を知らせる遅延処理を登録済みか。同じフレームに OnValidate が重なっても 1 回だけ出すために持つ
+        [NonSerialized] private bool mIsReportPending;
 
         public PPUnitBehaviourTree GlobalTree => mGlobalTree;
 
@@ -125,23 +127,35 @@ namespace PPCore
         }
 
         // アセットの読み込み・インスペクタ編集のたびに索引を捨てる
-        // エディタでは組み立て直しを遅らせて設定の問題をすぐ知らせる
+        // エディタでは設定の問題を遅らせて知らせる
         // 読み込みの途中は参照先が一時的に null に見え、未設定と誤検出することがあるため OnValidate の中では見ない
         protected virtual void OnValidate()
         {
             mRoleTreeMap = null;
 #if UNITY_EDITOR
+            if (mIsReportPending) return;
+
+            mIsReportPending = true;
             UnityEditor.EditorApplication.delayCall += ReportIssuesAfterValidate;
 #endif
         }
 
 #if UNITY_EDITOR
-        // 索引を組み立てて設定の問題を出す。遅延の間に破棄された場合や、組み立て済みの場合は何もしない
+        // 設定の問題をログへ出す。遅延の間に破棄された場合は何もしない
+        // インポート・コンパイル中は参照先が読めていないことがあるため、終わるまで次の機会へ回す
+        // ここで組み立てた索引は保存しない。参照が欠けた索引が Edit モードの間残り、解決結果が変わるのを防ぐため
         private void ReportIssuesAfterValidate()
         {
             if (this == null) return;
 
-            mRoleTreeMap ??= BuildRoleTreeMap();
+            if (UnityEditor.EditorApplication.isUpdating || UnityEditor.EditorApplication.isCompiling)
+            {
+                UnityEditor.EditorApplication.delayCall += ReportIssuesAfterValidate;
+                return;
+            }
+
+            mIsReportPending = false;
+            BuildRoleTreeMap();
         }
 #endif
     }

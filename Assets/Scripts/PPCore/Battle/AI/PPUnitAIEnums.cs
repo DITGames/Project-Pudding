@@ -56,6 +56,7 @@ namespace PPCore
     // ツリーの出どころを表示用の日本語へ変換するヘルパー。ログ・デバッグ表示・作成ウィンドウで表記を揃える
     public static class PPUnitAITreeSourceUtility
     {
+        // ツリーの出どころを日本語表記へ変換する
         // aSource : ツリーの出どころ
         // return : 日本語の表記
         public static string ToDisplayString(PPUnitAITreeSource aSource)
