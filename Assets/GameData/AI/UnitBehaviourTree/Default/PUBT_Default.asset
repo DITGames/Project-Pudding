@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PUBT_Default
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitBehaviourTree
   mTreeKind: 0
-  mDescription: "\u5168\u4F53\u65E2\u5B9A\u3002\u56DE\u5FA9\u304C\u5FC5\u8981\u306A\u3089\u56DE\u5FA9\u3001\u30B2\u30FC\u30B8\u306B\u4F59\u88D5\u304C\u3042\u308C\u3070\u653B\u6483\u30B9\u30AD\u30EB\u3001\u672B\u5C3E\u306B\u7121\u6761\u4EF6\u306E\u901A\u5E38\u653B\u6483"
+  mDescription: "\u5168\u4F53\u65E2\u5B9A\u3002\u56DE\u5FA9\u304C\u5FC5\u8981\u306A\u3089\u56DE\u5FA9\u3001\u56DE\u5FA9\u30B9\u30AD\u30EB\u5206\u3092\u6B8B\u305B\u308B\u306A\u3089\u653B\u6483\u30B9\u30AD\u30EB\u3001\u672B\u5C3E\u306B\u7121\u6761\u4EF6\u306E\u901A\u5E38\u653B\u6483"
   mRootNodeId: 48b7d819212f415fa0e8b214444974ea
   mNodes:
   - rid: 2919751056307257458
@@ -70,14 +70,14 @@ MonoBehaviour:
     - rid: 2919751056307257461
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mNodeName: "\u30B2\u30FC\u30B8\u306B\u4F59\u88D5\u304C\u3042\u308B\u304B"
+        mNodeName: "\u4E3B\u30B9\u30AD\u30EB\u5206\u3092\u6B8B\u305B\u308B\u304B"
         mIsInterrupt: 0
         mIsMuted: 0
         mCooldownTicks: 0
         mNodeId: 6981906c0995477bbfa020edbd725d60
         mGraphPosition: {x: 320, y: 160}
         mUnitConditions:
-        - rid: 2919751056307257466
+        - rid: 2919751123140870212
         mPartyConditions: []
         mIsInvert: 0
         mMatchedId: 5323923b71c64759abadc70e27031832
@@ -130,15 +130,6 @@ MonoBehaviour:
           mTags: []
         mSelectRule: 0
         mTargetPolicy: 0
-    - rid: 2919751056307257466
-      type: {class: PPUnitGaugeRatioCondition, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mIsAutoDescription: 1
-        mDescription: "\u30B9\u30AD\u30EB\u30B2\u30FC\u30B8\u304C20%\u4EE5\u4E0A"
-        mKind: 0
-        mOp: 2
-        mThreshold: 0.2
-        mTolerance: 0.01
     - rid: 2919751056307257467
       type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -157,3 +148,23 @@ MonoBehaviour:
         mActionName: 
         mTargetPolicy: 4
         mIsFallbackAnyEnemy: 1
+    - rid: 2919751123140870212
+      type: {class: PPUnitGaugeReserveCondition, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mIsAutoDescription: 1
+        mDescription: "\u653B\u6483 \u306E\u30B9\u30AD\u30EB\u3092\u6483\u3063\u3066\u3082
+          \u56DE\u5FA9 \u306E\u30B9\u30AD\u30EB\u5206\u304C\u6B8B\u308B"
+        mSpendFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 0
+          mTags: []
+        mSpendRule: 1
+        mReserveFilter:
+          mMode: 0
+          mSkillDefinition: {fileID: 0}
+          mIsFilterByGroup: 1
+          mGroup: 2
+          mTags: []
+        mIsInvert: 0
