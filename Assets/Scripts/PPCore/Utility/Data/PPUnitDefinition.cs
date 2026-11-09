@@ -14,7 +14,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // 本作固有の要素を追加したユニット定義
-    // 基底の UnitDefinition に対して、属性・追加ステータス・レベル成長曲線・ビヘイビアツリーを持つ
+    // 基底の UnitDefinition に対して、属性・ロール・追加ステータス・レベル成長曲線・ビヘイビアツリーを持つ
     // 成長は「レベルごとの実数値テーブル」ではなく AnimationCurve の倍率で表現する
     // 基礎ステータスに倍率を掛けるだけで済み、成長カーブをインスペクタ上で視覚的に調整できる
     // 成長後の値（育成値）は四捨五入（0.5 は 0 から遠い側）で整数に丸める
@@ -33,9 +33,11 @@ namespace PPCore
         // ユニットの属性。弱点・耐性の判定に使う
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
+        [Label("ロール")]
+        [SerializeField]protected PPUnitRole mRole = PPUnitRole.Balance;
 
         // このユニットの思考設定。AI はユニット単位で判断するため、ツリーもユニットに紐づく
-        // 未設定のユニットは思考の対象にならず、そのティックは何もしない
+        // 未設定のユニットは ロール既定 → 全体既定 の順に解決したツリーで動く（PPUnitAIDefaultsDefinition.ResolveTree）
         [Header("AI")]
         [Label("ビヘイビアツリー")]
         [SerializeField]protected PPUnitBehaviourTree mBehaviourTree;
@@ -49,6 +51,7 @@ namespace PPCore
 
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
+        public PPUnitRole Role => mRole;
         public PPUnitBehaviourTree BehaviourTree => mBehaviourTree;
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口

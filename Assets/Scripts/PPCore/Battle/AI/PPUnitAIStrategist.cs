@@ -60,8 +60,8 @@ namespace PPCore
 
         // コミット消化の基準にする、前回思考時のターン数
         private int mLastTurnCount = -1;
-        // ビヘイビアツリーを持つユニットが 1 体も居ない旨の警告を出したか。毎思考で出し続けないための抑止
-        private bool mIsWarnedEmpty;
+        // 使えるツリーが無い旨の警告を出したユニット。毎思考で出し続けないための抑止
+        private readonly HashSet<PPBattleUnit> mWarnedNoTreeUnits = new();
 
         // バトル進行の管理役と、実行待ちの行動の供給元を受け取る
         // 二重購読を避けるため、既に繋がっている場合は先に外してから繋ぎ直す
@@ -132,13 +132,12 @@ namespace PPCore
             mAdopted.Clear();
             var picks = new List<PPPartyActionAssignment>();
             int order = 0;
-            bool hasTree = false;
 
             // ユニットごとに独立して判断する。順序はパーティの編成順で固定される
             foreach (var unit in snap.AliveMembers)
             {
-                var tree = ResolveTree(unit);
-                if (tree != null) hasTree = true;
+                var tree = ResolveTree(unit, out var treeSource);
+                if (tree == null) WarnNoTree(unit);
 
                 // 行動回数の上限まで積む。積むたびに台帳へ仮押さえするため、
                 // 2 手目以降は 1 手目で使う予定のゲージを差し引いた状態で判断される
@@ -149,6 +148,7 @@ namespace PPCore
                     var entry = CreateEntry(unit);
                     entry.ActionIndex = actionIndex;
                     entry.Tree = tree;
+                    entry.TreeSource = treeSource;
 
                     var command = DecideUnitAction(unit, tree, snap, aContext, entry);
                     mThinkEntries.Add(entry);
@@ -160,8 +160,6 @@ namespace PPCore
                     actionIndex++;
                 }
             }
-
-            WarnIfNoTree(hasTree);
 
             var plan = picks.Count == 0 ? PPPartyPlan.Wait : new PPPartyPlan(picks);
             ReportThink(party, aContext, plan);
@@ -469,6 +467,7 @@ namespace PPCore
             mCommits.Clear();
             mMemories.Clear();
             mBlackboards.Clear();
+            mWarnedNoTreeUnits.Clear();
             mLastTurnCount = -1;
         }
 
@@ -496,11 +495,14 @@ namespace PPCore
             }
         }
 
-        // ユニット定義から判断ツリーを引く
+        // ユニットが使う判断ツリーを 個別 → ロール既定 → 全体既定 の順で引く
+        // 個別ツリーで行動が決まらなくても既定ツリーへは差し戻さない
         // aUnit : 対象ユニット
-        // return : そのユニットの判断ツリー。未設定なら null
-        protected static PPUnitBehaviourTree ResolveTree(PPBattleUnit aUnit)
-            => (aUnit.SourceDefinition as PPUnitDefinition)?.BehaviourTree;
+        // aSource : 解決した判断ツリーの出どころ
+        // return : そのユニットの判断ツリー。どれも未設定なら null
+        protected virtual PPUnitBehaviourTree ResolveTree(PPBattleUnit aUnit, out PPUnitAITreeSource aSource)
+            => PPUnitAIDefaultsDefinition.ResolveTree(aUnit.SourceDefinition as PPUnitDefinition,
+                PPRuntimeSettings.Current.UnitAIDefaults, out aSource);
 
         // ユニット 1 体分の判断記録を、判断前の状態で初期化する
         // aUnit : 対象ユニット
@@ -519,14 +521,15 @@ namespace PPCore
                 CoinGaugeMax = aUnit.ExtraParameters.CoinGauge.Max.CurrentValue,
             };
 
-        // ビヘイビアツリーを持つユニットが 1 体も居ない場合に一度だけ警告する
-        // aHasTree : ツリーを持つユニットが 1 体でも居たか
-        protected void WarnIfNoTree(bool aHasTree)
+        // 使えるツリーが無いユニットについて、ユニットごとに一度だけ警告する
+        // aUnit : 対象ユニット
+        protected void WarnNoTree(PPBattleUnit aUnit)
         {
-            if (aHasTree || mIsWarnedEmpty) return;
+            if (!mWarnedNoTreeUnits.Add(aUnit)) return;
 
-            mIsWarnedEmpty = true;
-            CustomConsoleLog.Warning("AI", "ビヘイビアツリーを持つユニットが 1 体も居ないため、このパーティは常に待機します。");
+            CustomConsoleLog.Warning("AI",
+                $"{aUnit.DisplayName}: 個別・ロール既定・全体既定のどのツリーも無いため待機します。" +
+                "ユニットのビヘイビアツリーか、PPRuntimeSettings の「ユニットAIの既定」を設定してください。");
         }
 
         // 思考記録をログとデバッグハブへ流す
@@ -538,9 +541,11 @@ namespace PPCore
             foreach (var entry in mThinkEntries)
             {
                 string commit = entry.CommitRemainingTicks > 0 ? $" 維持あと{entry.CommitRemainingTicks}T" : "";
+                string treeName = entry.Tree != null ? entry.Tree.name : "-";
                 CustomConsoleLog.Verbose("AI",
                     $"{entry.UnitName}: {entry.Decision}({entry.RejectReason}) {entry.ActionName} -> {entry.TargetName}{commit} " +
-                    $"[スキル{entry.SkillGauge:0.#}/{entry.SkillGaugeMax:0.#} コイン{entry.CoinGauge:0.#}/{entry.CoinGaugeMax:0.#}]");
+                    $"[スキル{entry.SkillGauge:0.#}/{entry.SkillGaugeMax:0.#} コイン{entry.CoinGauge:0.#}/{entry.CoinGaugeMax:0.#}] " +
+                    $"ツリー={treeName}({PPUnitAITreeSourceUtility.ToDisplayString(entry.TreeSource)})");
             }
 
             if (!PPUnitAIDebugHub.HasListener) return;

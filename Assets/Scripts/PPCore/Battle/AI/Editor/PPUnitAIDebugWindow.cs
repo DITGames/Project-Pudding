@@ -203,6 +203,8 @@ namespace PPCore
                         ? RejectLabel(aEntry.RejectReason) : "-", GUILayout.Width(140f));
                 }
 
+                string treeName = aEntry.Tree != null ? aEntry.Tree.name : "-";
+                EditorGUILayout.LabelField("使用ツリー", $"{treeName}（{PPUnitAITreeSourceUtility.ToDisplayString(aEntry.TreeSource)}）");
                 EditorGUILayout.LabelField("行動 → 対象", $"{aEntry.ActionName} → {aEntry.TargetName}");
                 EditorGUILayout.LabelField("スキルゲージ", $"{aEntry.SkillGauge:F1} / {aEntry.SkillGaugeMax:F1}");
                 EditorGUILayout.LabelField("コインゲージ", $"{aEntry.CoinGauge:F1} / {aEntry.CoinGaugeMax:F1}");
@@ -286,7 +288,7 @@ namespace PPCore
         private static string RejectLabel(PPUnitAIRejectReason aReason)
             => aReason switch
             {
-                PPUnitAIRejectReason.NoTree => "ビヘイビアツリー未設定",
+                PPUnitAIRejectReason.NoTree => "使えるツリーなし",
                 PPUnitAIRejectReason.NoActionBudget => "行動回数なし",
                 PPUnitAIRejectReason.NoMatchedNode => "成立した枝なし",
                 PPUnitAIRejectReason.DecidedToWait => "意図的な待機",

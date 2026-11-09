@@ -6,6 +6,7 @@
  * @brief 起動時に読み込む基底データの置き場所
  * =====================================*/
 
+using AttributeUtility;
 using CustomConsole;
 using UnityEngine;
 
@@ -36,6 +37,11 @@ namespace PPCore
         public const string AssetPath = "Assets/GameData/Settings/Resources/PPRuntimeSettings.asset";
         // ログのタグ
         public const string LogTag = "Settings";
+
+        [Label("ユニットAIの既定")]
+        [SerializeField] private PPUnitAIDefaultsDefinition mUnitAIDefaults;
+
+        public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
 
         // Resources から読み込んだアセット。見つからなかった場合は代替インスタンス
         private static PPRuntimeSettings sLoaded;

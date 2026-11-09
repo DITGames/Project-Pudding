@@ -56,8 +56,19 @@ namespace PPCore
         // 雛形から新規作成するビヘイビアツリーのファイル名
         public static string TreeFileName(string aUnitId) => "PUBT_" + aUnitId + ".asset";
 
-        // 個別ツリーなしを選んだときの警告。ロール既定・全体既定への解決はまだ無い
-        public const string NoTreeWarning = "個別ツリーなし: ロール既定・全体既定への解決は PP-00019 で対応予定です。現状、このユニットは待機します。";
+        // 個別ツリーなしで、ロール既定・全体既定からも解決できないときの警告
+        public const string NoTreeWarning = "個別ツリーなし: ロール既定・全体既定のどちらも未設定のため、このユニットは待機します。PPRuntimeSettings の「ユニットAIの既定」を確認してください。";
+
+        // ユニットが実際に使うツリーを解決する
+        // Edit モードで PPRuntimeSettings.Current を呼ぶと読み込みログや代替インスタンスの生成が起きるため、アセットを直接読む
+        // aUnit : 対象のユニット定義
+        // aSource : 解決したツリーの出どころ
+        // return : 使うツリー。どれも無ければ null
+        public static PPUnitBehaviourTree ResolveEffectiveTree(PPUnitDefinition aUnit, out PPUnitAITreeSource aSource)
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<PPRuntimeSettings>(PPRuntimeSettings.AssetPath);
+            return PPUnitAIDefaultsDefinition.ResolveTree(aUnit, settings != null ? settings.UnitAIDefaults : null, out aSource);
+        }
 
         // 新規のスキル・ビジュアルは元ユニットと同じフォルダーへ「<ユニットID>_〜」の名前で、新規のツリーは「PUBT_<ユニットID>」の名前で作る
         public static PPUnitEditPlan EditPlan(PPUnitCreationDraft aDraft)
@@ -142,7 +153,9 @@ namespace PPCore
                     }
                     break;
                 default:
-                    result.Warnings.Add(NoTreeWarning);
+                    var effectiveTree = ResolveEffectiveTree(unit, out _);
+                    if (effectiveTree == null) result.Warnings.Add(NoTreeWarning);
+                    else if (effectiveTree.Root == null) result.Warnings.Add("既定ツリー「" + effectiveTree.name + "」のルートが未設定です。");
                     break;
             }
             ValidateReference(aDraft.UnitCatalog, "ユニットカタログ", result);

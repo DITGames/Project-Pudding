@@ -256,12 +256,18 @@ namespace PPCore
         {
             var so = new SerializedObject(mDraft.Unit);
             EditorGUILayout.PropertyField(so.FindProperty("mTypeAttribute"));
+            EditorGUILayout.PropertyField(so.FindProperty("mRole"));
             // 選び直した割り当て方は描画後に反映し、同じイベント内で表示内容が切り替わらないようにする
             var mode = mDraft.TreeMode;
             var selected = (PPUnitTreeAssignMode)EditorGUILayout.Popup("ビヘイビアツリー", (int)mode, TreeModeNames);
             using (new EditorGUI.DisabledScope(mode != PPUnitTreeAssignMode.Existing))
                 EditorGUILayout.PropertyField(so.FindProperty("mBehaviourTree"), new GUIContent("使用するツリー"));
-            EditorGUILayout.HelpBox(TreeModeHelp(mode), mode == PPUnitTreeAssignMode.None ? MessageType.Warning : MessageType.Info);
+            // 個別ツリーなしのときは実際に使うツリーを示す。どこからも解決できないときだけ警告にする
+            PPUnitBehaviourTree effectiveTree = null;
+            var treeSource = PPUnitAITreeSource.None;
+            if (mode == PPUnitTreeAssignMode.None) effectiveTree = PPUnitCreationValidator.ResolveEffectiveTree(mDraft.Unit, out treeSource);
+            var isUnresolved = mode == PPUnitTreeAssignMode.None && effectiveTree == null;
+            EditorGUILayout.HelpBox(TreeModeHelp(mode, effectiveTree, treeSource), isUnresolved ? MessageType.Warning : MessageType.Info);
             if (selected != mode)
             {
                 mDraft.TreeMode = selected;
@@ -275,12 +281,18 @@ namespace PPCore
             mDraft.SkillCatalog = (PPSkillCatalog)EditorGUILayout.ObjectField("スキル", mDraft.SkillCatalog, typeof(PPSkillCatalog), false);
         }
 
-        // 割り当て方ごとの説明
-        private string TreeModeHelp(PPUnitTreeAssignMode aMode) => aMode switch
+        // 割り当て方ごとの説明文を返す
+        // aMode : ビヘイビアツリーの割り当て方
+        // aEffectiveTree : 個別ツリーなしのときに実際に使うツリー。解決できなければ null
+        // aTreeSource : aEffectiveTree の出どころ
+        // return : HelpBox に出す説明文
+        private string TreeModeHelp(PPUnitTreeAssignMode aMode, PPUnitBehaviourTree aEffectiveTree, PPUnitAITreeSource aTreeSource) => aMode switch
         {
             PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",
             PPUnitTreeAssignMode.Template => "保存時に雛形（優先度リスト＋末尾に通常攻撃）から " + PPUnitCreationValidator.TreeFileName(mDraft.Unit.UnitId) + " を作成して割り当てます。生成後にUnit AI Treeで調整します。",
-            _ => PPUnitCreationValidator.NoTreeWarning,
+            _ => aEffectiveTree != null
+                ? "個別ツリーなし: 「" + aEffectiveTree.name + "」（" + PPUnitAITreeSourceUtility.ToDisplayString(aTreeSource) + "）で行動します。"
+                : PPUnitCreationValidator.NoTreeWarning,
         };
 
         private void DrawParameterTab()

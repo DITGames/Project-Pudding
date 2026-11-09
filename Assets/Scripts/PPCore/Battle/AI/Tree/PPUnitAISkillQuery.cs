@@ -83,6 +83,18 @@ namespace PPCore
         [EditCondition(nameof(IsFilterMode), true, false)]
         [SerializeField] private List<PPSkillTagDefinition> mTags = new();
 
+        // 既定の絞り込み（攻撃グループ）で作る。Unity がシリアライズから復元するときもこれを使うため残す
+        public PPUnitAISkillFilter()
+        {
+        }
+
+        // 同種グループを指定して作る。攻撃以外を既定にしたいフィールドの初期値に使う
+        // aGroup : 絞り込む同種グループ
+        public PPUnitAISkillFilter(PPSkillGroup aGroup)
+        {
+            mGroup = aGroup;
+        }
+
         public PPUnitAISkillFilterMode Mode => mMode;
         public PPSkillDefinition SkillDefinition => mSkillDefinition;
         public bool IsFilterByGroup => mIsFilterByGroup;

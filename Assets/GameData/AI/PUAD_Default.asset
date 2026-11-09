@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4976e890fbdb0d4cb22bd435db2ac49, type: 3}
+  m_Name: PUAD_Default
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitAIDefaultsDefinition
+  mRoleTrees:
+  - mRole: 1
+    mTree: {fileID: 11400000, guid: 0949d2b26cbdf244fb925b959c30b573, type: 2}
+  - mRole: 2
+    mTree: {fileID: 11400000, guid: 0199ddf9adc644b4fa3abffa599fb789, type: 2}
+  - mRole: 4
+    mTree: {fileID: 11400000, guid: e2b2d6421c2db5c4d874c61fd3f4b311, type: 2}
+  mGlobalTree: {fileID: 11400000, guid: def7c49b320508644a824fa15446ddd6, type: 2}
