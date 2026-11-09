@@ -54,7 +54,7 @@ namespace PPCore
             if (aInfo.IsMiss || aInfo.IsNullified || aInfo.Amount <= 0f)
                 return;
 
-            string reason = ResolveDamageReason(aInfo.SourceAbility);
+            string reason = ResolveDamageReason(aInfo.Reason);
             string reasonPart = reason != null ? $" from {reason}" : "";
 
             CustomConsoleLog.Log(BattleTag,
@@ -62,12 +62,13 @@ namespace PPCore
         }
 
         // ダメージ理由を解決できる場合だけ文字列を返す。解決できなければ null
-        // aSourceAbility : DamageInfo.SourceAbility に格納された発生源オブジェクト
-        private static string ResolveDamageReason(object aSourceAbility) => aSourceAbility switch
+        // スキル由来のダメージは発生元コマンドも持つため、通常攻撃の判定より先にスキルを見る
+        // aReason : DamageInfo.Reason に格納された発生理由
+        private static string ResolveDamageReason(DamageReasonBase aReason) => aReason switch
         {
-            PPSkillDefinition skill => skill.DisplayName,
-            StatusEffect effect => effect.DisplayName,
-            IPPBattleCommand => "通常攻撃",
+            AttackDamageReason { Skill: PPSkillDefinition skill } => skill.DisplayName,
+            StatusEffectDamageReason { Effect: { } effect } => effect.DisplayName,
+            AttackDamageReason { Command: IPPBattleCommand } => "通常攻撃",
             _ => null,
         };
 

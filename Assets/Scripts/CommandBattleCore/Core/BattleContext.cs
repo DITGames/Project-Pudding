@@ -51,11 +51,11 @@ namespace CommandBattleCore
         // 経過ターン数。BattleManager.AdvanceTick で加算される
         public int TurnCount { get; set; }
 
-        // リアクション（反撃など）のコマンドを実行している最中なら true
-        // BattleManager がコマンド実行の前後で設定する
-        // この間に発生した攻撃ダメージは DamageInfo.Reason が Reaction になり、
-        // 反撃に反撃を返すかどうかをリアクション側が判断できるようになる
-        public bool IsExecutingReaction { get; set; }
+        // 実行中のコマンド。コマンドの実行中以外は null
+        // BattleManager がコマンドの効果を実行している間（演出の待ち時間は含まない）だけ設定する
+        // リアクションのコマンドなら、この間に発生したダメージへ BattleUnit.ApplyDamage が DamageInfo.Reaction を引き継ぐ
+        // スキル定義など、コマンドを直接受け取らない場所から発生元コマンドを辿る用途にも使う
+        public BattleCommandBase ExecutingCommand { get; protected internal set; }
 
         // スキル発動に失敗したとき(発動ユニット, スキル, 失敗理由)
         public event Action<BattleUnit, BattleSkill, CastFailReason> OnCastFailed;

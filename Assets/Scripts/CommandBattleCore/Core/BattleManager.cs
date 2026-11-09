@@ -190,36 +190,23 @@ namespace CommandBattleCore
             OnPreCommand?.Invoke(command.Source, command);
 
             // 通常コマンドならリアクション数を数え直す
-            // 実行中がリアクションかどうかは、この間に発生したダメージへ印を付けるために公開する
-            bool isReaction = command.IsReaction;
-            if (!isReaction) mReactionsThisCommand = 0;
-            Context.IsExecutingReaction = isReaction;
+            if (!command.IsReaction) mReactionsThisCommand = 0;
 
-            try
+            // 生存していれば、状態異常による行動阻害を抽選してから実行する
+            // 行動不能の判定は確定（睡眠など）・確率（麻痺など）ともに RollActionBlocked に任せる
+            // （ここで CannotAct のビットだけを見て弾くと、確率付きの行動不能まで毎回失敗になるため）
+            if (command.Source.IsAlive)
             {
-                // 生存していれば、状態異常による行動阻害を抽選してから実行する
-                // 行動不能の判定は確定（睡眠など）・確率（麻痺など）ともに RollActionBlocked に任せる
-                // （ここで CannotAct のビットだけを見て弾くと、確率付きの行動不能まで毎回失敗になるため）
-                if (command.Source.IsAlive)
+                if (command.Source.RollActionBlocked(Context))
                 {
-                    if (command.Source.RollActionBlocked(Context))
-                    {
-                        OnActionBlocked?.Invoke(command.Source, command);
-                        Log(BattleLogType.ActionBlocked, command.Source, null,
-                            $"{command.Source.DisplayName}'s action was blocked by a status effect.");
-                    }
-                    else
-                    {
-                        command.Execute(Context);
-                        OnCommandExecuted?.Invoke(command.Source, command);
-                        NotifyActionConsumeTriggers(command);
-                    }
+                    OnActionBlocked?.Invoke(command.Source, command);
+                    Log(BattleLogType.ActionBlocked, command.Source, null,
+                        $"{command.Source.DisplayName}'s action was blocked by a status effect.");
                 }
-            }
-            finally
-            {
-                // 例外で抜けてもフラグを残さない
-                Context.IsExecutingReaction = false;
+                else
+                {
+                    RunCommandBody(command);
+                }
             }
 
             // 行動回数の消費
@@ -251,8 +238,8 @@ namespace CommandBattleCore
         }
 
         // キュー先頭のコマンドを 1 件実行する（async 版）
-        // 同期版との違いは Presenter による実行前後の演出待ちが入る点と、
-        // リアクションコマンド実行中はリアクション抑止フラグを立てる点
+        // 同期版との違いは Presenter による実行前後の演出待ちが入る点
+        // 実行中のコマンド（Context.ExecutingCommand）は同期版と同じく効果の実行中だけ設定し、演出の待ち時間には残さない
         // aCt : 演出スキップ用のキャンセルトークン
         public async ValueTask ExecuteNextCommandAsync(CancellationToken aCt = default)
         {
@@ -260,51 +247,38 @@ namespace CommandBattleCore
             if(!ActionQueue.TryDequeue(out var command)) return;
 
             // 通常コマンドならリアクション数を数え直す
-            // 実行中がリアクションかどうかは、この間に発生したダメージへ印を付けるために公開する
-            bool isReaction = command.IsReaction;
-            if (!isReaction) mReactionsThisCommand = 0;
-            Context.IsExecutingReaction = isReaction;
+            if (!command.IsReaction) mReactionsThisCommand = 0;
 
             StateMachine.TransitionTo(BattleState.ActionExecution);
 
             // コマンド実行前イベントの通知
             OnPreCommand?.Invoke(command.Source, command);
 
-            try
+            if (command.Source.IsAlive)
             {
-                if (command.Source.IsAlive)
+                if (command.Source.RollActionBlocked(Context))
                 {
-                    if (command.Source.RollActionBlocked(Context))
+                    OnActionBlocked?.Invoke(command.Source, command);
+                    Log(BattleLogType.ActionBlocked, command.Source, null,
+                        $"{command.Source.DisplayName}'s action was blocked by a status effect.");
+                }
+                else
+                {
+                    // コマンド実行前演出
+                    if (Presenter != null)
                     {
-                        OnActionBlocked?.Invoke(command.Source, command);
-                        Log(BattleLogType.ActionBlocked, command.Source, null,
-                            $"{command.Source.DisplayName}'s action was blocked by a status effect.");
+                        await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
                     }
-                    else
+
+                    // 実際のコマンド実行。実行中のコマンドの設定は演出の待ち時間を含まない同期区間に限る
+                    RunCommandBody(command);
+
+                    // コマンド実行後演出
+                    if (Presenter != null)
                     {
-                        // コマンド実行前演出
-                        if (Presenter != null)
-                        {
-                            await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
-                        }
-
-                        // 実際のコマンド実行
-                        command.Execute(Context);
-                        OnCommandExecuted?.Invoke(command.Source, command);
-                        NotifyActionConsumeTriggers(command);
-
-                        // コマンド実行後演出
-                        if (Presenter != null)
-                        {
-                            await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
-                        }
+                        await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
                     }
                 }
-            }
-            finally
-            {
-                // 例外や演出スキップで抜けてもフラグを残さない
-                Context.IsExecutingReaction = false;
             }
 
             // コマンド実行後イベントの通知
@@ -345,6 +319,27 @@ namespace CommandBattleCore
             }
         }
 
+        // コマンドの効果を実行し、実行通知とスタック消費の通知まで行う
+        // この間だけ Context.ExecutingCommand を設定し、発生したダメージがどのコマンド（リアクションか）によるものかを辿れるようにする
+        // 演出の待ち時間を含めないのは、その間に AdvanceTick などが出したダメージへ印が付かないようにするため
+        // aCommand : 実行するコマンド
+        protected virtual void RunCommandBody(BattleCommandBase aCommand)
+        {
+            var previous = Context.ExecutingCommand;
+            Context.ExecutingCommand = aCommand;
+            try
+            {
+                aCommand.Execute(Context);
+                OnCommandExecuted?.Invoke(aCommand.Source, aCommand);
+                NotifyActionConsumeTriggers(aCommand);
+            }
+            finally
+            {
+                // 例外で抜けても実行中の印を残さない
+                Context.ExecutingCommand = previous;
+            }
+        }
+
         // 行動をきっかけにしたスタック消費を、コマンドを実行したユニットへ通知する
         // 攻撃にあたるコマンドの場合は「行動時」と「攻撃時」の両方を発火する
         // aCommand : 実行し終えたコマンド
@@ -362,11 +357,17 @@ namespace CommandBattleCore
 
         // リアクショントリガーを発火し、条件を満たしたユニットの反撃コマンドをキュー先頭へ割り込ませる
         // Rules.MaxReactionPerEvent に達した時点で打ち切る
-        // 「反撃に反撃を返さない」といった連鎖の制御は、リアクション側が ReactionContext.IsReactionDamage を見て判断する
+        // 「反撃に反撃を返さない」「深さ N まで許す」といった連鎖の制御は、
+        // リアクション側が ReactionContext.IsReactionDamage / ReactionDepth を見て判断する
         // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで死んでしまうため）
+        // 積むコマンドには、引き金の深さ + 1 のリアクション情報を設定する
         // aContext : 発生したトリガーと関係ユニットを持つリアクションコンテキスト
         protected virtual void DispatchReactions(ReactionContext aContext)
         {
+            // 引き金の深さ。ダメージが引き金ならその深さ、ダメージを伴わないトリガー（撃破など）なら実行中のコマンドの深さ
+            // コマンドの実行外（ターン経過など）で起きたトリガーは 0
+            int triggerDepth = aContext.Damage?.Reaction?.Depth ?? Context.ExecutingCommand?.ReactionDepth ?? 0;
+
             foreach (var unit in EnumerateAllAliveUnits())
             {
                 if (mReactionsThisCommand >= Context.Rules.MaxReactionPerEvent) break;
@@ -382,7 +383,7 @@ namespace CommandBattleCore
                     if (cmd == null) continue;
 
                     // 通常コマンドより先に処理させるため先頭へ積む
-                    cmd.IsReaction = true;
+                    cmd.ReactionInfo = new ReactionDamageInfo(triggerDepth + 1, reaction);
                     ActionQueue.EnqueueFront(cmd);
                     mReactionsThisCommand++;
                 }

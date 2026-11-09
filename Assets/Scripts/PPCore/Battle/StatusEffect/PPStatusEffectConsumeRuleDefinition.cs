@@ -25,15 +25,15 @@ namespace PPCore
         public abstract string BuildString();
 
         // ダメージ種別の日本語表示名を得る
-        // aReason : 対象のダメージ種別
+        // aKind : 対象のダメージ種別
         // return : 表示名
-        protected static string ToDisplayName(DamageReason aReason)
-            => aReason switch
+        protected static string ToDisplayName(DamageReasonKind aKind)
+            => aKind switch
             {
-                DamageReason.Attack => "攻撃",
-                DamageReason.StatusEffect => "継続ダメージ",
-                DamageReason.Other => "その他",
-                _ => aReason.ToString(),
+                DamageReasonKind.Attack => "攻撃",
+                DamageReasonKind.StatusEffect => "継続ダメージ",
+                DamageReasonKind.Other => "その他",
+                _ => aKind.ToString(),
             };
 
         // きっかけの日本語表示名を得る

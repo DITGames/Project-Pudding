@@ -47,7 +47,7 @@ namespace PPCore
                 if (d.Amount > 0 && d.Source != null)
                 {
                     mViews.TryGetValue(d.Source, out var view);
-                    view?.CommandExecuted(d.SourceAbility as BattleCommandBase);
+                    view?.CommandExecuted((d.Reason as AttackDamageReason)?.Command);
                 }
             };
             aManager.OnDamageTaken += (u, dmg) =>

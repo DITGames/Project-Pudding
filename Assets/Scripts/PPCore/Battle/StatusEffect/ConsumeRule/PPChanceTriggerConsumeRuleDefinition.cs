@@ -31,7 +31,7 @@ namespace PPCore
 
         public override IStatusEffectConsumeRule CreateConsumeRule()
             => new ChanceTriggerConsumeRule(mTrigger, Mathf.Clamp01(mBaseChance), mChancePerElapsedTurn,
-                Mathf.Max(1, mConsumeStacks), mIsConsumeAll, DamageReasonFilter);
+                Mathf.Max(1, mConsumeStacks), mIsConsumeAll, DamageReasonFilter, mIsIncludeReactionDamage);
 
         public override string BuildString()
         {

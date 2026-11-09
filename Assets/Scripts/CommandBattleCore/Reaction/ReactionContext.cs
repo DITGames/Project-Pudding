@@ -26,7 +26,10 @@ namespace CommandBattleCore
 
         // 引き金になったダメージがリアクション（反撃など）によるものなら true
         // 「反撃に反撃を返さない」を実装する際は ShouldReact でこれを見て false を返す
-        public bool IsReactionDamage => Damage?.Reason == DamageReason.Reaction;
+        public bool IsReactionDamage => Damage?.IsReaction ?? false;
+        // 引き金になったダメージのリアクションの深さ。リアクションでないダメージ、またはダメージ以外のトリガーでは 0
+        // 「深さ N まで許す」を実装する際は ShouldReact でこれが N 未満のときだけ true を返す
+        public int ReactionDepth => Damage?.Reaction?.Depth ?? 0;
 
         // aTrigger : トリガー種別
         // aInstigator : トリガーを起こしたユニット

@@ -72,7 +72,7 @@ namespace PPCore
         // aRawAmount : 補正前の基礎ダメージ量
         // aCategory : スキル種別
         // aAttribute : 解決済みの攻撃属性
-        // aSourceAbility : 発生源のスキル定義やエフェクト
+        // aReason : 何によって発生したダメージか（発生源を含む）
         // aContext : 判定に使うバトルコンテキスト
         // return : 各種補正を適用済みのダメージ情報
         public static PPDamageInfo CreateDamageInfo(
@@ -81,10 +81,10 @@ namespace PPCore
             float aRawAmount,
             PPSkillCategory aCategory,
             PPTypeAttribute aAttribute,
-            object aSourceAbility,
+            DamageReasonBase aReason,
             BattleContext aContext)
         {
-            var info = new PPDamageInfo(aSource, aTarget, aRawAmount, aCategory, aAttribute, aSourceAbility);
+            var info = new PPDamageInfo(aSource, aTarget, aRawAmount, aCategory, aAttribute, aReason);
 
             var hit = aContext.ResolveHit(aSource, aTarget, info);
             if (hit.mResult == HitResult.Miss)

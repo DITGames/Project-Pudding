@@ -24,7 +24,7 @@ namespace CommandBattleCore
         // ダメージ情報の生成だけを差し替えられるようにしておく(PP側で属性付きにする等)
         protected virtual DamageInfo CreateDamage(StatusEffectContext aContext)
             => new DamageInfo(aContext.Source, aContext.Owner,
-                mAmountPerStack * aContext.Stacks, aContext.Effect, DamageReason.StatusEffect);
+                mAmountPerStack * aContext.Stacks, new StatusEffectDamageReason(aContext.Effect));
     }
 
     // リジェネなど。更新のたびに固定量を回復する
