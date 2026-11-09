@@ -5,7 +5,8 @@
  * @date 2026/08/19
  * @brief localhost限定のMCP HTTPサーバー本体
  * Streamable HTTPの簡易版として、POSTごとに単一のJSON-RPCレスポンスを返す(SSEは使わない)。
- * Editor起動時に自動的にリッスンを開始し、Editor終了時に停止する
+ * Tools/MCP Bridgeメニューから手動で起動・停止する。Preferencesの設定が有効なときだけEditor起動時に自動起動する。
+ * Editor終了時は停止する
  * =====================================*/
 
 using System;
@@ -47,14 +48,34 @@ namespace MCPBridge.Editor.Server
         private static HttpListener sListener;
         private static Thread sListenerThread;
 
+        // Editor起動後の最初のロードかを判定するSessionStateキー(Editor再起動で消える)
+        private const string SessionInitializedKey = "MCPBridge.SessionInitialized";
+        // サーバーを起動させたい意図を保持するSessionStateキー。ドメインリロードをまたいで復帰判定に使う
+        private const string ServerWantedKey = "MCPBridge.ServerWanted";
+
         static MCPHttpServer()
         {
-            Start();
-            EditorApplication.quitting += Stop;
+            EditorApplication.quitting += StopListener;
+
+            if (!SessionState.GetBool(SessionInitializedKey, false))
+            {
+                // Editor起動後の初回ロード: 自動起動設定が有効なときだけ起動する
+                SessionState.SetBool(SessionInitializedKey, true);
+                if (MCPServerSettings.AutoStartOnEditorLaunch)
+                {
+                    Start();
+                }
+            }
+            else if (SessionState.GetBool(ServerWantedKey, false))
+            {
+                // ドメインリロード: 直前に起動させていた場合だけ復帰する(起動失敗していた場合も再試行する)
+                Start();
+            }
         }
 
         public static void Start()
         {
+            SessionState.SetBool(ServerWantedKey, true);
             if (State == MCPConnectionState.Listening)
             {
                 return;
@@ -83,6 +104,13 @@ namespace MCPBridge.Editor.Server
         }
 
         public static void Stop()
+        {
+            SessionState.SetBool(ServerWantedKey, false);
+            StopListener();
+        }
+
+        // 起動意図(SessionState)を変えずにリスナーだけ止める。Editor終了時に使う
+        private static void StopListener()
         {
             try
             {
