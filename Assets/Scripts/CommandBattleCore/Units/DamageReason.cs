@@ -56,7 +56,7 @@ namespace CommandBattleCore
     }
 
     // ダメージ理由の大まかな種類。インスペクタで絞り込み条件を選ぶためだけに使う
-    // 数値は旧 DamageReason（Attack=0 / StatusEffect=1 / Reaction=2 / Other=3）に合わせ、シリアライズ済みの値をそのまま読めるようにしている
+    // 数値は旧 DamageReason（Attack=0 / StatusEffect=1 / Reaction=2 / Other=3）と同じにし、2（旧 Reaction）は欠番にしている
     public enum DamageReasonKind
     {
         // AttackDamageReason とその派生

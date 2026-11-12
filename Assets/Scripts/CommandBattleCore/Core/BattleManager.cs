@@ -361,12 +361,14 @@ namespace CommandBattleCore
         // リアクション側が ReactionContext.IsReactionDamage / ReactionDepth を見て判断する
         // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで死んでしまうため）
         // 積むコマンドには、引き金の深さ + 1 のリアクション情報を設定する
+        // 引き金の深さはリアクション側の判断と食い違わないよう、ReactionContext.ReactionDepth に載せて渡す
         // aContext : 発生したトリガーと関係ユニットを持つリアクションコンテキスト
         protected virtual void DispatchReactions(ReactionContext aContext)
         {
             // 引き金の深さ。ダメージが引き金ならその深さ、ダメージを伴わないトリガー（撃破など）なら実行中のコマンドの深さ
             // コマンドの実行外（ターン経過など）で起きたトリガーは 0
             int triggerDepth = aContext.Damage?.Reaction?.Depth ?? Context.ExecutingCommand?.ReactionDepth ?? 0;
+            aContext = aContext.WithReactionDepth(triggerDepth);
 
             foreach (var unit in EnumerateAllAliveUnits())
             {
