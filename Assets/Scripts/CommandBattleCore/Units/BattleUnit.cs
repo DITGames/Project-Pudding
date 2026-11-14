@@ -158,7 +158,7 @@ namespace CommandBattleCore
         public void ApplyDamage(float aAmount, BattleContext aContext = null)
         {
             // 発生源が分からない経路のため、攻撃とは見なさない
-            ApplyDamage(new DamageInfo(null, this, aAmount, null, DamageReason.Other), aContext);
+            ApplyDamage(new DamageInfo(null, this, aAmount, OtherDamageReason.Default), aContext);
         }
 
         // ダメージを適用する
@@ -170,13 +170,14 @@ namespace CommandBattleCore
         {
             if (!IsAlive) return;
 
-            // リアクション実行中に発生した攻撃ダメージは Reaction として扱う
+            // リアクションのコマンド実行中に発生したダメージへ、リアクションの深さと発生元を引き継ぐ
             // ここで一度だけ行うことで、ダメージを組み立てる側（通常攻撃・スキル・反射など）が
             // 自分が反撃の最中かどうかを意識しなくて済む
-            // 継続ダメージなど攻撃以外の種別は、リアクション中に起きても種別を書き換えない
-            if (aContext != null && aContext.IsExecutingReaction && aDamageInfo.Reason == DamageReason.Attack)
+            // Reason（攻撃・継続ダメージなど）は書き換えないため、反撃の攻撃も攻撃のまま扱われる
+            // 作る側が明示的に設定した Reaction があればそちらを優先する
+            if (aContext?.ExecutingCommand != null)
             {
-                aDamageInfo.Reason = DamageReason.Reaction;
+                aDamageInfo.Reaction ??= aContext.ExecutingCommand.ReactionInfo;
             }
 
             // ミスの場合は結果通知だけ行って終了する

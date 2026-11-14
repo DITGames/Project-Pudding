@@ -20,8 +20,13 @@ namespace CommandBattleCore
         public ITargetResolver TargetResolver { get; }
         // 実行優先度。優先度付きキューへ拡張する際の差し込み口で、既定では未使用
         public virtual int Priority => 0;
+        // リアクション（反撃など）として生成されたコマンドなら、その深さと発生元。通常のコマンドなら null
+        // BattleManager.DispatchReactions がキューへ積む際に設定する
+        public ReactionDamageInfo ReactionInfo { get; protected internal set; }
+        // リアクションの連鎖の深さ。通常のコマンドなら 0
+        public int ReactionDepth => ReactionInfo?.Depth ?? 0;
         // リアクション（反撃など）として生成されたコマンドなら true。連鎖抑止の判定に使う
-        public bool IsReaction { get; protected internal set; }
+        public bool IsReaction => ReactionInfo != null;
         // 攻撃にあたる行動なら true
         // StatusEffectConsumeTrigger.Attacked の判定に使う。何を攻撃と見なすかはゲーム側の裁量のため派生で上書きする
         public virtual bool IsAttack => false;

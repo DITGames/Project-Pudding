@@ -34,7 +34,9 @@ namespace PPCore
         {
             var attribute = PPDamageUtility.ResolveAttribute(mAttribute, aSource);
             float dmg = PPDamageUtility.ResolveAttackSkillDamage(aSource, aTarget, mPower, mCategory);
-            var damageInfo = PPDamageUtility.CreateDamageInfo(aSource, aTarget, dmg, mCategory, attribute, aSourceSkill, aContext);
+            // スキル効果にはコマンドが渡らないため、発生元コマンドは実行中のコマンドから取る
+            var reason = new AttackDamageReason(aContext.ExecutingCommand, aSourceSkill);
+            var damageInfo = PPDamageUtility.CreateDamageInfo(aSource, aTarget, dmg, mCategory, attribute, reason, aContext);
             aTarget.ApplyDamage(damageInfo, aContext);
         }
 

@@ -13,6 +13,8 @@ namespace CommandBattleCore
     // BattleManager.DispatchReactions がトリガー発生時に走査し、
     // ShouldReact が true を返したものについて BuildReaction のコマンドをキュー先頭へ割り込ませる
     // 反撃が反撃を呼ぶ連鎖を止めたい場合は ShouldReact で ReactionContext.IsReactionDamage を見て false を返すこと
+    // 一定の深さまで連鎖を許す場合や、撃破などダメージ以外のトリガーで連鎖を止める場合は ReactionContext.ReactionDepth を見る
+    // （引き金が起きたときの連鎖の深さ。ダメージ以外のトリガーでも、反撃の最中なら 1 以上になる）
     // BattleRules.MaxReactionPerEvent は想定外の連鎖に対する安全網であり、
     // 意図した連鎖の可否はリアクション側の判断に任せている
     // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで発火できなくなるため）

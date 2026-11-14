@@ -59,7 +59,8 @@ namespace PPCore
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
             {
                 float raw = PPDamageUtility.ResolveAttackDamage(Source, target);
-                var damageInfo = PPDamageUtility.CreateDamageInfo(Source, target, raw, PPSkillCategory.Physical, sourceAttribute, this, aContext);
+                var damageInfo = PPDamageUtility.CreateDamageInfo(Source, target, raw, PPSkillCategory.Physical, sourceAttribute,
+                    new AttackDamageReason(this), aContext);
                 damages.Add(damageInfo);
             }
 

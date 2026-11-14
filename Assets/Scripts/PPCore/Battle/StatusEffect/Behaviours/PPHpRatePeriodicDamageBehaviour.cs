@@ -50,7 +50,7 @@ namespace PPCore
             float amount = (float)Math.Round(rawAmount, MidpointRounding.AwayFromZero);
 
             return new PPDamageInfo(aContext.Source, aContext.Owner, amount,
-                PPSkillCategory.Debuff, mAttribute, aContext.Effect, DamageReason.StatusEffect);
+                PPSkillCategory.Debuff, mAttribute, new StatusEffectDamageReason(aContext.Effect));
         }
     }
 }

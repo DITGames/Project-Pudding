@@ -31,12 +31,10 @@ namespace PPCore
         // aAmount : 初期ダメージ量
         // aCategory : スキル種別
         // aAttribute : 攻撃属性
-        // aSourceAbility : 発生源のスキル定義やエフェクト
-        // aReason : 何によって発生したダメージか
+        // aReason : 何によって発生したダメージか。null なら OtherDamageReason.Default として扱う
         public PPDamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, PPSkillCategory aCategory,
-            PPTypeAttribute aAttribute = PPTypeAttribute.Normal, object aSourceAbility = null,
-            DamageReason aReason = DamageReason.Attack)
-            : base(aSource, aTarget, aAmount, aSourceAbility, aReason)
+            PPTypeAttribute aAttribute, DamageReasonBase aReason)
+            : base(aSource, aTarget, aAmount, aReason)
         {
             Category = aCategory;
             Attribute = aAttribute;

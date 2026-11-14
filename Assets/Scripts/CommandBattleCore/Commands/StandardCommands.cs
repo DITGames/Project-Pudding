@@ -38,7 +38,7 @@ namespace CommandBattleCore
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
             {
                 float raw = DamageFormula(Source, target);
-                var info = new DamageInfo(Source, target, raw, this);
+                var info = new DamageInfo(Source, target, raw, new AttackDamageReason(this));
 
                 var hit = aContext.ResolveHit(Source, target, info);
 

@@ -54,19 +54,24 @@ namespace CommandBattleCore
         protected readonly bool mIsConsumeAll;
         // 対象とするダメージの種類。null なら種類を問わない
         // Damaged のきっかけでのみ意味を持つ（毒の継続ダメージでは消費させたくない場合などに使う）
-        protected readonly DamageReason? mDamageReasonFilter;
+        protected readonly DamageReasonKind? mDamageReasonFilter;
+        // true ならリアクション（反撃など）として発生したダメージも対象にする
+        // 種類を限定している場合（mDamageReasonFilter が null でない場合）のみ意味を持つ
+        protected readonly bool mIsIncludeReactionDamage;
 
         // aTrigger : 消費のきっかけ
         // aStacks : 1 回あたりの消費スタック数
         // aIsConsumeAll : 残り全部を消費するか
         // aDamageReasonFilter : 対象とするダメージの種類。null なら問わない
+        // aIsIncludeReactionDamage : 種類を限定する場合に、リアクションとして発生したダメージも対象にするか
         public TriggerConsumeRule(StatusEffectConsumeTrigger aTrigger, int aStacks = 1, bool aIsConsumeAll = false,
-            DamageReason? aDamageReasonFilter = null)
+            DamageReasonKind? aDamageReasonFilter = null, bool aIsIncludeReactionDamage = false)
         {
             mTrigger = aTrigger;
             mStacks = aStacks;
             mIsConsumeAll = aIsConsumeAll;
             mDamageReasonFilter = aDamageReasonFilter;
+            mIsIncludeReactionDamage = aIsIncludeReactionDamage;
         }
 
         public virtual int ResolveConsumeStacks(StatusEffectConsumeTrigger aTrigger, StatusEffectContext aContext,
@@ -87,7 +92,10 @@ namespace CommandBattleCore
             if (mTrigger != StatusEffectConsumeTrigger.Damaged) return true;
 
             // 種類を限定しているのに情報が無い場合は、意図しない消費を避けて合致しない扱いにする
-            return aDamage != null && aDamage.Reason == mDamageReasonFilter.Value;
+            if (aDamage == null) return false;
+            // 反撃などのダメージは、含める指定がある場合だけ対象にする
+            if (aDamage.IsReaction && !mIsIncludeReactionDamage) return false;
+            return DamageReasonKindUtility.Matches(aDamage.Reason, mDamageReasonFilter.Value);
         }
     }
 
@@ -106,10 +114,11 @@ namespace CommandBattleCore
         // aStacks : 1 回あたりの消費スタック数
         // aIsConsumeAll : 残り全部を消費するか
         // aDamageReasonFilter : 対象とするダメージの種類。null なら問わない
+        // aIsIncludeReactionDamage : 種類を限定する場合に、リアクションとして発生したダメージも対象にするか
         public ChanceTriggerConsumeRule(StatusEffectConsumeTrigger aTrigger, float aBaseChance,
             float aChancePerElapsedTurn = 0f, int aStacks = 1, bool aIsConsumeAll = false,
-            DamageReason? aDamageReasonFilter = null)
-            : base(aTrigger, aStacks, aIsConsumeAll, aDamageReasonFilter)
+            DamageReasonKind? aDamageReasonFilter = null, bool aIsIncludeReactionDamage = false)
+            : base(aTrigger, aStacks, aIsConsumeAll, aDamageReasonFilter, aIsIncludeReactionDamage)
         {
             mBaseChance = aBaseChance;
             mChancePerElapsedTurn = aChancePerElapsedTurn;

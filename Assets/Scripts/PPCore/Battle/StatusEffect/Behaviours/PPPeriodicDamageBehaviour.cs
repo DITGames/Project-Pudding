@@ -22,7 +22,7 @@ namespace PPCore
 
         protected override DamageInfo CreateDamage(StatusEffectContext aContext)
             => new PPDamageInfo(aContext.Source, aContext.Owner,
-                mAmountPerStack * aContext.Stacks, PPSkillCategory.Debuff, mAttribute, aContext.Effect,
-                DamageReason.StatusEffect);
+                mAmountPerStack * aContext.Stacks, PPSkillCategory.Debuff, mAttribute,
+                new StatusEffectDamageReason(aContext.Effect));
     }
 }

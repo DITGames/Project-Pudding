@@ -13,7 +13,7 @@ namespace CommandBattleCore
         // 1.0で等倍、0.5で半減、0で無効化、1.5で1.5倍
         private readonly float mScale;
         private readonly int mOrder;
-        // true なら状態異常によるダメージ（DamageReason.StatusEffect）には倍率を掛けない
+        // true なら状態異常によるダメージ（StatusEffectDamageReason）には倍率を掛けない
         private readonly bool mIsExcludeStatusEffectDamage;
 
         public override int Order => mOrder;
@@ -31,7 +31,7 @@ namespace CommandBattleCore
 
         public override void ModifyIncomingDamage(StatusEffectContext aContext, DamageInfo aDamage)
         {
-            if (mIsExcludeStatusEffectDamage && aDamage.Reason == DamageReason.StatusEffect) return;
+            if (mIsExcludeStatusEffectDamage && aDamage.Reason is StatusEffectDamageReason) return;
 
             aDamage.Amount *= mScale;
             if (aDamage.Amount <= 0f) aDamage.IsNullified = true;

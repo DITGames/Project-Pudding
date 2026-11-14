@@ -48,7 +48,8 @@ namespace CommandBattleCore
                     float dmg = Math.Max(1f, src.Parameters.Attack.CurrentValue + mPower
                                              - t.Parameters.Defense.CurrentValue * 0.5f);
 
-                    var damageInfo = new DamageInfo(src, t, dmg, this);
+                    // 効果のデリゲートにはコマンドが渡らないため、発生元コマンドは実行中のコマンドから取る
+                    var damageInfo = new DamageInfo(src, t, dmg, new AttackDamageReason(ctx.ExecutingCommand, this));
                     var hit = ctx.ResolveHit(src, t, damageInfo);
 
                     if (hit.mResult == HitResult.Miss)
