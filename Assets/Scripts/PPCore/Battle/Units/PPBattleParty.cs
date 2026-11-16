@@ -188,19 +188,23 @@ namespace PPCore
     // PPPartyDefinition などの生成元から PPBattleParty を組み立てるファクトリ
     public static class PPPartyFactory
     {
+        // 配置の一覧。編成とコイン配布の順番（Center → Right → Left）で並べる
+        private static readonly PPPartyPosition[] Positions =
+            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
+
         // PPPartyDefinition からランタイムパーティを生成する
-        // メンバーごとにユニットを生成して編成し、それぞれへ専用の乱数供給元を割り当てる
+        // 配置の枠ごとにユニットを生成して編成し、それぞれへ専用の乱数供給元を割り当てる。空の枠は飛ばす
         public static PPBattleParty CreateFromDefinition(PPPartyDefinition aDefinition, BattleSide aSide)
         {
             var units = new List<BattleUnit>();
-            for (int i = 0; i < aDefinition.Members.Count; i++)
+            foreach (var position in Positions)
             {
-                var entry = aDefinition.Members[i];
+                var entry = aDefinition.GetMember(position);
                 if(entry == null || entry.Unit == null) continue;
 
                 var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
-                unit.Random = CreateRandom(entry, aSide, i);
-                unit.Position = entry.Position;
+                unit.Random = CreateRandom(entry, aSide, (int)position);
+                unit.Position = position;
                 units.Add(unit);
             }
 
