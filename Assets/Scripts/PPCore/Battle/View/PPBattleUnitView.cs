@@ -28,8 +28,10 @@ namespace PPCore
         [SerializeField] private Animator mAnimator;
         [Label("選択ボタン")]
         [SerializeField] private Button mSelectButton;
-        [Label("フォーカス枠")]
-        [SerializeField] private GameObject mFocusFrame;
+        // 選択中のアイコンの拡大率。選択中であることをアイコンの大きさで示す
+        [Label("選択中のアイコン拡大率")]
+        [Min(1f)]
+        [SerializeField] private float mFocusedIconScale = 1.2f;
         [Label("メニューアンカー")]
         [SerializeField] private RectTransform mMenuAnchor;
 
@@ -106,11 +108,12 @@ namespace PPCore
             mSelectButton.interactable = aSelectable;
         }
 
-        // フォーカス枠の表示を切り替える
-        // aFocused : フォーカス中なら true
+        // 選択中の表示を切り替える。選択中はアイコンを拡大する
+        // 味方のアイコンは回転で左右反転しているため、アイコン自体ではなく親の大きさを変える
         public void SetFocused(bool aFocused)
         {
-            if (mFocusFrame != null) mFocusFrame.SetActive(aFocused);
+            var iconRoot = mUnitIcon.transform.parent;
+            iconRoot.localScale = Vector3.one * (aFocused ? mFocusedIconScale : 1f);
         }
 
         // 攻撃モーションを再生する
@@ -158,14 +161,14 @@ namespace PPCore
 
         /* イベントハンドラ */
 
-        // フォーカスを得たときに枠を出して通知する
+        // フォーカスを得たときに選択中の表示にして通知する
         public void OnSelect(BaseEventData _)
         {
             SetFocused(true);
             OnSelected?.Invoke(this);
         }
 
-        // フォーカスを失ったときに枠を消して通知する
+        // フォーカスを失ったときに選択中の表示を戻して通知する
         public void OnDeselect(BaseEventData _)
         {
             SetFocused(false);
