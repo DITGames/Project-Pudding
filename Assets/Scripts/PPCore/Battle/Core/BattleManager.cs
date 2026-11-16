@@ -178,17 +178,7 @@ namespace PPCore
             command.Source.Actions.Consume();
             OnPostCommand?.Invoke(command.Source, command);
 
-            // ステートマシンをリザルトチェックに移行
-            // 演出を入れる場合演出終了をリッスンしてそのあとにチェックするほうがよさそう
-            StateMachine.TransitionTo(BattleState.ResultCheck);
-            CheckBattleResult();
-
-            // 決着していなければ次のコマンド入力を受け付ける
-            if (StateMachine.Current != BattleState.BattleEnd)
-            {
-                StateMachine.TransitionTo(BattleState.CommandInput);
-            }
-
+            FinishCommand();
             return true;
         }
 
@@ -248,10 +238,21 @@ namespace PPCore
             command.Source.Actions.Consume();
             OnPostCommand?.Invoke(command.Source, command);
 
+            FinishCommand();
+        }
+
+        // コマンド 1 件の実行後に勝敗を判定し、決着していなければコマンド入力へ戻す
+        // 実行中の撃破で既に決着している場合は、終了状態を上書きして終了処理を二重に呼ばないよう何もしない
+        protected virtual void FinishCommand()
+        {
+            if (StateMachine.Current == BattleState.BattleEnd) return;
+
             StateMachine.TransitionTo(BattleState.ResultCheck);
             CheckBattleResult();
-            if(StateMachine.Current != BattleState.BattleEnd)
+            if (StateMachine.Current != BattleState.BattleEnd)
+            {
                 StateMachine.TransitionTo(BattleState.CommandInput);
+            }
         }
 
         // キューが空になるかバトルが終了するまで、演出待ちを挟みながら連続実行する（async 版）
