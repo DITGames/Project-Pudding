@@ -166,9 +166,11 @@ namespace PPCore
             mTickCoroutine = StartCoroutine(AdvanceTick());
         }
 
-        // コマンド選択・オートバトルの各ボタン押下を監視し、味方の操作モードを切り替える
+        // バトル専用の時計を進め、コマンド選択・オートバトルの各ボタン押下に応じて味方の操作モードを切り替える
         void Update()
         {
+            mBattleManager.AdvanceTime(Time.deltaTime);
+
             if (IsCommandInputPressed())
             {
                 // 手動モードへ切り替える。オートバトル中なら思考を止めてから入力を開始する

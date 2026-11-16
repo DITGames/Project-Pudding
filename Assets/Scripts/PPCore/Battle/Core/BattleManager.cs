@@ -125,6 +125,8 @@ namespace PPCore
         protected virtual void EndBattle(BattleResult aResult)
         {
             ActionQueue.Clear();
+            // 決着後に秒数で決まる処理が発火しないよう、待っているタイマーも破棄する
+            Context.Timers.CancelAll();
             StateMachine.TransitionTo(BattleState.BattleEnd);
             Log(aResult.Type == BattleResultType.Escaped ? BattleLogType.Escape : BattleLogType.Custom, null, null,
                 $"Battle ended: {aResult.Type}");
@@ -310,6 +312,17 @@ namespace PPCore
             {
                 source.NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Attacked, Context);
             }
+        }
+
+        /* 時間進行 */
+
+        // バトル専用の時計を進め、期限が来たタイマーを発火する。時計の停止中とバトル終了後は何もしない
+        public virtual void AdvanceTime(float aDeltaTime)
+        {
+            if (Context == null || StateMachine.Current == BattleState.BattleEnd) return;
+            if (Context.Clock.Advance(aDeltaTime) <= 0f) return;
+
+            Context.Timers.AdvanceTo(Context.Clock.Now);
         }
 
         /* ターン進行 */

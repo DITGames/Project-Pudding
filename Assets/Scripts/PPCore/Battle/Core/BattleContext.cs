@@ -49,6 +49,10 @@ namespace PPCore
         public bool EscapeRequested { get; set; }
         // 経過ターン数。BattleManager.AdvanceTick で加算される
         public int TurnCount { get; set; }
+        // バトル専用の時計。BattleManager.AdvanceTime で進み、停止中は進まない
+        public PPBattleClock Clock { get; } = new();
+        // バトル専用の時計で発火するタイマー。クールタイムや状態異常など秒で決まる処理を予約する
+        public PPBattleTimerScheduler Timers { get; } = new();
         // 実行中のコマンド。BattleManager がコマンドの効果を実行している間だけ設定し、それ以外は null
         // リアクション情報の引き継ぎや、発生元コマンドを辿る用途に使う
         public BattleCommandBase ExecutingCommand { get; protected internal set; }
