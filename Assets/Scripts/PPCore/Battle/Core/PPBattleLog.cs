@@ -35,8 +35,7 @@ namespace PPCore
     }
 
     // バトルログ 1 行分のエントリ
-    // 表示用の文言だけでなく関係ユニットの参照も持つため、
-    // ログから対象を辿った演出やデバッグ表示にも使える
+    // 関係ユニットの参照も持つため、演出やデバッグ表示にも使える
     public record BattleLogEntry
     {
         // ログ種別
@@ -50,11 +49,6 @@ namespace PPCore
         // 記録時刻。BattleManager.TimeProvider から取得した値
         public float TimeStamp { get; protected set; }
 
-        // aType : ログ種別
-        // aSource : 行動主体のユニット
-        // aTarget : 対象のユニット
-        // aDescription : ログ本文
-        // aTimeStamp : 記録時刻
         public BattleLogEntry(BattleLogType aType, BattleUnit aSource, BattleUnit aTarget, string aDescription,
             float aTimeStamp)
         {
@@ -114,8 +108,6 @@ namespace PPCore
         private const string BattleTag = "Battle";
 
         // BattleManager.Logger の差し込みと、ダメージ発生源・キャスト失敗の購読をまとめて行う
-        // aManager : ログを紐付けるバトルマネージャ
-        // aContext : スキル発動失敗イベント(OnCastFailed)を持つバトルコンテキスト
         public static void Bind(BattleManager aManager, BattleContext aContext)
         {
             aManager.Logger = new PPBattleCustomConsoleLogger();
@@ -139,7 +131,6 @@ namespace PPCore
 
         // ダメージ理由を解決できる場合だけ文字列を返す。解決できなければ null
         // スキル由来のダメージは発生元コマンドも持つため、通常攻撃の判定より先にスキルを見る
-        // aReason : DamageInfo.Reason に格納された発生理由
         private static string ResolveDamageReason(DamageReasonBase aReason) => aReason switch
         {
             AttackDamageReason { Skill: PPSkillDefinition skill } => skill.DisplayName,
@@ -149,9 +140,6 @@ namespace PPCore
         };
 
         // スキル発動失敗時に理由付きでログを出す
-        // aUnit : 発動しようとしたユニット
-        // aSkill : 発動しようとしたスキル
-        // aReason : 失敗理由
         private static void HandleCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)
         {
             CustomConsoleLog.Warning(BattleTag,

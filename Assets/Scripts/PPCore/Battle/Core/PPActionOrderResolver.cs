@@ -11,10 +11,8 @@ using System.Linq;
 
 namespace PPCore
 {
-    // 実行待ちの行動 1 件分
-    // 誰の行動かと、並び替えに使う優先度をコマンドと一緒に持つ
-    // 優先度はスキル定義から引くが、コマンドを実行するまで確定させたくないため、
-    // 積んだ時点の値をここへ焼き込んでおく
+    // 実行待ちの行動 1 件分。誰の行動かと、並び替えに使う優先度をコマンドと一緒に持つ
+    // 優先度は積んだ時点の値を焼き込んでおく
     public readonly struct PPPendingAction
     {
         // 行動するユニット
@@ -24,9 +22,6 @@ namespace PPCore
         // 並び替えに使う優先度
         public PPSkillActionPriority Priority { get; }
 
-        // aUnit : 行動するユニット
-        // aCommand : 実行するコマンド
-        // aPriority : 並び替えに使う優先度
         public PPPendingAction(PPBattleUnit aUnit, BattleCommandBase aCommand, PPSkillActionPriority aPriority)
         {
             Unit = aUnit;
@@ -36,9 +31,6 @@ namespace PPCore
 
         // コマンドから優先度を判定して 1 件分を組み立てる
         // スキルは定義側の設定に従い、通常攻撃など定義を持たない行動は「通常」として扱う
-        // aUnit : 行動するユニット
-        // aCommand : 実行するコマンド
-        // return : 組み立てられた行動
         public static PPPendingAction FromCommand(PPBattleUnit aUnit, BattleCommandBase aCommand)
         {
             var priority = PPSkillActionPriority.Normal;
@@ -56,29 +48,17 @@ namespace PPCore
     public interface IPPActionOrderResolver
     {
         // 行動を実行順に並べ替える
-        // aActions : 並べ替える行動
-        // aContext : 乱数やルールを引くバトルコンテキスト
-        // return : 先に実行する順に並べた行動
         List<PPPendingAction> ResolveOrder(IReadOnlyList<PPPendingAction> aActions, BattleContext aContext);
     }
 
-    // 標準の行動順リゾルバ
-    //
-    // 第 1 キーが優先度（先攻 → 通常 → 後攻）、第 2 キーが速度の降順
-    // 速度にはジッターを乗せられるようにしてあり、同速のユニット同士の順序が毎ティック入れ替わる
-    //
-    // ジッターは行動 1 件ごとに引く
-    // 1 ティックに複数回行動するユニットは、その行動それぞれが独立に順序へ割り込む形になる
-    // 乱数は行動するユニット自身の供給元を経由する（UnityEngine.Random は使わない）
+    // 標準の行動順リゾルバ。第 1 キーが優先度（先攻 → 通常 → 後攻）、第 2 キーが速度の降順
+    // 速度のジッターは行動 1 件ごとに、行動するユニット自身の乱数供給元から引く
     public class PPDefaultActionOrderResolver : IPPActionOrderResolver
     {
         // 速度に加算する揺らぎの最大値。0 なら揺らぎなしで純粋な速度順になる
         public float SpeedJitter { get; set; } = 0f;
 
         // 優先度と速度で行動を並べ替える
-        // aActions : 並べ替える行動
-        // aContext : 乱数やルールを引くバトルコンテキスト
-        // return : 先に実行する順に並べた行動
         public virtual List<PPPendingAction> ResolveOrder(IReadOnlyList<PPPendingAction> aActions,
             BattleContext aContext)
         {
@@ -98,9 +78,6 @@ namespace PPCore
         }
 
         // 行動 1 件分の速度を求める。ジッターが設定されていれば加算する
-        // aAction : 対象の行動
-        // aContext : 乱数を引くバトルコンテキスト
-        // return : 並び替えに使う速度
         protected virtual float ResolveSpeed(PPPendingAction aAction, BattleContext aContext)
         {
             float speed = aAction.Unit.Parameters.Speed.CurrentValue;
@@ -115,23 +92,17 @@ namespace PPCore
     public interface ITurnOrderResolver
     {
         // 現在の行動順を解決する
-        // aContext : バトルコンテキスト
-        // return : 先に行動する順に並べたユニットのリスト
         List<BattleUnit> ResolveOrder(BattleContext aContext);
     }
 
     // 速度パラメータの降順で行動順を決める標準実装
-    // SpeedJitter を設定すると速度に乱数の揺らぎが乗るため、
-    // 速度が同値のユニット同士の順序が毎ターン入れ替わるようになる
-    // 揺らぎはユニットごとの試行なので、それぞれ自分の乱数供給元から引く
+    // SpeedJitter を設定すると、ユニットごとの乱数供給元から引いた揺らぎが速度に乗る
     public class SpeedTurnOrderResolver : ITurnOrderResolver
     {
         // 速度に加算する揺らぎの最大値。0 なら揺らぎなしで純粋な速度順になる
         public float SpeedJitter { get; set; } = 0f;
 
         // 敵味方の生存アクティブメンバーをまとめ、速度（＋揺らぎ）の降順に並べて返す
-        // aContext : バトルコンテキスト
-        // return : 先に行動する順に並べたユニットのリスト
         public List<BattleUnit> ResolveOrder(BattleContext aContext)
         {
             var all = aContext.AllyParty.GetAliveActiveMembers()

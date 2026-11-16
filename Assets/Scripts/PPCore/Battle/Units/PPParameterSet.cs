@@ -11,11 +11,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ユニット 1 体分のパラメータ一式
-    // HP・攻撃・防御・速度をプロパティとして直接触れるようにしつつ、
-    // 同じ実体を ID 付きの辞書にも登録している
-    // 前者は通常の計算用、後者はエフェクトが「ID を指定してバフを掛ける」ための経路
-    // 最大 HP も修飾対象として辞書に入っているため、最大 HP 上昇バフが作れる
+    // ユニット 1 体分のパラメータ一式（HP・攻撃・防御・速度）
+    // プロパティとして直接触れるほか、エフェクトが ID を指定して修飾できるよう辞書にも登録している
     public class ParameterSet
     {
         // 最大 HP のパラメータ ID
@@ -39,10 +36,6 @@ namespace PPCore
         // ID から引くための登録テーブル。値はプロパティ側と同じ実体を指す
         protected readonly Dictionary<string, Parameter> mParameters = new();
 
-        // aMaxHp : 最大 HP
-        // aAttack : 攻撃力
-        // aDefense : 防御力
-        // aSpeed : 速度
         public ParameterSet(float aMaxHp, float aAttack, float aDefense, float aSpeed)
         {
             Hp = new ResourceParameter(aMaxHp);
@@ -57,9 +50,6 @@ namespace PPCore
 
         // パラメータを ID 付きで登録し、そのまま返すヘルパー
         // 登録と代入を 1 行で書けるようにするためのもの
-        // aKey : パラメータ ID
-        // aParameter : 登録するパラメータ
-        // return : 渡されたパラメータをそのまま返す
         protected Parameter RegisterModifiable(string aKey, Parameter aParameter)
         {
             mParameters[aKey] = aParameter;
@@ -67,8 +57,6 @@ namespace PPCore
         }
 
         // ID からパラメータを取得する
-        // aKey : パラメータ ID
-        // return : 該当パラメータ。未登録なら null
         public Parameter Get(string aKey)
         {
             return mParameters.TryGetValue(aKey, out var aParameter) ? aParameter : null;
@@ -79,7 +67,6 @@ namespace PPCore
 
         // すべてのパラメータから、指定した付与元の修飾子を除去する
         // エフェクトが複数パラメータへバフを撒いている場合、解除時にこれ 1 回で剥がせる
-        // aSource : 付与元
         public void RemoveModifiersFromSource(object aSource)
         {
             foreach (var param in mParameters.Values)
@@ -99,12 +86,8 @@ namespace PPCore
         Coin,
     }
 
-    // 本作固有の追加パラメータ一式
-    // 基底の ParameterSet を継承せず、PPBattleUnit.ExtraParameters として
-    // 別に持たせる構成。基本パラメータとは独立して修飾子を掛けられる
-    // ID から引く仕組みは ParameterSet と同じで、PPBattleUnit.ResolveParameter が両方をまたいで解決する
-    // 行動リソース（スキルゲージ・コインゲージ）はユニットごとに専有する
-    // パーティ共有のリソースプールは持たず、支払いは必ず行動するユニット自身のゲージから行う
+    // 追加パラメータ一式。PPBattleUnit.ExtraParameters として ParameterSet とは別に持ち、ResolveParameter が両方をまたいで解決する
+    // 行動リソース（スキルゲージ・コインゲージ）はユニットごとに専有し、支払いは行動するユニット自身のゲージから行う
     public class PPParameterSet
     {
         // 通常攻撃コストのパラメータ ID
@@ -120,9 +103,7 @@ namespace PPCore
         // 通常攻撃 1 回あたりの消費コインゲージ量。バフで増減しうる
         public Parameter AttackCost { get; }
 
-        // 1 ティックあたりに行動できる回数。Parameter で持つことで、
-        // 既存のパラメータ変動エフェクトでそのまま増減させられる
-        // 実際の消費・リセットは基底の ActionBudget が担うため、
+        // 1 ティックあたりに行動できる回数。Parameter で持つため、パラメータ変動エフェクトで増減させられる
         // この値は PPBattleUnit.UnitTick が ActionBudget.Max へ同期する
         public Parameter ActionCount { get; }
 
@@ -140,11 +121,6 @@ namespace PPCore
         // ResourceParameter は Parameter を継承しないため、ゲージ 2 種はここに含まれない
         protected readonly Dictionary<string, Parameter> mParameters = new();
 
-        // aAttackCost : 通常攻撃コストの初期値
-        // aActionCount : 行動回数上限の初期値。1 未満が渡された場合は 1 に丸める
-        // aSkillGaugeMax : スキルゲージの上限
-        // aCoinGaugeMax : コインゲージの上限
-        // aDexterity : きようさの育成値（レベル成長を反映した値）
         public PPParameterSet(float aAttackCost, int aActionCount, float aSkillGaugeMax, float aCoinGaugeMax, float aDexterity)
         {
             AttackCost = RegisterModifiable(ParameterIdAttackCost, new Parameter(aAttackCost));
@@ -156,15 +132,11 @@ namespace PPCore
         }
 
         // 種別に対応するゲージを取得する
-        // aKind : 取得するゲージの種別
-        // return : 該当するゲージ
         public ResourceParameter Gauge(PPGaugeKind aKind)
             => aKind == PPGaugeKind.Skill ? SkillGauge : CoinGauge;
 
         // 残量 0 のゲージを生成する
         // ResourceParameter は上限で満タン初期化されるため、生成直後に上限分を削って 0 から始める
-        // aMax : ゲージの上限。負値は 0 に丸める
-        // return : 残量 0 のゲージ
         protected static ResourceParameter CreateEmptyGauge(float aMax)
         {
             float max = Mathf.Max(0f, aMax);
@@ -174,9 +146,6 @@ namespace PPCore
         }
 
         // パラメータを ID 付きで登録し、そのまま返すヘルパー
-        // aKey : パラメータ ID
-        // aParameter : 登録するパラメータ
-        // return : 渡されたパラメータをそのまま返す
         protected Parameter RegisterModifiable(string aKey, Parameter aParameter)
         {
             mParameters[aKey] = aParameter;
@@ -184,8 +153,6 @@ namespace PPCore
         }
 
         // ID からパラメータを取得する
-        // aKey : パラメータ ID
-        // return : 該当パラメータ。未登録なら null
         public Parameter Get(string aKey)
         {
             return mParameters.TryGetValue(aKey, out Parameter aParameter) ? aParameter : null;

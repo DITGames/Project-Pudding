@@ -24,9 +24,7 @@ namespace PPCore
     }
 
     // 攻撃力・防御力といった、修飾子で増減する単一のパラメータ
-    // 恒久的な基礎値と、バフ・デバフの修飾子リストを分けて持つのが要点
-    // 現在値は修飾子から都度再計算されるため、バフを剥がせば必ず元の値に戻る
-    // （現在値を直接いじる作りにしないことで、バフの掛け外しで値がずれるのを防いでいる）
+    // 基礎値と修飾子リストを分けて持ち、現在値は都度再計算するため、バフを剥がせば必ず元の値に戻る
     public class Parameter : IReadableParameter
     {
         // 恒久的な値。修飾子の影響を受けない素の値
@@ -38,8 +36,7 @@ namespace PPCore
         public event Action<IReadableParameter> OnValueChanged;
 
         // 基礎値。レベルアップなど恒久的な変化はこちらを書き換える
-        // なお設定しただけでは再計算されないため、必要なら RecalculateCurrentValue を呼ぶ
-        // （設定と再計算をまとめて行う場合は SetBaseValue を使う）
+        // 設定しただけでは再計算されない（まとめて行う場合は SetBaseValue を使う）
         public float BaseValue
         {
             get => mBaseValue;
@@ -60,15 +57,11 @@ namespace PPCore
         }
 
         // 割合の合計値を倍率へ変換する（+20% と +30% の合計 0.5 → 1.5 倍）
-        // 倍率は 0 未満に丸めるため、減少が 100% を超えても値が負になることはない
-        // 割合加算の修飾子に限らず、同じ規則で倍率を求めたい呼び出し側からも使えるよう公開している
-        // aRatioSum : 割合の合計値。補正なしは 0
-        // return : 0 以上の倍率
+        // 倍率は 0 未満にならないよう丸める
         public static float RatioSumToMultiplier(float aRatioSum) => Mathf.Max(0f, 1f + aRatioSum);
 
         // 基礎値を設定し、そのまま現在値を再計算して変化を通知する
         // BaseValue の setter は再計算しないため、設定と再計算を 1 回で済ませたい場合はこちらを使う
-        // aValue : 新しい基礎値
         public void SetBaseValue(float aValue)
         {
             mBaseValue = aValue;
@@ -95,7 +88,6 @@ namespace PPCore
 
         // 指定した付与元から掛かっている修飾子をまとめて外す
         // 1 つのエフェクトが複数パラメータへ修飾子を撒いている場合の一括解除に使う
-        // aSource : 付与元。参照比較で照合する
         public void RemoveModifiersFromSource(object aSource)
         {
             int removed = mModifiers.RemoveAll(m => ReferenceEquals(m.Source, aSource));
@@ -105,9 +97,8 @@ namespace PPCore
             }
         }
 
-        // 基礎値と全修飾子から現在値を計算し直し、変化を通知する
-        // Override が 1 つでもあれば優先度最上位の値で確定し、無ければ
-        // (基礎値 + 加算の合計) × max(0, 1 + 割合の合計) × 乗算の総乗 で求める
+        // 基礎値と全修飾子から現在値を計算し直し、変化を通知する。Override があれば優先度最上位の値で確定し、
+        // 無ければ (基礎値 + 加算の合計) × max(0, 1 + 割合の合計) × 乗算の総乗 で求める
         public void RecalculateCurrentValue()
         {
             // オーバーライドタイプを優先する
@@ -134,10 +125,8 @@ namespace PPCore
         }
     }
 
-    // HP や MP など、実行中に消費・回復される値を表すパラメータ
-    // 上限値そのものを Parameter として持つため、最大 HP にもバフを掛けられる
-    // 上限が下がった場合は現在値がはみ出さないよう自動で切り詰める
-    // 現在値は常に 0 ～ 上限に丸められる
+    // HP や MP など、実行中に消費・回復される値を表すパラメータ。現在値は常に 0 ～ 上限に丸められる
+    // 上限値を Parameter として持つため、最大 HP にもバフを掛けられる
     public class ResourceParameter : IReadableParameter
     {
         // 上限値。これ自体が修飾子を受け付ける Parameter
@@ -155,7 +144,6 @@ namespace PPCore
 
         // 上限値を指定して生成する。現在値は満タンから始まる
         // 上限の変化を購読し、上限が下がった際に現在値を追従させる
-        // aMax : 上限値の初期値
         public ResourceParameter(float aMax)
         {
             Max = new Parameter(aMax);
@@ -185,8 +173,6 @@ namespace PPCore
         }
 
         // 足りている場合のみ消費する。足りなければ現在値を変えずに失敗を返す
-        // aAmount : 消費量
-        // return : 消費できた場合 true
         public bool TryConsume(float aAmount)
         {
             if (Current < aAmount) return false;
@@ -196,7 +182,6 @@ namespace PPCore
 
         // 現在値を 0 ～ 上限に丸めて設定し、変化を通知する
         // 増減系メソッドは全てここを経由するので、範囲外の値が入ることはない
-        // aValue : 設定したい値
         public void SetCurrent(float aValue)
         {
             Current = Mathf.Clamp(aValue, 0f, Max.CurrentValue);
@@ -204,10 +189,8 @@ namespace PPCore
         }
     }
 
-    // パラメータ修飾子の適用方式
-    // Parameter.RecalculateCurrentValue では Override が最優先され、無い場合に
-    // 「(基礎値 + Add の合計) × max(0, 1 + Percent の合計) × Multiply の総乗」で現在値を求める
-    // シリアライズ済みアセットは整数値で保持しているため、要素の追加は必ず末尾に行うこと
+    // パラメータ修飾子の適用方式。Override が最優先で、無い場合は Add → Percent → Multiply の順に適用する
+    // アセットへ整数値で保存されるため、要素の追加は必ず末尾に行うこと
     public enum ParameterModifierType
     {
         // 基礎値に加算する。同種は合計される
@@ -225,9 +208,8 @@ namespace PPCore
         Percent,
     }
 
-    // パラメータへ掛かる 1 件分の修飾子（バフ・デバフ・パッシブ補正など）
-    // 生成後は変更されない不変オブジェクト。付与元を Source に持たせることで、
-    // エフェクト解除時に Parameter.RemoveModifiersFromSource でまとめて剥がせるようにしている
+    // パラメータへ掛かる 1 件分の修飾子（バフ・デバフ・パッシブ補正など）。生成後は変更されない
+    // 付与元を Source に持ち、Parameter.RemoveModifiersFromSource でまとめて剥がせる
     public sealed class ParameterModifier
     {
         // 適用方式（加算・乗算・上書き・割合加算）
@@ -239,10 +221,6 @@ namespace PPCore
         // Override 同士が競合したときの優先度。高い方が採用される
         public int Priority { get; }
 
-        // aType : 適用方式
-        // aSource : 付与元
-        // aValue : 修飾値
-        // aPriority : Override 競合時の優先度
         public ParameterModifier(ParameterModifierType aType, object aSource, float aValue, int aPriority = 0)
         {
             Type = aType;

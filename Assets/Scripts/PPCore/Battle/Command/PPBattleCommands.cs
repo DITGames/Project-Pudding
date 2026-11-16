@@ -13,10 +13,8 @@ using CustomConsole;
 
 namespace PPCore
 {
-    // バトル中の 1 行動を表すコマンドの基底クラス
-    // 「誰が」（Source）「誰を狙って」（TargetResolver）行動するかだけを持ち、
-    // 実際の効果は派生クラスの Execute が実装する
-    // 生成されたコマンドは ActionQueue に積まれ、BattleManager が順に実行する
+    // バトル中の 1 行動を表すコマンドの基底クラス。行動者（Source）と対象の決め方（TargetResolver）を持つ
+    // 効果は派生クラスの Execute が実装し、ActionQueue に積まれて BattleManager が順に実行する
     public abstract class BattleCommandBase
     {
         // このコマンドを実行するユニット
@@ -53,8 +51,7 @@ namespace PPCore
     // ダメージ計算式は DamageFormula として差し替え可能な static デリゲートにしてある
     public class AttackCommand : BattleCommandBase
     {
-        // 通常攻撃のダメージ計算式（攻撃側, 防御側）
-        // 既定は「攻撃力 - 防御力 × 0.5」で、最低 1 ダメージを保証する
+        // 通常攻撃のダメージ計算式（攻撃側, 防御側）。既定は「攻撃力 - 防御力 × 0.5」で最低 1 ダメージ
         // static なので差し替えるとゲーム全体に効く
         public static Func<BattleUnit, BattleUnit, float> DamageFormula { get; set; } =
             (src, tgt) =>
@@ -68,9 +65,7 @@ namespace PPCore
         public AttackCommand(BattleUnit aSource, ITargetResolver aResolver) : base(aSource, aResolver) {}
 
         // 対象ごとにダメージ情報を組み立て、命中判定 → クリティカル補正 → 適用の順に処理する
-        // ミスの場合はダメージ量を 0 に落としたうえで適用まで通し、
-        // 「外れた」という結果を購読側へ届ける
-        // aContext : 実行時のバトルコンテキスト
+        // ミスの場合もダメージ量 0 で適用まで通し、外れた結果を購読側へ届ける
         public override void Execute(BattleContext aContext)
         {
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
@@ -102,21 +97,14 @@ namespace PPCore
         // 使用するスキル
         public BattleSkill Skill { get; }
 
-        // aSource : スキルを使用するユニット
-        // aSkill : 使用するスキル
-        // aResolverOverride : 対象を明示指定する場合のリゾルバ。null ならスキル既定を使う
         public SkillCommand(BattleUnit aSource, BattleSkill aSkill, ITargetResolver aResolverOverride = null)
             : base(aSource, aResolverOverride ?? aSkill.DefaultTargetResolver)
         {
             Skill = aSkill;
         }
 
-        // 対象解決 → 発動可否検証 → スキル実行 → 使用記録の順に処理する
-        // 対象不在または発動条件を満たさない場合は理由付きで通知して中止する
-        // 対象は冒頭で 1 回だけ解決し、その結果をそのままスキルへ渡す
-        // リゾルバを再度直接呼ぶと BattleContext.ResolveTargets を経由せず
-        // ITargetFilter が適用されないため、解決は 1 回に統一すること
-        // aContext : 実行時のバトルコンテキスト
+        // 対象解決 → 発動可否検証 → スキル実行 → 使用記録の順に処理し、失敗時は理由付きで通知して中止する
+        // 対象の解決は冒頭の 1 回に統一する（リゾルバを直接呼ぶと ITargetFilter が適用されない）
         public override void Execute(BattleContext aContext)
         {
             // 先にターゲット解決
@@ -141,14 +129,11 @@ namespace PPCore
         }
     }
 
-    // アイテムの効果本体。アイテム定義はコア層では型を決めないため、
+    // アイテムの効果本体。アイテム定義の型は決めていないため、
     // 使用時の振る舞いだけをこのインターフェースで受け取る
     public interface IItemEffect
     {
         // アイテムを使用する
-        // aSource : 使用者
-        // aTargets : 解決済みの対象リスト
-        // aContext : バトルコンテキスト
         void Use(BattleUnit aSource, System.Collections.Generic.List<BattleUnit> aTargets, BattleContext aContext);
     }
 
@@ -158,9 +143,6 @@ namespace PPCore
         // 使用するアイテムの効果
         public IItemEffect Item { get; }
 
-        // aSource : アイテムを使用するユニット
-        // aItem : 使用するアイテムの効果
-        // aResolver : 対象を決めるリゾルバ
         public ItemCommand(BattleUnit aSource, IItemEffect aItem, ITargetResolver aResolver) : base(aSource, aResolver)
             => Item = aItem;
 
@@ -204,7 +186,6 @@ namespace PPCore
 
         // 逃走を試みる。逃走不可の状態異常が掛かっている場合、
         // および判定に失敗した場合はフラグを立てず何も起こらない
-        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
         {
             if ((Source.CurrentRestrictions & ActionRestriction.CannotEscape) != 0) return;
@@ -221,13 +202,8 @@ namespace PPCore
         public float AttackCost { get; }
     }
 
-    // コインゲージを消費する通常攻撃コマンド
-    // 基底の AttackCommand との違いは 3 点
-    // 1. 属性相性を含む本作のダメージ計算（PPDamageUtility）を使う
-    // 2. 実行時に発動者自身のコインゲージを消費し、支払えなければ攻撃しない
-    // 3. 攻撃が成立した場合、ルールで定めた量だけ発動者のスキルゲージを回復する
-    // ダメージは先に全対象分を計算しておき、コストを支払えた場合にのみまとめて適用する
-    // 支払い失敗時に一部の対象だけダメージが入る状態を避けるための順序
+    // コインゲージを消費する通常攻撃コマンド。属性相性を含むダメージ計算（PPDamageUtility）を使い、成立時はスキルゲージを回復する
+    // ダメージは先に全対象分を計算し、コストを支払えた場合にのみまとめて適用する
     public class PPAttackCommand : AttackCommand, IPPBattleCommand
     {
         // この攻撃に必要なコインゲージ量。生成時点の攻撃コストで固定される
@@ -243,9 +219,7 @@ namespace PPCore
         }
 
         // 対象ごとにダメージを算出したうえで、コインゲージを消費できた場合のみ適用する
-        // 発動可否は AI 側でも確認されるが、キューに積んでから実行するまでに残量が変わりうるため、
-        // ここでも支払いの成否を見る
-        // aContext : 実行時のバトルコンテキスト
+        // キューに積んでから実行までに残量が変わりうるため、ここでも支払いの成否を見る
         public override void Execute(BattleContext aContext)
         {
             if (Source is not PPBattleUnit ppSource)
@@ -279,8 +253,6 @@ namespace PPCore
 
         // 通常攻撃の成立に伴うスキルゲージ回復を行う
         // 回復量は拡張ルール側にしか無いため、差し込まれている場合のみ回復する
-        // aSource : 攻撃したユニット
-        // aContext : 実行時のバトルコンテキスト
         protected virtual void RecoverSkillGauge(PPBattleUnit aSource, BattleContext aContext)
         {
             if (aContext.Rules is not PPBattleRules rules) return;
@@ -293,10 +265,7 @@ namespace PPCore
     }
 
     // 発動者自身のスキルゲージ消費を伴うスキルコマンド
-    // 基底の SkillCommand との違いは、実行前に PPSkillDefinition.SkillGaugeCost を
-    // 発動者のスキルゲージから支払う点
-    // 対象不在・発動条件不成立・ゲージ不足のいずれかで発動を中止し、
-    // それぞれ理由付きで BattleContext.NotifyCastFailed を通知する
+    // 対象不在・発動条件不成立・ゲージ不足のいずれかで中止し、理由付きで NotifyCastFailed を通知する
     public class PPSkillCommand : SkillCommand
     {
         // 攻撃系統のスキルのみ「攻撃時」のスタック消費のきっかけとして扱う
@@ -304,18 +273,13 @@ namespace PPCore
         public override bool IsAttack
             => Skill?.SourceDefinition is PPSkillDefinition definition && definition.Group == PPSkillGroup.Attack;
 
-        // aSource : スキルを使用するユニット
-        // aSkill : 使用するスキル
-        // aResolverOverride : 対象を明示指定する場合のリゾルバ。null ならスキル既定を使う
         public PPSkillCommand(BattleUnit aSource, BattleSkill aSkill, ITargetResolver aResolverOverride = null)
             : base(aSource, aSkill, aResolverOverride)
         {
         }
 
-        // スキルを発動する
-        // 対象解決 → 発動可否検証 → スキルゲージ支払い → スキル効果実行 → 使用記録、の順に進み、
+        // スキルを発動する。対象解決 → 発動可否検証 → スキルゲージ支払い → 効果実行 → 使用記録の順に進む
         // いずれかの段階で失敗した場合はゲージを消費せずに中止する
-        // aContext : 実行時のバトルコンテキスト
         public override void Execute(BattleContext aContext)
         {
             // 対象が 1 体も解決できなければ発動しない

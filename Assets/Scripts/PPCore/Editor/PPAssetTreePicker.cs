@@ -15,9 +15,7 @@ using UnityEngine;
 namespace PPCore
 {
     // アセットを選ぶためのポップアップ。検索欄付きのツリービューを表示する
-    // 標準のオブジェクトピッカーはアセット名しか出せないため、
-    // 「戦術名 : 説明」のように中身が分かる表示で選ばせたい場合にこちらを使う
-    // 型を選ぶ PPTypeTreePickerPopup と操作感を揃えてある
+    // 「名前 : 説明」のように中身が分かる表示で選ばせたい場合に使う
     public sealed class PPAssetTreePickerPopup : PopupWindowContent
     {
         // アセットが選ばれたときに呼ぶコールバック
@@ -31,10 +29,6 @@ namespace PPCore
         // ポップアップの表示サイズ
         private readonly Vector2 mWindowSize;
 
-        // aEntries : ツリーに並べる候補
-        // aEmptyMessage : 候補が 1 つも無い場合に表示する文言
-        // aWindowSize : ポップアップの表示サイズ
-        // aOnSelected : アセットが選ばれたときに呼ぶコールバック
         private PPAssetTreePickerPopup(IReadOnlyList<PPAssetPickerEntry> aEntries, string aEmptyMessage,
             Vector2 aWindowSize, Action<UnityEngine.Object> aOnSelected)
         {
@@ -45,11 +39,6 @@ namespace PPCore
         }
 
         // プロジェクト内の指定型アセットを候補にしてポップアップを表示する
-        // aActivatorRect : ポップアップを出す基準の矩形
-        // aEntryBuilder : アセットからフォルダ階層と表示名を決める関数
-        // aEmptyMessage : 候補が 1 つも無い場合に表示する文言
-        // aOnSelected : アセットが選ばれたときに呼ぶコールバック
-        // aWindowSize : ポップアップの表示サイズ。説明文まで出す場合は幅を広めに取る
         public static void ShowAssets<T>(Rect aActivatorRect, Func<T, (string FolderPath, string Label)> aEntryBuilder,
             string aEmptyMessage, Action<T> aOnSelected, Vector2 aWindowSize = default)
             where T : UnityEngine.Object
@@ -85,8 +74,7 @@ namespace PPCore
     }
 
     // ツリーに並べるアセット 1 件分の情報
-    // フォルダ階層と葉の表示名を分けて持つのは、葉の表示名に "/" が混ざっても
-    // 意図しない階層に分解されないようにするため（説明文をそのまま葉に出す用途がある）
+    // 葉の表示名に "/" が混ざっても階層に分解されないよう、フォルダ階層と表示名を分けて持つ
     internal readonly struct PPAssetPickerEntry
     {
         // 選択されたときに返すアセット
@@ -96,9 +84,6 @@ namespace PPCore
         // 葉に表示する文字列
         public string Label { get; }
 
-        // aAsset : 選択されたときに返すアセット
-        // aFolderPath : "/" 区切りのフォルダ階層。階層不要なら空文字
-        // aLabel : 葉に表示する文字列
         public PPAssetPickerEntry(UnityEngine.Object aAsset, string aFolderPath, string aLabel)
         {
             Asset = aAsset;
@@ -108,9 +93,6 @@ namespace PPCore
     }
 
     // プロジェクト内のアセットをツリーに表示する汎用ビュー
-    // 型を並べる PPTypeTreePickerTreeView に対して、こちらは「アセット」を並べる
-    // スキルタグ・戦術のように、素のオブジェクトフィールドだと
-    // 全アセットが平坦に並んで探しづらいものの選択に使う
     internal sealed class PPAssetTreePickerTreeView : TreeView<int>
     {
         // ツリーに並べる候補
@@ -124,10 +106,6 @@ namespace PPCore
         // フォルダノードに割り当てる次の ID。葉と衝突しないよう負方向へ進める
         private int mNextFolderId = -2;
 
-        // aState : ツリーの展開状態を保持する状態オブジェクト
-        // aEntries : ツリーに並べる候補
-        // aEmptyMessage : 候補が 1 つも無い場合に表示する文言
-        // aOnPickAsset : アセットが選ばれたときのコールバック
         public PPAssetTreePickerTreeView(TreeViewState<int> aState, IReadOnlyList<PPAssetPickerEntry> aEntries,
             string aEmptyMessage, Action<UnityEngine.Object> aOnPickAsset) : base(aState)
         {
@@ -140,8 +118,6 @@ namespace PPCore
 
         // プロジェクト内の指定型アセットを集めて候補リストを作る
         // 並びが安定しないとツリーの見た目が開くたびに変わるため、フォルダ＋表示名で整列させる
-        // aEntryBuilder : アセットからフォルダ階層と表示名を決める関数
-        // return : 整列済みの候補リスト
         public static List<PPAssetPickerEntry> Collect<T>(Func<T, (string FolderPath, string Label)> aEntryBuilder)
             where T : UnityEngine.Object
         {
@@ -166,7 +142,6 @@ namespace PPCore
 
         // ツリーを構築する
         // フォルダ階層を掘りながら葉を追加する。葉の表示名は分解せずそのまま使う
-        // return : 構築されたルートノード
         protected override TreeViewItem<int> BuildRoot()
         {
             var root = new TreeViewItem<int>(-1, -1, "root");
@@ -220,8 +195,6 @@ namespace PPCore
         }
 
         // エディタ組み込みアイコンを名前で取得する
-        // aName : アイコン名
-        // return : 取得したテクスチャ。見つからなければ null
         private static Texture2D LoadIcon(string aName)
         {
             var content = EditorGUIUtility.IconContent(aName);

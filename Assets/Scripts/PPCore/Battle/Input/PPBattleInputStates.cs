@@ -12,12 +12,8 @@ using UnityEngine.EventSystems;
 
 namespace PPCore
 {
-    // メニュー UI を表示する入力ステートの共通実装
-    // コマンド選択・スキル選択のように「選択中ユニットの隣にメニューを出す」系のステートが継承する
-    // ライフサイクル（表示 → 購読 → 退避 → 破棄）の流れを固定し、
-    // 派生側は表示・非表示・購読・購読解除の 4 つだけを実装すればよいようにしてある
-    // 退避と破棄はどちらも「UI を閉じて購読を切る」だけなので同じ処理を共有する
-    // 戻ってきた際は Resume が選択途中の内容をリセットしてから開き直す
+    // メニュー UI を表示する入力ステートの共通実装。派生側は表示・非表示・購読・購読解除の 4 つを実装する
+    // 退避と破棄は同じ処理を共有し、Resume は選択途中の内容をリセットしてから開き直す
     public abstract class PPBattleMenuStateBase : IPPBattleInputState
     {
         // このステートを保持する入力コントローラー
@@ -27,8 +23,6 @@ namespace PPCore
         protected PPBattleMenuStateBase(PPBattleCommandInputController aOwner) => mOwner = aOwner;
 
         // メニュー UI を表示する
-        // aUnit : 選択中のユニット
-        // aAnchor : メニューを配置する位置の基準。ビューが無い場合は null
         protected abstract void ShowView(BattleUnit aUnit, RectTransform aAnchor);
         // メニュー UI を隠す
         protected abstract void HideView();
@@ -68,10 +62,7 @@ namespace PPCore
     }
 
     // 盤上のユニットを直接選ばせる入力ステートの共通実装
-    // 行動するユニットの選択と、スキルの対象選択が継承する
-    // メニューを出すのではなく、候補ユニットのビュー自体を選択可能にして決定イベントを購読する方式
     // 派生側は「候補は誰か」と「決まったら何をするか」の 2 つだけを実装する
-    // 選択可能化・購読・先頭要素へのフォーカス設定・後始末はここが引き受ける
     public abstract class PPBattleUnitPickerStateBase : IPPBattleInputState
     {
         // このステートを保持する入力コントローラー
@@ -86,8 +77,7 @@ namespace PPCore
         // aView : 決定されたユニットのビュー
         protected abstract void HandleDecided(PPBattleUnitView aView);
 
-        // 候補ユニットのビューを選択可能にして決定イベントを購読し、
-        // 先頭の候補にフォーカスを当てる（コントローラー操作の起点になる）
+        // 候補ユニットのビューを選択可能にして決定イベントを購読し、先頭の候補にフォーカスを当てる
         // ビューを持たない候補は読み飛ばす
         public virtual void Enter()
         {
@@ -138,8 +128,7 @@ namespace PPCore
         }
 
         // 味方陣営の生存アクティブメンバーのうち、まだ行動回数が残っているものを候補として返す
-        // 行動回数を使い切ったユニットはこのティックでは動かせないため、選択させない
-        // 基底が購読時と解除時の 2 回この結果を走査するため、遅延評価にせずリストとして確定させる
+        // 基底が 2 回走査するため、遅延評価にせずリストとして確定させる
         protected override IEnumerable<BattleUnit> Candidates()
         {
             var candidates = new List<BattleUnit>();
@@ -172,8 +161,6 @@ namespace PPCore
 
         // 選択中ユニットの隣にコマンドメニューを出す
         // スキルを 1 つも持たないユニットではスキル項目を出さない
-        // aUnit : 選択中のユニット
-        // aAnchor : メニューを配置する位置の基準
         protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
         {
             if (aAnchor != null)
@@ -205,8 +192,7 @@ namespace PPCore
         }
 
         // 通常攻撃を選んだときの処理
-        // 対象範囲を敵単体に固定し、対象が決まった時点でコマンドを組み立てられるよう
-        // ビルダーを仕込んでから対象選択へ進む
+        // 対象範囲を敵単体に固定し、コマンドビルダーを仕込んでから対象選択へ進む
         private void HandleAttack()
         {
             var unit = (PPBattleUnit)mOwner.Context.Unit;
@@ -234,8 +220,6 @@ namespace PPCore
 
         // 選択中ユニットの隣にスキルメニューを出す
         // コンテキストを渡すことで、メニュー側が発動可否を見て項目の有効・無効を切り替える
-        // aUnit : 選択中のユニット
-        // aAnchor : メニューを配置する位置の基準
         protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
         {
             if (aAnchor != null)
@@ -262,10 +246,8 @@ namespace PPCore
             mOwner.SkillMenu.OnBackRequested -= HandleBack;
         }
 
-        // スキルが選ばれたときの処理
-        // 定義からターゲット範囲を引いて選択内容へ記録し、コマンドビルダーを仕込む
+        // スキルが選ばれたときの処理。ターゲット範囲を記録し、コマンドビルダーを仕込む
         // 単体対象なら対象選択へ進み、全体・自己対象ならそのまま確定させる
-        // aSkill : 選択されたスキル
         private void HandleSkillSelected(BattleSkill aSkill)
         {
             var unit = mOwner.Context.Unit;
@@ -326,8 +308,6 @@ namespace PPCore
         }
 
         // 選択中ユニットの隣に詳細ビューを出す
-        // aUnit : 表示対象のユニット
-        // aAnchor : ビューを配置する位置の基準
         protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
         {
             if (aAnchor != null)

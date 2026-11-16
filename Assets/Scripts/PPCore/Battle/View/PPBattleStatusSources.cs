@@ -11,9 +11,7 @@ using System;
 namespace PPCore
 {
     // UI がユニットの表示情報を読み取るためのインターフェース
-    // View 側に BattleUnit を直接触らせず、
-    // 表示に必要な項目だけを露出させるための境界
-    // UI は Changed を購読して再描画すればよく、バトル側のどのイベントで値が変わるかを知る必要がない
+    // UI は Changed を購読して再描画する
     public interface IPPUnitStatusSource
     {
         // UI 表示名
@@ -28,8 +26,7 @@ namespace PPCore
     }
 
     // UI がスキルの表示情報を読み取るためのインターフェース
-    // スキル名とコストに加えて、ボタンを押せるかどうか（IsCastable）と
-    // 残クールダウンを露出させ、メニュー側が発動可否を自前で判定せずに済むようにする
+    // スキル名とコストに加えて、発動可否（IsCastable）と残クールダウンを露出させる
     public interface IPPSkillStatusSource
     {
         // UI 表示名
@@ -44,10 +41,8 @@ namespace PPCore
         event Action Changed;
     }
 
-    // BattleUnit を UI 向けの表示情報として見せるアダプタ
-    // 値を保持せず参照のたびに読み直し、HP と最大 HP の変化を購読して Changed へ中継する
-    // ユニットのパラメータを購読するため、UI を破棄する際は必ず Dispose を呼ぶこと
-    // 呼ばないとユニットが生きている限りこのアダプタが解放されない
+    // BattleUnit を UI 向けの表示情報として見せるアダプタ。HP と最大 HP の変化を購読して Changed へ中継する
+    // UI を破棄する際は必ず Dispose を呼ぶこと
     public class PPBattleUnitStatusSource : IPPUnitStatusSource, IDisposable
     {
         // 表示対象のユニット
@@ -89,11 +84,8 @@ namespace PPCore
         }
     }
 
-    // BattleSkill を UI 向けの表示情報として見せるアダプタ
-    // 発動可否は自前で判定せず ICastValidator へ委ねるため、
-    // UI の表示とコマンド実行時の判定が食い違わない
+    // BattleSkill を UI 向けの表示情報として見せるアダプタ。発動可否は ICastValidator へ委ねる
     // 購読するのは保持ユニット自身のスキルゲージだけ
-    // 他ユニットのゲージ増減で UI が再描画されるのを避けている
     public class PPBattleSkillStatusSource : IPPSkillStatusSource, IDisposable
     {
         // 表示対象のスキル
@@ -118,9 +110,7 @@ namespace PPCore
         // 残りクールダウンターン数
         public int CooldownRemaining => mSkill.RemainingCooldown;
         // 今このスキルを発動できるか
-        // クールダウン・使用回数・ゲージ残量の判定はバリデータへ委譲し、
-        // そのうえで「同じティックに既に予約した行動」で使う予定の分も差し引いて判定する
-        // 2 回目以降の予約で、払えないスキルがボタンとして押せてしまうのを防ぐ
+        // バリデータの判定に加えて、同じティックに既に予約した行動で使う予定の分も差し引く
         public bool IsCastable
         {
             get
@@ -132,10 +122,6 @@ namespace PPCore
             }
         }
 
-        // aSkill : 表示対象のスキル
-        // aOwner : このスキルを持つユニット
-        // aContext : バトルコンテキスト
-        // aLedger : このティックの予約を仮押さえしている台帳。未指定なら予約を考慮しない
         public PPBattleSkillStatusSource(BattleSkill aSkill, BattleUnit aOwner, BattleContext aContext,
             PPUnitActionLedger aLedger = null)
         {

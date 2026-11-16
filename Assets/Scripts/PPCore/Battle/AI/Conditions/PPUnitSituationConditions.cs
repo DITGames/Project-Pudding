@@ -13,8 +13,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // ユニット条件: このユニットの属性で弱点を突ける敵がいるか
-    // 「相性が良いときだけ大技を切る」といった判断に使う
-    // 判定は PPAttributeAffinity に委ね、相性表をここへ持ち込まない
+    // 相性の判定は PPAttributeAffinity に委ねる
     [Serializable]
     [PPTypeMenuName("戦況/弱点を突ける敵がいる")]
     public sealed class PPUnitCanExploitWeaknessCondition : PPUnitConditionValidator
@@ -24,9 +23,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 弱点を突ける敵が居るかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -50,10 +46,7 @@ namespace PPCore
     }
 
     // ユニット条件: 自分に対して有利な属性を持つ敵が生存しているか
-    //
-    // 弱点を突ける敵がいるか（PPUnitCanExploitWeaknessCondition）の裏返しにあたる条件で、
-    // 「相性の悪い相手が居るうちは守りに回る」「不利な相手から逃げる」といった判断に使う
-    // 判定は相性表を持つ PPAttributeAffinity に委ね、ここへ相性の知識を持ち込まない
+    // 相性の判定は PPAttributeAffinity に委ねる
     [Serializable]
     [PPTypeMenuName("戦況/不利属性の敵がいる")]
     public sealed class PPUnitDisadvantagedEnemyCondition : PPUnitConditionValidator
@@ -63,9 +56,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 自分を弱点として突ける敵が居るかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -90,13 +80,7 @@ namespace PPCore
     }
 
     // ユニット条件: 直近に自分へダメージを与えた敵が、自分に対して有利な属性か
-    //
-    // 「不利属性の敵がいる」との違いは、実際に自分が殴られているかどうかを見る点
-    // 相性の悪い相手が居ても狙われていなければ動かない、という書き分けができる
-    //
-    // 判定にはバトル中の見聞き（PPUnitAIBlackboard）が要る
-    // 思考ルーチンへバトルの参照が渡っていない場合は記録が無く、常に不成立になる
-    // 反射ダメージのように発生元を持たないダメージも加害者の記録に残らないため、判定に効かない
+    // PPUnitAIBlackboard の記録が無い場合や、発生元を持たないダメージでは成立しない
     [Serializable]
     [PPTypeMenuName("戦況/不利属性の敵に狙われている")]
     public sealed class PPUnitTargetedByDisadvantagedCondition : PPUnitConditionValidator
@@ -109,9 +93,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 直近の加害者が自分に対して有利な属性かを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -130,9 +111,6 @@ namespace PPCore
         }
 
         // 直近の加害者が不利属性かを調べる
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 不利属性の敵に狙われていれば true
         private bool IsTargetedByDisadvantaged(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             var blackboard = aSnapShot.GetBlackboard(aUnit);
@@ -148,8 +126,7 @@ namespace PPCore
     }
 
     // ユニット条件: このユニットの通常攻撃 1 回で倒しきれる敵がいるか
-    // 「とどめを刺せるならスキルを温存して殴る」という判断の入口に使う
-    // 見積もりに命中・クリティカルの乱数は含めないため、実際には落としきれないこともある
+    // 見積もりに命中・クリティカルの乱数は含めない
     [Serializable]
     [PPTypeMenuName("戦況/通常攻撃で倒せる敵がいる")]
     public sealed class PPUnitCanFinishEnemyCondition : PPUnitConditionValidator
@@ -159,9 +136,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 通常攻撃で倒せる敵が居るかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -184,16 +158,7 @@ namespace PPCore
     }
 
     // ユニット条件: 実行待ちの行動に、指定条件に合う敵の行動が積まれているか
-    //
-    // 「相手が大技を構えたら防御に回る」「回復を撃たれる前に潰す」といった、
-    // 相手の手を読んで動く判断のためのもの
-    //
-    // 行動はティック終了時にまとめて積まれるため、思考時点ではコマンド列が空になっている
-    // そのため判定にはバトルの進行役が握っている実行待ちの行動（IPPPendingActionSource）が要る
-    // 供給元が差し込まれていない場合は読む材料が無く、常に不成立になる
-    //
-    // 敵側の思考が自分より後に走った場合、その手はまだ計画に無い
-    // 「必ず読める」ものではなく「読めたときだけ反応する」条件として使うこと
+    // IPPPendingActionSource が無い場合は不成立。敵の思考が後に走ると読めないため、読めたときだけ反応する条件として使う
     [Serializable]
     [PPTypeMenuName("戦況/敵の次の行動")]
     public sealed class PPUnitEnemyPendingActionCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
@@ -213,9 +178,6 @@ namespace PPCore
         public PPUnitAISkillFilter Filter => mIsFilterBySkill ? mFilter : null;
 
         // 相手陣営の実行待ちの行動に、条件へ合うものがあるかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -235,9 +197,6 @@ namespace PPCore
         }
 
         // 相手陣営の実行待ちの行動を走査する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件へ合う行動が積まれていれば true
         private bool HasMatchedPending(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             var source = aSnapShot.PendingSource;
@@ -267,13 +226,8 @@ namespace PPCore
         AllyDefeated = 1,
     }
 
-    // ユニット条件: 直前に指定した出来事が起きたか
-    //
-    // 「殴られたら反撃する」「味方が落ちたら回復に回る」といった、
-    // 現在の盤面だけを見ていても書けない判断のためのもの
-    //
-    // 判定にはバトル中の見聞き（PPUnitAIBlackboard）が要る
-    // 思考ルーチンへバトルの参照が渡っていない場合は記録が無く、常に不成立になる
+    // ユニット条件: 直前に指定した出来事が起きたか（「殴られたら反撃する」など）
+    // PPUnitAIBlackboard の記録が無い場合は常に不成立になる
     [Serializable]
     [PPTypeMenuName("戦況/直前の出来事")]
     public sealed class PPUnitRecentEventCondition : PPUnitConditionValidator
@@ -288,9 +242,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 指定した出来事が直前に起きたかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -321,11 +272,7 @@ namespace PPCore
     }
 
     // ユニット条件: 生存している味方が自分 1 体だけか
-    //
-    // 「独りになったら自己強化して粘る」「味方が居るうちは支援に徹する」といった切り替えに使う
-    // 生存数の条件（PPAliveUnitCountCondition）でも数は見られるが、
-    // こちらは「残っているのが自分か」まで見るため、
-    // 同じツリーを複数ユニットで共有していても本人だけが反応する
+    // 残っているのが自分かまで見るため、ツリーを共有していても本人だけが反応する
     [Serializable]
     [PPTypeMenuName("戦況/自分が最後の1体")]
     public sealed class PPUnitIsLastStandingCondition : PPUnitConditionValidator
@@ -335,9 +282,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 生存している味方が自分だけかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;

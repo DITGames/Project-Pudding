@@ -146,9 +146,8 @@ namespace PPCore
             if (GUILayout.Button("新しい下書き", EditorStyles.toolbarButton, GUILayout.Width(110))) { NewDraft(); GUIUtility.ExitGUI(); }
             GUILayout.EndHorizontal();
             var footerRect = new Rect(4, position.height - 184, position.width - 8, 180);
-            // ヘッダーは「トロールバー + (Header装飾込みの)ユニットID/表示名行 + 保存先フォルダー行」の
-            // 固定3行構成。GUILayoutUtility.GetRectでの動的確保はBeginArea基準のビュー群と
-            // 相性が悪く描画されなくなる事象を確認したため、実測に基づく固定オフセットで確保する
+            // ヘッダーは固定 3 行構成（ツールバー・ユニット ID/表示名行・保存先フォルダー行）
+            // GUILayoutUtility.GetRect での動的確保は描画されなくなるため、固定オフセットで確保する
             const float headerBottom = 100f;
             var tabRect = new Rect(4, headerBottom, position.width - 8, 22);
             var body = new Rect(4, tabRect.yMax + 4, position.width - 8, Mathf.Max(200, footerRect.y - tabRect.yMax - 12));
@@ -282,10 +281,6 @@ namespace PPCore
         }
 
         // 割り当て方ごとの説明文を返す
-        // aMode : ビヘイビアツリーの割り当て方
-        // aEffectiveTree : 個別ツリーなしのときに実際に使うツリー。解決できなければ null
-        // aTreeSource : aEffectiveTree の出どころ
-        // return : HelpBox に出す説明文
         private string TreeModeHelp(PPUnitTreeAssignMode aMode, PPUnitBehaviourTree aEffectiveTree, PPUnitAITreeSource aTreeSource) => aMode switch
         {
             PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",
@@ -480,8 +475,6 @@ namespace PPCore
         }
 
         // 能力ごとに系列の縦棒を並べる。高さは基準値で正規化し、基準超過は上端で止めて赤線で示す
-        // aValues : 系列ごとの5能力の値（StatNames と同じ並び）
-        // aVisible : 系列の表示フラグ。指定すると凡例がそのまま表示トグルになる
         private void DrawBarChart(string[] aNames, Color[] aColors, float[][] aValues, bool[] aVisible = null)
         {
             var rect = GUILayoutUtility.GetRect(300, ChartHeight, GUILayout.ExpandWidth(true));

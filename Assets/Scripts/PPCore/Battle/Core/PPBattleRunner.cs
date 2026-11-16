@@ -15,10 +15,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント(本番用)
-    // SamplePusherBattleRunner をベースに、パーティ生成を PPPartyFactory 経由に変更し
-    // 味方パーティのデバッグ編集・オートバトル切り替えに対応させたもの
-    // パーティ生成・ティック進行・入力接続の基本的な流れはサンプルを踏襲する
+    // プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント（本番用）
+    // パーティ生成は PPPartyFactory を経由し、味方パーティのデバッグ編集とオートバトル切り替えに対応する
     public class PPBattleRunner : MonoBehaviour, IPPPendingActionSource
     {
         // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
@@ -89,9 +87,8 @@ namespace PPCore
         // ターン経過を回しているコルーチン
         private Coroutine mTickCoroutine;
 
-        // バトルを組み立てて開始する
-        // ユニット生成 → コンテキスト構築 → 敵・味方AIの注入 → ログ用イベント購読 → バトル開始 →
-        // View・コインブリッジ・入力の接続 → AIとティックのコルーチン起動、の順に進む
+        // バトルを組み立てて開始する。ユニット生成 → コンテキスト構築 → AI の注入 → イベント購読 → バトル開始 →
+        // View・コインブリッジ・入力の接続 → AI とティックのコルーチン起動、の順に進む
         void Start()
         {
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
@@ -190,12 +187,7 @@ namespace PPCore
         }
 
         // 指定した陣営の、まだ実行されていない行動を列挙する
-        //
-        // 行動はティック終了時にまとめて積まれるため、AI の思考時点ではコマンド列が空になっている
-        // そのため、積まれる前の材料であるプレイヤーの予約と AI の計画を直接読む
-        //
-        // aSide : 調べる陣営
-        // return : 実行待ちの行動
+        // 思考時点ではコマンド列が空のため、プレイヤーの予約と AI の計画を直接読む
         public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
         {
             // プレイヤーが予約した行動。オートバトル中は空になる
@@ -209,9 +201,6 @@ namespace PPCore
         }
 
         // ドライバが立てた計画を実行待ちの行動として列挙する
-        // aDriver : 対象のドライバ。未生成なら何も返さない
-        // aSide : 調べる陣営
-        // return : 実行待ちの行動
         private static IEnumerable<PPPendingAction> EnumeratePlan(PPEnemyAIDriver aDriver, BattleSide aSide)
         {
             if (aDriver == null || aDriver.Side != aSide || aDriver.LatestPlan == null) yield break;
@@ -224,25 +213,17 @@ namespace PPCore
 
         // パーティ定義に対応する思考ルーチンを生成する
         // 判断の中身はユニット側のビヘイビアツリーが決めるため、ここでは生成するだけ
-        // aDefinition : 生成元のパーティ定義
-        // return : 生成された思考ルーチン
         private IPPPartyCommandStrategist CreateStrategist(PPPartyDefinition aDefinition)
             => new PPUnitAIStrategist();
 
         // パーティ定義に対応する思考ドライバを生成する
         // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
-        // aSide : 思考対象の陣営
-        // aStrategist : 駆動する思考ルーチン
-        // aDefinition : 思考回数を引くパーティ定義
-        // return : 生成されたドライバ
         private PPEnemyAIDriver CreateDriver(BattleSide aSide, IPPPartyCommandStrategist aStrategist,
             PPPartyDefinition aDefinition)
             => new PPEnemyAIDriver(mBattleManager, aSide, aStrategist, mTurnTickInterval, aDefinition.ThinkCountPerTick);
 
         // 今コマンド入力を始める意味があるかを判定する
         // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
-        // ゲージ不足で何も撃てない状態のときに入力画面が開くのを防ぐ
-        // return : 入力を開始できる場合 true
         private bool CanSelectAnyCommand()
         {
             if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
@@ -261,11 +242,8 @@ namespace PPCore
             return false;
         }
 
-        // 一定間隔でターンを進めるコルーチン
-        // 敵にはプッシャーが無いため、ティックごとにランダム量のゲージを直接補給して
-        // プレイヤー側のコイン収入と釣り合いを取っている
-        // ゲージ補給 → 行動の収集と実行 → ターン経過、の順に進める
-        // return : コルーチンの列挙子
+        // 一定間隔でターンを進めるコルーチン。ゲージ補給 → 行動の収集と実行 → ターン経過の順に進める
+        // プッシャーを持たない敵には、ティックごとにランダム量のゲージを直接補給する
         IEnumerator AdvanceTick()
         {
             while (true)
@@ -289,11 +267,8 @@ namespace PPCore
             }
         }
 
-        // このティック分の行動を集めて並べ替え、順に実行する
-        //
-        // 収集するのは「プレイヤーの予約」「指示が無いユニットの通常攻撃」「敵 AI の計画」の 3 つ
-        // 決まった順ではなく、優先度（先攻・通常・後攻）と速度で並べ直してから流すため、
-        // 予約した順序や AI が思考した順序は実行順に影響しない
+        // このティック分の行動（プレイヤーの予約・指示が無いユニットの通常攻撃・敵 AI の計画）を集めて実行する
+        // 優先度と速度で並べ直すため、予約や思考の順序は実行順に影響しない
         private void ExecuteTickActions()
         {
             var context = mBattleManager.Context;
@@ -346,8 +321,6 @@ namespace PPCore
 
         // プレイヤーが確定したコマンドを、このティックの行動として予約する
         // 実行はティックの終わりにまとめて行うため、ここでは積むだけに留める
-        // aUnit : 行動するユニット
-        // aCommand : 確定したコマンド
         private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
         {
             if (aUnit is not PPBattleUnit unit) return;
@@ -384,8 +357,7 @@ namespace PPCore
     }
 
     // プッシャーを持たない陣営へ、ティックごとにゲージを供給するための設定
-    // 実機のコインプッシャーが無い環境や敵側の収入を、コインブリッジと同じ
-    // 「生存ユニットへ均等分配」の形で代替する
+    // コインブリッジと同じく生存ユニットへ均等分配する
     [Serializable]
     public class PPResourceSimulation
     {
@@ -398,8 +370,6 @@ namespace PPCore
 
         // 設定量を抽選し、対象パーティの生存ユニットへ均等分配する
         // 乱数はシード管理・再現性のため aContext.Rules.RandomProvider を経由する
-        // aParty : 供給先のパーティ。null なら何もしない
-        // aContext : 乱数供給元を含むバトルコンテキスト
         public void Supply(PPBattleParty aParty, BattleContext aContext)
         {
             if (aParty == null || aContext == null) return;

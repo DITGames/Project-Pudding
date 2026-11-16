@@ -12,14 +12,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // 行動を 1 つ実行する葉ノード
-    // アクションが実際に組み立てられた場合のみ確定とし、
-    // 組み立てられなければ不成立として親の次の候補へ処理を渡す
-    // 「条件は満たしたがゲージが足りない・対象が居ない」場合に自然と次の手へ流れる
-    //
+    // 行動を 1 つ実行する葉ノード。アクションを組み立てられた場合のみ確定とし、できなければ親の次の候補へ渡す
     // 維持ティック数を設定すると、この行動を選んだあとしばらく判断が固定される
-    // 「強いスキルが撃てるまで通常攻撃で溜める」のように、
-    // 数ティックまたいで初めて意味を持つ判断がティックごとに揺れるのを防ぐためのもの
     [Serializable]
     [PPTypeMenuName("行動/実行")]
     public sealed class PPUnitAIActionNode : PPUnitAINode
@@ -34,9 +28,8 @@ namespace PPCore
         [Label("判断を維持するティック数")]
         [SerializeField] private int mCommitTicks = 0;
 
-        // この行動で狙った対象へ、狙いを固定するティック数
-        // 0 なら固定しない。1 以上なら、その対象が倒れるか指定ティック数が過ぎるまで固定が続く
-        // 固定した狙いは、対象の選び方に「固定した敵」を指定した行動が拾う
+        // この行動で狙った対象へ、狙いを固定するティック数。0 なら固定しない
+        // 固定は対象が倒れるか指定ティック数が過ぎるまで続き、対象の選び方が「固定した敵」の行動が拾う
         [Label("狙いを固定するティック数")]
         [SerializeField] private int mFocusTicks = 0;
 
@@ -67,8 +60,6 @@ namespace PPCore
         }
 
         // アクションを組み立てて確定させる
-        // aContext : 評価 1 回分の入力
-        // return : 組み立てられた行動。組み立てられなければ Failed
         protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             if (mAction == null) return PPUnitAINodeResult.Failed;
@@ -82,11 +73,8 @@ namespace PPCore
         }
     }
 
-    // ユニット AI が実行する行動の基底クラス
-    // 行動ノード（PPUnitAIActionNode）が 1 つ保持し、実行できる場合のみ確定させる
-    // 実行できるかどうかの判定と、コマンドの組み立てを 1 つのメソッドで行うのは、
-    // 「撃てるか調べてから作る」の二度手間を避け、判定と生成のズレを防ぐため
-    // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
+    // ユニット AI が実行する行動の基底クラス。実行可否の判定とコマンドの組み立てを 1 つのメソッドで行う
+    // 派生クラスには PPTypeMenuName を必ず付ける（型選択ピッカーが依存する）
     [Serializable]
     public abstract class PPUnitAIActionBase
     {
@@ -106,14 +94,11 @@ namespace PPCore
 
         // 今の状況でこの行動を組み立てる
         // 派生クラスで実装する。バトルの状態を変えず、コマンドを作るだけに留めること
-        // aContext : 評価 1 回分の入力
-        // return : 組み立てられた行動。実行できない場合は PPUnitAINodeResult.Failed
         public abstract PPUnitAINodeResult Build(PPUnitAIEvalContext aContext);
     }
 
-    // コインゲージを消費して通常攻撃を行う行動
-    // 通常攻撃は消費量・威力ともに固定で強弱の段階を持たないため、設定は対象の選び方だけ
-    // コインゲージが足りない、または対象が居ない場合は組み立てに失敗し、次の候補へ処理が渡る
+    // コインゲージを消費して通常攻撃を行う行動。設定は対象の選び方だけ
+    // コインゲージが足りない、または対象が居ない場合は組み立てに失敗する
     [Serializable]
     [PPTypeMenuName("通常攻撃")]
     public sealed class PPUnitAIAttackAction : PPUnitAIActionBase
@@ -134,8 +119,6 @@ namespace PPCore
                + (mIsFallbackAnyEnemy ? "（居なければ他の敵）" : "");
 
         // コインゲージの残量と対象を確認し、足りていれば通常攻撃コマンドを組み立てる
-        // aContext : 評価 1 回分の入力
-        // return : 組み立てられた通常攻撃。撃てない場合は Failed
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
         {
             var unit = aContext.Unit;
@@ -163,8 +146,7 @@ namespace PPCore
     }
 
     // スキルの絞り込み条件を保持していることを示すインターフェース
-    // 行動と条件のどちらも同じ絞り込みを持つため、
-    // エディタの診断が「直接指定なのにスキル未設定」を型を問わず拾えるようにする
+    // エディタの診断が、行動と条件を型を問わず調べるために使う
     public interface IPPUnitAISkillFilterOwner
     {
         // 保持しているスキルの絞り込み条件
@@ -172,9 +154,7 @@ namespace PPCore
     }
 
     // 絞り込んだ所持スキルの中から 1 つを選んで発動する行動
-    // 「攻撃グループで一番強いものを撃つ」「回復タグのスキルを撃つ」のように、
-    // どのスキルを指すかは絞り込みと選び方の組み合わせで表現する
-    // 発動できるスキルが無い、または対象が居ない場合は組み立てに失敗し、次の候補へ処理が渡る
+    // 発動できるスキルが無い、または対象が居ない場合は組み立てに失敗する
     [Serializable]
     [PPTypeMenuName("スキル発動")]
     public sealed class PPUnitAISkillAction : PPUnitAIActionBase, IPPUnitAISkillFilterOwner
@@ -200,8 +180,6 @@ namespace PPCore
                + $"\n対象 : {PPUnitAITargeting.ToDisplayString(mTargetPolicy)}";
 
         // 今発動できるスキルを絞り込んで 1 つ選び、対象を解決してコマンドを組み立てる
-        // aContext : 評価 1 回分の入力
-        // return : 組み立てられたスキル発動。撃てない場合は Failed
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
         {
             var (skill, definition) = PPUnitAISkillQuery.SelectCastable(
@@ -224,9 +202,6 @@ namespace PPCore
 
         // 対象の選び方が「スコープ既定」なのに単体対象だった場合の落としどころを決める
         // 味方単体なら HP 割合が最も低い味方、敵単体なら HP 割合が最も低い敵を狙う
-        // aDefinition : 発動するスキルの定義
-        // aContext : 評価 1 回分の入力
-        // return : 決まった対象。候補が居なければ null
         private static PPBattleUnit ResolveDefaultTarget(PPSkillDefinition aDefinition, PPUnitAIEvalContext aContext)
             => aDefinition.TargetScope == TargetScope.SingleAlly
                 ? aContext.Snapshot.LowestHpRatioAlly ?? aContext.Unit
@@ -234,7 +209,6 @@ namespace PPCore
     }
 
     // 何もせずそのティックを見送る行動
-    // 「上位スキルが撃てるまで溜める」のように、意図的に手を出さないことを明示したい場合に置く
     // 常に確定するため、これより下の候補は評価されない
     [Serializable]
     [PPTypeMenuName("待機")]
@@ -243,8 +217,6 @@ namespace PPCore
         protected override string DefaultActionName => "待機";
 
         // 常に待機で確定する
-        // aContext : 評価 1 回分の入力
-        // return : 待機を表す結果
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
             => PPUnitAINodeResult.Wait(ActionName);
     }

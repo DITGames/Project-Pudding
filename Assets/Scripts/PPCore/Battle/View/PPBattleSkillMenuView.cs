@@ -17,7 +17,6 @@ namespace PPCore
 {
     // ユニットの所持スキルをボタンとして並べるメニュー
     // 表示するたびにボタンを生成し直し、閉じるときに破棄する
-    // ユニットごとにスキル数が違うため、使い回さず作り直す方針
     public class PPBattleSkillMenuView : MonoBehaviour
     {
         [Label("スキルボタンプレハブ")]
@@ -47,10 +46,7 @@ namespace PPCore
         }
 
         // ユニットの所持スキル分のボタンを生成して表示する
-        // 各ボタンには発動可否を判定できるステータスソースを渡すため、
-        // リソース不足のスキルは自動的に押せない状態になる
-        // aUnit : スキルを表示する対象ユニット
-        // aContext : 発動可否の判定に使うバトルコンテキスト
+        // 各ボタンへステータスソースを渡すため、リソース不足のスキルは押せない状態になる
         public void Show(BattleUnit aUnit, BattleContext aContext, PPUnitActionLedger aLedger = null)
         {
             if (mContent == null)

@@ -12,12 +12,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-// 攻撃・スキル・詳細・戻るを並べたコマンドメニューの View
-// ボタンが押されたことをイベントとして外へ流すだけで、何をするかは持たない
-// 実際の遷移は PPCore.PPCommandSelectState が決める
-// Show でリスナーを登録し Hide で全解除するため、この 2 つは必ず対で呼ぶこと
-// Hide を挟まず Show を重ねるとリスナーが多重登録される
-// このクラスだけ namespace の外に置かれており、PPCore の他の View と同じ扱いになっていない
+// 攻撃・スキル・詳細・戻るを並べたコマンドメニューの View。押されたことをイベントとして外へ流すだけで、遷移は持たない
+// Show でリスナーを登録し Hide で全解除するため、必ず対で呼ぶこと
 public class PPBattleCommandMenuView : MonoBehaviour
 {
     [Label("攻撃")]

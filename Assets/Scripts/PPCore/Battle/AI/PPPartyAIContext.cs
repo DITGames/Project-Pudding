@@ -12,11 +12,8 @@ using System.Linq;
 
 namespace PPCore
 {
-    // AI が思考を始める時点でのパーティ状況のスナップショット
-    // Capture で 1 回だけ集計し、以降の候補生成・スコアリング・条件評価は
-    // 全てこのスナップショットを参照する。思考の途中で状況が変わらないことを保証し、
-    // 生存メンバーの走査や最低 HP の探索を毎回やり直さずに済ませるのが狙い
-    // AI 条件アセット（PPPartyConditionValidator 派生）の評価入力にもなる
+    // 思考開始時点のパーティ状況のスナップショット。Capture で 1 回だけ集計し、以降の評価は全てこれを参照する
+    // 思考の途中で状況が変わらないことを保証する
     public sealed class PPPartyAIContext
     {
         // 思考主体のパーティ
@@ -29,18 +26,15 @@ namespace PPCore
         // スナップショット時点で生存しているアクティブな敵
         public List<PPBattleUnit> AliveEnemies { get; } = new();
 
-        // ターゲット検索ノードが絞り込んだ対象候補
-        // 同じユニットを重複して登録でき、重複した分だけランダム選択で選ばれやすくなる
-        // 「複数の検索を重ねるほど優先される」を重み付けとして表現するための持ち方
+        // ターゲット検索ノードが絞り込んだ対象候補。重複登録した分だけランダム選択で選ばれやすくなる
         // 直接書き換えず RegisterConditionedUnit / ResetConditionedUnits を通すこと
         public IReadOnlyList<PPBattleUnit> ConditionedUnits => mConditionedUnits;
 
         // ConditionedUnits の実体
         private readonly List<PPBattleUnit> mConditionedUnits = new();
 
-        // この思考で積んだ行動の仮押さえ台帳
-        // 2 手目以降の判断で「1 手目が使う予定のゲージ」を差し引くために、条件・行動の双方から参照する
-        // 未設定の場合は仮押さえを考慮しない（1 手だけ積む従来どおりの判定になる）
+        // この思考で積んだ行動の仮押さえ台帳。2 手目以降の判断で 1 手目が使う予定のゲージを差し引く
+        // 未設定の場合は仮押さえを考慮しない
         public PPUnitActionLedger Ledger { get; private set; }
 
         // 仮押さえ台帳を結び付ける
@@ -64,8 +58,6 @@ namespace PPCore
         public void AttachPendingSource(IPPPendingActionSource aSource) => PendingSource = aSource;
 
         // ユニットのバトル中の見聞きを引く
-        // aUnit : 対象ユニット
-        // return : そのユニットの見聞き。差し込まれていなければ null
         public PPUnitAIBlackboard GetBlackboard(PPBattleUnit aUnit)
             => aUnit != null ? mBlackboardResolver?.Invoke(aUnit) : null;
 
@@ -90,11 +82,7 @@ namespace PPCore
         public bool IsCrisis { get; private set; } = false;
 
         // 現在のパーティ状況を集計してスナップショットを生成する
-        // 味方側の HP 集計と最低 HP 割合の探索、敵側の生存者列挙と最低 HP・脅威度の探索、
-        // 危機判定、をこの 1 回で済ませる
-        // aParty : 思考主体のパーティ
-        // aContext : バトルコンテキスト
-        // return : 集計済みのスナップショット
+        // 味方の HP 集計、敵の生存者・最低 HP・脅威度の探索、危機判定を 1 回で済ませる
         public static PPPartyAIContext Capture(PPBattleParty aParty, BattleContext aContext)
         {
             var snap = new PPPartyAIContext { Party = aParty, Context = aContext };
@@ -130,8 +118,7 @@ namespace PPCore
 
             snap.PartyHpRatio = sumMax > 0f ? sumCur / sumMax : 0f;
 
-            // 敵パーティの集計
-            // 自分がどちら側かで相手パーティが変わるため、参照比較で判定する
+            // 敵パーティの集計。相手側は参照比較で判定する
             // 生存者を集めながら、最低 HP・最低 HP 割合・最大攻撃力の持ち主を同時に求める
             var opponent = ReferenceEquals(aParty, aContext.EnemyParty)
                 ? aContext.AllyParty
@@ -186,20 +173,14 @@ namespace PPCore
         }
 
         // ユニットの HP 割合を 0～1 で求める。最大 HP が 0 以下の場合は 0 を返す
-        // aUnit : 対象ユニット
-        // return : HP 割合（0～1）
         public static float HpRatio(PPBattleUnit aUnit)
         {
             float max = aUnit.Parameters.Hp.Max.CurrentValue;
             return max <= 0f ? 0f : aUnit.Parameters.Hp.CurrentValue / max;
         }
 
-        // 対象候補を 1 体登録する
-        // aIsUnique が false のときは同じユニットを何度でも積める
-        // 積まれた回数がそのままランダム選択の重みになるため、
-        // 「複数の条件に合致したユニットほど狙われやすい」を重複登録で表現できる
-        // aUnit : 登録するユニット。null なら何もしない
-        // aIsUnique : 既に登録済みなら積まない場合 true
+        // 対象候補を 1 体登録する。aIsUnique が false なら同じユニットを何度でも積める
+        // 積まれた回数がそのままランダム選択の重みになる
         public void RegisterConditionedUnit(PPBattleUnit aUnit, bool aIsUnique = false)
         {
             if (aUnit == null) return;
@@ -209,18 +190,12 @@ namespace PPCore
         }
 
         // 登録済みの対象候補を全て捨てる
-        // スナップショットはパーティ内の全ユニットで共有されるため、
-        // 1 体分の思考を始める前に必ず呼んで、前のユニットの検索結果を持ち越さないようにする
+        // スナップショットは全ユニットで共有されるため、1 体分の思考を始める前に必ず呼ぶ
         public void ResetConditionedUnits() => mConditionedUnits.Clear();
     }
 
-    // リソースの増加ペースを記録するトラッカー
-    // AI が「今は撃たずに待てば、あと何ティックで目当てのスキルが撃てるか」を
-    // 見積もるために使う。プッシャー由来の収入は落ちるコインの量で常に変動するため、
-    // 直近のサンプルを平均して均した値を使う
-    // 保持するのは残量そのものではなく前回からの増分
-    // リソースを消費して残量が減った場合は増分 0 として扱い、
-    // 「消費した」ことが「収入が落ちた」と誤解されないようにしている
+    // リソースの増加ペースを記録するトラッカー。直近サンプルの増分を平均して、目当てのスキルまでの待ち時間を見積もる
+    // 消費で残量が減った場合は増分 0 として扱う
     public sealed class PPIncomTrendTracker
     {
         // 直近の増分の履歴。古いものから順に捨てられる
@@ -230,8 +205,6 @@ namespace PPCore
 
         // 現在のリソース量をサンプリングし、前回からの増分を履歴へ積む
         // 履歴が指定件数を超えた分は古い方から捨てる
-        // aCurrentLevel : 現在のリソース量
-        // aSampleCount : 保持するサンプル数。最低 1 件は保持する
         public void Sample(float aCurrentLevel, int aSampleCount)
         {
             if (mLastLevel.HasValue)

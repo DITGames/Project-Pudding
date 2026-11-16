@@ -12,12 +12,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 戦闘に参加する 1 体分のランタイムインスタンス
-    // パラメータ・スキル・ステータスエフェクト・リアクション・行動回数を保持し、
-    // ダメージ／回復／エフェクト付与といった「自分の状態が変わる操作」を受け付ける
-    // 状態が変わるたびに event を発火し、BattleManager がそれを購読して
-    // 全体への通知・ログ出力・リアクション発火へ変換する
-    // つまりこのクラス自体はバトル全体の進行を一切知らない
+    // 戦闘に参加する 1 体分のランタイムインスタンス。パラメータ・スキル・ステータスエフェクト・リアクション・行動回数を保持する
+    // 状態が変わるたびに event を発火し、BattleManager が購読して通知・ログ・リアクション発火へ変換する
     public class BattleUnit
     {
         // ユニットのID
@@ -46,10 +42,7 @@ namespace PPCore
         // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }
 
-        // このユニット専用の乱数供給元
-        // 1 本の乱数列を全ユニットで共有すると、他のユニットが 1 回多く引いただけで
-        // 以降の全員の乱数がずれてしまい、そのユニット単体の挙動を追えなくなる
-        // ユニットごとに列を分けることで、他人の消費に影響されずに挙動を再現できる
+        // このユニット専用の乱数供給元。ユニットごとに列を分けることで、他のユニットの消費に影響されずに挙動を再現できる
         // 未設定なら BattleRules.RandomProvider へフォールバックする
         public IRandomProvider Random { get; set; }
 
@@ -73,9 +66,6 @@ namespace PPCore
         public event Action<BattleUnit, StatusEffect> OnStatusEffectStacked;
 
         // ユニットを生成する
-        // aUnitId : ユニットID
-        // aDisplayName : UI表示名
-        // aParameters : このユニットのパラメータ一式
         public BattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameters)
         {
             UnitId = aUnitId;
@@ -96,17 +86,11 @@ namespace PPCore
 
         // このユニットが使う乱数供給元を解決する
         // 自前の列を持っていればそちらを、無ければバトル共通の供給元を返す
-        // 「誰の乱数を引くか」を呼び出し側で分岐させないための入口
-        // aContext : 共通の供給元を引くためのバトルコンテキスト
-        // return : 使用する乱数供給元
         public IRandomProvider ResolveRandom(BattleContext aContext)
             => Random ?? aContext.Rules.RandomProvider;
 
         // 状態異常によって今回の行動が失敗するかを抽選する
-        // 行動不能エフェクトのうち、失敗率が設定されていれば確率判定（麻痺など）、
-        // 未設定なら無条件で失敗（睡眠など）として扱う
-        // aContext : 乱数供給元を含むバトルコンテキスト
-        // return : 行動が阻害された場合 true
+        // 失敗率が設定されていれば確率判定（麻痺など）、未設定なら無条件で失敗（睡眠など）として扱う
         public bool RollActionBlocked(BattleContext aContext)
         {
             bool blocked = false;
@@ -128,10 +112,8 @@ namespace PPCore
             return blocked;
         }
 
-        // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）
-        // 麻痺のように失敗率が設定された行動不能は「行動しようとすれば成功する可能性がある」ため含まない
+        // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）。失敗率が 1 以上のものも確定扱いにする
         // AI が「このユニットに行動を割り当てても無駄か」を判断するときに使う
-        // 失敗率が 1 以上のものは抽選しても必ず失敗するため、確定扱いにする
         public bool IsActionCertainlyBlocked
         {
             get
@@ -149,33 +131,24 @@ namespace PPCore
 
         // パラメータをIDで解決する
         // 追加のパラメータ群を持つ派生クラスはここをoverrideする
-        // aParamId : パラメータID
         public virtual Parameter ResolveParameter(string aParamId) => Parameters.Get(aParamId);
 
         // 数値だけを指定してダメージを適用する簡易版。攻撃元なしの DamageInfo を組んで委譲する
         // スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算
-        // aAmount : ダメージ量
-        // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
         public void ApplyDamage(float aAmount, BattleContext aContext = null)
         {
             // 発生源が分からない経路のため、攻撃とは見なさない
             ApplyDamage(new DamageInfo(null, this, aAmount, OtherDamageReason.Default), aContext);
         }
 
-        // ダメージを適用する
-        // ミス判定 → ステータスエフェクトによる軽減 → 実装先の介入 → 無効化判定 →
+        // ダメージを適用する。ミス判定 → ステータスエフェクトによる軽減 → 実装先の介入 → 無効化判定 →
         // HP 減算 → 撃破判定、の順に進み、各段階で対応する event を発火する
-        // aDamageInfo : 攻撃元・対象・ダメージ量・命中結果を持つダメージ情報
-        // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
         public void ApplyDamage(DamageInfo aDamageInfo, BattleContext aContext = null)
         {
             if (!IsAlive) return;
 
             // リアクションのコマンド実行中に発生したダメージへ、リアクションの深さと発生元を引き継ぐ
-            // ここで一度だけ行うことで、ダメージを組み立てる側（通常攻撃・スキル・反射など）が
-            // 自分が反撃の最中かどうかを意識しなくて済む
-            // Reason（攻撃・継続ダメージなど）は書き換えないため、反撃の攻撃も攻撃のまま扱われる
-            // 作る側が明示的に設定した Reaction があればそちらを優先する
+            // Reason は書き換えない。作る側が明示的に設定した Reaction があればそちらを優先する
             if (aContext?.ExecutingCommand != null)
             {
                 aDamageInfo.Reaction ??= aContext.ExecutingCommand.ReactionInfo;
@@ -214,14 +187,11 @@ namespace PPCore
 
             // ダメージ量への介入（NotifyIncomingDamage）が済んだ後に消費させる
             // 先に消費すると「次に受けるダメージを変化させる」効果が自分の出番で消えてしまう
-            // ダメージ情報を渡すことで、消費ルール側が「攻撃によるダメージのみ」等の絞り込みを行える
             NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Damaged, aContext, aDamageInfo);
 
             if (!IsAlive)
             {
-                // 撃破を通知する前に状態異常を解除しておく
-                // OnDefeated の購読側（リアクション発火・勝敗判定・バトル終了通知）が
-                // 解除済みの状態を見られるようにし、バトル終了後に除去通知が届くことも防ぐ
+                // 撃破を通知する前に状態異常を解除し、OnDefeated の購読側が解除済みの状態を見られるようにする
                 // バトルコンテキストが無い経路ではルールを参照できないため解除しない
                 if (aContext?.Rules != null && aContext.Rules.ClearStatusEffectsOnDefeat)
                 {
@@ -240,12 +210,8 @@ namespace PPCore
             OnHealed?.Invoke(this, aAmount);
         }
 
-        // ステータスエフェクトを追加する
-        // 同一 ID のエフェクトが既に付与されている場合は
-        // StatusEffectStackPolicy に従って無視／継続時間更新／スタック加算／置き換えのいずれかを行う
+        // ステータスエフェクトを追加する。同一 ID が付与済みなら StatusEffectStackPolicy に従って処理する
         // 死亡しているユニットには付与しない
-        // aStatusEffect : 付与するエフェクト
-        // aContext : バトルコンテキスト
         public void AddStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
         {
             if (aStatusEffect == null || !IsAlive) return;
@@ -290,8 +256,6 @@ namespace PPCore
         }
 
         // ステータスエフェクトを除去し、そのエフェクトが加えていた効果を巻き戻す
-        // aStatusEffect : 除去するエフェクト
-        // aContext : バトルコンテキスト
         public void RemoveStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
         {
             if (!ActiveStatusEffects.Remove(aStatusEffect)) return;
@@ -299,11 +263,8 @@ namespace PPCore
             OnStatusEffectRemoved?.Invoke(this, aStatusEffect);
         }
 
-        // 掛かっているステータスエフェクトをすべて除去する
-        // 1 件ずつ RemoveStatusEffect を通すため、効果の巻き戻しと除去通知はエフェクトごとに行われる
-        // 除去中にリストが縮むため、末尾から逆順に走査している
-        // aContext : バトルコンテキスト
-        // return : 除去したエフェクトの件数
+        // 掛かっているステータスエフェクトをすべて除去する（1 件ずつ RemoveStatusEffect を通す）
+        // 除去中にリストが縮むため、末尾から逆順に走査する
         public int RemoveAllStatusEffects(BattleContext aContext)
         {
             int removedCount = 0;
@@ -317,10 +278,8 @@ namespace PPCore
             return removedCount;
         }
 
-        // 状況更新の度に呼び出す。各エフェクトの Tick（毒ダメージ等）を実行し、
-        // 持続条件が切れたものを除去する
-        // 除去中にリストが縮むため、末尾から逆順に走査している
-        // aContext : バトルコンテキスト
+        // 状況更新の度に呼び出す。各エフェクトの Tick を実行し、持続条件が切れたものを除去する
+        // 除去中にリストが縮むため、末尾から逆順に走査する
         public void TickStatusEffects(BattleContext aContext)
         {
             for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
@@ -346,12 +305,8 @@ namespace PPCore
             }
         }
 
-        // スタック消費のきっかけが起きたことを、掛かっている全エフェクトへ知らせる
-        // 消費でスタックを使い切ったエフェクトはその場で除去される
-        // 除去中にリストが縮むため、末尾から逆順に走査している
-        // aTrigger : 発生したきっかけ
-        // aContext : バトルコンテキスト
-        // aDamage : Damaged のきっかけで渡すダメージ情報。それ以外のきっかけでは null
+        // スタック消費のきっかけが起きたことを全エフェクトへ知らせ、使い切ったエフェクトを除去する
+        // 除去中にリストが縮むため、末尾から逆順に走査する
         public void NotifyStatusEffectTrigger(StatusEffectConsumeTrigger aTrigger, BattleContext aContext,
             DamageInfo aDamage = null)
         {
@@ -364,10 +319,6 @@ namespace PPCore
         }
 
         // 1 つのエフェクトへ消費ルールを適用する
-        // aEffect : 対象のエフェクト
-        // aTrigger : 発生したきっかけ
-        // aContext : バトルコンテキスト
-        // aDamage : 被ダメージのきっかけで渡されるダメージ情報
         private void ApplyConsumeRule(StatusEffect aEffect, StatusEffectConsumeTrigger aTrigger, BattleContext aContext,
             DamageInfo aDamage)
         {
@@ -385,7 +336,6 @@ namespace PPCore
 
         // 1 ターン分の更新処理。ステータスエフェクトの更新、行動回数のリセット、
         // 全スキルのクールダウン消化をまとめて行う
-        // aContext : バトルコンテキスト
         public virtual void UnitTick(BattleContext aContext)
         {
             TickStatusEffects(aContext);
@@ -397,10 +347,8 @@ namespace PPCore
         }
     }
 
-    // ユニット 1 体の 1 ターン内の行動回数を管理する
-    // 通常の行動回数と、一時的に付与された追加行動を分けて持つのが要点
-    // 消費は追加行動から先に減るため、ターン終了時のリセットで
-    // 使い残した追加行動が持ち越されることはない
+    // ユニット 1 体の 1 ターン内の行動回数を管理する。通常の行動回数と一時的な追加行動を分けて持つ
+    // 消費は追加行動から先に減り、使い残した追加行動は持ち越されない
     public class ActionBudget
     {
         // 基本行動回数。ターン開始時にこの値まで回復する
@@ -432,27 +380,20 @@ namespace PPCore
         public void GrantExtra(int aCount = 1) => ExtraActions += aCount;
     }
 
-    // Project-Pudding 固有の要素を載せたバトルユニット
-    // 汎用の BattleUnit に対して、属性・拡張パラメータを追加する
-    // 拡張パラメータの行動回数上限は、ティックごとに基底の ActionBudget へ同期される
+    // 属性と拡張パラメータを持つバトルユニット
+    // 拡張パラメータの行動回数上限は、ティックごとに ActionBudget へ同期される
     public class PPBattleUnit : BattleUnit
     {
-        // 基底の BattleUnit.Parameters に含まれない、本作固有の追加パラメータ
+        // BattleUnit.Parameters に含まれない追加パラメータ
         public PPParameterSet ExtraParameters { get; }
 
         // ユニットの属性。弱点・耐性倍率の判定に使う
         public PPTypeAttribute TypeAttribute { get; }
 
-        // 育成値とスキル効果値（S）から BaseValue を組み立てるテーブル
-        // 最大 HP・攻撃力・防御力・素早さ・きようさ・スキルゲージ上限が登録される
+        // 育成値とスキル効果値から BaseValue を組み立てるテーブル
         // パッシブスキルやパーティ効果は、ここへ効果値を足すことで BaseValue に反映させる
         public PPBaseParameterTable BaseParameters { get; }
 
-        // aUnitId : ユニットID
-        // aDisplayName : UI表示名
-        // aParameterSet : 基本パラメータ一式
-        // aExtraParameterSet : 本作固有の追加パラメータ一式
-        // aTypeAttribute : ユニットの属性
         public PPBattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameterSet,
             PPParameterSet aExtraParameterSet, PPTypeAttribute aTypeAttribute)  : base(aUnitId, aDisplayName, aParameterSet)
         {
@@ -468,8 +409,6 @@ namespace PPCore
 
         // 今の状況で発動できるスキルを 1 つでも持っているかを判定する
         // リソース不足やクールダウンで全スキルが撃てない「手詰まり」の検出に使う
-        // aContext : 発動可否の検証に使うバトルコンテキスト
-        // return : 発動可能なスキルが 1 つでもあれば true
         public bool CanValidateSkill(BattleContext aContext)
         {
             foreach (var skill in Skills)
@@ -483,10 +422,7 @@ namespace PPCore
         }
 
         // 1 ティック分の更新処理
-        // 基底が「状態異常の更新 → 行動回数のリセット → クールダウン消化」を行うため、
-        // バフ切れを反映した行動回数上限を使うには基底を通したあとで同期し直す必要がある
-        // ActionBudget.ResetForTurn は残り回数を上限へ戻すだけなので、二度呼んでも副作用は無い
-        // aContext : バトルコンテキスト
+        // 基底の更新（状態異常 → 行動回数のリセット → クールダウン消化）のあとで、バフ切れを反映した行動回数上限を同期し直す
         public override void UnitTick(BattleContext aContext)
         {
             base.UnitTick(aContext);
@@ -495,9 +431,7 @@ namespace PPCore
         }
 
         // 1 ティックあたりの行動回数上限を解決する
-        // バフデバフを載せた現在値を切り上げ、下限 1 で丸める（0 になって動けなくなることはない）
-        // 切り上げなのは、端数の出るバフ（1.5 倍など）で回数が減って見えるのを避けるため
-        // return : 行動回数上限
+        // バフデバフを載せた現在値を切り上げ、下限 1 で丸める
         public int ResolveActionCount()
         {
             var parameter = ExtraParameters.Get(PPParameterSet.ParameterIdActionCount);
@@ -506,7 +440,6 @@ namespace PPCore
 
         // 育成値テーブルを組み立てる。コンストラクタから呼ばれる
         // スキルゲージ上限はバフの対象外だが、パッシブによる上限上昇（S）の対象にはなるため登録する
-        // return : 各パラメータの現在の BaseValue を育成値として登録したテーブル
         protected virtual PPBaseParameterTable CreateBaseParameterTable()
         {
             var table = new PPBaseParameterTable();
@@ -520,8 +453,6 @@ namespace PPCore
         }
 
         // ID からパラメータを解決する。基本パラメータを先に探し、無ければ拡張パラメータを探す
-        // aId : パラメータID
-        // return : 該当パラメータ。どちらにも存在しなければ null
         public override Parameter ResolveParameter(string aId)
         {
             if(Parameters.Parameters.TryGetValue(aId, out var paramDef))

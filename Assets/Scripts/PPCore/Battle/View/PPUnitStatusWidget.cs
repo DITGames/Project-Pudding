@@ -13,9 +13,7 @@ using UnityEngine.UI;
 
 namespace PPCore
 {
-    // 名前と HP バーを表示する共通ウィジェット
-    // 表示元を IPPUnitStatusSource として受け取るため、
-    // バトルユニットに限らず同じインターフェースを満たすものなら何でも表示できる
+    // 名前と HP バーを表示する共通ウィジェット。表示元は IPPUnitStatusSource として受け取る
     // バインド中は変更通知を購読し、値が変わるたびに再描画する
     public class PPUnitStatusWidget : MonoBehaviour
     {
@@ -31,7 +29,6 @@ namespace PPCore
 
         // 表示元を差し替える
         // 前のバインドが残っていても二重購読にならないよう、先に解除してから繋ぎ直す
-        // aSource : 表示元
         public void Bind(IPPUnitStatusSource aSource)
         {
             Unbind();

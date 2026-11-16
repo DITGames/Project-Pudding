@@ -58,12 +58,8 @@ namespace PPCore
         Direct,
     }
 
-    // 所持スキルの絞り込み条件
-    //
-    // 既定は同種グループとスキルタグによる絞り込みで、どちらも未指定なら全スキルが対象になる
+    // 所持スキルの絞り込み条件。既定は同種グループとスキルタグで絞り込み、どちらも未指定なら全スキルが対象になる
     // 直接指定モードでは、そのスキル定義 1 つだけが候補になる
-    // 同じグループ・同じタグのスキルを複数持つユニットで「必ずこのスキル」を確定させたい場合に使う
-    // （絞り込みだけでは候補が同値になり、所持順の先頭が採られてしまうため）
     [Serializable]
     public sealed class PPUnitAISkillFilter
     {
@@ -109,8 +105,6 @@ namespace PPCore
 
         // 指定スキルがこの絞り込みに合致するかを判定する
         // ここを通る経路が 1 本なので、直接指定は行動側と条件側の双方へ同時に効く
-        // aDefinition : 判定するスキル定義
-        // return : 合致する場合 true
         public bool IsMatch(PPSkillDefinition aDefinition)
         {
             if (aDefinition == null) return false;
@@ -137,17 +131,12 @@ namespace PPCore
         }
     }
 
-    // ユニットの所持スキルを絞り込んで 1 つ選ぶヘルパー
-    // 行動（PPUnitAISkillAction）と条件（所持判定・発動可否判定）の双方から同じ絞り込みを使うため、
-    // 片方に実装を寄せずここへ集約している
+    // ユニットの所持スキルを絞り込んで 1 つ選ぶヘルパー。行動と条件の双方から使う
     // 乱数は行動するユニット自身の供給元を経由すること（UnityEngine.Random は使わない）
     public static class PPUnitAISkillQuery
     {
         // 絞り込みに合致する所持スキルを列挙する
         // PP 側の定義を持たないスキルは判定できないため対象外になる
-        // aUnit : 対象ユニット
-        // aFilter : 絞り込み条件。null なら全スキルが対象
-        // return : 合致したスキルと、その定義の組
         public static IEnumerable<(PPBattleSkill Skill, PPSkillDefinition Definition)> Enumerate(
             PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
         {
@@ -165,9 +154,6 @@ namespace PPCore
 
         // 絞り込みに合致するスキルを 1 つでも持っているかを判定する
         // 発動可否は見ないため、単に所持しているかどうかの判定になる
-        // aUnit : 対象ユニット
-        // aFilter : 絞り込み条件
-        // return : 該当するスキルがあれば true
         public static bool HasAny(PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
         {
             foreach (var _ in Enumerate(aUnit, aFilter))
@@ -179,12 +165,6 @@ namespace PPCore
 
         // 絞り込みに合致するスキルのうち、今すぐ発動できるものから 1 つ選ぶ
         // クールダウン・使用回数・スキルゲージ残量の判定はバリデータへ委ねる
-        // aUnit : 対象ユニット
-        // aFilter : 絞り込み条件
-        // aRule : 候補が複数あったときの選び方
-        // aContext : 発動可否の検証と乱数に使うバトルコンテキスト
-        // aLedger : 仮押さえ台帳。渡すと「既に積んだ行動で使う予定のゲージ」を差し引いて判定する
-        // return : 選ばれたスキルと定義の組。発動できるものが無ければ (null, null)
         public static (PPBattleSkill Skill, PPSkillDefinition Definition) SelectCastable(
             PPBattleUnit aUnit, PPUnitAISkillFilter aFilter, PPUnitAISkillSelectRule aRule, BattleContext aContext,
             PPUnitActionLedger aLedger = null)
@@ -203,9 +183,6 @@ namespace PPCore
 
         // 絞り込みに合致する所持スキルのうち、最も強い（AI スコアが高い）ものを返す
         // 発動可否は見ないため、「持っている中で一番強いのはどれか」の判定に使う
-        // aUnit : 対象ユニット
-        // aFilter : 絞り込み条件
-        // return : 最も AI スコアの高いスキル定義。該当が無ければ null
         public static PPSkillDefinition SelectStrongest(PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
         {
             PPSkillDefinition best = null;
@@ -221,11 +198,6 @@ namespace PPCore
 
         // 候補リストから選択規則に従って 1 つ選ぶ
         // 同値の場合はリストの先頭側が残るため、所持順が安定していれば結果も安定する
-        // aCandidates : 選択対象の候補
-        // aRule : 選択規則
-        // aUnit : 選択するユニット。乱数の供給元になる
-        // aContext : バトルコンテキスト
-        // return : 選ばれた組。候補が空なら (null, null)
         private static (PPBattleSkill Skill, PPSkillDefinition Definition) Select(
             IReadOnlyList<(PPBattleSkill Skill, PPSkillDefinition Definition)> aCandidates,
             PPUnitAISkillSelectRule aRule, PPBattleUnit aUnit, BattleContext aContext)
@@ -251,9 +223,6 @@ namespace PPCore
         }
 
         // 選択規則に対する比較値を求める。小さいほうを選びたい場合は符号を反転して「大きいほうが良い」に揃える
-        // aDefinition : 対象スキルの定義
-        // aRule : 選択規則
-        // return : 大きいほど優先される比較値
         private static float Score(PPSkillDefinition aDefinition, PPUnitAISkillSelectRule aRule)
             => aRule switch
             {

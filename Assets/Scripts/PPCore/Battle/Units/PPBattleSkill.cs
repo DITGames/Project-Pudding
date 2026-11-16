@@ -11,10 +11,8 @@ using System.Collections.Generic;
 
 namespace PPCore
 {
-    // スキルのランタイムインスタンス
-    // SkillDefinition（ScriptableObject）から CreateRuntimeSkill() で生成され、
-    // 効果本体をデリゲート Effect として保持する
-    // 加えて、戦闘中に変化する使用制限（クールダウン・1 戦闘あたりの使用回数）を管理するのがこのクラスの役目
+    // スキルのランタイムインスタンス。SkillDefinition の CreateRuntimeSkill() で生成される
+    // 効果本体をデリゲート Effect として保持し、クールダウンと使用回数を管理する
     public class BattleSkill
     {
         // スキルID
@@ -27,10 +25,6 @@ namespace PPCore
         // スキルの効果本体（行動ユニット, 対象リスト, コンテキスト）
         public Action<BattleUnit, List<BattleUnit>, BattleContext> Effect { get; }
 
-        // aSkillId : スキルID
-        // aDisplayName : UI表示名
-        // aDefaultResolver : 既定のターゲットリゾルバ
-        // aEffect : 効果本体のデリゲート
         public BattleSkill(string aSkillId, string aDisplayName, ITargetResolver aDefaultResolver,
             Action<BattleUnit, List<BattleUnit>, BattleContext> aEffect)
         {
@@ -45,9 +39,6 @@ namespace PPCore
         public object SourceDefinition { get; set; }
 
         // スキル効果を実行する。効果が未設定なら何もしない
-        // aSource : 行動ユニット
-        // aTargets : 解決済みの対象リスト
-        // aContext : バトルコンテキスト
         public void Execute(BattleUnit aSource, List<BattleUnit> aTargets, BattleContext aContext)
             => Effect?.Invoke(aSource, aTargets, aContext);
 
@@ -94,17 +85,10 @@ namespace PPCore
         }
     }
 
-    // 本作のスキルのランタイムインスタンス
-    // 現状は基底の BattleSkill に対して振る舞いを追加していないが、
-    // AI やコマンドが型で本作のスキルを判別できるよう、また今後の拡張点として分けてある
-    // 属性やコストといった固有情報は BattleSkill.SourceDefinition に
-    // 入っている PPSkillDefinition 側から引く
+    // 本作のスキルのランタイムインスタンス。AI やコマンドが型で判別するために分けている
+    // 属性やコストは BattleSkill.SourceDefinition の PPSkillDefinition から引く
     public class PPBattleSkill : BattleSkill
     {
-        // aSkillId : スキルID
-        // aDisplayName : UI表示名
-        // aDefaultResolver : 既定のターゲットリゾルバ
-        // aEffect : 効果本体のデリゲート
         public PPBattleSkill(string aSkillId, string aDisplayName, ITargetResolver aDefaultResolver,
             Action<BattleUnit, List<BattleUnit>, BattleContext> aEffect)
             : base(aSkillId, aDisplayName, aDefaultResolver, aEffect)

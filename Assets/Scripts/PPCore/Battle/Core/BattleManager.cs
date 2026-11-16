@@ -14,9 +14,8 @@ using System.Threading.Tasks;
 
 namespace PPCore
 {
-    // バトル1戦闘分の進行を統括するコアクラス
-    // コンテキストを受けてバトルを開始し、コマンドキューの実行とターン経過を管理する
-    // 判定ロジックそのものは持たず、差し替え可能なインターフェースへ委譲する
+    // バトル 1 戦闘分の進行を統括するクラス。コマンドキューの実行とターン経過を管理する
+    // 判定ロジックは持たず、差し替え可能なインターフェースへ委譲する
     public class BattleManager
     {
         // 1 バトル当たりの状態（両パーティ・ルール・ターン数・報酬）を持つコンテキスト
@@ -80,7 +79,6 @@ namespace PPCore
 
         // コンテキストを受け取ってバトルを開始する
         // 両パーティのイベント購読、全スキルのクールダウン／使用回数リセット、入れ替え通知の接続までを行う
-        // aContext : この戦闘で使用するコンテキスト。null は不可
         public void StartBattle(BattleContext aContext)
         {
             Context = aContext ?? throw new ArgumentNullException(nameof(aContext));
@@ -110,7 +108,6 @@ namespace PPCore
 
         // ユニット単位のイベントを購読し、BattleManager のイベント通知・バトルログ出力・
         // リアクション発火・撃破時の勝敗判定へ変換する中継を張る
-        // aUnit : 購読対象のユニット
         protected virtual void SubscribeUnit(BattleUnit aUnit)
         {
             aUnit.OnDamaged += (u, dmg) =>
@@ -160,8 +157,6 @@ namespace PPCore
         }
 
         // パーティのメンバー入れ替えを受けて通知とログ出力を行う
-        // aOut : 退場したユニット
-        // aIn : 参戦したユニット
         protected virtual void HandleSwap(BattleUnit aOut, BattleUnit aIn)
         {
             OnUnitSwapped?.Invoke(aOut, aIn);
@@ -179,7 +174,6 @@ namespace PPCore
 
         // キュー先頭のコマンドを 1 件実行する（同期版・演出待ちなし）
         // 実行 → 行動回数消費 → 勝敗チェック → コマンド入力ステートへ復帰、までを 1 呼び出しで行う
-        // return : コマンドを取り出して処理した場合 true。バトル終了済みまたはキューが空なら false
         public bool ExecuteNextCommand()
         {
             if(StateMachine.Current == BattleState.BattleEnd) return false;
@@ -193,8 +187,7 @@ namespace PPCore
             if (!command.IsReaction) mReactionsThisCommand = 0;
 
             // 生存していれば、状態異常による行動阻害を抽選してから実行する
-            // 行動不能の判定は確定（睡眠など）・確率（麻痺など）ともに RollActionBlocked に任せる
-            // （ここで CannotAct のビットだけを見て弾くと、確率付きの行動不能まで毎回失敗になるため）
+            // 行動不能の判定は確定・確率ともに RollActionBlocked に任せる
             if (command.Source.IsAlive)
             {
                 if (command.Source.RollActionBlocked(Context))
@@ -237,10 +230,8 @@ namespace PPCore
             }
         }
 
-        // キュー先頭のコマンドを 1 件実行する（async 版）
-        // 同期版との違いは Presenter による実行前後の演出待ちが入る点
-        // 実行中のコマンド（Context.ExecutingCommand）は同期版と同じく効果の実行中だけ設定し、演出の待ち時間には残さない
-        // aCt : 演出スキップ用のキャンセルトークン
+        // キュー先頭のコマンドを 1 件実行する（async 版）。Presenter による実行前後の演出待ちが入る
+        // Context.ExecutingCommand は効果の実行中だけ設定し、演出の待ち時間には残さない
         public async ValueTask ExecuteNextCommandAsync(CancellationToken aCt = default)
         {
             if (StateMachine.Current == BattleState.BattleEnd) return;
@@ -306,7 +297,6 @@ namespace PPCore
 
         // スキル演出を実行し、スキップによるキャンセル例外だけを飲み込む
         // 演出が中断されてもバトル進行自体は止めないためのラッパー
-        // aPlay : 待機対象の演出タスク
         protected static async ValueTask SafePlaySkillPresentation(ValueTask aPlay)
         {
             try
@@ -320,9 +310,7 @@ namespace PPCore
         }
 
         // コマンドの効果を実行し、実行通知とスタック消費の通知まで行う
-        // この間だけ Context.ExecutingCommand を設定し、発生したダメージがどのコマンド（リアクションか）によるものかを辿れるようにする
-        // 演出の待ち時間を含めないのは、その間に AdvanceTick などが出したダメージへ印が付かないようにするため
-        // aCommand : 実行するコマンド
+        // この間だけ Context.ExecutingCommand を設定し、発生したダメージの発生元コマンドを辿れるようにする
         protected virtual void RunCommandBody(BattleCommandBase aCommand)
         {
             var previous = Context.ExecutingCommand;
@@ -342,7 +330,6 @@ namespace PPCore
 
         // 行動をきっかけにしたスタック消費を、コマンドを実行したユニットへ通知する
         // 攻撃にあたるコマンドの場合は「行動時」と「攻撃時」の両方を発火する
-        // aCommand : 実行し終えたコマンド
         protected virtual void NotifyActionConsumeTriggers(BattleCommandBase aCommand)
         {
             var source = aCommand?.Source;
@@ -355,14 +342,8 @@ namespace PPCore
             }
         }
 
-        // リアクショントリガーを発火し、条件を満たしたユニットの反撃コマンドをキュー先頭へ割り込ませる
-        // Rules.MaxReactionPerEvent に達した時点で打ち切る
-        // 「反撃に反撃を返さない」「深さ N まで許す」といった連鎖の制御は、
-        // リアクション側が ReactionContext.IsReactionDamage / ReactionDepth を見て判断する
-        // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで死んでしまうため）
-        // 積むコマンドには、引き金の深さ + 1 のリアクション情報を設定する
-        // 引き金の深さはリアクション側の判断と食い違わないよう、ReactionContext.ReactionDepth に載せて渡す
-        // aContext : 発生したトリガーと関係ユニットを持つリアクションコンテキスト
+        // リアクショントリガーを発火し、条件を満たしたユニットのコマンドをキュー先頭へ割り込ませる（上限は Rules.MaxReactionPerEvent）
+        // 連鎖の可否はリアクション側が ReactionContext を見て判断する。積むコマンドには引き金の深さ + 1 を設定する
         protected virtual void DispatchReactions(ReactionContext aContext)
         {
             // 引き金の深さ。ダメージが引き金ならその深さ、ダメージを伴わないトリガー（撃破など）なら実行中のコマンドの深さ
@@ -400,9 +381,7 @@ namespace PPCore
             foreach (var unit in Context.EnemyParty.GetAliveActiveMembers()) yield return unit;
         }
 
-        // ターン経過処理。ターン制ならターンごと、ATB などなら一定秒ごとに呼び出す
-        // ターン終了通知 → 両パーティの Tick（状態異常・行動回数・クールダウン更新）→ 勝敗判定 →
-        // ターン番号加算 → ターン開始通知、の順に進む
+        // ターン経過処理。ターン終了通知 → 両パーティの Tick → 勝敗判定 → ターン番号加算 → ターン開始通知の順に進む
         public void AdvanceTick()
         {
             OnTickEnded?.Invoke(Context.TurnCount);
@@ -453,20 +432,14 @@ namespace PPCore
         }
 
         // バトルログ出力のヘルパー。TimeProvider でタイムスタンプを付けて Logger へ流す
-        // aType : ログ種別
-        // aUnit : 行動主体のユニット。無ければ null
-        // aTarget : 対象ユニット。無ければ null
-        // aDescription : ログ本文
         protected virtual void Log(BattleLogType aType, BattleUnit aUnit, BattleUnit aTarget, string aDescription)
         {
             Logger?.Log(new BattleLogEntry(aType, aUnit, aTarget, aDescription, TimeProvider()));
         }
     }
 
-    // バトル進行のステート。BattleStateMachine が保持し、BattleManager が遷移させる
-    // 通常の流れは BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd
-    // コマンドを 1 件実行するたびに ActionExecution → ResultCheck → CommandInput を往復し、
-    // 決着がついた時点で BattleEnd へ抜ける
+    // バトル進行のステート。通常の流れは BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd
+    // コマンド 1 件ごとに ActionExecution → ResultCheck → CommandInput を往復する
     public enum BattleState
     {
         // 未初期化。バトル開始前の初期値
@@ -484,9 +457,8 @@ namespace PPCore
         // 拡張先で追加
     }
 
-    // BattleState の現在値を保持し、遷移と通知だけを担う軽量ステートマシン
-    // 遷移の可否ルール自体は持たず、TransitionValidator として採用先から差し込む設計
-    // 未設定なら任意のステートへ遷移できる
+    // BattleState の現在値を保持し、遷移と通知だけを担うステートマシン
+    // 遷移の可否は TransitionValidator で差し込む。未設定なら任意のステートへ遷移できる
     public class BattleStateMachine
     {
         // 現在のバトルステート
@@ -500,8 +472,6 @@ namespace PPCore
         public Func<BattleState, BattleState, bool> TransitionValidator { get; set; }
 
         // 指定ステートへ遷移する。バリデータが拒否した場合は現在値を変えずに終わる
-        // aState : 遷移先のステート
-        // return : 遷移した場合 true。バリデータに拒否された場合 false
         public bool TransitionTo(BattleState aState)
         {
             if (TransitionValidator != null && !TransitionValidator(Current, aState))
@@ -517,9 +487,7 @@ namespace PPCore
     }
 
     // 実行待ちコマンドを保持する FIFO キュー
-    // 通常のコマンドは末尾へ積み、リアクション（反撃など）は EnqueueFront で先頭へ割り込ませる
-    // 両端操作が要るため内部は LinkedList
-    // 優先度付きキューなどへ差し替えられるよう各メソッドは virtual にしてある
+    // 通常のコマンドは末尾へ積み、リアクションは EnqueueFront で先頭へ割り込ませる
     public class ActionQueue
     {
         // 実行待ちコマンドの実体。先頭が次に実行される
@@ -533,8 +501,6 @@ namespace PPCore
         public virtual void Enqueue(BattleCommandBase aCommand) => Items.AddLast(aCommand);
 
         // キュー先頭のコマンドを取り出す
-        // aOutCommand : 取り出されたコマンド。キューが空なら null
-        // return : 取り出せた場合 true。キューが空なら false
         public virtual bool TryDequeue(out BattleCommandBase aOutCommand)
         {
             if (Items.Count == 0)
@@ -556,24 +522,14 @@ namespace PPCore
         public void Clear() => Items.Clear();
     }
 
-    // コマンド実行の前後に演出を差し込むためのインターフェース
-    // BattleManager.ExecuteNextCommandAsync が実行の前後で await するため、
-    // 演出が終わるまでバトル進行が待たされる
-    // バトルロジック側が演出の中身を一切知らずに済むよう、待機だけを約束する形にしてある
-    // キャンセルトークンは演出スキップに使われる。実装側は OperationCanceledException を
-    // 投げて中断してよい（呼び出し側が飲み込んで進行を継続する）
+    // コマンド実行の前後に演出を差し込むためのインターフェース。演出が終わるまでバトル進行が待たされる
+    // キャンセルトークンは演出スキップに使う。実装側は OperationCanceledException で中断してよい
     public interface IBattlePresenter
     {
         // コマンド実行前演出。詠唱やカットインなどに使う
-        // aCmd : これから実行されるコマンド
-        // aContext : バトルコンテキスト
-        // aCt : スキップ用のキャンセルトークン
         ValueTask PlayPreExecute(BattleCommandBase aCmd, BattleContext aContext, CancellationToken aCt);
 
         // コマンド実行後演出。ヒット演出やダメージポップアップなどに使う
-        // aCmd : 実行し終えたコマンド
-        // aContext : バトルコンテキスト
-        // aCt : スキップ用のキャンセルトークン
         ValueTask PlayPostExecute(BattleCommandBase aCmd, BattleContext aContext, CancellationToken aCt);
     }
 }

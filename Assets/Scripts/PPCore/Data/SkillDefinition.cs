@@ -13,11 +13,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // スキルのマスターデータ（ScriptableObject）
-    // インスペクタで設定した内容から、CreateRuntimeSkill でランタイムの BattleSkill を生成する
-    // 定義（不変・アセット）とインスタンス（可変・戦闘中の状態を持つ）を分ける構成
+    // スキルのマスターデータ（ScriptableObject）。CreateRuntimeSkill でランタイムの BattleSkill を生成する
     // 効果の中身は BuildEffect を派生側でオーバーライドして実装する
-    // この基底クラス自体は効果を持たない
     public class SkillDefinition : ScriptableObject
     {
         [Header("スキル")]
@@ -45,8 +42,6 @@ namespace PPCore
 
         // この定義からランタイムのスキルインスタンスを生成する
         // 生成物には自身への参照（SourceDefinition）を必ず設定する
-        // 定義型から属性やコストを引く実装があるため、この設定を省略しないこと
-        // return : クールダウン・使用回数を初期化済みのランタイムスキル
         public virtual BattleSkill CreateRuntimeSkill()
         {
             var skill = new BattleSkill(mSkillId, mDisplayName, mTargetScope.CreateResolver(), BuildEffect());
@@ -59,7 +54,6 @@ namespace PPCore
 
         // スキル実行時の効果を生成する。派生側でオーバーライドして実装する
         // 基底実装は null を返すため、この型のまま使うと何も起こらないスキルになる
-        // return : 効果本体のデリゲート（行動ユニット, 対象リスト, コンテキスト）
         protected virtual Action<BattleUnit, List<BattleUnit>, BattleContext> BuildEffect()
         {
             return null;

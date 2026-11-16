@@ -14,12 +14,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // エフェクト定義（ScriptableObject）
-    // ID・表示名・持続期間・スタック挙動・分類といった枠組みを定める
-    // 1エフェクト＝1アセットとして運用し、スキル側はこのアセットを参照するだけで独自の値を持たない
-    // エフェクト ID は SkillDefinition.mSkillId と同様、アセットごとに手入力する安定した値
-    // 効き目そのものは PPStatusEffectBehaviourDefinition のリストとしてインスペクタ上で組み立てる
-    // （適用時に攻撃力を上げる、ティックごとにダメージを受ける、等を振る舞いの組み合わせで表現する）
+    // エフェクト定義（ScriptableObject）。ID・表示名・持続期間・スタック挙動・分類を定め、1 エフェクト＝1 アセットで運用する
+    // 効き目は PPStatusEffectBehaviourDefinition のリストとして組み立てる
     [CreateAssetMenu(fileName = "PPEffectDefinition", menuName = "Project-Pudding/Effect/PPEffectDefinition")]
     public class PPEffectDefinition : ScriptableObject
     {
@@ -28,11 +24,8 @@ namespace PPCore
         [SerializeField]protected string mEffectId;
         [Label("表示名")]
         [SerializeField]protected string mDisplayName;
-        // 持続条件。ターン経過で切れるのか永続なのかを条件の種類として選ぶ
-        // 未設定の場合は StatusEffect 側の既定に従い永続になる
-        // 単一フィールドのため applyToCollection による回避ができず、[Label] を付けると
-        // 属性側の PropertyDrawer が型の PropertyDrawer より優先されて種類のプルダウンを出せなくなる
-        // そのため表示名はドロワーが読む [PPFieldLabel] で与える
+        // 持続条件。未設定の場合は永続になる
+        // [Label] を付けると種類のプルダウンを出せなくなるため、表示名は [PPFieldLabel] で与える
         [PPFieldLabel("持続条件")]
         [SerializeReference]
         [SerializeField]protected PPDurationConditionDefinition mDurationCondition = new PPTurnDurationConditionDefinition();
@@ -48,14 +41,12 @@ namespace PPCore
         // UI・AI・解除スキルから共通に参照できるゲーム固有分類。振る舞いの構成とは独立して手入力する
         [Label("分類")]
         [SerializeField]protected PPEffectCategory mCategory = PPEffectCategory.None;
-        // Coreが理解できる汎用分類。振る舞いの構成とは独立して手入力する
+        // 汎用分類。振る舞いの構成とは独立して手入力する
         [Label("タグ")]
         [SerializeField]protected StatusEffectTag mTags = StatusEffectTag.None;
 
         // 効き目そのもの。振る舞いを積み上げて 1 つの状態異常を表現する
-        // [Label] は必ず applyToCollection = true で付ける
-        // false（既定）だとラベルの PropertyDrawer が各要素へ適用され、
-        // 要素側の型選択ツリー（PPStatusEffectBehaviourDefinitionDrawer）が呼ばれなくなる
+        // [Label] は必ず applyToCollection = true で付ける（false だと要素側の型選択ツリーが呼ばれなくなる）
         [Header("振る舞い")]
         [Label("振る舞い", true)]
         [SerializeReference]
@@ -69,12 +60,7 @@ namespace PPCore
         public StatusEffectTag Tags => mTags;
 
         // この定義からランタイムのステータスエフェクトを生成する
-        // 共通部分(ID・表示名・持続期間・スタック・分類)を組み立てたのち、
-        // mBehaviours の各要素へ効き目の組み立てを委ねる
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
-        // return : 生成されたステータスエフェクト
+        // 共通部分を組み立てたのち、mBehaviours の各要素へ効き目の組み立てを委ねる
         public StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             // 持続条件は付与のたびに作り直す（残りターン数のような状態を持つため使い回さない）
@@ -101,17 +87,12 @@ namespace PPCore
                 : string.Join("、", mBehaviours.Select(b => b?.BuildString() ?? "（未設定）"));
     }
 
-    // StatusEffectBehaviour 1つ分をインスペクタ上で組み立てるためのデータ定義
-    // PPEffectDefinition はこの派生型をリストで持ち、状態異常の中身を「振る舞いの組み合わせ」として表現する
-    // PPSkillEffectDefinition と同じ形（[PPTypeMenuName] + ツリー選択 + SerializeReference のリスト）
+    // StatusEffectBehaviour 1 つ分をインスペクタ上で組み立てるためのデータ定義
+    // PPEffectDefinition がこの派生型をリストで持つ
     [Serializable]
     public abstract class PPStatusEffectBehaviourDefinition
     {
         // この定義から StatusEffectBehaviour を組み立て、aEffect に積む
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public abstract void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext);
 
         // リストの要素ラベルに表示する、この振る舞いの内容を要約した文字列を組み立てる

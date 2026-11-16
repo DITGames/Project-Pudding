@@ -26,16 +26,8 @@ namespace PPCore
         OnTurnEnded,
     }
 
-    // 特定の出来事に反応して割り込み行動を発生させるリアクション（反撃・カウンターなど）
-    // ユニットの BattleUnit.Reactions に登録しておくと、
-    // BattleManager.DispatchReactions がトリガー発生時に走査し、
-    // ShouldReact が true を返したものについて BuildReaction のコマンドをキュー先頭へ割り込ませる
-    // 反撃が反撃を呼ぶ連鎖を止めたい場合は ShouldReact で ReactionContext.IsReactionDamage を見て false を返すこと
-    // 一定の深さまで連鎖を許す場合や、撃破などダメージ以外のトリガーで連鎖を止める場合は ReactionContext.ReactionDepth を見る
-    // （引き金が起きたときの連鎖の深さ。ダメージ以外のトリガーでも、反撃の最中なら 1 以上になる）
-    // BattleRules.MaxReactionPerEvent は想定外の連鎖に対する安全網であり、
-    // 意図した連鎖の可否はリアクション側の判断に任せている
-    // （一律に抑止すると、反撃の最中は「とげ」のような別のリアクションまで発火できなくなるため）
+    // 特定の出来事に反応して割り込み行動を発生させるリアクション（反撃など）。BattleUnit.Reactions に登録する
+    // 連鎖を止めるかは ShouldReact で ReactionContext.IsReactionDamage / ReactionDepth を見て判断する
     public interface IBattleReaction
     {
         // 反応するトリガー種別
@@ -43,23 +35,14 @@ namespace PPCore
 
         // この状況で実際に反応すべきかを判定する
         // トリガー種別の一致は呼び出し側で済んでいるため、ここでは条件（残 HP・確率など）だけを見る
-        // aOwner : このリアクションを持つユニット
-        // aReactContext : トリガー発生時の状況
-        // aContext : バトルコンテキスト
-        // return : 反応する場合 true
         bool ShouldReact(BattleUnit aOwner, ReactionContext aReactContext, BattleContext aContext);
 
         // 反応として積むコマンドを構築する
-        // aOwner : このリアクションを持つユニット
-        // aReactContext : トリガー発生時の状況。反撃先は通常 Instigator
-        // aContext : バトルコンテキスト
-        // return : 割り込ませるコマンド。null を返すと何も積まれない
         BattleCommandBase BuildReaction(BattleUnit aOwner, ReactionContext aReactContext, BattleContext aContext);
     }
 
-    // リアクション判定へ渡される、トリガー発生時の状況
-    // 「何が起きたか」「誰が起こしたか」「誰に起きたか」を 1 つにまとめて IBattleReaction へ渡す
-    // 反撃なら Instigator が反撃先になる。発火のたびに生成されるため、値型（readonly struct）にしてある
+    // リアクション判定へ渡される、トリガー発生時の状況（何が起きたか・誰が起こしたか・誰に起きたか）
+    // 反撃なら Instigator が反撃先になる
     public readonly struct ReactionContext
     {
         // 引き金となった出来事の種別
@@ -76,22 +59,13 @@ namespace PPCore
         // BattleManager.DispatchReactions が求めた引き金の深さ。未設定なら null
         private readonly int? mReactionDepth;
 
-        // 引き金になったダメージがリアクション（反撃など）によるものなら true。ダメージ以外のトリガーでは常に false
-        // 「反撃に反撃を返さない」を実装する際は ShouldReact でこれを見て false を返す
-        // 撃破・回復などダメージ以外のトリガーで連鎖を止めたい場合は ReactionDepth を見る
+        // 引き金になったダメージがリアクションによるものなら true。ダメージ以外のトリガーでは常に false
+        // ダメージ以外のトリガーで連鎖を止めたい場合は ReactionDepth を見る
         public bool IsReactionDamage => Damage?.IsReaction ?? false;
         // 引き金の出来事が起きたときのリアクションの連鎖の深さ（0 = 通常の行動やターン経過の中で起きた）
-        // ダメージが引き金ならそのダメージの深さ、ダメージ以外のトリガーなら実行中のコマンドの深さで、
-        // BattleManager.DispatchReactions がキューへ積むリアクションの深さはこの値 + 1 になる
-        // 「深さ N まで許す」を実装する際は ShouldReact でこれが N 未満のときだけ true を返す
-        // DispatchReactions を通さずに作ったコンテキストでは、引き金のダメージの深さ（無ければ 0）を返す
+        // DispatchReactions が積むリアクションの深さはこの値 + 1 になる
         public int ReactionDepth => mReactionDepth ?? Damage?.Reaction?.Depth ?? 0;
 
-        // aTrigger : トリガー種別
-        // aInstigator : トリガーを起こしたユニット
-        // aSubject : トリガーの対象ユニット
-        // aDamage : ダメージ情報。ダメージ系トリガーのみ
-        // aPayload : 追加データ
         public ReactionContext(ReactionTrigger aTrigger, BattleUnit aInstigator, BattleUnit aSubject,
             DamageInfo aDamage = null, object aPayload = null)
         {
@@ -104,14 +78,10 @@ namespace PPCore
         }
 
         // 引き金の深さを設定した複製を作る。BattleManager.DispatchReactions がリアクションへ渡す前に使う
-        // aReactionDepth : 引き金の深さ
-        // return : 深さ以外は同じ内容のコンテキスト
         public ReactionContext WithReactionDepth(int aReactionDepth)
             => new ReactionContext(this, aReactionDepth);
 
         // WithReactionDepth 用の複製コンストラクタ
-        // aSource : 複製元
-        // aReactionDepth : 引き金の深さ
         private ReactionContext(in ReactionContext aSource, int aReactionDepth)
         {
             Trigger = aSource.Trigger;
@@ -123,9 +93,7 @@ namespace PPCore
         }
     }
 
-    // リアクション（反撃・とげなど）として発生した行動・ダメージに付く情報
-    // BattleManager.DispatchReactions がリアクションのコマンドに設定し、
-    // そのコマンドの実行中に発生したダメージへ BattleUnit.ApplyDamage が引き継ぐ
+    // リアクションとして発生した行動・ダメージに付く情報。DispatchReactions がコマンドに設定し、ApplyDamage がダメージへ引き継ぐ
     // 「何によるダメージか」（DamageInfo.Reason）とは独立した軸として扱う
     public class ReactionDamageInfo
     {

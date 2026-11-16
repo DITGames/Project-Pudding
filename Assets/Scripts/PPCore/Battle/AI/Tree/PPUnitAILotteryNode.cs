@@ -13,9 +13,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 抽選ノードが持つ枝 1 本分の設定
-    // 「どの子ノードを」「どれくらいの当たりやすさで」引くかの組
-    // 重みを親側に集めることで、配分をひとつの画面で見比べられるようにしている
+    // 抽選ノードが持つ枝 1 本分の設定（引く子ノードと当たりやすさの組）
     [Serializable]
     public sealed class PPUnitAILotteryEntry
     {
@@ -38,19 +36,11 @@ namespace PPCore
 
         // 抽選対象の子ノード ID を差し替える
         // 複製・貼り付けで接続を張り直す処理から使う。重みは触らずに残す
-        // aChildId : 差し替える子ノード ID
         public void SetChildId(string aChildId) => mChildId = aChildId;
     }
 
-    // 子ノードを重み付きの抽選で 1 つ選んで評価するノード
-    //
-    // 上から順に試す優先度リストに対して、こちらは毎回くじを引く
-    // 同じ状況でも行動がばらけるため、読まれにくい相手を作るのに使う
-    // 当たりやすさはこのノードが枝ごとに持ち、重み 0 の枝は引かれない
-    //
+    // 子ノードを重み付きの抽選で 1 つ選んで評価するノード。重み 0 の枝は引かれない
     // 選んだ枝が実行できなかった場合は、既定では残りの枝から引き直す
-    // 1 回のくじ引きで空振りしてそのティックを丸ごと捨てるより、
-    // 「候補の中から実行できるものを重み付きで選ぶ」ほうが扱いやすいため
     [Serializable]
     [PPTypeMenuName("制御/抽選")]
     public sealed class PPUnitAILotteryNode : PPUnitAINode
@@ -106,8 +96,6 @@ namespace PPCore
 
         // 子を重み付き抽選で選んで評価する
         // 確定した場合は道順（PPUnitAIEvalContext.Path）に選ばれた子の添字を残す
-        // aContext : 評価 1 回分の入力
-        // return : 確定した行動。どの枝も確定しなければ Failed
         protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             int depth = aContext.Path.Count;
@@ -146,9 +134,6 @@ namespace PPCore
 
         // 割り込み指定のある子だけを順に評価する
         // 待機コミット中でも緊急度の高い枝へ抜けられるようにするためのもの
-        // aContext : 評価 1 回分の入力
-        // aDepth : このノードの深さ
-        // return : 確定した行動。無ければ Failed
         private PPUnitAINodeResult EvaluateInterruptChildren(PPUnitAIEvalContext aContext, int aDepth)
         {
             for (int i = 0; i < mEntries.Count; i++)
@@ -163,10 +148,6 @@ namespace PPCore
         }
 
         // 指定した添字の子を評価する。確定しなかった場合は積んだ道順を戻す
-        // aContext : 評価 1 回分の入力
-        // aDepth : このノードの深さ
-        // aIndex : 評価する子の添字
-        // return : 子の評価結果
         private PPUnitAINodeResult EvaluateChild(PPUnitAIEvalContext aContext, int aDepth, int aIndex)
         {
             var child = ResolveChild(aContext, aIndex);
@@ -186,9 +167,6 @@ namespace PPCore
 
         // 残り候補から重みに応じて 1 つ引く
         // 乱数はシード管理・再現性のため、行動するユニット自身の供給元を経由する
-        // aContext : 評価 1 回分の入力
-        // aRemaining : 残っている候補の添字
-        // return : aRemaining 内での位置。引けなければ -1
         private int DrawIndex(PPUnitAIEvalContext aContext, IReadOnlyList<int> aRemaining)
         {
             float total = 0f;
@@ -209,15 +187,10 @@ namespace PPCore
         }
 
         // 指定した添字の枝が持つ抽選の重みを引く
-        // aIndex : 対象の枝の添字
-        // return : 抽選の重み。枝が無ければ 0
         private float ResolveWeight(int aIndex)
             => aIndex >= 0 && aIndex < mEntries.Count && mEntries[aIndex] != null ? mEntries[aIndex].Weight : 0f;
 
         // 指定した添字の枝が指す子ノードを引く
-        // aContext : 評価 1 回分の入力
-        // aIndex : 対象の枝の添字
-        // return : 子ノード。解決できなければ null
         private PPUnitAINode ResolveChild(PPUnitAIEvalContext aContext, int aIndex)
         {
             if (aIndex < 0 || aIndex >= mEntries.Count || mEntries[aIndex] == null) return null;
@@ -227,8 +200,6 @@ namespace PPCore
 
         // 子ノードを末尾へ繋ぐ。既に繋がっている場合は何もしない
         // 重みの既定は 1 で、繋いだあとインスペクタから調整する
-        // aPortIndex : 接続口の番号。このノードは 1 口のみ
-        // aChildId : 繋ぐ子ノードの ID
         public override void ConnectChild(int aPortIndex, string aChildId)
         {
             if (string.IsNullOrEmpty(aChildId) || IndexOfChild(aChildId) >= 0) return;
@@ -238,7 +209,6 @@ namespace PPCore
 
         // 接続先の子ノード ID を対応表に従って置き換える
         // 枝を作り直さず ID だけ差し替えるため、複製しても当たりやすさの配分がそのまま残る
-        // aMap : 対応表
         public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
         {
             for (int i = mEntries.Count - 1; i >= 0; i--)
@@ -257,8 +227,6 @@ namespace PPCore
         }
 
         // 子ノードとの接続を外す。枝ごと取り除くため重みも一緒に消える
-        // aPortIndex : 接続口の番号
-        // aChildId : 外す子ノードの ID
         public override void DisconnectChild(int aPortIndex, string aChildId)
         {
             int index = IndexOfChild(aChildId);
@@ -268,10 +236,7 @@ namespace PPCore
         }
 
         // 枝の並び順を指定どおりに揃える
-        // 抽選結果には影響しないが、エディタ上の並びと保存内容を合わせておく
         // 重みは枝に付いているため、並べ替えても配分は変わらない
-        // aPortIndex : 接続口の番号
-        // aOrderedChildIds : 並べ替え後の子ノード ID
         public override void ReorderChildren(int aPortIndex, IReadOnlyList<string> aOrderedChildIds)
         {
             var ordered = new List<PPUnitAILotteryEntry>(mEntries.Count);
@@ -293,12 +258,8 @@ namespace PPCore
             mEntries.AddRange(ordered);
         }
 
-        // 重みの合計が 1 になるよう割り直す
-        //
-        // 抽選は合計値に対する比率で行うため、正規化しても挙動は変わらない
-        // 「3 : 1」を「0.75 : 0.25」に置き換えて、実際の確率を数字のまま読めるようにするためのもの
-        // 端数は小数第 3 位で丸める。合計が厳密に 1 にならないことがあるが、抽選は毎回合計を取り直すため影響しない
-        // 重みが全て 0 の場合は均等割りにする（0 のまま割ると全滅して引けなくなるため）
+        // 重みの合計が 1 になるよう割り直す（抽選は比率で行うため挙動は変わらない）
+        // 端数は小数第 3 位で丸め、重みが全て 0 の場合は均等割りにする
         public void NormalizeWeights()
         {
             int count = 0;
@@ -323,8 +284,6 @@ namespace PPCore
         }
 
         // 指定した子ノード ID を持つ枝の位置を探す
-        // aChildId : 探す子ノードの ID
-        // return : 枝の位置。見つからなければ -1
         private int IndexOfChild(string aChildId)
         {
             for (int i = 0; i < mEntries.Count; i++)

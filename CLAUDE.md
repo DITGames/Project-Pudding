@@ -42,9 +42,8 @@ Packages/, ProjectSettings/
 
 ### PPCore の構成
 
-バトルシステムは `PPCore`（namespace `PPCore`）の **単一レイヤ**。
-以前は汎用エンジン `CommandBattleCore` と固有レイヤ `PPCore` の 2 層だったが、別プロジェクトで使い回さない方針になったため統合した。
-「汎用か固有か」の切り分けは不要で、Project-Pudding の仕様（属性・コイン・ゲージ等）をどの型にも直接書いてよい。
+バトルシステムは `PPCore`（namespace `PPCore`）の **単一レイヤ**。別プロジェクトでの再利用は想定しない。
+Project-Pudding の仕様（属性・コイン・ゲージ等）をどの型にも直接書いてよい。
 
 ```
 PPCore/
@@ -74,11 +73,11 @@ PPCore/
 - **`MonoBehaviour` / `ScriptableObject` / `EditorWindow` は 1 クラス 1 ファイル**（ファイル名 = クラス名）。Unity がファイルと型を対応付けるため、他のファイルへ混ぜない。逆に、これらのファイルへ補助の通常クラスや interface を同居させるのは問題ない
 - `[SerializeReference]` で保持される通常クラス（スキル効果定義・振る舞い定義・AI 条件・ツリーノード等）は**クラス名と namespace を変えない**。アセットに型名で保存されているため、変える場合は `[MovedFrom]` が必要
 
-**統合の途中段階である点に注意**
+**型の命名と継承の現状**
 
-- 旧 `CommandBattleCore` 由来の型（`BattleManager`, `BattleUnit`, `StatusEffect`, `Parameter` など）は `PP` プレフィックスを持たないまま `PPCore` に入っている
-- `PPBattleUnit : BattleUnit`、`PPBattleParty : BattleParty`、`PPBattleRules : BattleRules`、`PPSkillDefinition : SkillDefinition` のような基底・派生のペアはクラスとしては残っており、同じファイルに並んでいる。1 クラスへの畳み込みと `PP` プレフィックスへの改名は未着手
-- 新しく追加する型は従来どおり `PP` プレフィックスを付ける
+- `BattleManager`, `BattleUnit`, `StatusEffect`, `Parameter` など一部の型は `PP` プレフィックスを持たない
+- `PPBattleUnit : BattleUnit`、`PPBattleParty : BattleParty`、`PPBattleRules : BattleRules`、`PPSkillDefinition : SkillDefinition` のような基底・派生のペアがあり、同じファイルに並んでいる
+- 新しく追加する型は `PP` プレフィックスを付ける
 
 ### バトル進行
 
@@ -172,12 +171,13 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 | private / protected フィールド | `m` プレフィックス + PascalCase | `mProfile`, `mBattleManager` |
 | メソッド引数 | `a` プレフィックス + PascalCase | `aContext`, `aUnit`, `aTargets` |
 | public プロパティ / メソッド | PascalCase | `ResourcePool`, `PlanActions` |
-| PPCore の型 | `PP` プレフィックス必須（旧 `CommandBattleCore` 由来の既存型は未改名） | `PPBattleUnit`, `PPSkillCommand` |
+| PPCore の型 | `PP` プレフィックス必須（`BattleManager` など一部の既存型を除く） | `PPBattleUnit`, `PPSkillCommand` |
 | ローカル変数 | camelCase | `snap`, `candidates` |
 
 - `Label` / `InspectorName` の表示文字列は **日本語**
 - `[SerializeField] private` + `[Label("表示名")]` をセットで書く。インスペクタに素の英語フィールド名を出さない
 - 日本語表示文字列は再利用されるものを `PPBattleUtilityDefinition` / `PPTypeAttributeDefinition` の `const` に集約している。ロール名・属性名はハードコードせずこの定数を使う
+- **コメントは 1〜2 行にまとめる**。何をするか・なぜそうするかの要点だけを書き、引数や戻り値の列挙、変更・移行の経緯は書かない
 - 拡張ポイントは `virtual` / `protected` を積極的に付ける（`BattleManager` の各メソッド、AI のスコア計算群）
 - switch 式・`??=`・パターンマッチなど C# 9+ の記法を通常どおり使ってよい
 
@@ -210,5 +210,5 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 作業中に遭遇し得る、既存の未整理箇所。**ついでに直すのではなく、触る必要が生じたときに対処する。**
 
 - `Assets/Scripts/*.cs` 直下のプッシャー系スクリプト群は命名規約・ヘッダコメント規約の対象外の旧コード。namespace も持たない
-- 旧 `CommandBattleCore` 由来の型の `PP` プレフィックス化と、基底・派生ペアの畳み込みは未着手（「PPCore の構成」節を参照）。コード中のコメントにも「Core 側」「基底の〜」といった旧 2 層前提の記述が残っている
-- 本ファイルの「データ定義」「属性とリソース」「パーティ AI」「エディタ拡張」節には、現在のコードと合わない旧構成の記述が残っている（例: AI 条件は ScriptableObject ではなく `[SerializeReference]` の通常クラスで、ユニット AI はビヘイビアツリー `PPUnitBehaviourTree` で動く）。該当領域を触るときはコードを正とする
+- `PP` プレフィックスを持たない型の改名と、基底・派生ペアの 1 クラス化は未着手（「PPCore の構成」節を参照）
+- 本ファイルの「データ定義」「属性とリソース」「パーティ AI」「エディタ拡張」節には、現在のコードと合わない記述が残っている（例: AI 条件は ScriptableObject ではなく `[SerializeReference]` の通常クラスで、ユニット AI はビヘイビアツリー `PPUnitBehaviourTree` で動く）。該当領域を触るときはコードを正とする

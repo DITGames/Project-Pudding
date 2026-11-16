@@ -12,17 +12,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ユニット単位で判断ツリーを評価する AI
-    //
-    // パーティ共有のリソースを誰に割り当てるかを調停するのではなく、
-    // ゲージを専有する各ユニットが自分の判断ツリー（PPUnitBehaviourTree）を評価して行動を決める
-    // このクラス自体は判断を持たず、次の 4 つだけを担当する
-    //   1. 生存ユニットを順に回して、それぞれのツリーを評価する
-    //   2. 待機コミット（決めた判断を数ティック維持する）の記録と消化
-    //   3. 確定した行動を 1 ティック分の計画へ積む
-    //   4. 判断の経過をログとデバッグウィンドウへ流す
-    //
-    // 判断そのものはツリーが持つため、挙動のチューニングはコードではなくツリーアセットで行う
+    // 各ユニットが自分の判断ツリー（PPUnitBehaviourTree）を評価して行動を決める AI
+    // このクラスはツリーの評価・待機コミットの管理・計画への積み込み・経過のログ出力だけを担う
     public class PPUnitAIStrategist : IPPPartyCommandStrategist
     {
         // ユニット 1 体分の待機コミット
@@ -64,9 +55,6 @@ namespace PPCore
 
         // バトル進行の管理役と、実行待ちの行動の供給元を受け取る
         // 二重購読を避けるため、既に繋がっている場合は先に外してから繋ぎ直す
-        // aManager : バトル進行の管理役
-        // aSide : この思考ルーチンが担当する陣営
-        // aPendingSource : 実行待ちの行動の供給元
         public void BindBattle(BattleManager aManager, BattleSide aSide, IPPPendingActionSource aPendingSource)
         {
             Unbind();
@@ -92,8 +80,6 @@ namespace PPCore
 
         // ユニットに対応する見聞きを取得する。初回は生成して覚える
         // 条件クラスから読むため公開している
-        // aUnit : 対象ユニット
-        // return : そのユニットの見聞き
         public PPUnitAIBlackboard ResolveBlackboard(PPBattleUnit aUnit)
         {
             if (!mBlackboards.TryGetValue(aUnit, out var blackboard))
@@ -105,9 +91,6 @@ namespace PPCore
         }
 
         // このティックでパーティが取る行動計画を組み立てる
-        // aSelf : 思考主体のパーティ。PPBattleParty でなければ待機を返す
-        // aContext : バトルコンテキスト
-        // return : 採用された行動の割り当て。何も採用できなければ PPPartyPlan.Wait
         public PPPartyPlan PlanActions(BattleParty aSelf, BattleContext aContext)
         {
             if (aSelf is not PPBattleParty party)
@@ -138,9 +121,8 @@ namespace PPCore
                 var tree = ResolveTree(unit, out var treeSource);
                 if (tree == null) WarnNoTree(unit);
 
-                // 行動回数の上限まで積む。積むたびに台帳へ仮押さえするため、
-                // 2 手目以降は 1 手目で使う予定のゲージを差し引いた状態で判断される
-                // 思考記録は行動ごとに分ける。1 件に上書きすると 2 手目の判断が追えなくなるため
+                // 行動回数の上限まで積む。積むたびに台帳へ仮押さえし、2 手目以降は残りのゲージで判断させる
+                // 思考記録は行動ごとに分ける
                 int actionIndex = 0;
                 while (mLedger.HasActionLeft(unit))
                 {
@@ -166,12 +148,6 @@ namespace PPCore
         }
 
         // ユニット 1 体分の判断ツリーを評価して行動を決める
-        // aUnit : 判断対象のユニット
-        // aTree : そのユニットの判断ツリー。null なら思考せず待機する
-        // aSnap : パーティ状況スナップショット
-        // aContext : バトルコンテキスト
-        // aEntry : 判断結果の記録先
-        // return : 採用されたコマンド。何もしない場合は null
         protected virtual BattleCommandBase DecideUnitAction(PPBattleUnit aUnit, PPUnitBehaviourTree aTree,
             PPPartyAIContext aSnap, BattleContext aContext, PPUnitAIThinkEntry aEntry)
         {
@@ -212,14 +188,7 @@ namespace PPCore
         }
 
         // 判断ツリーを評価し、待機コミットの適用と更新まで行う
-        // コミット中は前回の道順で評価範囲を絞るが、その枝が崩れていた場合は制約を外して評価し直す
-        // 待ち条件が成立しなくなったまま何もできない、という状態を避けるため
-        // aUnit : 判断対象のユニット
-        // aTree : そのユニットの判断ツリー
-        // aSnap : パーティ状況スナップショット
-        // aContext : バトルコンテキスト
-        // aEntry : 判断結果の記録先
-        // return : ツリーが確定させた行動
+        // コミット中は前回の道順で評価範囲を絞り、その枝が崩れていた場合は制約を外して評価し直す
         protected virtual PPUnitAINodeResult EvaluateTree(PPBattleUnit aUnit, PPUnitBehaviourTree aTree,
             PPPartyAIContext aSnap, BattleContext aContext, PPUnitAIThinkEntry aEntry)
         {
@@ -261,12 +230,7 @@ namespace PPCore
         }
 
         // 評価結果に応じて待機コミットを張り直す
-        // 維持ティック数を持つ行動を選んだ場合はその道順ごと記録し、
-        // それ以外を選んだ場合はコミットを解除して次のティックから自由に選ばせる
-        // aUnit : 判断対象のユニット
-        // aEvalContext : 評価に使ったコンテキスト。確定時の道順を持つ
-        // aResult : ツリーが確定させた行動
-        // aEntry : 判断結果の記録先
+        // 維持ティック数を持つ行動なら道順ごと記録し、それ以外ならコミットを解除する
         protected virtual void UpdateCommit(PPBattleUnit aUnit, PPUnitAIEvalContext aEvalContext,
             PPUnitAINodeResult aResult, PPUnitAIThinkEntry aEntry)
         {
@@ -287,8 +251,6 @@ namespace PPCore
         }
 
         // ユニットに対応する採用済みの枝を取得する。初回は生成して覚える
-        // aUnit : 対象ユニット
-        // return : そのユニットが この思考で採用済みにした枝のキー
         protected HashSet<string> ResolveAdopted(PPBattleUnit aUnit)
         {
             if (!mAdopted.TryGetValue(aUnit, out var adopted))
@@ -300,11 +262,7 @@ namespace PPCore
         }
 
         // 行動が確定したら、その経路上で採用された枝を覚える
-        // 連携ノードが次の手で同じ枝を採らないようにするためのもの
-        // 通過記録には連携ノードが積んだ採用キーも含まれており、確定した経路の分だけがここへ残る
-        // aUnit : 判断対象のユニット
-        // aResult : ツリーが確定させた行動
-        // aEvalContext : 評価に使ったコンテキスト。確定時の通過経路を持つ
+        // 連携ノードが次の手で同じ枝を採らないようにするため
         protected virtual void CommitAdopted(PPBattleUnit aUnit, PPUnitAINodeResult aResult,
             PPUnitAIEvalContext aEvalContext)
         {
@@ -319,9 +277,6 @@ namespace PPCore
 
         // 行動が確定したら、その内容を見聞きへ記録する
         // ノードは状態を変えない約束のため、狙いの固定もここで張る
-        // aUnit : 判断対象のユニット
-        // aResult : ツリーが確定させた行動
-        // aTurnCount : 確定した時点のターン数
         protected virtual void CommitBlackboard(PPBattleUnit aUnit, PPUnitAINodeResult aResult, int aTurnCount)
         {
             if (!aResult.IsDecided) return;
@@ -340,7 +295,6 @@ namespace PPCore
 
         // ダメージ結果を自陣営のユニットの見聞きへ記録する
         // 発生元が取れないダメージ（反射など）は加害者の記録に使わない
-        // aInfo : 解決済みのダメージ情報
         protected virtual void HandleDamageResolved(DamageInfo aInfo)
         {
             if (aInfo.IsMiss || aInfo.IsNullified) return;
@@ -351,7 +305,6 @@ namespace PPCore
 
         // 味方が倒された事実を、生き残っている自陣営のユニットへ記録する
         // 撃破通知には撃破者の情報が無いため「誰に倒されたか」は残せない
-        // aUnit : 倒されたユニット
         protected virtual void HandleUnitDefeated(BattleUnit aUnit)
         {
             if (aUnit is not PPBattleUnit defeated || defeated.Side != mSide) return;
@@ -367,8 +320,6 @@ namespace PPCore
         private int CurrentTurnCount => mBattleManager?.Context?.TurnCount ?? 0;
 
         // ユニットに対応する記憶を取得する。初回は生成して覚える
-        // aUnit : 対象ユニット
-        // return : そのユニットの記憶
         protected PPUnitAIMemory ResolveMemory(PPBattleUnit aUnit)
         {
             if (!mMemories.TryGetValue(aUnit, out var memory))
@@ -379,13 +330,8 @@ namespace PPCore
             return memory;
         }
 
-        // 行動が確定したら、その経路上のノードへ記憶を書き込む
-        // ノードは「バトルの状態を変えない」約束を守るため、書き込みはここへ集約する
-        // クールダウン・一度きり・ラッチはいずれも「確定経路上のノード」に対して立つため、書き込み口は 1 つで足りる
-        // aUnit : 判断対象のユニット
-        // aResult : ツリーが確定させた行動
-        // aEvalContext : 評価に使ったコンテキスト。確定時の通過経路を持つ
-        // aTurnCount : 確定した時点のターン数
+        // 行動が確定したら、その経路上のノードへ記憶（クールダウン・一度きり・ラッチ）を書き込む
+        // ノードはバトルの状態を変えないため、書き込みはここへ集約する
         protected virtual void CommitMemory(PPBattleUnit aUnit, PPUnitAINodeResult aResult,
             PPUnitAIEvalContext aEvalContext, int aTurnCount)
         {
@@ -400,9 +346,6 @@ namespace PPCore
 
         // 評価で通過したノードの経路を思考記録へ写す
         // 行動が確定した場合は、経路の末尾がその行動を組み立てたノードになる
-        // aEvalContext : 評価に使ったコンテキスト
-        // aResult : ツリーが確定させた行動
-        // aEntry : 判断結果の記録先
         protected virtual void RecordVisitedPath(PPUnitAIEvalContext aEvalContext, PPUnitAINodeResult aResult,
             PPUnitAIThinkEntry aEntry)
         {
@@ -416,8 +359,6 @@ namespace PPCore
 
         // ユニットに張られている有効な待機コミットを取得する
         // 残りティック数が尽きたものは解除して null を返す
-        // aUnit : 対象ユニット
-        // return : 有効なコミット。無ければ null
         protected PPUnitAICommit ResolveCommit(PPBattleUnit aUnit)
         {
             if (!mCommits.TryGetValue(aUnit, out var commit)) return null;
@@ -428,10 +369,7 @@ namespace PPCore
         }
 
         // ティックの進行を検出して、全ユニットのコミットを 1 ティック分消化する
-        // 思考はティックより細かい周期で回るため、経過ティック数で数えないと
-        // 維持ティック数が思考回数の分だけ速く溶けてしまう
-        // aContext : ターン数を引くバトルコンテキスト
-        // return : 前回の思考からティックが進んでいた場合 true
+        // 思考はティックより細かい周期で回るため、経過ティック数で数える
         protected bool SyncTick(BattleContext aContext)
         {
             if (mLastTurnCount == aContext.TurnCount) return false;
@@ -472,8 +410,6 @@ namespace PPCore
 
         // 積んだ行動が使う予定のゲージを台帳へ仮押さえする
         // コマンドの種類で消費先が変わるため、ここで振り分ける
-        // aUnit : 行動するユニット
-        // aCommand : 積んだコマンド
         protected virtual void ReserveCost(PPBattleUnit aUnit, BattleCommandBase aCommand)
         {
             switch (aCommand)
@@ -496,16 +432,11 @@ namespace PPCore
 
         // ユニットが使う判断ツリーを 個別 → ロール既定 → 全体既定 の順で引く
         // 個別ツリーで行動が決まらなくても既定ツリーへは差し戻さない
-        // aUnit : 対象ユニット
-        // aSource : 解決した判断ツリーの出どころ
-        // return : そのユニットの判断ツリー。どれも未設定なら null
         protected virtual PPUnitBehaviourTree ResolveTree(PPBattleUnit aUnit, out PPUnitAITreeSource aSource)
             => PPUnitAIDefaultsDefinition.ResolveTree(aUnit.SourceDefinition as PPUnitDefinition,
                 PPRuntimeSettings.Current.UnitAIDefaults, out aSource);
 
         // ユニット 1 体分の判断記録を、判断前の状態で初期化する
-        // aUnit : 対象ユニット
-        // return : 初期化された記録
         protected virtual PPUnitAIThinkEntry CreateEntry(PPBattleUnit aUnit)
             => new PPUnitAIThinkEntry
             {
@@ -532,9 +463,6 @@ namespace PPCore
         }
 
         // 思考記録をログとデバッグハブへ流す
-        // aParty : 思考主体のパーティ
-        // aContext : バトルコンテキスト
-        // aPlan : 組み上がった行動計画
         protected virtual void ReportThink(PPBattleParty aParty, BattleContext aContext, PPPartyPlan aPlan)
         {
             foreach (var entry in mThinkEntries)

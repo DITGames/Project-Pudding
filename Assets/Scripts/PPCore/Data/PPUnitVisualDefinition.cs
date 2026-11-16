@@ -9,11 +9,8 @@
 using AttributeUtility;
 using UnityEngine;
 
-// ユニットの見た目に関する定義（ScriptableObject）
-// 性能定義（PPCore.PPUnitDefinition）とは別アセットに分けてあり、
-// 両者はユニット ID で対応付ける。バトルロジックが見た目のアセットを直接参照せずに済む
+// ユニットの見た目に関する定義（ScriptableObject）。性能定義とはユニット ID で対応付ける
 // 解決は PPCore.PPUnitVisualCatalog が行う
-// このクラスだけ namespace の外に置かれており、PPCore の他の型と同じ扱いになっていない
 [CreateAssetMenu(fileName = "PPUnitVisualDefinition", menuName = "Project-Pudding/Definition/PPUnitVisualDefinition")]
 public class PPUnitVisualDefinition : ScriptableObject
 {

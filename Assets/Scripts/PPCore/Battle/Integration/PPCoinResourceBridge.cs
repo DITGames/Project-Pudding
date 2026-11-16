@@ -14,7 +14,6 @@ using CustomConsole;
 namespace PPCore
 {
     // プッシャー（物理）側がコイン獲得を知らせるためのインターフェース
-    // これを挟むことで、バトル側は落ちたコインをどう検出しているかを知らずに済む
     // 実装例は CoinDropCounter、購読側は PPCoinResourceBridge
     public interface IPPCoinGainNotifier
     {
@@ -27,9 +26,6 @@ namespace PPCore
     public interface IPPCoinResourceConverter
     {
         // コイン枚数をリソース量へ変換する
-        // aCoinCount : 獲得したコインの枚数
-        // aRate : パーティの変換係数
-        // return : 加算するリソース量
         float Convert(int aCoinCount, float aRate);
     }
 
@@ -37,17 +33,11 @@ namespace PPCore
     public class PPLinearCoinResourceConverter : IPPCoinResourceConverter
     {
         // 枚数 × 係数をそのまま返す
-        // aCoinCount : 獲得したコインの枚数
-        // aRate : パーティの変換係数
         public float Convert(int aCoinCount, float aRate) => aCoinCount * aRate;
     }
 
-    // プッシャー（物理）側とバトル側を繋ぐブリッジ
-    // IPPCoinGainNotifier のコイン獲得通知を購読し、
-    // パーティの変換係数と IPPCoinResourceConverter を通して
-    // 生存ユニット全員のコインゲージへ均等分配する
-    // このクラスを挟むことで、物理側はバトルの存在を知らず、バトル側はコインの存在を知らずに済む
-    // 両者を直接結合させず、必ずここを経由させること
+    // プッシャー（物理）側とバトル側を繋ぐブリッジ。コイン獲得通知を購読し、生存ユニット全員のコインゲージへ均等分配する
+    // 物理側とバトル側は直接結合させず、必ずここを経由させること
     public class PPCoinResourceBridge : MonoBehaviour
     {
         // コイン取得通知元。IPPCoinGainNotifier 実装コンポーネントを差す
@@ -72,8 +62,6 @@ namespace PPCore
         }
 
         // 指定陣営のパーティを加算先として設定し、コイン獲得通知の購読を開始する
-        // aBattleManager : 対象パーティを引くためのバトルマネージャ
-        // aTargetSide : ゲージを加算する陣営
         public void Bind(BattleManager aBattleManager, BattleSide aTargetSide)
         {
             if (aBattleManager.Context.GetParty(aTargetSide) is not PPBattleParty party)
@@ -101,10 +89,7 @@ namespace PPCore
         }
 
         // コイン獲得通知を受けて、枚数をゲージ量へ変換し生存ユニットへ均等分配する
-        // コインゲージは単一スカラーになったため、コインの属性は分配先の選択には使わない
-        // 物理側の通知インターフェースは変えないため引数自体は受け取り続ける
-        // a : 獲得したコインの属性
-        // aCoinCount : 獲得枚数
+        // コインの属性は分配先の選択には使わない
         private void HandleCoinGained(PPTypeAttribute a, int aCoinCount)
         {
             if (mTargetParty == null) return;

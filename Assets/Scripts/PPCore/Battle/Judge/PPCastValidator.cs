@@ -23,12 +23,12 @@ namespace PPCore
         MaxUses,
         // 有効な対象が居ない
         InvalidTarget,
-        // コア実装のデフォルトはここまで（Silenced を除く）
+        // 標準のバリデータが返すのはここまで（Silenced を除く）
         // ここから下は採用先が独自に使う理由
         InvalidDefinition,
         InvalidParty,
         NotEnoughResource,
-        // 発動者にスキル使用不可（ActionRestriction.Silenced）の制限が掛かっている。コア実装のデフォルトが返す
+        // 発動者にスキル使用不可（ActionRestriction.Silenced）の制限が掛かっている。標準のバリデータが返す
         // 既存の値の整数がずれないよう末尾に追加している
         Silenced,
     }
@@ -42,8 +42,6 @@ namespace PPCore
         public CastFailReason Reason { get; }
 
         // 判定結果を生成する
-        // aCanCast : 発動可否
-        // aReason : 不可の場合の理由
         public CastValidation(bool aCanCast, CastFailReason aReason = CastFailReason.None)
         {
             CanCast = aCanCast;
@@ -58,27 +56,18 @@ namespace PPCore
     }
 
     // スキルを発動できるかを検証するバリデータ。BattleRules.CastValidator に差し込む
-    // AI の候補絞り込みや UI のグレーアウト判定にも同じものが使われるため、
-    // ここでは状態を変えず、判定だけを行うこと
+    // AI や UI からも呼ばれるため、状態を変えず判定だけを行うこと
     public interface ICastValidator
     {
         // 発動可否を検証する
-        // aUser : 発動しようとしているユニット
-        // aSkill : 対象のスキル
-        // aContext : バトルコンテキスト
-        // return : 判定結果
         CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext);
     }
 
-    // コア標準のバリデータ。発動者のスキル使用不可の制限と、クールダウン・使用回数を見る
+    // 標準のバリデータ。発動者のスキル使用不可の制限と、クールダウン・使用回数を見る
     public class DefaultCastValidator : ICastValidator
     {
         // スキルが使用可能な状態かを検証し、不可なら理由を特定して返す
         // 発動者側の制限（スキル使用不可）を、スキル側の状態（クールダウン等）より先に見る
-        // aUser : 発動しようとしているユニット
-        // aSkill : 対象のスキル
-        // aContext : バトルコンテキスト
-        // return : 判定結果
         public virtual CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext)
         {
             // スキル使用不可の制限が掛かっていればスキルは撃てない（通常攻撃はこの検証を通らないため使える）
@@ -98,19 +87,11 @@ namespace PPCore
         }
     }
 
-    // スキルゲージの残量を考慮するスキル発動バリデータ
-    // 基底の DefaultCastValidator がクールダウンと使用回数を見るのに加えて、
-    // 本作固有の条件（定義の解決可否・発動者の型・スキルゲージ残量）を検証する
-    // ここでは残量の確認のみで消費は行わない
-    // UI のグレーアウト判定や AI の候補絞り込みからも呼ばれるため、状態を変えてはいけない
-    // 実際の消費は PPSkillCommand.Execute が行う
+    // クールダウンと使用回数に加えて、定義の解決可否・発動者の型・スキルゲージ残量を検証するバリデータ
+    // 残量の確認のみで消費は行わない（消費は PPSkillCommand.Execute が行う）
     public class PPBattleCastValidator : DefaultCastValidator
     {
         // 発動可否を検証する。基底の判定を先に通し、通過した場合のみ固有条件を順に確認する
-        // aUser : 発動しようとしているユニット
-        // aSkill : 対象のスキル
-        // aContext : バトルコンテキスト
-        // return : 判定結果。不可の場合は理由付きで返す
         public override CastValidation Validate(BattleUnit aUser, BattleSkill aSkill, BattleContext aContext)
         {
             var result = base.Validate(aUser, aSkill, aContext);

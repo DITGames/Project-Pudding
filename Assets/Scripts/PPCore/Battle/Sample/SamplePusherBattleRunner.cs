@@ -13,13 +13,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using AttributeUtility;
 
-// プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント
-// バトルの組み立て方（パーティ生成 → Rules 設定 → Strategist 注入 →
-// View / 入力 / コイン橋渡しの Bind → AI ドライバとティックのコルーチン起動）を
-// 一通り示す参照実装で、新しくバトルを立ち上げる際はこの流れをなぞる
-// 本作のバトルはターン制ではなく、プッシャーと並行してリアルタイムに進む
-// 一定間隔のティックでターンを進めつつ、プレイヤーは任意のタイミングで
-// コマンド入力を開始できる（入力中は timeScale が 0 になり盤面が止まる）
+// プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント（参照実装）
+// ティックでターンを進めつつ、プレイヤーは任意のタイミングでコマンド入力を開始できる（入力中は timeScale が 0）
 public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
 {
     // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
@@ -75,8 +70,7 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     // ターン経過を回しているコルーチン
     private Coroutine mTickCoroutine;
 
-    // バトルを組み立てて開始する
-    // ユニット生成 → コンテキスト構築 → 敵 AI の注入 → ログ用イベント購読 → バトル開始 →
+    // バトルを組み立てて開始する。ユニット生成 → コンテキスト構築 → 敵 AI の注入 → イベント購読 → バトル開始 →
     // View・コインブリッジ・入力の接続 → AI とティックのコルーチン起動、の順に進む
     void Start()
     {
@@ -150,8 +144,6 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
 
     // 今コマンド入力を始める意味があるかを判定する
     // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
-    // ゲージ不足で何も撃てない状態のときに入力画面が開くのを防ぐ
-    // return : 入力を開始できる場合 true
     private bool CanSelectAnyCommand()
     {
         if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
@@ -171,9 +163,7 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     }
 
     // 一定間隔でターンを進めるコルーチン
-    // 敵にはプッシャーが無いため、ティックごとにランダム量のゲージを直接補給して
-    // プレイヤー側のコイン収入と釣り合いを取っている
-    // return : コルーチンの列挙子
+    // プッシャーを持たない敵には、ティックごとにランダム量のゲージを直接補給する
     IEnumerator AdvanceTick()
     {
         while (true)
@@ -190,8 +180,7 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
         }
     }
 
-    // このティック分の行動を集めて並べ替え、順に実行する
-    // プレイヤーの予約・指示が無いユニットの通常攻撃・敵 AI の計画をまとめ、
+    // このティック分の行動（プレイヤーの予約・指示が無いユニットの通常攻撃・敵 AI の計画）を集めて実行する
     // 優先度と速度で並べ直してから流す
     private void ExecuteTickActions()
     {
@@ -209,10 +198,7 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     }
 
     // 指定した陣営の、まだ実行されていない行動を列挙する
-    // 行動はティック終了時にまとめて積まれるため、AI の思考時点ではコマンド列が空になっている
-    // そのため、積まれる前の材料であるプレイヤーの予約と敵 AI の計画を直接読む
-    // aSide : 調べる陣営
-    // return : 実行待ちの行動
+    // 思考時点ではコマンド列が空のため、プレイヤーの予約と敵 AI の計画を直接読む
     public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
     {
         foreach (var reservation in mActionCollector.Reservations)
@@ -229,8 +215,6 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     }
 
     // プレイヤーが確定したコマンドを、このティックの行動として予約する
-    // aUnit : 行動するユニット
-    // aCommand : 確定したコマンド
     private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
     {
         if (aUnit is not PPBattleUnit unit) return;

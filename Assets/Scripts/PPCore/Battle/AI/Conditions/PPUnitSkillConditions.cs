@@ -14,8 +14,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // ユニット条件: 同種グループ・タグで絞り込んだスキルを持っているか
-    // 発動可否は見ないため、「攻撃役かどうか」「回復役かどうか」という役割の判定になる
-    // 判断ツリーの入口で役割ごとに枝を分けるのに使う
+    // 発動可否は見ないため、役割ごとに枝を分ける判定に使う
     [Serializable]
     [PPTypeMenuName("スキル/所持している")]
     public sealed class PPUnitHasSkillCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
@@ -30,9 +29,6 @@ namespace PPCore
         public PPUnitAISkillFilter Filter => mFilter;
 
         // 絞り込みに合致するスキルを所持しているかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => PPUnitAISkillQuery.HasAny(aUnit, mFilter) != mIsInvert;
 
@@ -45,8 +41,7 @@ namespace PPCore
         }
     }
 
-    // ユニット条件: 指定タグのスキルを持っているか
-    // 発動可否は見ないため、「大技を持っている担当がいるか」のような編成上の役割判定に使う
+    // ユニット条件: 指定タグのスキルを持っているか（発動可否は見ない）
     // 今すぐ撃てるかまで見たい場合は PPUnitSkillCastableCondition を使う
     [Serializable]
     [PPTypeMenuName("スキル/指定タグを保持")]
@@ -59,9 +54,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 指定タグのスキルを持っているかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => PPSkillTagUtility.HasTaggedSkill(aUnit, mTags) != mIsInvert;
 
@@ -74,10 +66,8 @@ namespace PPCore
         }
     }
 
-    // ユニット条件: 同種グループ・タグで絞り込んだスキルを今すぐ発動できるか
-    // クールダウン・使用回数・スキルゲージ残量まで含めて判定する
-    // 「所持している中で最も強いものに限る」を有効にすると、
-    // 下位スキルで妥協せず本命が撃てるときだけ成立する（待ちの判断と組み合わせて使う）
+    // ユニット条件: 同種グループ・タグで絞り込んだスキルを今すぐ発動できるか（クールダウン・使用回数・ゲージ残量を含む）
+    // 「最も強いものに限る」を有効にすると、本命が撃てるときだけ成立する
     [Serializable]
     [PPTypeMenuName("スキル/発動できる")]
     public sealed class PPUnitCanCastSkillCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
@@ -95,9 +85,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 絞り込みに合致するスキルが発動可能かを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -112,9 +99,6 @@ namespace PPCore
 
         // 絞り込んだ中で最も強いスキルが、今まさに発動できるかを判定する
         // 所持している最強スキルと、今撃てる中の最強スキルが同一かどうかで見る
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 最強スキルが発動可能なら true
         private bool IsStrongestCastable(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             var strongest = PPUnitAISkillQuery.SelectStrongest(aUnit, mFilter);
@@ -135,10 +119,8 @@ namespace PPCore
         }
     }
 
-    // ユニット条件: 指定タグのスキルを今すぐ発動できるか
-    // クールダウン・使用回数・スキルゲージ残量まで含めて判定する
-    // ゲージ残量まで見るため、この条件を発動条件に入れると
-    // 「溜めてから撃つ」判断が成立しなくなる点に注意（その場合は保持判定の方を使う）
+    // ユニット条件: 指定タグのスキルを今すぐ発動できるか（クールダウン・使用回数・ゲージ残量を含む）
+    // 発動条件に入れると「溜めてから撃つ」判断が成立しなくなる。その場合は保持判定を使う
     [Serializable]
     [PPTypeMenuName("スキル/指定タグが発動可能")]
     public sealed class PPUnitSkillCastableCondition : PPUnitConditionValidator
@@ -150,9 +132,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 指定タグのスキルが発動可能かを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => PPSkillTagUtility.HasCastableTaggedSkill(aUnit, mTags, aSnapShot.Context) != mIsInvert;
 
@@ -166,13 +145,7 @@ namespace PPCore
     }
 
     // ユニット条件: 指定ティック数だけ待てば、今撃てるものより強いスキルへ手が届くか
-    //
-    // 見積もりは PPUnitGaugeForecast に委ねる
-    // 手持ちのコインゲージで通常攻撃を何回撃てるかを数え、
-    // その回数ぶんのスキルゲージ回復で上位スキルのコストへ届くかを見る
-    // 「今は弱いスキルを撃たずに通常攻撃で溜める」という判断の根拠になる
-    //
-    // 今撃てるスキルが 1 つも無い場合も、上位スキルへ届くなら成立する（溜める価値があるため）
+    // 見積もりは PPUnitGaugeForecast に委ねる。今撃てるスキルが無くても、上位スキルへ届くなら成立する
     [Serializable]
     [PPTypeMenuName("スキル/待てば強いスキルが撃てる")]
     public sealed class PPUnitStrongerSkillReachableCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
@@ -193,9 +166,6 @@ namespace PPCore
         public PPUnitAISkillFilter Filter => mFilter;
 
         // 待てば今より強いスキルへ届くかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -204,9 +174,6 @@ namespace PPCore
         }
 
         // 待機で手が届く上位スキルがあるかを調べる
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 届く上位スキルがあれば true
         private bool IsReachable(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             var rules = aSnapShot.Context.Rules as PPBattleRules;

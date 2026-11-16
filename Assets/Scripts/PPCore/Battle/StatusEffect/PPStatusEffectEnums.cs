@@ -29,11 +29,8 @@ namespace PPCore
         Replace,
     }
 
-    // 「毒」「火傷」といった具体名はゲーム側(Category)が持つ
-    // ここにはどのゲームでも意味が変わらない分類だけを置く
-    // 基底型を int にしているのは Unity のシリアライザが 64bit 幅の enum を扱えないため
-    // long にすると [SerializeField] に載せた時点でシリアライズ対象から外れる
-    // タグが 32 個を超える場合は、int のまま別 enum へ分けるか保持方法を見直すこと
+    // ステータスエフェクトの汎用分類。「毒」「火傷」といった具体名は Category 側が持つ
+    // Unity のシリアライザが 64bit 幅の enum を扱えないため、基底型は int にしている
     [Flags]
     public enum StatusEffectTag : int
     {
@@ -52,8 +49,7 @@ namespace PPCore
         Unremovable = 1 << 5,
     }
 
-    // ステータスエフェクトが課す行動制限の種類
-    // 1 体に複数のエフェクトが同時に掛かるため、ビットフラグとして合成できるようにしてある
+    // ステータスエフェクトが課す行動制限の種類（ビットフラグ）
     // BattleUnit.CurrentRestrictions が全エフェクト分を OR で合成した現在値を返す
     [Flags]
     public enum ActionRestriction
@@ -77,9 +73,8 @@ namespace PPCore
         CannotSwap = 1 << 4,
     }
 
-    // bit 0-15 : 状態異常系
-    // bit 16-31: パラメータ変動系
-    // Unity のシリアライズが long 裏付けの enum に対応していないため int を使う（[SerializeField] で編集可能にするため）
+    // bit 0-15 : 状態異常系、bit 16-31 : パラメータ変動系
+    // Unity のシリアライズが long 裏付けの enum に対応していないため int を使う
     [Flags]
     public enum PPEffectCategory
     {

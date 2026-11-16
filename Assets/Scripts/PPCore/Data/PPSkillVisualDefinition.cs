@@ -11,8 +11,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // スキルの見た目に関する定義（ScriptableObject）
-    // 性能定義（PPSkillDefinition）とはスキル ID で対応付ける
+    // スキルの見た目に関する定義（ScriptableObject）。性能定義とはスキル ID で対応付ける
     // 解決は PPSkillVisualCatalog が行う
     [CreateAssetMenu(fileName = "PPSkillVisualDefinition", menuName = "Project-Pudding/Definition/PPSkillVisualDefinition")]
     public class PPSkillVisualDefinition : ScriptableObject

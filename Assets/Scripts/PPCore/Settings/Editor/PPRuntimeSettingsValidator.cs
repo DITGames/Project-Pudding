@@ -15,12 +15,8 @@ using UnityEditor.Build.Reporting;
 
 namespace PPCore
 {
-    // PPRuntimeSettings アセットの配置を検査するエディタ側の仕組み
-    //
-    // ランタイム側はアセットが無くても代替インスタンスで Play を続けるため、置き忘れや置き間違いに気づきにくい
-    // そこで Play に入った直後とビルドの直前に、アセットが正しい場所に 1 つだけあるかを確かめる
-    //   - Play 開始時 : 問題があればエラーログを出す。Play は止めない
-    //   - ビルド前 : 問題があれば BuildFailedException を投げてビルドを止める
+    // PPRuntimeSettings アセットが正しい場所に 1 つだけあるかを検査する
+    // Play 開始時はエラーログを出し、ビルド前は BuildFailedException でビルドを止める
     [InitializeOnLoad]
     public sealed class PPRuntimeSettingsValidator : IPreprocessBuildWithReport
     {
@@ -43,9 +39,7 @@ namespace PPCore
         }
 
         // Play に入った直後に検査し、問題があればエラーログを出す
-        // ExitingEditMode で出すと、CustomConsoleLogStore の Clear on Play（同じ ExitingEditMode で走り、呼ばれる順は決まっていない）に消されることがある
-        // ログの消去より後に出すため EnteredPlayMode で検査する。Domain Reload をまたいで結果を持ち越す必要もない
-        // aState : 遷移後のプレイモード状態
+        // Clear on Play に消されないよう、ExitingEditMode ではなく EnteredPlayMode で検査する
         private static void OnPlayModeChanged(PlayModeStateChange aState)
         {
             if (aState != PlayModeStateChange.EnteredPlayMode) return;
@@ -58,8 +52,6 @@ namespace PPCore
 
         // アセットが正しい場所に 1 つだけあるかを検査する
         // 0 件、2 件以上、または PPRuntimeSettings.AssetPath 以外にある場合を問題とする
-        // aMessage : 問題があったときの説明。問題がなければ null
-        // return : 問題がなければ true
         public static bool Validate(out string aMessage)
         {
             var paths = FindAssetPaths();
@@ -128,8 +120,6 @@ namespace PPCore
         }
 
         // 見つかったパスをメッセージに付ける形に並べる
-        // aPaths : 並べるパス
-        // return : 改行で区切ったパスの一覧
         private static string FormatPaths(List<string> aPaths)
         {
             var builder = new StringBuilder();

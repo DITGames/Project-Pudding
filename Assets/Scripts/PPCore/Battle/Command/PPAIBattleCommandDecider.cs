@@ -11,14 +11,10 @@ using System.Collections.Generic;
 namespace PPCore
 {
     // ユニット単体のコマンド決定を担うインターフェース
-    // 「誰が決めるか」（プレイヤー入力か AI か）を BattleUnit から切り離すためのもの
-    // バトル側は決め方を問わず、返ってきたコマンドをキューへ積むだけで済む
+    // 決め方（プレイヤー入力か AI か）を BattleUnit から切り離す
     public interface ICommandDecider
     {
         // このユニットが取る行動を決める
-        // aSelf : 行動を決めるユニット
-        // aContext : バトルコンテキスト
-        // return : 実行するコマンド
         BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext);
     }
 
@@ -27,22 +23,15 @@ namespace PPCore
     public abstract class AICommandDeciderBase : ICommandDecider
     {
         // このユニットが取る行動を決める。派生側で実装する
-        // aSelf : 行動を決めるユニット
-        // aContext : バトルコンテキスト
-        // return : 実行するコマンド
         public abstract BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext);
     }
 
-    // 通常攻撃と発動可能なスキルから完全にランダムで選ぶ、最も単純な AI
-    // UnitDefinition.CreateRuntimeUnit で decider を指定しなかった場合の既定値になる
-    // 乱数はシード管理・再現性のため、行動するユニット自身の供給元を経由する
+    // 通常攻撃と発動可能なスキルから完全にランダムで選ぶ AI
+    // 乱数は行動するユニット自身の供給元を経由する
     public class RandomAICommandDecider : AICommandDeciderBase
     {
         // 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、
         // その中から等確率で 1 つ選ぶ。候補が必ず 1 件以上あるため選択に失敗しない
-        // aSelf : 行動を決めるユニット
-        // aContext : バトルコンテキスト
-        // return : 選ばれたコマンド
         public override BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext)
         {
             var options = new List<BattleCommandBase>
@@ -62,17 +51,11 @@ namespace PPCore
         }
     }
 
-    // 本作のコマンドを使うランダム AI
-    // 挙動は基底の RandomAICommandDecider と同じだが、
-    // 生成するコマンドがゲージ消費に対応した PPAttackCommand / PPSkillCommand になる点が異なる
-    // ユニット単位で動く簡易 AI で、UnitDefinition.CreateRuntimeUnit の既定値として使われる
-    // 敵パーティの本来の思考は PPUnitAIStrategist が担う
+    // ゲージ消費に対応した PPAttackCommand / PPSkillCommand を生成するランダム AI
+    // ユニット単位の簡易 AI で、パーティの本来の思考は PPUnitAIStrategist が担う
     public class PPRandomAICommandDecider : AICommandDeciderBase
     {
         // 通常攻撃を必ず候補に入れたうえで、今撃てるスキルを候補へ追加し、その中から等確率で選ぶ
-        // aSelf : 行動を決めるユニット
-        // aContext : バトルコンテキスト
-        // return : 選ばれたコマンド
         public override BattleCommandBase DecideCommand(BattleUnit aSelf, BattleContext aContext)
         {
             // PP専用の攻撃コマンドをベースで追加

@@ -29,9 +29,8 @@ namespace PPCore
 
     }
 
-    // 1 バトル分の状態をまとめて保持するコンテキスト
-    // BattleManager が進行を担うのに対し、こちらは「今どういう状況か」を持つデータ側の中心
-    // 両パーティ・ルール・ターン数・報酬・環境を抱え、ターゲット解決と命中判定の入口も兼ねる
+    // 1 バトル分の状態（両パーティ・ルール・ターン数・報酬・環境）を保持するコンテキスト
+    // ターゲット解決と命中判定の入口も兼ねる
     public class BattleContext
     {
         // プレイヤー側パーティ
@@ -51,39 +50,27 @@ namespace PPCore
         // 経過ターン数。BattleManager.AdvanceTick で加算される
         public int TurnCount { get; set; }
 
-        // 実行中のコマンド。コマンドの実行中以外は null
-        // BattleManager がコマンドの効果を実行している間（演出の待ち時間は含まない）だけ設定する
-        // リアクションのコマンドなら、この間に発生したダメージへ BattleUnit.ApplyDamage が DamageInfo.Reaction を引き継ぐ
-        // スキル定義など、コマンドを直接受け取らない場所から発生元コマンドを辿る用途にも使う
+        // 実行中のコマンド。BattleManager がコマンドの効果を実行している間だけ設定し、それ以外は null
+        // リアクション情報の引き継ぎや、発生元コマンドを辿る用途に使う
         public BattleCommandBase ExecutingCommand { get; protected internal set; }
 
         // スキル発動に失敗したとき(発動ユニット, スキル, 失敗理由)
         public event Action<BattleUnit, BattleSkill, CastFailReason> OnCastFailed;
 
         // スキル発動失敗を購読側へ通知する。コスト不足やクールダウン中の検出元から呼ばれる
-        // aUnit : 発動しようとしたユニット
-        // aSkill : 対象のスキル
-        // aReason : 失敗理由
         protected internal virtual void NotifyCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)
             => OnCastFailed?.Invoke(aUnit, aSkill, aReason);
 
         // 指定した陣営のパーティを取得する
-        // aSide : 取得したい陣営
-        // return : その陣営のパーティ
         public BattleParty GetParty(BattleSide aSide) =>
             aSide == BattleSide.Ally ? AllyParty : EnemyParty;
 
         // 指定した陣営から見た敵パーティを取得する
-        // aSide : 基準となる陣営
-        // return : その陣営の敵側パーティ
         public BattleParty GetOpponentParty(BattleSide aSide) =>
             aSide == BattleSide.Ally ? EnemyParty : AllyParty;
 
         // ターゲットを解決する。リゾルバで候補を出したあと、
         // Rules.TargetFilters を順に適用して最終的な対象リストへ絞り込む
-        // aSource : 行動主体のユニット
-        // aTargetResolver : 対象候補を列挙するリゾルバ
-        // return : フィルタ適用後の対象ユニットリスト
         public List<BattleUnit> ResolveTargets(BattleUnit aSource, ITargetResolver aTargetResolver)
         {
             var result = aTargetResolver.Resolve(aSource, this);
@@ -93,10 +80,6 @@ namespace PPCore
         }
 
         // 命中判定を行い、命中した場合のみ続けてクリティカル判定を行う
-        // aSource : 攻撃側ユニット
-        // aTarget : 防御側ユニット
-        // aDamageInfo : 判定対象のダメージ情報
-        // return : 命中結果とクリティカル情報をまとめた HitInfo
         public HitInfo ResolveHit(BattleUnit aSource, BattleUnit aTarget, DamageInfo aDamageInfo)
         {
             HitInfo info = new();
@@ -149,8 +132,6 @@ namespace PPCore
     public interface IBattleResultChecker
     {
         // 現在の状況から決着を判定する。ユニット撃破時やターン経過時など、頻繁に呼ばれる
-        // aContext : バトルコンテキスト
-        // return : 判定結果。決着していなければ継続中を返す
         BattleResult CheckResult(BattleContext aContext);
     }
 
@@ -159,8 +140,6 @@ namespace PPCore
     public class DefaultBattleResultChecker : IBattleResultChecker
     {
         // 逃走 → 相打ち → 勝利 → 敗北の順に判定し、いずれにも当てはまらなければ継続中を返す
-        // aContext : バトルコンテキスト
-        // return : 判定結果
         public virtual BattleResult CheckResult(BattleContext aContext)
         {
             if (aContext.EscapeRequested)

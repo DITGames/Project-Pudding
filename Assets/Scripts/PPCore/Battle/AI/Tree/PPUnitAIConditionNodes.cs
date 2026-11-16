@@ -13,10 +13,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // 条件を評価して、成立側・不成立側のどちらの枝へ進むかを決めるノード
-    // ユニット条件とパーティ条件を AND で束ねて 1 つの問いにする
-    // 不成立側の枝は繋がなくてよく、その場合は「この枝では行動が決まらない」扱いになり、
-    // 親の優先度リストが次の候補へ進む（「N: 次の条件へ」の書き方になる）
+    // 条件を評価して、成立側・不成立側のどちらの枝へ進むかを決めるノード（ユニット条件とパーティ条件の AND）
+    // 不成立側を繋がない場合は、親の優先度リストが次の候補へ進む
     [Serializable]
     [PPTypeMenuName("制御/条件分岐")]
     public sealed class PPUnitAIConditionNode : PPUnitAINode
@@ -70,8 +68,6 @@ namespace PPCore
 
         // 条件を評価し、対応する枝へ進む
         // 枝が未接続の場合は不成立として扱い、親の次の候補へ処理を渡す
-        // aContext : 評価 1 回分の入力
-        // return : 進んだ枝の結果。枝が無ければ Failed
         protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             bool isMatched = EvaluateConditions(aContext) != mIsInvert;
@@ -88,8 +84,6 @@ namespace PPCore
         }
 
         // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
-        // aPortIndex : 接続口の番号
-        // aChildId : 繋ぐ子ノードの ID
         public override void ConnectChild(int aPortIndex, string aChildId)
         {
             if (aPortIndex == PortMatched) mMatchedId = aChildId;
@@ -105,8 +99,6 @@ namespace PPCore
         }
 
         // 指定した接続口の接続を外す
-        // aPortIndex : 接続口の番号
-        // aChildId : 外す子ノードの ID
         public override void DisconnectChild(int aPortIndex, string aChildId)
         {
             if (aPortIndex == PortMatched && mMatchedId == aChildId) mMatchedId = "";
@@ -115,8 +107,6 @@ namespace PPCore
 
         // ユニット条件とパーティ条件を AND で評価する
         // どちらも空なら「条件なし」とみなして成立する
-        // aContext : 評価 1 回分の入力
-        // return : 全ての条件を満たす場合 true
         private bool EvaluateConditions(PPUnitAIEvalContext aContext)
         {
             if (!PPUnitConditionValidator.EvaluateAll(mUnitConditions, aContext.Unit, aContext.Snapshot))
@@ -131,8 +121,6 @@ namespace PPCore
         }
 
         // 単一の接続先を接続口の形式へ揃える。未接続なら空の並びを返す
-        // aChildId : 接続先の ID
-        // return : 接続口が持つ子ノード ID の並び
         private static IReadOnlyList<string> ToSingle(string aChildId)
             => string.IsNullOrEmpty(aChildId) ? Array.Empty<string>() : new[] { aChildId };
     }
@@ -148,20 +136,8 @@ namespace PPCore
         Latch = 1,
     }
 
-    // 一度きり・ラッチの振る舞いを持つ分岐ノード
-    //
-    // 判定材料は条件分岐と同じ（ユニット条件とパーティ条件の AND、反転可）で、
-    // 「一度成立したこと」を記憶して以後の判定を固定する点だけが異なる
-    //   一度きり : 「開幕に必ず咆哮」「HP 半分を割った瞬間に一度だけ全体攻撃」
-    //   ラッチ   : 「HP 50% を割ったら形態変化し、回復されても戻らない」
-    //
-    // 記憶が立つのは「条件が成立し、かつその枝で行動が確定したとき」だけ
-    // 枝を通っただけで行動が決まらなかった場合に記憶を立ててしまうと、
-    // 一度きりの行動が一度も実行されないまま封じられてしまうため
-    //
-    // 記憶の書き込みはストラテジストが通過記録（PPUnitAIEvalContext.VisitedNodeIds）を辿って行う
-    // 通過記録にはノード ID がそのまま積まれるが、それは「不成立側へ進んだ」場合も同じく積まれる
-    // そのため成立の記憶は専用のキーで別に積み、クールダウン用の通過記録と混ざらないようにしている
+    // 一度きり・ラッチの振る舞いを持つ分岐ノード。一度成立したことを記憶して以後の判定を固定する
+    // 記憶が立つのは、条件が成立し、かつその枝で行動が確定したときだけ（書き込みはストラテジストが行う）
     [Serializable]
     [PPTypeMenuName("制御/一度きり・ラッチ")]
     public sealed class PPUnitAILatchNode : PPUnitAINode
@@ -224,8 +200,6 @@ namespace PPCore
 
         // 記憶と条件から進む枝を決める
         // 一度きりは記憶が立っていれば条件を見ずに不成立、ラッチは記憶が立っていれば条件を見ずに成立になる
-        // aContext : 評価 1 回分の入力
-        // return : 進んだ枝の結果。枝が無ければ Failed
         protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             bool hasFired = aContext.Memory != null && aContext.Memory.HasFired(MatchedKey);
@@ -254,8 +228,6 @@ namespace PPCore
         }
 
         // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
-        // aPortIndex : 接続口の番号
-        // aChildId : 繋ぐ子ノードの ID
         public override void ConnectChild(int aPortIndex, string aChildId)
         {
             if (aPortIndex == PortMatched) mMatchedId = aChildId;
@@ -271,8 +243,6 @@ namespace PPCore
         }
 
         // 指定した接続口の接続を外す
-        // aPortIndex : 接続口の番号
-        // aChildId : 外す子ノードの ID
         public override void DisconnectChild(int aPortIndex, string aChildId)
         {
             if (aPortIndex == PortMatched && mMatchedId == aChildId) mMatchedId = "";
@@ -284,8 +254,6 @@ namespace PPCore
 
         // ユニット条件とパーティ条件を AND で評価する
         // どちらも空なら「条件なし」とみなして成立する
-        // aContext : 評価 1 回分の入力
-        // return : 全ての条件を満たす場合 true
         private bool EvaluateConditions(PPUnitAIEvalContext aContext)
         {
             if (!PPUnitConditionValidator.EvaluateAll(mUnitConditions, aContext.Unit, aContext.Snapshot))
@@ -300,8 +268,6 @@ namespace PPCore
         }
 
         // 単一の接続先を接続口の形式へ揃える。未接続なら空の並びを返す
-        // aChildId : 接続先の ID
-        // return : 接続口が持つ子ノード ID の並び
         private static IReadOnlyList<string> ToSingle(string aChildId)
             => string.IsNullOrEmpty(aChildId) ? Array.Empty<string>() : new[] { aChildId };
     }
@@ -317,15 +283,8 @@ namespace PPCore
         Both,
     }
 
-    // 条件に合うユニットを探し、見つかった分を対象候補（PPPartyAIContext.ConditionedUnits）へ積むノード
-    //
-    // 「誰を狙うか」を決めるのがこのノードの役割で、条件クラス側は判定だけを担う
-    // 条件が対象の収集まで兼ねると、判定に使っただけのつもりが候補を書き換えていた、という事故が起きるため、
-    // 収集はツリー上の明示的なノードとしてここへ切り出している
-    //
-    // 積んだ候補は、行動側の対象の選び方で「条件を満たしているユニット」を選ぶと使われる
+    // 条件に合うユニットを探し、対象候補（PPPartyAIContext.ConditionedUnits）へ積むノード
     // 重複を許して積むと、その分だけランダム選択で選ばれやすくなる
-    // 検索ノードを重ねて「複数の条件に当てはまるユニットほど狙われやすい」を作れる
     [Serializable]
     [PPTypeMenuName("制御/ターゲット検索")]
     public sealed class PPUnitAISearchNode : PPUnitAINode
@@ -392,8 +351,6 @@ namespace PPCore
 
         // 探索範囲のユニットを条件で絞り込み、合致したものを対象候補へ積む
         // 1 体でも積めたら発見側の枝へ、1 体も積めなければ なし 側の枝へ進む
-        // aContext : 評価 1 回分の入力
-        // return : 進んだ枝の結果。枝が未接続なら Failed
         protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
             var snapshot = aContext.Snapshot;
@@ -411,9 +368,6 @@ namespace PPCore
         }
 
         // 指定範囲のユニットを条件で絞り込んで積む
-        // aCandidates : 探索対象のユニット
-        // aContext : 評価 1 回分の入力
-        // return : 積んだ体数
         private int Collect(IReadOnlyList<PPBattleUnit> aCandidates, PPUnitAIEvalContext aContext)
         {
             int count = 0;
@@ -434,8 +388,6 @@ namespace PPCore
         public override void RefreshConditionDescriptions() => RefreshDescriptions(mConditions);
 
         // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
-        // aPortIndex : 接続口の番号
-        // aChildId : 繋ぐ子ノードの ID
         public override void ConnectChild(int aPortIndex, string aChildId)
         {
             if (aPortIndex == PortFound) mFoundId = aChildId;
@@ -451,8 +403,6 @@ namespace PPCore
         }
 
         // 指定した接続口の接続を外す
-        // aPortIndex : 接続口の番号
-        // aChildId : 外す子ノードの ID
         public override void DisconnectChild(int aPortIndex, string aChildId)
         {
             if (aPortIndex == PortFound && mFoundId == aChildId) mFoundId = "";
@@ -460,8 +410,6 @@ namespace PPCore
         }
 
         // 単一の接続先を接続口の形式へ揃える。未接続なら空の並びを返す
-        // aChildId : 接続先の ID
-        // return : 接続口が持つ子ノード ID の並び
         private static IReadOnlyList<string> ToSingle(string aChildId)
             => string.IsNullOrEmpty(aChildId) ? Array.Empty<string>() : new[] { aChildId };
     }

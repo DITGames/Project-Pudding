@@ -23,9 +23,8 @@ namespace PPCore
         Self,
     }
 
-    // スキルエフェクト定義の抽象基底。ScriptableObject ではなく [SerializeReference] 対応の通常クラスとする
-    // PPSkillDefinition.mSkillEffects にインスタンスとして直接保持され、
-    // アセットファイルを介さずインスペクタ上でその場に組み立てられる
+    // スキルエフェクト定義の抽象基底。[SerializeReference] の通常クラスで、
+    // PPSkillDefinition.mSkillEffects にインスタンスとして直接保持される
     [Serializable]
     public abstract class PPSkillEffectDefinition
     {
@@ -34,19 +33,10 @@ namespace PPCore
         public PPEffectApplyTarget ApplyTarget => mApplyTarget;
 
         // この効果を対象 1 体に適用する
-        // aSource : スキル発動者
-        // aTarget : 適用対象（ApplyTarget = Self の場合は aSource と同一）
-        // aSourceSkill : この効果を保有するスキル定義。ダメージ情報の発生源表示等に使う
-        // aContext : バトルコンテキスト
         public abstract void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext);
 
         // この効果を実行せずに効果量を見積もる。AI の効用計算から呼ばれる
-        // 状態を一切変えずに値を返すこと。乱数も引かないこと（同じ状況で同じ値になる必要がある）
-        // 既定は「効果なし」。見積もりに対応しない効果は AI から無視されるだけで、実行時の挙動には影響しない
-        // aSource : スキル発動者
-        // aTarget : 適用対象
-        // aContext : バトルコンテキスト
-        // return : 効果量の見積もり
+        // 状態を変えず、乱数も引かないこと。既定は「効果なし」
         public virtual PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
             => PPEffectEstimate.None;
 
@@ -68,10 +58,6 @@ namespace PPCore
         [Label("種別")]
         [SerializeField] private PPSkillCategory mCategory = PPSkillCategory.Physical;
 
-        // aSource : スキル発動者
-        // aTarget : ダメージを与える対象
-        // aSourceSkill : この効果を保有するスキル定義。ダメージ情報の発生源表示等に使う
-        // aContext : バトルコンテキスト
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
             var attribute = PPDamageUtility.ResolveAttribute(mAttribute, aSource);
@@ -83,12 +69,7 @@ namespace PPCore
         }
 
         // 基礎ダメージ量をそのまま見積もりとして返す
-        // 命中・クリティカル・属性相性は CreateDamageInfo 側で乱数を含めて解決されるため、
-        // 見積もりには含めない（同じ状況で同じ値を返す必要がある）
-        // aSource : スキル発動者
-        // aTarget : ダメージを与える対象
-        // aContext : バトルコンテキスト
-        // return : 与ダメージの見積もり
+        // 命中・クリティカル・属性相性は乱数を含むため見積もりに含めない
         public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             if (aSource == null || aTarget == null)
@@ -111,10 +92,6 @@ namespace PPCore
         [Label("回復量")]
         [SerializeField] private float mPower = 10f;
 
-        // aSource : スキル発動者
-        // aTarget : 回復する対象
-        // aSourceSkill : この効果を保有するスキル定義
-        // aContext : バトルコンテキスト
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
             aTarget.ApplyHeal(mPower);
@@ -122,10 +99,6 @@ namespace PPCore
 
         // 回復量をそのまま見積もりとして返す
         // 対象の HP がどれだけ欠けているかは見ず、純粋な回復量の見積もりを返す
-        // aSource : スキル発動者
-        // aTarget : 回復する対象
-        // aContext : バトルコンテキスト
-        // return : 回復量の見積もり
         public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
             => PPEffectEstimate.FromHeal(mPower);
 
@@ -134,8 +107,7 @@ namespace PPCore
     }
 
     // 対象ユニットのゲージを回復するスキルエフェクト
-    // ApplyTarget = 発動者 の場合は aTarget が発動者自身になるため、発動者のゲージが回復する
-    // ゲージはユニット専有のため、対象 1 体ごとにそのユニットのゲージへ直接加算する
+    // ApplyTarget = 発動者 の場合は発動者自身のゲージが回復する
     [Serializable]
     [PPTypeMenuName("ゲージ回復")]
     public class PPResourceGainSkillEffectDefinition : PPSkillEffectDefinition
@@ -145,10 +117,6 @@ namespace PPCore
         [Label("回復量")]
         [SerializeField] private float mAmount = 0f;
 
-        // aSource : スキル発動者
-        // aTarget : ゲージを回復する対象
-        // aSourceSkill : この効果を保有するスキル定義
-        // aContext : バトルコンテキスト
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
             if (aTarget is not PPBattleUnit ppTarget) return;
@@ -178,10 +146,6 @@ namespace PPCore
         // 表示と判定で扱いを揃えるため、常に 0～1 へ丸めた値を使う
         private float ApplyChance => Mathf.Clamp01(mApplyChance);
 
-        // aSource : スキル発動者
-        // aTarget : StatusEffect を付与する対象
-        // aSourceSkill : この効果を保有するスキル定義
-        // aContext : バトルコンテキスト
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
             if (mEffect == null) return;
@@ -193,9 +157,6 @@ namespace PPCore
 
         // 付与確率の抽選を行う
         // 乱数は再現性を保つため必ず Rules.RandomProvider を経由する
-        // aTarget : 付与対象。ログ用
-        // aContext : バトルコンテキスト
-        // return : 付与する場合 true
         private bool RollApplyChance(BattleUnit aTarget, BattleContext aContext)
         {
             float chance = ApplyChance;
@@ -211,10 +172,6 @@ namespace PPCore
 
         // 付与するエフェクトの識別子を見積もりとして返す
         // AI はこれを対象の ActiveStatusEffects と突き合わせ、既に付いている場合の重ね掛けを避ける
-        // aSource : スキル発動者
-        // aTarget : StatusEffect を付与する対象
-        // aContext : バトルコンテキスト
-        // return : 付与エフェクトの識別子を持つ見積もり。未設定なら効果なし
         public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
             => mEffect != null ? PPEffectEstimate.FromStatus(mEffect.EffectId) : PPEffectEstimate.None;
 
@@ -228,10 +185,8 @@ namespace PPCore
         }
     }
 
-    // 指定した種別のエフェクトを対象から解除するスキルエフェクト
-    // 状態異常・パラメータ変動を問わず PPEffectCategory のビットマスク1本で指定できるため、
-    // 系統をまたいだ解除(例: 毒+攻撃力デバフを同時に解除)も1つの定義で表現できる
-    // Unremovable タグが付いたエフェクトはマスクが一致しても解除対象から除外する
+    // 指定した種別（PPEffectCategory のビットマスク）のエフェクトを対象から解除するスキルエフェクト
+    // Unremovable タグが付いたエフェクトは解除対象から除外する
     [Serializable]
     [PPTypeMenuName("StatusEffect解除")]
     public class PPStatusCureSkillEffectDefinition : PPSkillEffectDefinition
@@ -240,12 +195,7 @@ namespace PPCore
         [SerializeField] private PPEffectCategory mCureMask = PPEffectCategory.AllAilment;
 
         // 対象のエフェクト一覧からマスクに一致するものを解除する
-        // 除去中に BattleUnit.ActiveStatusEffects が変化するため、
-        // 一度 ToList() で確定させてから removal を回している
-        // aSource : スキル発動者
-        // aTarget : StatusEffect を解除する対象
-        // aSourceSkill : この効果を保有するスキル定義
-        // aContext : バトルコンテキスト
+        // 除去中に一覧が変化するため、ToList() で確定させてから回す
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
             long mask = (long)mCureMask;
@@ -264,10 +214,7 @@ namespace PPCore
             => $"StatusEffect解除：{mCureMask}";
     }
 
-    // スキル効果を実行せずに見積もった結果
-    // AI が「この行動にどれだけの価値があるか」を判断するために使う
-    // 効果の内部表現（威力・カテゴリ・エフェクト定義）を AI 側へ漏らさずに済むよう、
-    // 必要な情報だけをこの型に詰めて受け渡す
+    // スキル効果を実行せずに見積もった結果。AI が行動の価値を判断するために使う
     public readonly struct PPEffectEstimate
     {
         // 与ダメージの見込み量。命中率・クリティカル・属性相性は含めない
@@ -296,11 +243,8 @@ namespace PPCore
         // aStatusEffectId : 付与する StatusEffect の識別子
         public static PPEffectEstimate FromStatus(string aStatusEffectId) => new(0f, 0f, aStatusEffectId);
 
-        // 別の見積もりと合算する
-        // 1 スキルが複数の効果を持つ場合に、それらを 1 つへまとめるのに使う
-        // 識別子は先に設定されている方を優先する（複数の付与効果を持つスキルは代表 1 件で判定する）
-        // aOther : 合算する見積もり
-        // return : 合算後の見積もり
+        // 別の見積もりと合算する（1 スキルが複数の効果を持つ場合に使う）
+        // 識別子は先に設定されている方を優先する
         public PPEffectEstimate Merge(PPEffectEstimate aOther)
             => new(Damage + aOther.Damage,
                    Heal + aOther.Heal,

@@ -60,9 +60,6 @@ namespace PPCore
 
         // ユニットが実際に使うツリーを解決する
         // Edit モードで PPRuntimeSettings.Current を呼ぶと読み込みログや代替インスタンスの生成が起きるため、アセットを直接読む
-        // aUnit : 対象のユニット定義
-        // aSource : 解決したツリーの出どころ
-        // return : 使うツリー。どれも無ければ null
         public static PPUnitBehaviourTree ResolveEffectiveTree(PPUnitDefinition aUnit, out PPUnitAITreeSource aSource)
         {
             var settings = AssetDatabase.LoadAssetAtPath<PPRuntimeSettings>(PPRuntimeSettings.AssetPath);

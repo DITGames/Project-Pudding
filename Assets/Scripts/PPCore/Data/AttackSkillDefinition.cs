@@ -21,9 +21,7 @@ namespace PPCore
     }
 
     // 対象にダメージを与える攻撃スキルの定義
-    // 効果は「攻撃力 + スキルパワー - 防御力 × 0.5」で最低 1 ダメージを保証し、
-    // 対象ごとに命中判定とクリティカル補正を通してから適用する
-    // AttackCommand の計算式とほぼ同じだが、スキルパワーが上乗せされる点が違う
+    // 効果は「攻撃力 + スキルパワー - 防御力 × 0.5」で最低 1 ダメージ。対象ごとに命中判定とクリティカル補正を通す
     [CreateAssetMenu(fileName = "AttackSkillDefinition", menuName = "Project-Pudding/Skill/AttackSkillDefinition")]
     public class AttackSkillDefinition : SkillDefinition
     {
@@ -36,9 +34,7 @@ namespace PPCore
         [SerializeField] protected float mPower = 10f;
 
         // 対象全員にダメージを与える効果を組み立てる
-        // 生成されるデリゲートは実行のたびに、対象ごとのダメージ算出 → 命中判定 →
-        // クリティカル補正 → 適用を繰り返す
-        // return : 効果本体のデリゲート
+        // 対象ごとに、ダメージ算出 → 命中判定 → クリティカル補正 → 適用を行う
         protected override Action<BattleUnit, List<BattleUnit>, BattleContext> BuildEffect()
         {
             return (src, targets, ctx) =>

@@ -24,9 +24,6 @@ namespace PPCore
         [SerializeField] private float mThreshold = 0.5f;
 
         // HP 割合を閾値と比較する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null && PPConditionMath.Compare(PPPartyAIContext.HpRatio(aUnit), mOp, mThreshold);
 
@@ -37,8 +34,7 @@ namespace PPCore
     }
 
     // ユニット条件: 生存していて行動制限も掛かっていないか
-    // 実行者の抽出時に戦術側で既に同じ判定を通しているため、
-    // 主な用途は「達成済み判定条件」で対象の生存を確かめるケースになる
+    // 主な用途は「達成済み判定条件」で対象の生存を確かめるケース
     [Serializable]
     [PPTypeMenuName("ユニット状態/行動可能")]
     public sealed class PPUnitAliveCondition : PPUnitConditionValidator
@@ -51,9 +47,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // ユニットが行動可能かを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             bool canAct = aUnit != null && aUnit.IsAlive;
@@ -109,9 +102,6 @@ namespace PPCore
         [SerializeField] private float mThreshold = 0f;
 
         // パラメータの現在値を閾値と比較する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true。パラメータを解決できない場合は false
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -122,8 +112,6 @@ namespace PPCore
 
         // 種別に対応する現在値を引く
         // 現在 HP だけは修飾子の対象ではなく残量そのものを見るため、ID 経由ではなく直接参照する
-        // aUnit : 判定対象のユニット
-        // return : 解決された値。解決できなければ null
         private float? ResolveValue(PPBattleUnit aUnit)
         {
             if (mKind == PPUnitParameterKind.CurrentHp)
@@ -134,8 +122,6 @@ namespace PPCore
         }
 
         // 種別に対応するパラメータ ID を返す
-        // aKind : パラメータ種別
-        // return : パラメータ ID
         private static string ResolveParameterId(PPUnitParameterKind aKind)
             => aKind switch
             {
@@ -154,8 +140,6 @@ namespace PPCore
             => mDescription = $"{GetKindString(mKind)}が{mThreshold}{GetOpString(mOp)}";
 
         // パラメータ種別を説明文用の日本語へ変換する
-        // aKind : パラメータ種別
-        // return : 日本語の表記
         private static string GetKindString(PPUnitParameterKind aKind)
             => aKind switch
             {
@@ -171,8 +155,7 @@ namespace PPCore
     }
 
     // ユニット条件: ユニットの属性が指定と一致するか
-    // 属性相性は弱点・耐性の判定に効くため、
-    // 「弱点を突ける属性のユニットにだけ大技を撃たせる」といった絞り込みに使う
+    // 弱点を突ける属性のユニットにだけ行動させる、といった絞り込みに使う
     [Serializable]
     [PPTypeMenuName("ユニット状態/属性")]
     public sealed class PPUnitTypeAttributeCondition : PPUnitConditionValidator
@@ -184,9 +167,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // ユニットの属性が指定と一致するかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null && (aUnit.TypeAttribute == mTypeAttribute) != mIsInvert;
 
@@ -199,8 +179,6 @@ namespace PPCore
         }
 
         // 属性を説明文用の日本語へ変換する。表示名は定数から引くためハードコードしない
-        // aTypeAttribute : 対象の属性
-        // return : 日本語の表記。未知の値は空文字
         private static string GetResourceTypeString(PPTypeAttribute aTypeAttribute)
             => aTypeAttribute switch
             {
@@ -215,8 +193,7 @@ namespace PPCore
     }
 
     // ユニット条件: 指定の状態異常・バフが付与されているか
-    // 「バフを付けてから大技を撃つ」戦術で、バフのステップが達成済みかを判定するのが主な用途
-    // エフェクト ID とタグの 2 軸で絞り込み、どちらも未指定なら「何か 1 つでも付与されているか」になる
+    // エフェクト ID とタグで絞り込み、どちらも未指定なら何か 1 つでも付与されていれば成立する
     [Serializable]
     [PPTypeMenuName("ユニット状態/状態異常の付与")]
     public sealed class PPUnitStatusEffectCondition : PPUnitConditionValidator
@@ -232,16 +209,11 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 指定の状態異常が付与されているかを判定する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null && HasMatchingEffect(aUnit) != mIsInvert;
 
         // 条件に合致する状態異常を持っているかを走査する
         // ID とタグはどちらも未指定なら素通しになるため、両方未指定だと付与の有無だけを見る
-        // aUnit : 判定対象のユニット
-        // return : 合致する状態異常があれば true
         private bool HasMatchingEffect(PPBattleUnit aUnit)
         {
             foreach (var effect in aUnit.ActiveStatusEffects)

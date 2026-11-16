@@ -127,9 +127,8 @@ namespace PPCore
             }
         }
 
-        // 編集モードの保存。元ユニット・既存ビジュアルはオブジェクトを差し替えず値だけを書き写すため、GUID・localFileId・位置は変わらない
-        // 新規に作るのはツリー・スキル・（既存がなければ）ビジュアルだけで、失敗時に削除するのもそれらに限る。書き換えたアセットは事前の内容へ戻す
-        // 同じ保存要求IDの再送は記録済みの結果を返し、新しい要求IDなら何度でも保存できる
+        // 編集モードの保存。既存アセットは値だけを書き写し、新規に作るのはツリー・スキル・（無ければ）ビジュアルだけ
+        // 失敗時は作ったものを削除して書き換えた内容を戻す。同じ保存要求 ID の再送は記録済みの結果を返す
         private static string[] Save(PPUnitCreationDraft aDraft, int aRevision, string aRequestId)
         {
             if (aDraft.SavedRequestId == aRequestId)

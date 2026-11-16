@@ -12,9 +12,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ユニット条件: そのユニットのゲージ残量を絶対値で判定する
-    // 「特定のスキルを撃つのに必要な量が溜まったか」のように、
-    // 具体的なコスト量と突き合わせたい場合はこちらを使う（割合で見るなら PPUnitGaugeRatioCondition）
+    // ユニット条件: ゲージ残量を絶対値で判定する。具体的なコスト量と突き合わせたい場合に使う
+    // 割合で見るなら PPUnitGaugeRatioCondition
     [Serializable]
     [PPTypeMenuName("ゲージ/残量(絶対値)")]
     public sealed class PPUnitGaugeAmountCondition : PPUnitConditionValidator
@@ -35,9 +34,6 @@ namespace PPCore
             => mOp == PPCompareOp.Equal || mOp == PPCompareOp.NotEqual;
 
         // ゲージの現在値を閾値と比較する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null
             && PPConditionMath.Compare(aUnit.ExtraParameters.Gauge(mKind).Current, mOp, mThreshold, mTolerance);
@@ -65,10 +61,8 @@ namespace PPCore
             };
     }
 
-    // ユニット条件: そのユニットのゲージが上限に対して何割溜まっているか
-    // 絶対量で見る PPUnitGaugeAmountCondition と違い、上限に対する充足率で判定する
-    // 「ゲージが満タンに近いので大技を狙う」といった状況判断に使う
-    // 閾値・許容値ともに 0～1 で扱う
+    // ユニット条件: ゲージが上限に対して何割溜まっているか（閾値・許容値は 0～1）
+    // 絶対量で見るなら PPUnitGaugeAmountCondition
     [Serializable]
     [PPTypeMenuName("ゲージ/残量(割合)")]
     public sealed class PPUnitGaugeRatioCondition : PPUnitConditionValidator
@@ -90,9 +84,6 @@ namespace PPCore
 
         // ゲージの充足率を閾値と比較する
         // 上限が 0 の場合は ResourceParameter.Ratio が 0 を返すため、0 として扱われる
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null
             && PPConditionMath.Compare(aUnit.ExtraParameters.Gauge(mKind).Ratio, mOp, mThreshold, mTolerance);
@@ -121,16 +112,8 @@ namespace PPCore
             };
     }
 
-    // ユニット条件: 撃つ予定のスキルを撃っても、残したいスキル（主スキル）の分のスキルゲージが残るか
-    //
-    // 支援型・回復型のツリーで「攻撃スキルは、支援や回復のゲージを食いつぶさない範囲でだけ撃つ」を書くためのもの
-    // 割合や絶対量の閾値と違い、ユニット自身の所持スキルからコストを読むため、構成やゲージ上限が違っても成り立つ
-    //
-    // 残す量は、残したいスキルのうち所持していて使用回数が残っているもののコストの最大値
-    // クールダウン中のものは残す量に含める（明けた時にすぐ撃てるよう溜めておくため）。該当が無ければ残す量は 0
-    //
-    // 撃つ予定のスキルは、スキル実行ノードと同じ選び方（PPUnitAISkillQuery.SelectCastable）で求める
-    // 判定を揃えるため、絞り込みと選び方は隣に置いた実行ノードと同じ値にすること（条件からノードは参照できない）
+    // ユニット条件: 撃つ予定のスキルを撃っても、残したいスキル（主スキル）のコスト分のゲージが残るか
+    // 絞り込みと選び方は、隣に置いたスキル実行ノードと同じ値にすること
     [Serializable]
     [PPTypeMenuName("ゲージ/主スキル分を残せる")]
     public sealed class PPUnitGaugeReserveCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
@@ -150,9 +133,6 @@ namespace PPCore
 
         // 撃つ予定のスキルを撃っても、残したいスキルの分のゲージが残るかを判定する
         // 撃つ予定のスキルが撃てない場合は成立しない
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -169,12 +149,8 @@ namespace PPCore
             return isReserved != mIsInvert;
         }
 
-        // 撃つ予定のスキルのコストを求める
-        // 選び方がランダムの場合は、乱数を使わず候補の最大コストで見る
-        // 条件の評価で乱数を消費すると、実行ノードの抽選結果がずれるため
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 撃つ予定のスキルのコスト。撃てるスキルが無ければ -1
+        // 撃つ予定のスキルのコストを求める。撃てるスキルが無ければ -1
+        // 選び方がランダムでも乱数は引かず最大コストで見る（実行ノードの抽選結果をずらさないため）
         private float ResolveSpendCost(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (mSpendRule != PPUnitAISkillSelectRule.Random)
@@ -190,8 +166,6 @@ namespace PPCore
         }
 
         // 残す量を求める。所持している残したいスキルのうち、使用回数が残っているもののコストの最大値
-        // aUnit : 判定対象のユニット
-        // return : 残す量。該当するスキルが無ければ 0
         private float ResolveReserveCost(PPBattleUnit aUnit)
         {
             float reserve = 0f;
@@ -217,13 +191,8 @@ namespace PPCore
         }
     }
 
-    // ユニット条件: このティックで残っている行動回数
-    //
-    // 行動回数が 2 以上のユニットで「最後の 1 手は必ず攻撃で締める」のような書き分けに使う
-    //
-    // 残り回数は仮押さえ台帳を差し引いた値で見る
-    // 同じティックで既に積んだ行動を数えないと、2 手目の判断が 1 手目と同じ値を見てしまい書き分けができない
-    // 台帳が差し込まれていない場合は、行動回数の上限をそのまま残り回数として扱う
+    // ユニット条件: このティックで残っている行動回数（仮押さえ台帳を差し引いた値）
+    // 台帳が無い場合は行動回数の上限をそのまま残り回数として扱う
     [Serializable]
     [PPTypeMenuName("行動/残り行動回数")]
     public sealed class PPUnitRemainingActionCondition : PPUnitConditionValidator
@@ -234,9 +203,6 @@ namespace PPCore
         [SerializeField] private int mThreshold = 1;
 
         // 残り行動回数を閾値と比較する
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;

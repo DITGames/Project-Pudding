@@ -43,8 +43,7 @@ namespace PPCore
     }
 
     // 毒・火傷など、属性相性を伴う継続ダメージの振る舞い
-    // 基底の PeriodicDamageBehaviour に対して、ダメージ情報の生成だけを
-    // 属性・スキル種別付きの PPDamageInfo に差し替える
+    // ダメージ情報を属性・スキル種別付きの PPDamageInfo で生成する
     public sealed class PPPeriodicDamageBehaviour : PeriodicDamageBehaviour
     {
         private readonly PPTypeAttribute mAttribute;
@@ -58,9 +57,8 @@ namespace PPCore
                 new StatusEffectDamageReason(aContext.Effect));
     }
 
-    // 対象の最大HPに対する割合で毎ターンダメージを与える振る舞い
-    // 固定値の PPPeriodicDamageBehaviour と違い、最大HPが高い相手ほどダメージが大きくなる
-    // 割合の基準は現在HPではなく最大HPとしている（現在HP基準だと減るほど威力が落ちて倒し切れないため）
+    // 対象の最大 HP に対する割合で毎ターンダメージを与える振る舞い
+    // 基準は現在 HP ではなく最大 HP（現在 HP 基準だと減るほど威力が落ちて倒し切れないため）
     public sealed class PPHpRatePeriodicDamageBehaviour : StatusEffectBehaviour
     {
         // 1スタックあたりの最大HP割合（0～1）
@@ -81,14 +79,8 @@ namespace PPCore
             aContext.Owner.ApplyDamage(CreateDamage(aContext), aContext.Battle);
         }
 
-        // 対象の最大HPとスタック数からダメージ情報を組み立てる
-        // ダメージは整数へ四捨五入する（0.5 は 0 から遠い側へ丸める）
-        // Mathf.RoundToInt は 0.5 を偶数側へ丸める（2.5 → 2）ため使わない
-        // 計算は decimal で行う。float のまま掛けると 0.35 などが 0.3499999… になり、
-        // ちょうど 0.5 になるはずの値が切り捨てられてしまうため
-        // （float から decimal への変換は有効桁 7 桁で丸められるので、入力値の誤差もここで落ちる）
-        // aContext : 振る舞いの実行コンテキスト
-        // return : 与えるダメージの情報
+        // 対象の最大 HP とスタック数からダメージ情報を組み立てる
+        // 四捨五入を正確に行うため decimal で計算する（Mathf.RoundToInt は 0.5 を偶数側へ丸めるため使わない）
         private DamageInfo CreateDamage(StatusEffectContext aContext)
         {
             decimal rawAmount = (decimal)aContext.Owner.Parameters.Hp.Max.CurrentValue
@@ -112,10 +104,6 @@ namespace PPCore
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
 
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new PPPeriodicDamageBehaviour(mDamagePerTurn, mAttribute));
@@ -139,14 +127,8 @@ namespace PPCore
         [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
 
         // 表示と実行で扱いを揃えるため、常に 0～1 へ丸めた値を使う
-        // （[Label] と [Range] が同居するとどちらの PropertyDrawer が使われるか保証されず、
-        //   インスペクタ側でスライダーによる制限が効かない場合があるため）
         protected float HpRatePerTurn => Mathf.Clamp01(mHpRatePerTurn);
 
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new PPHpRatePeriodicDamageBehaviour(HpRatePerTurn, mAttribute));
@@ -165,10 +147,6 @@ namespace PPCore
         [Label("毎ターン回復量")]
         [SerializeField]protected float mHealPerTurn = 5f;
 
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new PeriodicHealBehaviour(mHealPerTurn));

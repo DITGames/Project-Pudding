@@ -14,11 +14,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // 戦場に並ぶユニット 1 体分の表示
-    // 見た目（アイコン・アニメーション）の再生と、選択対象としての振る舞いを兼ねる
-    // 演出メソッドは PPBattleUnitViewBinder がバトルイベントを受けて呼び出す
-    // メニューの表示位置は MenuAnchor として公開し、
-    // 入力ステート側がここを基準にコマンドメニューを配置する
+    // 戦場に並ぶユニット 1 体分の表示。見た目の再生と、選択対象としての振る舞いを兼ねる
+    // 演出メソッドは PPBattleUnitViewBinder が呼び出し、メニューの表示位置は MenuAnchor で公開する
     public class PPBattleUnitView : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
         [Label("ステータスウィジェット")]
@@ -56,13 +53,8 @@ namespace PPCore
         // 選択ボタンの押下を決定通知へ中継する
         private void Awake() => mSelectButton.onClick.AddListener(() => OnDecided?.Invoke(this));
 
-        // 表示対象のユニットと見た目を設定する
-        // 味方は敵と向き合う形にするためアイコンを左右反転させる
-        // 見た目定義が解決できなかった場合もユニット自体の表示は成立させ、
-        // アイコンとアニメーターだけ未設定のままにする
-        // aUnit : 表示対象のユニット
-        // aVisualDefinition : 見た目の定義。カタログで解決できなければ null
-        // aSide : このユニットの陣営
+        // 表示対象のユニットと見た目を設定する。味方はアイコンを左右反転させる
+        // 見た目定義が解決できなかった場合も、ユニット自体の表示は成立させる
         public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisualDefinition, BattleSide aSide)
         {
             mBattleUnit = aUnit;

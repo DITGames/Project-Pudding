@@ -11,10 +11,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // PPUnitAINode 型のフィールド・リスト要素を、
-    // 型未選択ならツリーポップアップ（PPTypeTreePickerPopup）を開く選択ボタン、
-    // 選択済みならノード名をラベルにしてフィールド展開する
-    // PPPartyConditionValidatorDrawer と同じ形。選択済みの描画は PPManagedReferencePickerUtility に委譲する
+    // PPUnitAINode のフィールド・リスト要素を描画する
+    // 型未選択なら型選択ボタン、選択済みならノード名をラベルにして展開する
     [CustomPropertyDrawer(typeof(PPUnitAINode), true)]
     public class PPUnitAINodeDrawer : PropertyDrawer
     {
@@ -74,10 +72,7 @@ namespace PPCore
     }
 
     // 抽選ノードの枝 1 本を「子ノード名 ： 重み」の 1 行で描く
-    //
-    // 枝は接続先をノード ID で持つが、ID は自動採番の GUID なのでそのまま出しても読めない
-    // ツリー本体から ID を引き直してノード名を表示することで、
-    // どの枝に何割振っているかをインスペクタ上で見比べられるようにしている
+    // 接続先の ID をツリー本体から引き直してノード名で表示する
     [CustomPropertyDrawer(typeof(PPUnitAILotteryEntry))]
     public class PPUnitAILotteryEntryDrawer : PropertyDrawer
     {
@@ -117,9 +112,6 @@ namespace PPCore
 
         // 接続先の子ノード名を引く
         // 未接続や、削除済みノードを指している場合は分かる表記へ落とす
-        // aProperty : 対象の枝プロパティ
-        // aChildId : 接続先のノード ID
-        // return : 表示するノード名
         private static string ResolveChildName(SerializedProperty aProperty, string aChildId)
         {
             if (string.IsNullOrEmpty(aChildId)) return "(未接続)";

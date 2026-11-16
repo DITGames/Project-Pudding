@@ -59,8 +59,6 @@ namespace PPCore
     public static class PPUnitAITreeSourceUtility
     {
         // ツリーの出どころを日本語表記へ変換する
-        // aSource : ツリーの出どころ
-        // return : 日本語の表記
         public static string ToDisplayString(PPUnitAITreeSource aSource)
             => aSource switch
             {
@@ -72,8 +70,7 @@ namespace PPCore
     }
 
     // ユニット 1 体分の判断結果
-    // 「何を選んだか」だけでなく「なぜ動かなかったか」まで残すことで、
-    // 待機している状態が意図通りかを後から追えるようにする
+    // 何を選んだかに加えて、なぜ動かなかったかまで残す
     public sealed class PPUnitAIThinkEntry
     {
         // 思考対象のユニット名
@@ -126,8 +123,7 @@ namespace PPCore
     }
 
     // ユニット AI の思考記録をエディタ側へ流すための中継点
-    // ランタイム側がエディタのクラスを直接参照しないよう、購読の口だけをここに置く
-    // 購読者が居ないときは記録の組み立て自体を省けるよう、HasListener を先に確認できるようにしている
+    // 購読者が居ないときは HasListener を確認して記録の組み立てを省ける
     public static class PPUnitAIDebugHub
     {
         // 思考記録が報告されたときに発火する(思考1回分の記録)

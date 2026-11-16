@@ -10,9 +10,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 本作の属性
-    // 添字として配列と対応付けるため、値は 0 から連番で固定されている
-    // Normal は属性というより「無属性」の位置づけで、相性判定では常に等倍になる
+    // 本作の属性。添字として配列と対応付けるため、値は 0 から連番で固定する
+    // Normal は無属性の位置づけで、相性判定では常に等倍になる
     public enum PPTypeAttribute
     {
         // ノーマル。無属性であり、相性判定では常に等倍
@@ -57,9 +56,8 @@ namespace PPCore
         public static bool IsAttribute(PPTypeAttribute a) => a != PPTypeAttribute.Normal;
     }
 
-    // ユニットのロール。既定ツリーの選択だけでなく UI 表示や編成でも使う前提でユニット定義に持たせる
-    // 値はアセットへ数値のまま保存されるため明示的に振り、追加するときは末尾へ足す
-    // Balance が 0 なので、ロールを持たない既存のユニット定義は移行なしでバランス型として読まれる
+    // ユニットのロール。既定ツリーの選択のほか UI 表示や編成でも使う
+    // アセットへ数値で保存されるため、値は明示的に振り、追加するときは末尾へ足す
     public enum PPUnitRole
     {
         [InspectorName(PPUnitRoleDefinition.NameBalance)]
@@ -84,8 +82,6 @@ namespace PPCore
         public const string NameHealer = "回復型";
 
         // ロールを日本語表記へ変換する
-        // aRole : 対象のロール
-        // return : 日本語の表記
         public static string ToDisplayString(PPUnitRole aRole)
             => aRole switch
             {
@@ -126,11 +122,8 @@ namespace PPCore
         public const string NameHeal = "回復";
     }
 
-    // スキルの同種グループ
-    // AI が「今撃てる中で最も強いもの」と「待てば撃てる上位のもの」を比べる単位になる
-    // 型階層（PPAttackSkillDefinition など）とは独立した軸で、
-    // 同じ型のスキルでも別グループに属せるようにしている
-    // 表示・分類用の PPSkillCategory とも別軸なので混同しないこと
+    // スキルの同種グループ。AI が「今撃てる中で最も強いもの」と「待てば撃てる上位のもの」を比べる単位になる
+    // 表示・分類用の PPSkillCategory とは別軸
     public enum PPSkillGroup
     {
         // 敵にダメージを与える系統
@@ -152,8 +145,6 @@ namespace PPCore
         public const string NameHeal = "回復";
 
         // 同種グループを日本語表記へ変換する
-        // aGroup : 変換するグループ
-        // return : 日本語の表記。未知の値は空文字
         public static string ToDisplayString(PPSkillGroup aGroup)
             => aGroup switch
             {
@@ -164,9 +155,8 @@ namespace PPCore
             };
     }
 
-    // 1 ティック内で行動を並べるときの優先度
+    // 1 ティック内で行動を並べるときの優先度。先攻ほど小さい値にしている
     // 同じ優先度どうしは速度（＋ジッター）で順序が決まる
-    // 値の大小がそのまま並び順になるよう、先攻ほど小さい値にしている
     public enum PPSkillActionPriority
     {
         [InspectorName("先攻")]
@@ -185,8 +175,6 @@ namespace PPCore
         public const string NameLast = "後攻";
 
         // 優先度を日本語表記へ変換する
-        // aPriority : 変換する優先度
-        // return : 日本語の表記。未知の値は空文字
         public static string ToDisplayString(PPSkillActionPriority aPriority)
             => aPriority switch
             {

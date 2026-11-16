@@ -13,10 +13,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // PPSkillTagDefinition の参照フィールド・リスト要素を、
-    // タグ名を表示するボタンとして描画し、押すとツリーポップアップで選ばせる
-    // 素のオブジェクトフィールドだと全アセットが平坦に並んで探しづらいため、
-    // 条件クラスの選択と同じツリー操作に揃えている
+    // PPSkillTagDefinition の参照フィールド・リスト要素を、タグ名を表示するボタンとして描画する
+    // 押すとツリーポップアップで選ばせる
     [CustomPropertyDrawer(typeof(PPSkillTagDefinition))]
     public class PPSkillTagDrawer : PropertyDrawer
     {
@@ -94,8 +92,6 @@ namespace PPCore
             => PPTypeTreePickerTreeView.CollectDerived<PPSkillEffectDefinition>(true);
 
         // 選ばれた型からインスタンスを組み立てる
-        // aType : 選ばれた型
-        // return : フィールドへ設定するインスタンス
         private static PPSkillEffectDefinition CreateInstance(Type aType)
             => (PPSkillEffectDefinition)Activator.CreateInstance(aType);
     }

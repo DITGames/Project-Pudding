@@ -19,10 +19,7 @@ using UnityEngine.UIElements;
 namespace PPCore
 {
     // PPUnitBehaviourTree をノードグラフとして編集するウィンドウ
-    //
-    // 左の列にタブ・グラフ・ツリー一覧を縦へ積み、右の列に選択中ノードの詳細を全高で置く
-    // 詳細は条件や行動の設定欄が縦に伸びるため、他と高さを分け合わない 1 本の列にしてある
-    // グラフ側はノードの配置と接続だけを扱い、条件や行動の中身は右の詳細で編集する
+    // 左の列にタブ・グラフ・ツリー一覧、右の列に選択中ノードの詳細を置く
     public sealed class PPUnitAITreeWindow : EditorWindow
     {
         // インスペクタ幅を保存する EditorPrefs キー(ウィンドウを閉じても復元される)
@@ -108,9 +105,6 @@ namespace PPCore
         }
 
         // Project ウィンドウで PPUnitBehaviourTree をダブルクリックした際にこのウィンドウで開く
-        // aInstanceId : 開かれたアセットのインスタンス ID
-        // aLine : 行番号（テキストアセット用。ここでは使わない）
-        // return : このウィンドウで処理した場合 true
         [OnOpenAsset]
         public static bool OnOpenAsset(int aInstanceId, int aLine)
         {
@@ -152,9 +146,7 @@ namespace PPCore
         }
 
         // 分割の幅・高さと一覧の状態を書き出す
-        //
-        // ウィンドウを閉じるときだけでなく、ドラッグで動かした時点でも書き出す
-        // 閉じる処理まで待つと、Unity の終了の仕方によっては OnDisable が走らず記録が消えるため
+        // OnDisable が走らず記録が消えることがあるため、ドラッグで動かした時点でも書き出す
         private void SaveLayout()
         {
             EditorPrefs.SetFloat(PrefKeyInspectorWidth, mCurrentInspectorWidth);
@@ -164,29 +156,19 @@ namespace PPCore
         }
 
         // 覚えてよい大きさかを判定する
-        //
-        // レイアウトが決まる前や、ウィンドウが畳まれる過程では 0 や NaN が返ってくる
-        // それをそのまま覚えると、次に開いたときの幅・高さが潰れた値から始まってしまう
-        //
-        // aValue : 判定する値
-        // return : 覚えてよければ true
+        // レイアウト確定前や畳まれる過程で返る 0 や NaN を覚えないようにする
         private static bool IsUsableSize(float aValue)
             => !float.IsNaN(aValue) && !float.IsInfinity(aValue) && aValue > 1f;
 
         // 一覧の高さを扱える範囲へ丸める
         // レイアウトが決まりきる前の値をそのまま覚えると、次に開いたとき一覧が全高を取ってしまう
-        // aHeight : 丸める高さ
-        // return : 丸めた高さ
         private static float ClampBrowserHeight(float aHeight) => Mathf.Clamp(aHeight, 60f, 600f);
 
         // 右のインスペクタの幅を扱える範囲へ丸める
-        // aWidth : 丸める幅
-        // return : 丸めた幅
         private static float ClampInspectorWidth(float aWidth) => Mathf.Clamp(aWidth, 240f, 900f);
 
         // ノードの詳細で使うラベル幅を、欄の幅から求める
         // 通常のインスペクタと同じ「表示幅のおよそ半分」を目安にし、狭すぎ・広すぎにならない範囲へ収める
-        // return : ラベル幅
         private float ResolveNodeInspectorLabelWidth()
             => Mathf.Clamp(mCurrentInspectorWidth * NodeInspectorLabelRatio,
                 MinNodeInspectorLabelWidth, MaxNodeInspectorLabelWidth);
@@ -310,12 +292,7 @@ namespace PPCore
         }
 
         // プロジェクト内の判断ツリーを一覧するコンテンツブラウザを組み立てる
-        //
-        // メインツリーとサブツリーを行き来しながら組む場面が多いため、
-        // Project ウィンドウへ戻らずにこのウィンドウの中だけで探して開けるようにする
         // 種別（メイン / サブ）と名前の 2 段で絞り込める
-        //
-        // return : ブラウザの要素
         private VisualElement BuildBrowser()
         {
             var browser = new VisualElement { style = { flexGrow = 1f } };
@@ -344,14 +321,8 @@ namespace PPCore
             return browser;
         }
 
-        // 種別の絞り込みボタンを並べる
-        //
-        // ボタンは PPUnitAITreeKind の列挙子から組み立てる
-        // 種別を増やしたときに、インスペクタの選択肢と一覧の絞り込みが片方だけ古くなるのを防ぐため
-        // 表示名は InspectorName を使い、インスペクタ側の表記と揃える
-        // 種別が増えて 1 行に収まらなくなったら折り返す
-        //
-        // return : 絞り込み行の要素
+        // 種別の絞り込みボタンを並べる。ボタンは PPUnitAITreeKind の列挙子から組み立て、表示名は InspectorName を使う
+        // 1 行に収まらなくなったら折り返す
         private VisualElement BuildBrowserFilterRow()
         {
             var row = new VisualElement { style = { flexDirection = FlexDirection.Row } };
@@ -373,10 +344,7 @@ namespace PPCore
         }
 
         // 押されている絞り込みボタンを目立たせる
-        //
-        // ボタンを作り直さず、既にあるものの見た目だけを塗り替える
-        // 押した瞬間にボタンごと作り直すと、押されたボタン自身が処理の途中で消えることになる
-        // ウィンドウ全体を組み立て直すのも避ける。グラフまで再生成され、表示位置や分割の幅が戻ってしまうため
+        // ボタンやウィンドウを作り直さず、既にあるものの見た目だけを塗り替える
         private void ApplyFilterButtonStyles()
         {
             foreach (var (button, filter) in mBrowserFilterButtons)
@@ -391,8 +359,6 @@ namespace PPCore
 
         // 列挙子の表示名を引く
         // InspectorName が付いていればその文言、無ければ列挙子の名前をそのまま使う
-        // aKind : 対象の列挙子
-        // return : 表示名
         private static string ToDisplayName(PPUnitAITreeKind aKind)
         {
             var field = typeof(PPUnitAITreeKind).GetField(aKind.ToString());
@@ -401,9 +367,6 @@ namespace PPCore
         }
 
         // 絞り込みボタンを 1 つ足す
-        // aRow : 追加先の行
-        // aText : ボタンの文言
-        // aFilter : 押したときに設定する絞り込み値
         private void AddFilterButton(VisualElement aRow, string aText, int aFilter)
         {
             var button = new Button(() =>
@@ -475,8 +438,6 @@ namespace PPCore
 
         // 一覧の 1 行分を組み立てる
         // 押すとタブとして開き、そのツリーへ切り替わる
-        // aTree : 対象のツリー
-        // return : 行の要素
         private VisualElement BuildBrowserRow(PPUnitBehaviourTree aTree)
         {
             bool isActive = ReferenceEquals(aTree, mTarget);
@@ -502,9 +463,7 @@ namespace PPCore
         }
 
         // 開いているツリーをタブとして横一列に並べる
-        // 複数のツリーを行き来しながら組む場面が多いため、Project ウィンドウへ戻らずに切り替えられるようにする
-        // 幅が足りなくなったら横スクロールさせ、タブが潰れて名前が読めなくなるのを防ぐ
-        // return : タブ列の要素
+        // 幅が足りなくなったら横スクロールさせる
         private VisualElement BuildTabStrip()
         {
             var strip = new ScrollView(ScrollViewMode.Horizontal);
@@ -540,8 +499,6 @@ namespace PPCore
 
         // タブ 1 枚分を組み立てる
         // 本体を押すと切り替え、右端の × で閉じる
-        // aTree : 対象のツリー
-        // return : タブの要素
         private VisualElement BuildTab(PPUnitBehaviourTree aTree)
         {
             bool isActive = ReferenceEquals(aTree, mTarget);
@@ -581,13 +538,7 @@ namespace PPCore
         }
 
         // タブのつまみ（名前ラベル）へ、切り替えと並べ替えの操作を結び付ける
-        //
-        // 押しただけなら切り替え、左右へ動かしてから離したら並べ替え、という 1 つの操作でまとめて扱う
-        // 並べ替えの確定はボタンを離した時点に寄せている
-        // ドラッグ中にタブ列を組み立て直すと、掴んでいる要素ごと作り替わってポインタの捕捉が外れるため
-        //
-        // aLabel : つまみになる要素
-        // aTree : そのタブが指すツリー
+        // 押しただけなら切り替え、左右へ動かしてから離したら並べ替え。確定はボタンを離した時点で行う
         private void RegisterTabDrag(VisualElement aLabel, PPUnitBehaviourTree aTree)
         {
             aLabel.RegisterCallback<PointerDownEvent>(evt =>
@@ -648,8 +599,6 @@ namespace PPCore
 
         // ポインタの位置から、タブを差し込む位置を求める
         // 各タブの中央より左なら手前、右なら奥へ差し込む
-        // aPosition : ポインタの位置（ワールド座標）
-        // return : 差し込む位置。タブが無ければ 0
         private int ResolveTabDropIndex(Vector3 aPosition)
         {
             if (mTabStripContent == null || mTabElements.Count == 0) return 0;
@@ -689,8 +638,6 @@ namespace PPCore
         }
 
         // タブを指定した位置へ動かす
-        // aTree : 動かすタブ
-        // aDropIndex : 差し込む位置。動かす前の並びを基準にした値
         private void MoveTab(PPUnitBehaviourTree aTree, int aDropIndex)
         {
             int from = mOpenTargets.IndexOf(aTree);
@@ -709,7 +656,6 @@ namespace PPCore
 
         // ツリーをタブとして開く。既に開いていれば並びを変えずそのまま使う
         // 上限を超えた場合は、いま開いているもの以外で最も古いタブを閉じる
-        // aTarget : 開くツリー
         private void OpenAsTab(PPUnitBehaviourTree aTarget)
         {
             if (aTarget == null) return;
@@ -730,7 +676,6 @@ namespace PPCore
 
         // タブを 1 つ閉じる
         // 閉じたのが表示中のタブだった場合は、隣のタブへ移る
-        // aTarget : 閉じるツリー
         private void CloseTab(PPUnitBehaviourTree aTarget)
         {
             int index = mOpenTargets.IndexOf(aTarget);
@@ -766,8 +711,6 @@ namespace PPCore
         }
 
         // アセットの GUID を引く
-        // aTarget : 対象のツリー
-        // return : GUID。アセットでなければ空文字
         private static string ToGuid(PPUnitBehaviourTree aTarget)
         {
             string path = aTarget == null ? "" : AssetDatabase.GetAssetPath(aTarget);
@@ -893,9 +836,7 @@ namespace PPCore
                 browserSplit.Add(mGraphView);
                 browserSplit.Add(browserPane);
                 // 監視はペイン自身へ登録する
-                // GeometryChangedEvent は「その要素の大きさが変わったとき」にだけ飛び、親子へ伝播しない
-                // 分割側へ登録すると、仕切りをドラッグしてもペインが変わるだけで分割自身は変わらず、
-                // 値が一度も更新されないまま既定へ戻ってしまう
+                // GeometryChangedEvent は親子へ伝播しないため、分割側へ登録しても値が更新されない
                 browserPane.RegisterCallback<GeometryChangedEvent>(_ =>
                 {
                     float height = browserPane.resolvedStyle.height;
@@ -973,9 +914,7 @@ namespace PPCore
                 mSerializedObject.Update();
 
                 // プロパティは描画のたびに引き直す
-                // 配列要素を指す SerializedProperty は要素が消えると無効になるため、
-                // 最初に引いたものを持ち回すと、ノードを削除した瞬間に描画側が壊れたプロパティへ触れてしまう
-                // （mNodes.Array.data[N] has disappeared / 配列に対する managedReference 参照、として例外が出る）
+                // 配列要素を指す SerializedProperty は、要素が消えると無効になるため持ち回さない
                 var property = FindNodeProperty(aNode);
                 if (property == null)
                 {
@@ -986,9 +925,7 @@ namespace PPCore
                 }
 
                 // ラベル幅をこの欄の幅から決める
-                // 通常のインスペクタでは Unity が表示幅に応じて決めてくれるが、
-                // 自前の IMGUI 領域ではその面倒を見てもらえず、既定のまま狭く扱われて
-                // 日本語の表示名が途中で切れてしまう
+                // 自前の IMGUI 領域では既定のまま狭く扱われ、日本語の表示名が途中で切れるため
                 float previousLabelWidth = EditorGUIUtility.labelWidth;
                 EditorGUIUtility.labelWidth = ResolveNodeInspectorLabelWidth();
 
@@ -1014,7 +951,6 @@ namespace PPCore
 
         // ノード種別ごとの補助操作を描く
         // 標準のフィールド編集では届かない、まとめて書き換える系の操作を置く
-        // aNode : 表示中のノード
         private void DrawNodeTools(PPUnitAINode aNode)
         {
             if (aNode is not PPUnitAILotteryNode lottery) return;
@@ -1030,8 +966,6 @@ namespace PPCore
         }
 
         // ノードに対応する SerializedProperty を引く
-        // aNode : 対象ノード
-        // return : 該当する配列要素のプロパティ。見つからなければ null
         private SerializedProperty FindNodeProperty(PPUnitAINode aNode)
         {
             var nodesProperty = mSerializedObject.FindProperty("mNodes");

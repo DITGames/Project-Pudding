@@ -12,9 +12,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ユニットのマスターデータ（ScriptableObject）
-    // 基礎ステータスと所持スキルの定義を持ち、CreateRuntimeUnit でランタイムの BattleUnit を生成する
-    // スキルも同時にランタイム化されるため、同じ定義から作った 2 体はクールダウンなどの状態を共有しない
+    // ユニットのマスターデータ（ScriptableObject）。基礎ステータスと所持スキルの定義を持つ
+    // CreateRuntimeUnit でランタイムの BattleUnit を生成し、スキルも同時にランタイム化する
     [CreateAssetMenu(menuName = "Project-Pudding/Definition/UnitDefinition", fileName = "NewUnit")]
     public class UnitDefinition : ScriptableObject
     {
@@ -36,10 +35,7 @@ namespace PPCore
         public List<SkillDefinition> Skills => mSkills;
 
         // この定義からランタイムのユニットインスタンスを生成する
-        // パラメータを組み立て、所持スキルもそれぞれランタイム化して持たせる
-        // スキルリストに null が混ざっていても読み飛ばす
-        // aDecider : コマンド決定クラス。null ならランダム AI が入る
-        // return : 生成されたランタイムユニット
+        // パラメータを組み立て、所持スキルもランタイム化して持たせる（null は読み飛ばす）
         public virtual BattleUnit CreateRuntimeUnit(ICommandDecider aDecider = null)
         {
             var unit = new BattleUnit(mUnitId, mDisplayName, CreateParameterSet())
@@ -60,7 +56,6 @@ namespace PPCore
 
         // 基礎ステータスからランタイムのパラメータ一式を組み立てる
         // 追加パラメータを持たせる場合は派生側でオーバーライドする
-        // return : 生成されたパラメータ一式
         protected virtual ParameterSet CreateParameterSet() =>
             new(mBaseStatBlock.MaxHP, mBaseStatBlock.Attack, mBaseStatBlock.Defense, mBaseStatBlock.Speed);
     }

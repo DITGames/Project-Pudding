@@ -24,17 +24,12 @@ namespace PPCore
         // 属性などを拡張
     }
 
-    // 1 回分のダメージに関する情報をまとめて持ち回るクラス
-    // 命中判定からダメージ適用までの各段階でこのインスタンスが引き渡され、
-    // ステータスエフェクトやイベント購読側が Amount や各フラグを
-    // 書き換えることで軽減・無効化を表現する
-    // （そのため値型ではなく参照型で、値の書き換えを前提にしている）
+    // 1 回分のダメージに関する情報を持ち回るクラス
+    // ステータスエフェクトや購読側が Amount やフラグを書き換えて軽減・無効化を表現するため、参照型にしている
     public class DamageInfo
     {
         // ダメージの発生元ユニット
-        // コマンド以外で不用意に Source にユニットを格納するのは避ける
-        // 反射ダメージなどで Source に Unit を入れてしまうと、
-        // 反射が反射を呼ぶループが走るため
+        // 反射ダメージなどコマンド以外で設定すると、反射が反射を呼ぶループになるため避ける
         public BattleUnit Source { get; }
         // ダメージを受けるユニット
         public BattleUnit Target { get; }
@@ -57,10 +52,6 @@ namespace PPCore
         public bool IsMiss { get; set; } = false;
 
         // ダメージ情報を生成する
-        // aSource : ダメージの発生元ユニット。無い場合は null
-        // aTarget : ダメージを受けるユニット
-        // aAmount : 初期ダメージ量
-        // aReason : 何によって発生したダメージか。null なら OtherDamageReason.Default として扱う
         public DamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, DamageReasonBase aReason)
         {
             Source = aSource;
@@ -70,9 +61,8 @@ namespace PPCore
         }
     }
 
-    // そのダメージが何によって発生したかを表す理由の基底
-    // 「リアクション中かどうか」は別軸として DamageInfo.Reaction が持つため、ここでは扱わない
-    // 発生源（コマンド・スキル定義・ステータスエフェクトなど）は派生クラスが型付きで持つ
+    // そのダメージが何によって発生したかを表す理由の基底。発生源は派生クラスが型付きで持つ
+    // リアクション中かどうかは別軸として DamageInfo.Reaction が持つ
     public abstract class DamageReasonBase
     {
     }
@@ -134,9 +124,6 @@ namespace PPCore
     public static class DamageReasonKindUtility
     {
         // ダメージ理由が指定した種類に当たるかを判定する
-        // aReason : 判定するダメージ理由
-        // aKind : 照合する種類
-        // return : 当たる場合 true
         public static bool Matches(DamageReasonBase aReason, DamageReasonKind aKind)
             => aKind switch
             {
@@ -148,8 +135,6 @@ namespace PPCore
     }
 
     // 属性とスキル種別を持たせたダメージ情報
-    // 基底の DamageInfo に対して、属性相性の判定に必要な情報と、
-    // その結果（弱点・耐性）を追加する
     // 弱点／耐性フラグは演出側がダメージ表示を出し分けるために使う
     public class PPDamageInfo : DamageInfo
     {
@@ -163,12 +148,6 @@ namespace PPCore
         // 耐性で軽減されたか。相性判定の結果として設定される
         public bool IsResistHit { get; set; } = false;
 
-        // aSource : ダメージの発生元ユニット
-        // aTarget : ダメージを受けるユニット
-        // aAmount : 初期ダメージ量
-        // aCategory : スキル種別
-        // aAttribute : 攻撃属性
-        // aReason : 何によって発生したダメージか。null なら OtherDamageReason.Default として扱う
         public PPDamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, PPSkillCategory aCategory,
             PPTypeAttribute aAttribute, DamageReasonBase aReason)
             : base(aSource, aTarget, aAmount, aReason)

@@ -40,11 +40,6 @@ namespace PPCore
     public interface IHitResolver
     {
         // 命中判定を行う
-        // aSource : 攻撃側ユニット
-        // aTarget : 防御側ユニット
-        // aInfo : 判定対象のダメージ情報
-        // aContext : バトルコンテキスト。乱数はここから取る
-        // return : 命中判定の結果
         HitResult Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext);
     }
 
@@ -74,11 +69,6 @@ namespace PPCore
     public interface ICriticalResolver
     {
         // クリティカル判定を行う。命中した場合にのみ呼ばれる
-        // aSource : 攻撃側ユニット
-        // aTarget : 防御側ユニット
-        // aInfo : 判定対象のダメージ情報
-        // aContext : バトルコンテキスト。乱数はここから取る
-        // return : クリティカルの発生有無と倍率
         CriticalInfo Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext);
     }
 
@@ -98,8 +88,7 @@ namespace PPCore
             info.IsCritical = false;
             info.CriticalMultiplier = DefaultCriticalMultiplier;
             float criticalChance = ResolveCriticalChance(aSource, aTarget, aInfo, aContext);
-            // 攻撃側の試行なので、攻撃側の乱数列から引く
-            // 発生率 1 以上は必ず発生させる（float 変換で乱数が 1.0 に丸まる場合があるため）
+            // 攻撃側の乱数列から引く。発生率 1 以上は必ず発生させる
             // 乱数列の消費数を発生率によって変えないよう、判定前に必ず 1 回引いておく
             float roll = aSource.ResolveRandom(aContext).NextFloat();
             if (criticalChance >= 1f || roll < criticalChance) info.IsCritical = true;
@@ -108,20 +97,11 @@ namespace PPCore
 
         // クリティカル発生率（0～1）を求める。既定は固定値
         // 1 以上を返せば必ず発生し、0 以下なら発生しない
-        // aSource : 攻撃側ユニット
-        // aTarget : 防御側ユニット
-        // aInfo : 判定対象のダメージ情報
-        // aContext : バトルコンテキスト
-        // return : 発生率
         protected virtual float ResolveCriticalChance(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
             => DefaultCriticalChance;
     }
 
-    // 攻撃側のきようさから会心率を求めるクリティカルリゾルバ。PPBattleRules の既定
-    // 会心率(%) = clamp(補正後きようさ × 0.25, 0, 100)、判定に使う確率 = clamp(補正後きようさ × 0.0025, 0, 1)
-    // 補正後きようさ = 育成きようさ × S（スキル効果）× B（バフ・デバフ）で、Dexterity パラメータの CurrentValue にあたる
-    // きようさ自体は 400 で頭打ちにせず、会心率の側だけを丸める（きようさ 400 以上は常に会心）
-    // 乱数・倍率の扱いは基底の StandardCriticalResolver に任せ、発生率の求め方だけを差し替える
+    // 攻撃側のきようさから会心率を求めるクリティカルリゾルバ。会心率(%) = clamp(補正後きようさ × 0.25, 0, 100)
     // きようさを持たないユニット（PPBattleUnit 以外）は基底の固定発生率で判定する
     public class PPCriticalResolver : StandardCriticalResolver
     {
@@ -131,16 +111,11 @@ namespace PPCore
         public const float CriticalPercentPerDexterity = 0.25f;
 
         // 補正後きようさから判定用の会心確率を求める
-        // 0.0025 は float で正確に表せず、きようさ 400 でも 1 をわずかに下回るため、
-        // 正確に表せる百分率（× 0.25）を経由して求める（400 → 100% → 1.0 ちょうど）
-        // aDexterity : 補正後きようさ
-        // return : 0～1 に丸めた会心確率
+        // 0.0025 は float で正確に表せないため、百分率（× 0.25）を経由する
         public static float ToCriticalChance(float aDexterity)
             => Mathf.Clamp01(ToCriticalPercent(aDexterity) / 100f);
 
         // 補正後きようさから表示用の会心率（%）を求める
-        // aDexterity : 補正後きようさ
-        // return : 0～100 に丸めた会心率
         public static float ToCriticalPercent(float aDexterity)
             => Mathf.Clamp(aDexterity * CriticalPercentPerDexterity, 0f, 100f);
 

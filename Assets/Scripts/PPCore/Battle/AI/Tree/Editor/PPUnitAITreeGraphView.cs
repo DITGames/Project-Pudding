@@ -17,13 +17,8 @@ using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    // 判断ツリー（PPUnitBehaviourTree）をノードグラフとして編集する GraphView
-    //
-    // ノードの追加・削除・接続・移動は全て SerializedObject を通してアセットへ反映する
-    // Undo とダーティ管理を Unity 側に任せられるため、独自の履歴を持たずに済む
-    //
-    // 優先度リストの子の並び順は、グラフ上の縦位置（上にあるものほど優先）から決める
-    // 接続線の順序は見た目に出ないため、位置で表現したほうが読み違えない
+    // 判断ツリー（PPUnitBehaviourTree）をノードグラフとして編集する GraphView。変更は全て SerializedObject を通す
+    // 優先度リストの子の並び順は、グラフ上の縦位置（上ほど優先）から決める
     internal sealed class PPUnitAITreeGraphView : GraphView
     {
         private readonly SerializedObject mSerializedObject;
@@ -107,7 +102,6 @@ namespace PPCore
 
         // 診断結果をグラフへ反映する
         // 問題が見つかったノードをグレー表示にし、それ以外は種別ごとの色へ戻す
-        // aIssues : 反映する診断結果
         public void ApplyIssues(IReadOnlyList<PPUnitAITreeIssue> aIssues)
         {
             // 1 つのノードに複数の問題が出ることがあるため、ノードごとにまとめてから渡す
@@ -132,8 +126,6 @@ namespace PPCore
         }
 
         // 思考記録 1 件分の通過経路を強調表示する
-        // aVisitedNodeIds : 通過したノードの ID。null や空なら強調を解除する
-        // aDecidedNodeId : 行動が確定したノードの ID
         public void ApplyHighlight(IReadOnlyList<string> aVisitedNodeIds, string aDecidedNodeId)
         {
             var visited = new HashSet<string>();
@@ -161,7 +153,6 @@ namespace PPCore
 
         // 通過経路に沿った接続線を赤く太くする
         // ノードの枠だけでは大きなツリーで経路を目で辿りにくいため、実際に辿った線もそのまま示す
-        // aVisitedNodeIds : 通過したノードの ID。root → ... → 確定ノードの順に並んでいる
         private void ApplyEdgeHighlight(IReadOnlyList<string> aVisitedNodeIds)
         {
             ResetEdgeHighlight();
@@ -227,7 +218,6 @@ namespace PPCore
 
         // 指定ノードの表示を現在の値へ更新する
         // インスペクタでノード名や割り込み指定を編集した直後に呼び、グラフ側の表示を追従させる
-        // aNodeId : 対象ノードの ID
         public void RefreshNodeView(string aNodeId)
         {
             if (!mNodeViews.TryGetValue(aNodeId ?? "", out var view)) return;
@@ -244,7 +234,6 @@ namespace PPCore
 
         // 指定したノードが画面中央へ来るように表示位置を合わせ、選択状態にする
         // 検索から呼ぶため、待たずにその場で動かす
-        // aNodeId : 寄せるノードの ID
         public void FrameNode(string aNodeId)
         {
             if (!mNodeViews.TryGetValue(aNodeId ?? "", out var view)) return;
@@ -296,11 +285,8 @@ namespace PPCore
             SearchWindow.Open(context, provider);
         }
 
-        // 根から幅優先でノードを並べ直す
-        //
-        // 優先度リストと連携ノードの子は、現在の並び順を保ったまま縦位置へ写す
-        // 縦位置が優先度そのものなので、整列で順序を書き換えてはならない
-        // 根から辿れないノードは触らず、その場に残す
+        // 根から幅優先でノードを並べ直す。優先度リストと連携ノードの子は現在の並び順を保つ
+        // 根から辿れないノードは触らない
         public void AutoLayout()
         {
             var root = mTree.Root;
@@ -322,12 +308,6 @@ namespace PPCore
         }
 
         // ノードを 1 つ配置し、子を続けて配置する
-        // aNode : 配置するノード
-        // aDepth : 根からの深さ
-        // aPreferredY : 置きたい縦位置。既に埋まっていれば下へずらす
-        // aPlaced : 配置済みのノード ID。循環しても止まるように使う
-        // aNextY : 深さごとの次に空いている縦位置
-        // return : 実際に置いた縦位置
         private float PlaceNode(PPUnitAINode aNode, int aDepth, float aPreferredY,
             HashSet<string> aPlaced, Dictionary<int, float> aNextY)
         {
@@ -408,7 +388,6 @@ namespace PPCore
 
         // 注記 1 枚分のビューを作ってグラフへ載せる
         // 見出し・本文・位置・大きさのいずれが変わってもアセットへ書き戻す
-        // aData : 表示する注記。null なら何もしない
         private void CreateNoteView(PPUnitAINoteData aData)
         {
             if (aData == null) return;
@@ -487,8 +466,6 @@ namespace PPCore
 
         // グラフ上の操作をアセットへ反映する
         // 接続・切断・削除・移動をまとめて受け取るため、Undo の記録もここで 1 回だけ行う
-        // aChange : GraphView が通知する変更内容
-        // return : 受け取った変更内容をそのまま返す
         private GraphViewChange OnGraphViewChanged(GraphViewChange aChange)
         {
             bool isStructureChanged = false;
@@ -562,8 +539,6 @@ namespace PPCore
 
         // ポートから空白領域へドロップされた際に、ノード追加メニューを出す
         // 選ばれた型のノードをその場に作り、ドラッグ元のポートと繋ぐ
-        // aSourcePort : ドラッグ元のポート
-        // aPosition : ドロップ位置(ワールド座標)
         public void ShowNodeCreationMenuForDrop(Port aSourcePort, Vector2 aPosition)
         {
             bool isFromOutput = aSourcePort.direction == Direction.Output;
@@ -579,10 +554,6 @@ namespace PPCore
         }
 
         // 新規ノードを生成し、ドラッグ元ポートと接続する
-        // aNodeType : 追加するノードの型
-        // aPosition : グラフ上の配置
-        // aSourcePort : ドラッグ元のポート
-        // aIsFromOutput : true ならドラッグ元が出力ポート(新規ノードが子になる)、false なら入力ポート(新規ノードが親になる)
         private void AddNodeAndConnect(Type aNodeType, Vector2 aPosition, Port aSourcePort, bool aIsFromOutput)
         {
             var newNode = AddNode(aNodeType, aPosition);
@@ -607,22 +578,14 @@ namespace PPCore
 
         // 選択中のノードを複写用の文字列にする
         // Ctrl+C と Ctrl+D の両方からここを通る
-        // aElements : 選択されているグラフ要素。接続線も混ざるためノードだけを拾う
-        // return : 複写に使う文字列
         private string SerializeSelection(IEnumerable<GraphElement> aElements)
         {
             var nodes = aElements.OfType<PPUnitAITreeNodeView>().Select(v => v.Node).ToList();
             return nodes.Count == 0 ? "" : PPUnitAITreeClipboard.Serialize(nodes);
         }
 
-        // 複写した文字列からノードを貼り付ける
-        //
-        // 貼り付けたノードには新しい ID を振り、複写元同士で繋がっていた接続だけを張り直す
-        // 複写の範囲外へ出ていた接続は未接続になる（貼り付けた側から元のノードへ線を伸ばさない）
-        // サブツリー参照の参照先はアセットへの参照で ID 参照ではないため、そのまま保たれる
-        //
-        // aOperationName : 操作名。Undo の表示に使う
-        // aData : SerializeSelection が書き出した文字列
+        // 複写した文字列からノードを貼り付ける。新しい ID を振り、複写元同士の接続だけを張り直す
+        // 範囲外への接続は未接続になり、サブツリー参照の参照先はそのまま保たれる
         private void PasteSerializedData(string aOperationName, string aData)
         {
             var pasted = PPUnitAITreeClipboard.Deserialize(aData);
@@ -659,7 +622,6 @@ namespace PPCore
 
         // 貼り付けたノードを選択状態にする
         // 続けて動かしたり消したりできるようにするためのもの
-        // aNodes : 選択するノード
         private void SelectNodes(IReadOnlyList<PPUnitAINode> aNodes)
         {
             ClearSelection();
@@ -670,9 +632,6 @@ namespace PPCore
         }
 
         // ノードを 1 つ追加する
-        // aType : 追加するノードの型
-        // aPosition : グラフ上の配置
-        // return : 追加されたノード
         private PPUnitAINode AddNode(Type aType, Vector2 aPosition)
         {
             Undo.RecordObject(mTree, "ノードの追加");
@@ -807,7 +766,6 @@ namespace PPCore
 
         // 追加できるノード型を、表示名付きで列挙する
         // PPTypeMenuName が付いていない型はメニューに出さない（付け忘れの検出も兼ねる）
-        // return : ノード型と表示名の組
         private static IEnumerable<(Type Type, string DisplayName)> EnumerateNodeTypes()
         {
             foreach (var type in TypeCache.GetTypesDerivedFrom<PPUnitAINode>())

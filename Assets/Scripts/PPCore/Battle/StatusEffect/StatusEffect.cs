@@ -10,10 +10,8 @@ using System.Collections.Generic;
 
 namespace PPCore
 {
-    // ユニットに掛かる状態変化のランタイムインスタンス
-    // 毒などの状態異常も、バフ・デバフも、防御状態も、すべてこの 1 つの型で表現する
-    // 効き目そのものは StatusEffectBehaviour が持ち、このクラスは
-    // 「誰が誰にかけた、何という名前の、いつまで続く効果か」だけを持つ
+    // ユニットに掛かる状態変化のランタイムインスタンス。状態異常・バフ・デバフ・防御状態をすべてこの型で表現する
+    // 効き目は StatusEffectBehaviour が持ち、このクラスは付与元・名前・持続などの枠組みだけを持つ
     public sealed class StatusEffect
     {
         // エフェクト ID。同一 ID が重ね掛け判定の単位になる
@@ -21,9 +19,9 @@ namespace PPCore
         // UI 表示名
         public string DisplayName { get; }
 
-        // Coreが理解できる汎用分類
+        // 汎用分類
         public StatusEffectTag Tags { get; private set; } = StatusEffectTag.None;
-        // ゲーム固有の分類。Coreは中身を解釈せずビット比較にのみ使う
+        // ゲーム固有の分類（PPEffectCategory）。ビット比較に使う
         public long Category { get; private set; }
 
         // 効果が切れる条件。未指定なら永続
@@ -46,7 +44,7 @@ namespace PPCore
 
         // エフェクトを付与した側。ラムダで捕捉せずデータとして保持する
         public BattleUnit Source { get; private set; }
-        // エフェクトがかかっているユニット。AttachTo時にCore側が設定する
+        // エフェクトがかかっているユニット。AttachTo 時に設定する
         public BattleUnit Owner { get; private set; }
         // 生成元の定義アセットなど
         public object SourceDefinition { get; private set; }
@@ -55,9 +53,6 @@ namespace PPCore
         private readonly List<StatusEffectBehaviour> mBehaviours = new();
         public IReadOnlyList<StatusEffectBehaviour> Behaviours => mBehaviours;
 
-        // aEffectId : エフェクト ID
-        // aDisplayName : UI 表示名
-        // aDurationCondition : 持続条件。null なら永続として扱う
         public StatusEffect(string aEffectId, string aDisplayName, IDurationCondition aDurationCondition = null)
         {
             EffectId = aEffectId;
@@ -106,8 +101,6 @@ namespace PPCore
         /* ---- ライフサイクル(BattleUnitからのみ呼ばれる) ---- */
 
         // 付与される。スタック数を1で初期化し、全Behaviourへ通知する
-        // aOwner : 付与先のユニット
-        // aContext : バトルコンテキスト
         internal void AttachTo(BattleUnit aOwner, BattleContext aContext)
         {
             Owner = aOwner;
@@ -118,8 +111,6 @@ namespace PPCore
         }
 
         // 除去される。全Behaviourへ通知したのちOwnerを外す
-        // aOwner : 除去元のユニット
-        // aContext : バトルコンテキスト
         internal void DetachFrom(BattleUnit aOwner, BattleContext aContext)
         {
             var ctx = new StatusEffectContext(this, aOwner, aContext);
@@ -128,8 +119,6 @@ namespace PPCore
         }
 
         // 更新のたびに呼ばれる。全Behaviourへ通知する
-        // aOwner : 対象のユニット
-        // aContext : バトルコンテキスト
         internal void Tick(BattleUnit aOwner, BattleContext aContext)
         {
             ElapsedTurns++;
@@ -144,26 +133,13 @@ namespace PPCore
         }
 
         // 被ダメージ確定前に全Behaviourへ介入させる
-        // aOwner : ダメージを受けるユニット
-        // aContext : バトルコンテキスト。呼び出し元がBattleContextを持たない場合はnull
-        // aDamage : 介入対象のダメージ情報
         internal void NotifyIncomingDamage(BattleUnit aOwner, BattleContext aContext, DamageInfo aDamage)
         {
             var ctx = new StatusEffectContext(this, aOwner, aContext);
             foreach (var b in mBehaviours) b.ModifyIncomingDamage(ctx, aDamage);
         }
 
-        // スタック数を1つ増やす
-        // aOwner : 対象のユニット
-        // aContext : バトルコンテキスト
-        // return : 上限に達しておらず実際に増えた場合 true
-        // スタックを消費する
-        // 0 以下になった場合はエフェクトごと除去する必要があるため、その判断を呼び出し元へ返す
-        // （除去そのものは ActiveStatusEffects を持つ BattleUnit 側の責務）
-        // aStacks : 消費するスタック数
-        // aOwner : 対象のユニット
-        // aContext : バトルコンテキスト
-        // return : スタックを使い切りエフェクトを除去すべき場合 true
+        // スタックを消費する。使い切った場合は true を返し、エフェクトの除去は呼び出し元（BattleUnit）が行う
         internal bool ConsumeStacks(int aStacks, BattleUnit aOwner, BattleContext aContext)
         {
             if (aStacks <= 0) return false;

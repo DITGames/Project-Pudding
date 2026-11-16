@@ -24,7 +24,6 @@ namespace PPCore
 
         // 対象全員をスキルパワー分だけ回復する効果を組み立てる
         // 戦闘不能のユニットは BattleUnit.ApplyHeal 側で弾かれるため、蘇生にはならない
-        // return : 効果本体のデリゲート
         protected override Action<BattleUnit, List<BattleUnit>, BattleContext> BuildEffect()
         {
             return (src, targets, ctx) =>

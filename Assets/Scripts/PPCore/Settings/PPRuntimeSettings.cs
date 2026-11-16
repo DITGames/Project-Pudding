@@ -12,22 +12,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 起動時に読み込む基底データ（ゲーム全体で共有する既定値の定義アセット）への参照をまとめるアセット
-    //
-    // シーンへの置き忘れに左右されないよう、シーン読み込み前に Resources から自動で読み込む
-    // アセットは Assets/GameData/Settings/Resources/PPRuntimeSettings.asset に 1 つだけ置く
-    // 見つからない場合はエラーを一度だけ出し、空の代替インスタンスで Play を続ける（ビルドはエディタ側の検査で止める）
-    // 利用側は PPRuntimeSettings.Current から読む。テストなどで差し替えたいときは SetOverride を使う
-    //
-    // 型の取り違えを実行時まで持ち越さないよう、汎用リストではなく型付きのフィールドを 1 つずつ足していく
-    // 既定値を追加する手順
-    //   1. 既定値を持つ定義アセットの型を作る
-    //   2. ここに [SerializeField] private + [Label] のフィールドと、読み取り専用のプロパティを足す（[Label] には using AttributeUtility が要る）
-    //        例 : [Label("ユニットAIの既定")] [SerializeField] private PPUnitAIDefaultsDefinition mUnitAIDefaults;
-    //             public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
-    //   3. PPRuntimeSettings.asset のインスペクタで定義アセットを割り当てる
-    //   4. 利用側は PPRuntimeSettings.Current.Xxx を読む。代替インスタンスや未割り当てでは null になるため、null を許容する
-    // 実行中にアセットの値を書き換えないよう、公開するのは読み取り専用のプロパティだけにする
+    // ゲーム全体で共有する既定値の定義アセットへの参照をまとめるアセット。Resources から自動で読み込み、PPRuntimeSettings.Current から読む
+    // 既定値は型付きのフィールドと読み取り専用プロパティを 1 つずつ足して追加する
     [CreateAssetMenu(fileName = "PPRuntimeSettings", menuName = "Project-Pudding/Settings/PPRuntimeSettings")]
     public sealed class PPRuntimeSettings : ScriptableObject
     {
@@ -50,9 +36,8 @@ namespace PPCore
         // アセットが見つからないエラーを報告済みか。同じエラーを何度も出さないために持つ
         private static bool sHasReportedMissing;
 
-        // 現在有効な設定
-        // 優先順は 差し替え → 読み込み済み → その場で読み込み（見つからなければ代替）
-        // 代替インスタンスを返すことはあっても null は返さない
+        // 現在有効な設定。優先順は 差し替え → 読み込み済み → その場で読み込み（見つからなければ代替）
+        // null は返さない
         public static PPRuntimeSettings Current
         {
             get
@@ -83,12 +68,8 @@ namespace PPCore
             sOverride = null;
         }
 
-        // static の状態を初期化する
-        // Domain Reload を無効にしていると static が Play をまたいで残るため、前回の Play の値を持ち越さないようにする
-        // 前回の代替インスタンスはここで破棄する（参照を外すだけだと Play のたびに残り続ける）
-        // 本物のアセットは IsFallback が false なので破棄しない
-        // Destroy はプレイモード中でないとエラーになり、破棄もフレーム末まで遅れるため、
-        // Play 開始前のこの時点でも確実に動く DestroyImmediate を使う（対象はメモリ上だけのインスタンスなのでアセットは壊さない）
+        // static の状態を初期化する（Domain Reload 無効時に前回の Play の値を持ち越さないため）
+        // 前回の代替インスタンスは DestroyImmediate で破棄する
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics()
         {
@@ -113,7 +94,6 @@ namespace PPCore
 
         // Resources から設定を読み込む
         // 見つからなければエラーを一度だけ出し、空の代替インスタンスを返す
-        // return : 読み込んだ設定、または代替インスタンス
         private static PPRuntimeSettings Load()
         {
             var settings = Resources.Load<PPRuntimeSettings>(ResourcesPath);

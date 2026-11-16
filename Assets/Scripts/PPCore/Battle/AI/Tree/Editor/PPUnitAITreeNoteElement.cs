@@ -14,17 +14,8 @@ using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    // グラフ上へ置く注記 1 枚分の表示
-    //
-    // ノードの後ろに敷く色付きの面と、その左上に置く見出しだけで出来ている
-    // 「この一帯は開幕用」のように、枝のまとまりへ見出しを付けて読み方を示すためのもの
-    //
-    // GraphView の StickyNote は使わない
-    // あちらは見出しと本文を UXML 側のラベルと隠し入力欄の組で扱う作りで、
-    // 本文の入力欄が取り出せない・見出しが潰れる、といった噛み合わせの問題が出た
-    // 必要なのは面と見出しだけなので、そのぶんだけを自前で組んだほうが確実で読みやすい
-    //
-    // 面はノードより後ろの層へ置く。前に出るとノードが隠れて、敷いた意味が無くなるため
+    // グラフ上へ置く注記 1 枚分の表示。ノードより後ろの層へ敷く色付きの面と見出しだけを持つ
+    // GraphView の StickyNote は入力欄の扱いに問題があるため使わない
     internal sealed class PPUnitAITreeNoteElement : GraphElement
     {
         // ノードより後ろへ置くための層。GraphView は層の小さいものから描く
@@ -100,14 +91,8 @@ namespace PPCore
             ApplyColor(aData.Color);
         }
 
-        // 大きさを変えるためのつまみを四辺と四隅へ置く
-        //
-        // GraphView の ResizableElement は使わない
-        // 下と右は正しく効くが、上と左を掴んでも位置が動かず反対側へ伸びてしまい、
-        // 掴んだ辺と逆へ広がる挙動になる
-        // 掴んだ辺に応じて位置と大きさの両方を動かすだけなので、自前で持ったほうが確実
-        //
-        // 隅は辺より後に足す。重なった場所では後から足したほうが手前になり、隅が優先して掴める
+        // 大きさを変えるためのつまみを四辺と四隅へ置く。隅は辺より後に足して優先して掴めるようにする
+        // GraphView の ResizableElement は上と左が正しく動かないため使わない
         private void SetupResizeHandles()
         {
             AddResizeHandle(ResizeSide.Left, 0f, float.NaN, 0f, 0f, HandleThickness, float.NaN);
@@ -125,11 +110,7 @@ namespace PPCore
                 float.NaN, 0f, float.NaN, 0f, HandleThickness, HandleThickness);
         }
 
-        // つまみを 1 つ足す
-        // 位置の指定は NaN を「その辺には貼り付けない」の意味で使う
-        // aSide : 掴んだときに動かす辺
-        // aLeft / aRight / aTop / aBottom : 面のどの辺へ貼り付けるか
-        // aWidth / aHeight : つまみの大きさ。NaN なら貼り付けた辺いっぱいに伸びる
+        // つまみを 1 つ足す。位置の NaN は「その辺には貼り付けない」、大きさの NaN は「辺いっぱいに伸ばす」を表す
         private void AddResizeHandle(ResizeSide aSide, float aLeft, float aRight, float aTop, float aBottom,
             float aWidth, float aHeight)
         {
@@ -146,8 +127,6 @@ namespace PPCore
         }
 
         // つまみへドラッグの処理を結び付ける
-        // aHandle : つまみの要素
-        // aSide : 掴んだときに動かす辺
         private void RegisterResizeDrag(VisualElement aHandle, ResizeSide aSide)
         {
             Rect startRect = default;
@@ -217,15 +196,7 @@ namespace PPCore
         }
 
         // 掴んだ辺と動かした量から、変更後の位置と大きさを求める
-        //
-        // 上と左は、位置と大きさの両方を動かす必要がある
-        // 大きさだけを変えると、掴んだ辺が動かず反対側の辺が動いてしまう
-        // 最小の大きさに当たったところで位置も止め、掴んだ辺が行き過ぎないようにする
-        //
-        // aStart : 掴んだ時点の位置と大きさ
-        // aSide : 掴んだ辺
-        // aDelta : 掴んでからの移動量
-        // return : 変更後の位置と大きさ
+        // 上と左は位置と大きさの両方を動かし、最小の大きさに当たったら位置も止める
         private static Rect ResolveResizedRect(Rect aStart, ResizeSide aSide, Vector2 aDelta)
         {
             var rect = aStart;
@@ -327,9 +298,7 @@ namespace PPCore
         }
 
         // 枠の見た目を、選択の有無と現在の色から決める
-        //
         // 選択中は太い明るい縁取りにする
-        // 面はノードの後ろに敷くため、選択されていることが背景色の変化では分かりにくい
         private void RefreshBorder()
         {
             bool isSelected = selected;

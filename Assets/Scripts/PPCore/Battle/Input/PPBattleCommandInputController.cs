@@ -17,13 +17,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // コマンド入力の 1 段階を表すステート
-    // PPBattleCommandInputController がこれをスタックで積み下ろしすることで、
-    // ユニット選択 → コマンド選択 → スキル選択 → 対象選択という多段の入力と、
-    // 任意の段階からの「戻る」を表現する
-    // Suspend と Exit の違いが要点
-    // 先へ進むときは Suspend で退避するだけなので、戻ってきたときに
-    // Resume で状態を復元できる。Exit は破棄で、もう戻ってこない
+    // コマンド入力の 1 段階を表すステート。PPBattleCommandInputController がスタックで積み下ろしする
+    // Suspend は退避（Resume で復元できる）、Exit は破棄
     public interface IPPBattleInputState
     {
         // 初めてこのステートに入るときに呼ばれる。UI の表示と購読を行う
@@ -36,12 +31,8 @@ namespace PPCore
         void Exit();
     }
 
-    // コマンド入力の途中経過を保持するコンテキスト
-    // 入力は複数のステートにまたがって進むため、各ステートが個別に状態を持つと
-    // 戻る操作での整合が取りづらい。選択内容をここへ集約することで、
-    // ステート側は自分の担当分を書き込むだけで済む
+    // コマンド入力の途中経過を保持するコンテキスト。各ステートは自分の担当分だけを書き込む
     // CommandBuilder は「対象さえ決まればコマンドを作れる」状態を表す
-    // 対象選択を挟まないスキルでは、この時点で即座に確定できる
     public class PPBattleSelectionContext
     {
         // 行動するユニット。ユニット選択で決まる
@@ -79,11 +70,7 @@ namespace PPCore
     }
 
     // プレイヤーのコマンド入力を、スタックベースのステートマシンで管理するコントローラー
-    // ユニット選択 → コマンド選択 → スキル選択 → 対象選択、と IPPBattleInputState を
-    // 積み上げていき、確定した時点でコマンドを組み立てて BattleManager のキューへ流す
-    // キャンセル（戻る）はスタックを 1 段ポップすることで表現され、空になれば入力自体を中断する
-    // 選択途中の状態（選択中ユニット・スキル・対象）は自身では持たず PPBattleSelectionContext に集約する
-    // 各ステートはこのコントローラー経由で View やコンテキストへアクセスする
+    // キャンセルはスタックを 1 段ポップし、空になれば入力を中断する。選択途中の状態は PPBattleSelectionContext に集約する
     public class PPBattleCommandInputController : MonoBehaviour
     {
         [Label("ユニットビューバインダー")]
@@ -111,9 +98,8 @@ namespace PPCore
         // コマンド確定時(行動ユニット, 確定したコマンド)。キュー投入前に発火する
         public event Action<BattleUnit, BattleCommandBase> OnCommandConfirmed;
 
-        // このティックの行動を仮押さえしている台帳
-        // 既に予約したぶんを差し引いた残量でスキルの発動可否を出すために、UI 側へ渡す
-        // 未設定なら予約を考慮せず、実際のゲージ残量だけで判定される
+        // このティックの行動を仮押さえしている台帳。予約分を差し引いた残量でスキルの発動可否を出すために使う
+        // 未設定なら実際のゲージ残量だけで判定される
         public PPUnitActionLedger ActionLedger { get; set; }
         // コマンドをキューへ流し終えたとき。入力 1 サイクルの完了通知
         public event Action OnCommandFlushed;
@@ -230,8 +216,7 @@ namespace PPCore
         }
 
         // 入力 UI を閉じて、確定したコマンドを呼び出し側へ渡す
-        // ここでは実行もキュー投入もしない
-        // 行動はティックの終わりに収集役がまとめて並べ替えてから流すため、予約として扱う
+        // 実行もキュー投入もせず、予約として扱う
         private void Flush()
         {
             ClearStack();
@@ -257,9 +242,6 @@ namespace PPCore
 
         // スキル既定のリゾルバに、プレイヤーが選んだ対象を焼き込んだリゾルバを組み立てる
         // 単体対象のリゾルバのみ差し替え、全体対象などはそのまま既定を返す
-        // aDefault : スキルが持つ既定のターゲットリゾルバ
-        // aTarget : プレイヤーが選択した対象。未選択なら null
-        // return : 実行時に使用するターゲットリゾルバ
         public ITargetResolver BuildResolver(ITargetResolver aDefault, BattleUnit aTarget)
             => aTarget == null
                 ? aDefault

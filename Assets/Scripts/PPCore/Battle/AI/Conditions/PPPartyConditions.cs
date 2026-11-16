@@ -12,9 +12,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // パーティ状況条件: パーティ全体の HP 割合
-    // 個々の残 HP ではなく合計 HP に対する割合で見るため、
-    // 「全体的に消耗している」状況の判定に向く。閾値は 0～1 で保持する
+    // パーティ状況条件: パーティ全体の HP 割合（合計 HP に対する割合。閾値は 0～1）
+    // 全体的に消耗している状況の判定に向く
     [Serializable]
     [PPTypeMenuName("パーティ状態/HP割合")]
     public sealed class PPPartyHpRatioCondition : PPPartyConditionValidator
@@ -31,8 +30,6 @@ namespace PPCore
 
         // パーティ全体の HP 割合を閾値と比較する
         // 双方とも 0〜1 の尺度のためそのまま渡す
-        // aSnapShot : 評価対象のパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         => PPConditionMath.Compare(aSnapShot.PartyHpRatio, Op, Threshold, Tolerance);
 
@@ -77,8 +74,6 @@ namespace PPCore
             => HpOp == PPCompareOp.Equal || HpOp == PPCompareOp.NotEqual;
 
         // パーティの生存メンバー各ユニットに対して指定条件を満たしているか
-        // aSnapShot : 評価対象のパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         {
             int count = 0;
@@ -133,9 +128,8 @@ namespace PPCore
         All,
     }
 
-    // パーティ状況条件: 生存ユニット数
-    // 「味方が 1 体になったら総攻撃」「敵が残り 1 体なら回復より攻撃」といった
-    // 頭数に基づく戦術の切り替えに使う。人数は整数のため厳密に比較する
+    // パーティ状況条件: 生存ユニット数。頭数に基づく戦術の切り替えに使う
+    // 人数は整数のため厳密に比較する
     [Serializable]
     [PPTypeMenuName("パーティ状態/ユニット生存数")]
     public sealed class PPAliveUnitCountCondition : PPPartyConditionValidator
@@ -146,8 +140,6 @@ namespace PPCore
 
         // 対象の生存数を閾値と比較する
         // スナップショットが保持する生存リストの件数を使うため、思考中に数が変わることはない
-        // aSnapShot : 評価対象のパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         => ConditionType switch
         {
@@ -179,7 +171,6 @@ namespace PPCore
 
         // 説明文の語尾を調整する
         // 「〇体」で終わる文なので、等値のときは語尾を付けない方が自然になる
-        // aOp : 比較演算子
         protected override string GetOpString(PPCompareOp aOp)
             => aOp switch
             {
@@ -190,11 +181,7 @@ namespace PPCore
     }
 
     // パーティ状況条件: 指定の状態異常・バフを持つ味方が 1 体でもいるか
-    // 「バフが切れている味方がいるなら支援に回る」のような、盤面全体の状況判断に使う
-    //
-    // 判定のみを行い、対象の絞り込みは行わない
-    // 誰を狙うかを決めるのはターゲット検索ノード（PPUnitAISearchNode）の役割で、
-    // 条件が候補リストまで書き換えると、判定に使っただけのつもりが対象を変えていた、という事故が起きる
+    // 判定のみを行い、対象の絞り込みはしない（誰を狙うかは PPUnitAISearchNode が決める）
     [Serializable]
     [PPTypeMenuName("パーティ状態/状態異常を所有してるユニットがいる")]
     public class PPFindHasStatusEffectUnit : PPPartyConditionValidator
@@ -212,8 +199,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 条件に合致する味方が 1 体でもいるかを判定する
-        // aSnapShot : 評価対象のパーティ状況スナップショット
-        // return : 条件を満たすユニットがいれば true
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         {
             foreach (var unit in aSnapShot.AliveMembers)
@@ -225,8 +210,6 @@ namespace PPCore
 
         // 条件に合致する状態異常を持っているかを走査する
         // ID とタグはどちらも未指定なら素通しになるため、両方未指定だと付与の有無だけを見る
-        // aUnit : 判定対象のユニット
-        // return : 合致する状態異常があれば true
         private bool HasMatchingEffect(PPBattleUnit aUnit)
         {
             foreach (var eff in aUnit.ActiveStatusEffects)
@@ -250,9 +233,8 @@ namespace PPCore
         }
     }
 
-    // パーティ状況条件: バトル開始からの経過ターン数
-    // 「序盤は溜めて中盤から攻める」のような、盤面ではなく進行度で切り替わる戦術に使う
-    // ターン数は整数のため許容誤差を取らず厳密に比較する
+    // パーティ状況条件: バトル開始からの経過ターン数。進行度で切り替わる戦術に使う
+    // ターン数は整数のため厳密に比較する
     [Serializable]
     [PPTypeMenuName("進行/経過ターン数")]
     public sealed class PPTurnCountCondition : PPPartyConditionValidator
@@ -261,8 +243,6 @@ namespace PPCore
         [Label("ターン数")] public int Threshold = 3;
 
         // 経過ターン数を閾値と比較する
-        // aSnapShot : 評価対象のパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPPartyAIContext aSnapShot)
          => PPConditionMath.Compare(aSnapShot.Context.TurnCount, Op, Threshold);
 
@@ -286,12 +266,8 @@ namespace PPCore
             };
     }
 
-    // パーティ状況条件: 経過ターン数が指定周期にあたるか
-    // 「3 ターンごとに全体攻撃」のような、一定間隔で繰り返す行動を書くためのもの
-    //
-    // ノード側のクールダウンでも似た形は作れるが、あちらは「前回そのノードで確定してから」を数えるため
-    // 実際に撃てた時刻に引きずられて周期がずれていく
-    // こちらはバトル開始からの絶対ターン数で判定するので、撃てなかったターンがあっても周期は保たれる
+    // パーティ状況条件: 経過ターン数が指定周期にあたるか（「3 ターンごとに全体攻撃」など）
+    // 開始からの絶対ターン数で判定するため、撃てなかったターンがあっても周期がずれない
     [Serializable]
     [PPTypeMenuName("進行/経過ターン数の周期")]
     public sealed class PPTurnCycleCondition : PPPartyConditionValidator
@@ -307,8 +283,6 @@ namespace PPCore
         [SerializeField] private bool mIsInvert = false;
 
         // 経過ターン数が周期にあたるかを判定する
-        // aSnapShot : 評価対象のパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         {
             if (mCycle <= 1) return !mIsInvert;

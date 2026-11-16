@@ -14,9 +14,8 @@ using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    // 既定の Edge は繋がっているポートの色から毎回線の色を計算し直すため、
-    // edgeControl.inputColor / outputColor へ直接書き込んでも次の再計算で上書きされてしまう
-    // 強調用の色を保持しておき、計算の入り口である InputColor / OutputColor を差し替えて対処する
+    // 強調用の色を保持するエッジ
+    // 既定の Edge はポートの色から毎回線の色を計算し直すため、InputColor / OutputColor を差し替える
     internal sealed class PPUnitAITreeEdge : Edge
     {
         // 強調時に使う色。null なら既定の計算に任せる
@@ -36,7 +35,6 @@ namespace PPCore
 
         // 既定の更新のあとに強調色・太さで上書きする
         // 既定の実装がポートの色から毎回計算し直すため、そのまま書き込むだけでは次の更新で消えてしまう
-        // return : 既定の実装の戻り値をそのまま返す
         public override bool UpdateEdgeControl()
         {
             bool result = base.UpdateEdgeControl();
@@ -50,15 +48,10 @@ namespace PPCore
         }
     }
 
-    // 静的な Port.Create() が返す Port は既定の EdgeConnector しか持たず、差し替える公開 API も無いため、
-    // VFXSequenceFlowPort と同じ方式で Port を直接継承し、
-    // private コンストラクタ経由で m_EdgeConnector へ自前のリスナー(このクラス自身)を設定する
+    // 自前のリスナーを持つポート。Port.Create() では EdgeConnector を差し替えられないため、
+    // Port を直接継承して m_EdgeConnector へこのクラス自身を設定する
     internal class PPUnitAITreePort : Port, IEdgeConnectorListener
     {
-        // aOrientation : ポートの向き
-        // aDirection : 入力か出力か
-        // aCapacity : 繋げる本数
-        // return : 生成されたポート
         public static PPUnitAITreePort Create(Orientation aOrientation, Direction aDirection, Capacity aCapacity)
         {
             var port = new PPUnitAITreePort(aOrientation, aDirection, aCapacity, typeof(bool));
@@ -72,12 +65,8 @@ namespace PPCore
         {
         }
 
-        // 既存ポート上でドロップされた際に呼ばれ、接続を確定させる
-        // IEdgeConnectorListener を差し替えると Unity 標準の DefaultEdgeConnectorListener.OnDrop が呼ばれなくなるため、
-        // 標準が行っていた「既存接続の削除 → graphViewChanged 通知 → 要素追加 → 両端ポートの接続」を同等に再現する
-        // (ここを空実装にすると通常のピン同士のドラッグ接続が一切成立しなくなる)
-        // aGraphView : 対象の GraphView
-        // aEdge : 確定させるエッジ
+        // 既存ポート上でドロップされた際に接続を確定させる
+        // 標準の OnDrop が呼ばれなくなるため、既存接続の削除・通知・要素追加・両端の接続を同等に再現する
         void IEdgeConnectorListener.OnDrop(GraphView aGraphView, Edge aEdge)
         {
             // 1 本しか繋げないポートへ繋ぎ直した場合は、先に既存の接続を削除する
@@ -119,8 +108,6 @@ namespace PPCore
         }
 
         // ポートの無い空白領域でドロップされた際に呼ばれる。ノード追加メニューを表示して自動接続する
-        // aEdge : ドラッグ中だった未確定のエッジ
-        // aPosition : ドロップ位置(ワールド座標)
         void IEdgeConnectorListener.OnDropOutsidePort(Edge aEdge, Vector2 aPosition)
         {
             var graphView = GetFirstAncestorOfType<PPUnitAITreeGraphView>();
@@ -143,8 +130,6 @@ namespace PPCore
     }
 
     // デバッグウィンドウで選ばれた思考記録を、ツリーウィンドウへ伝える中継点
-    // 2 つのウィンドウが互いを直接参照すると、片方だけ開いている場合の扱いが煩雑になるため、
-    // 選択の通知だけをここへ集約する
     public static class PPUnitAITreeHighlightHub
     {
         // 現在選ばれている思考記録。選択されていなければ null

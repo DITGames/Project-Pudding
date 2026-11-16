@@ -11,10 +11,8 @@ using System.Collections.Generic;
 
 namespace PPCore
 {
-    // バトル中の判定ロジックと調整値を差し替え可能な形でまとめた設定オブジェクト
-    // 命中・クリティカル・乱数・詠唱可否・ターゲット絞り込み・死亡対象の扱い・行動順・勝敗判定といった
-    // 「どう判定するか」をすべてインターフェースで保持し、既定実装をあらかじめ入れてある
-    // 進行そのもの（キュー・ステート・演出やログの出力先）は BattleManager 側の持ち物で、ここには入れない
+    // バトル中の判定ロジックと調整値を、差し替え可能なインターフェースでまとめた設定オブジェクト
+    // 進行そのもの（キュー・ステート・演出やログの出力先）は BattleManager が持つ
     public class BattleRules
     {
         // 命中判定を行うリゾルバ
@@ -38,14 +36,11 @@ namespace PPCore
         public int MaxReactionPerEvent { get; set; } = 1;
         // ユニットが撃破されたとき、掛かっているステータスエフェクトをすべて解除するか
         // 解除は撃破通知（BattleUnit.OnDefeated）の直前に行われる
-        // 既定は従来どおり解除しない。採用先のルールで有効にする
         public bool ClearStatusEffectsOnDefeat { get; set; } = false;
     }
 
-    // Project-Pudding 固有のルール値を追加したバトルルール
-    // 基底の BattleRules が持つ差し替え可能な判定インターフェース群に加えて、
-    // 属性相性のダメージ倍率と AI の危機判定閾値という、本作固有の調整値を保持する
-    // バトル組み立て時に BattleContext.Rules へこの型を差し込むことで有効になる
+    // 属性相性のダメージ倍率や AI の危機判定閾値などの調整値を追加したバトルルール
+    // BattleContext.Rules へこの型を差し込むことで有効になる
     public class PPBattleRules : BattleRules
     {
         // AI の低HP判定閾値。HP 割合がこれを下回ると危機的状況として扱う
@@ -64,9 +59,8 @@ namespace PPCore
         // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
         public float NormalAttackSkillGaugeRecover = 5f;
 
-        // 本作の既定リゾルバと既定ルール値を差し込む
-        // クリティカルは固定確率ではなく、攻撃側のきようさから会心率を求める
-        // 戦闘不能になったユニットの状態異常はすべて解除する（状態異常仕様）
+        // 既定のリゾルバとルール値を差し込む
+        // 会心率は攻撃側のきようさから求め、戦闘不能になったユニットの状態異常はすべて解除する
         public PPBattleRules()
         {
             CriticalResolver = new PPCriticalResolver();
@@ -74,24 +68,18 @@ namespace PPCore
         }
     }
 
-    // バトル中の乱数供給元
-    // 命中判定・AI の思考・代替ターゲット選択など、バトル中の乱数は全てここを経由させる
-    // 供給元を 1 箇所に集約しておくことで、シードを固定した再現テストやリプレイが可能になる
-    // UnityEngine.Random を直接呼ぶとこの前提が崩れるので使わないこと
+    // バトル中の乱数供給元。命中判定・AI の思考・代替ターゲット選択などの乱数は全てここを経由させる
+    // 再現性を保つため UnityEngine.Random を直接呼ばないこと
     public interface IRandomProvider
     {
         // 0 以上 aMaxExclusive 未満の整数を返す
         // aMaxExclusive : 上限（この値自体は含まない）
         int NextInt(int aMaxExclusive);
         // 指定範囲の整数を返す
-        // aMinInclusive : 下限（含む）
-        // aMaxExclusive : 上限（含まない）
         int NextInt(int aMinInclusive, int aMaxExclusive);
         // 0 以上 1 未満の実数を返す
         float NextFloat();
         // 指定範囲の実数を返す
-        // aMinInclusive : 下限（含む）
-        // aMaxExclusive : 上限（含まない）
         float NextFloat(float aMinInclusive, float aMaxExclusive);
         // 指定確率で true を返す
         // aTrueChance : true になる確率（0～1）

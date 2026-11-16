@@ -13,21 +13,14 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ユニット 1 体が「今その行動を取るべきか」を判定するための条件の基底クラス
-    // パーティ全体を見る PPPartyConditionValidator に対して、こちらはユニット 1 体を見る
-    // 「指定タグのスキルを持っている」「ゲージが溜まっている」といった判定を 1 つずつクラス化し、
-    // ビヘイビアツリー側が複数を AND で束ねて判断のゲートにする
-    // PPPartyConditionValidator と同じく ScriptableObject ではなく [SerializeReference] 対応の通常クラスとし、
-    // ツリーの条件リストにインスタンスとして直接保持される
-    // 派生クラスを追加するときは PPTypeMenuName を必ず付けること（型選択ピッカーがこれに依存する）
+    // ユニット 1 体が今その行動を取るべきかを判定する条件の基底。[SerializeReference] の通常クラスでツリーの条件リストに直接保持する
+    // 派生クラスには PPTypeMenuName を必ず付ける（型選択ピッカーが依存する）
     [Serializable]
     public abstract class PPUnitConditionValidator
     {
         [Header("表示")]
-        // 設定内容から説明文を組み立て直すか
-        // 外すと自動生成が止まり、書いた文面がそのまま残る
-        // 自動生成は「何を見る条件か」を機械的に並べるだけなので、
-        // 「開幕の入れ替え用」のような、その枝を置いた意図を書き残したい場合に外す
+        // 説明文を設定内容から自動生成するか。外すと書いた文面がそのまま残る
+        // 枝を置いた意図など、自動生成では表せない説明を残したい場合に外す
         [Label("説明を自動生成する")]
         [SerializeField] protected bool mIsAutoDescription = true;
         [Label("説明")]
@@ -39,14 +32,9 @@ namespace PPCore
 
         // 指定ユニットが条件を満たすか判定する
         // 派生クラスで実装する。状態を変えず判定のみを行うこと
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 条件を満たす場合 true
         public abstract bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot);
 
         // 比較演算子を説明文用の日本語へ変換する
-        // aOp : 比較演算子
-        // return : 日本語の表記。未知の値は空文字
         protected virtual string GetOpString(PPCompareOp aOp)
             => aOp switch
             {
@@ -59,10 +47,8 @@ namespace PPCore
                 _ => ""
             };
 
-        // 設定内容から説明文を組み立て直す
-        // これまで右クリックメニューからしか呼べなかったため、設定を変えても説明文が古いままになっていた
-        // 判断ツリーが編集のたびに呼ぶことで、グラフ上のサマリ表示と設定内容を一致させる
-        // 自動生成を外している場合は書いた文面を残すため、何もしない
+        // 設定内容から説明文を組み立て直す。ツリー編集のたびに呼び、サマリ表示と設定を一致させる
+        // 自動生成を外している場合は何もしない
         public void RefreshDescription()
         {
             if (!mIsAutoDescription) return;
@@ -78,10 +64,6 @@ namespace PPCore
 
         // 条件リストを AND で評価する
         // 空リストは「条件なし」とみなして true を返す。null 要素は読み飛ばす
-        // aConditions : 評価する条件リスト
-        // aUnit : 判定対象のユニット
-        // aSnapShot : 評価に使うパーティ状況スナップショット
-        // return : 全ての条件を満たす場合 true
         public static bool EvaluateAll(IReadOnlyList<PPUnitConditionValidator> aConditions,
             PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
@@ -97,8 +79,6 @@ namespace PPCore
 
         // 条件リストが 1 件でも中身を持っているか
         // 「達成済み判定条件が空なら常に未達成」の判定に使う
-        // aConditions : 判定する条件リスト
-        // return : null でない条件が 1 つでもあれば true
         public static bool HasAny(IReadOnlyList<PPUnitConditionValidator> aConditions)
         {
             if (aConditions == null) return false;

@@ -15,11 +15,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // スキルメニューに並ぶ 1 項目分のボタン
-    // 表示内容は IPPSkillStatusSource から取り、変更通知を購読して
-    // コスト表示と押下可否を自動更新する。ゲージが溜まった瞬間にボタンが有効化される
-    // フォーカスの出入りを ISelectHandler / IDeselectHandler で拾ってイベントとして流すのは、
-    // ゲームパッド操作時にリストを自動スクロールさせるため
+    // スキルメニューに並ぶ 1 項目分のボタン。IPPSkillStatusSource の変更通知を購読してコスト表示と押下可否を更新する
+    // フォーカスの出入りは、リストの自動スクロール用にイベントとして流す
     public class PPBattleSkillButton : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
         [Label("ボタン")] [SerializeField] private Button mButton;
@@ -46,10 +43,6 @@ namespace PPCore
         public event Action<PPBattleSkillButton> OnDeselected;
 
         // ボタンを初期化する。表示内容を流し込み、押下と変更通知を購読して初回描画を行う
-        // aSkill : このボタンが表すスキル
-        // aSource : 表示情報の供給元
-        // aIcon : スキルアイコン。無ければ null
-        // aOnSelected : 決定時に呼ぶコールバック
         public void Setup(BattleSkill aSkill, IPPSkillStatusSource aSource, Sprite aIcon,
             Action<BattleSkill> aOnSelected)
         {

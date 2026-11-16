@@ -50,24 +50,16 @@ namespace PPCore
             => PPTypeTreePickerTreeView.CollectDerived<PPStatusEffectBehaviourDefinition>(true);
 
         // 選ばれた型からインスタンスを組み立てる
-        // aType : 選ばれた型
-        // return : フィールドへ設定するインスタンス
         private static PPStatusEffectBehaviourDefinition CreateInstance(Type aType)
             => (PPStatusEffectBehaviourDefinition)Activator.CreateInstance(aType);
     }
 
-    // PPDurationConditionDefinition 型のフィールドを、ラベル・種類のプルダウン・子フィールドの 1 行で描く
-    //   持続条件   [ターン経過 ▼]  期間 [ 5 ]
-    //   持続条件   [永続       ▼]
-    // 種類は「ターン経過」「永続」のように少数のため、ツリーのポップアップではなくプルダウンで選ばせる
-    // 候補は PPDurationConditionDefinition の具象派生型を自動で集めるため、種類を足してもこのクラスは変えなくてよい
-    // 子フィールドが 1 つならプルダウンと同じ行に、2 つ以上なら次の行以降にインデントして並べる
+    // PPDurationConditionDefinition 型のフィールドを、ラベル・種類のプルダウン・子フィールドで描く
+    // 候補は具象派生型を自動で集める。子フィールドが 1 つなら同じ行、2 つ以上なら次の行以降に並べる
     [CustomPropertyDrawer(typeof(PPDurationConditionDefinition), true)]
     public class PPDurationConditionDefinitionDrawer : PropertyDrawer
     {
         // 表示名の既定値。フィールド側に [PPFieldLabel] があればそちらを優先する
-        // フィールドへ [Label] を付けると属性の PropertyDrawer が優先されて本ドロワーが呼ばれなくなるため、
-        // 表示名は描画側で解決する
         private const string DefaultDisplayLabel = "持続条件";
         // 値が未設定（null）のときにプルダウンへ出す項目。StatusEffect 側の既定により永続として扱われる
         private const string UnassignedOptionText = "（未設定：永続扱い）";
@@ -152,11 +144,7 @@ namespace PPCore
         }
 
         // 種類のプルダウンを描き、種類が変わった場合だけ新しいインスタンスを設定する
-        // 同じ種類を選び直した場合は何もしないため、設定済みの値（期間など）は保たれる
-        // 設定は SerializedProperty 経由で行うため、インスペクタの適用時に Undo へ記録される
-        // aRect : プルダウンの描画領域
-        // aProperty : 設定先の SerializeReference プロパティ
-        // return : 種類を変えた場合 true
+        // 同じ種類を選び直した場合は、設定済みの値を保つ
         private static bool DrawTypePopup(Rect aRect, SerializedProperty aProperty)
         {
             var currentType = aProperty.managedReferenceValue?.GetType();
@@ -192,9 +180,6 @@ namespace PPCore
 
         // プルダウンと同じ行に子フィールドを 1 つ描く
         // ラベルの幅は表示名が収まる分だけにし、残りを入力欄へ回す
-        // aRect : 子フィールドの描画領域
-        // aChild : 描画する子プロパティ
-        // aParent : 子の型を調べるための親（SerializeReference）プロパティ
         private static void DrawInlineChild(Rect aRect, SerializedProperty aChild, SerializedProperty aParent)
         {
             var childLabel = new GUIContent(ResolveChildLabel(aParent, aChild));
@@ -205,8 +190,6 @@ namespace PPCore
         }
 
         // SerializeReference プロパティの直下にある、インスペクタ表示対象の子プロパティを集める
-        // aProperty : 対象の SerializeReference プロパティ
-        // return : 子プロパティのリスト。未設定または子が無ければ空
         private static List<SerializedProperty> CollectVisibleChildren(SerializedProperty aProperty)
         {
             var children = new List<SerializedProperty>();
@@ -225,9 +208,6 @@ namespace PPCore
 
         // 子プロパティの表示名を解決する
         // フィールドに [Label] があればその文字列（LabelAttributeDrawer が実際に描く文字列と揃える）、無ければ Unity の表示名を使う
-        // aParent : 子の型を調べるための親（SerializeReference）プロパティ
-        // aChild : 対象の子プロパティ
-        // return : 表示名
         private static string ResolveChildLabel(SerializedProperty aParent, SerializedProperty aChild)
         {
             var field = FindField(aParent.managedReferenceValue?.GetType(), aChild.name);
@@ -235,9 +215,6 @@ namespace PPCore
         }
 
         // 型と基底型をたどってフィールドを探す。protected / private のフィールドも対象にする
-        // aType : 探索を始める型
-        // aName : フィールド名
-        // return : 見つかったフィールド。無ければ null
         private static FieldInfo FindField(Type aType, string aName)
         {
             const BindingFlags Flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly;
@@ -251,7 +228,6 @@ namespace PPCore
 
         // 描画に使う表示名を解決する
         // フィールドに [PPFieldLabel] があればその文字列、無ければ既定値を使う
-        // return : 表示名
         private string ResolveDisplayLabel()
             => fieldInfo?.GetCustomAttribute<PPFieldLabelAttribute>()?.Text ?? DefaultDisplayLabel;
 
@@ -273,9 +249,8 @@ namespace PPCore
         }
     }
 
-    // PPStatusEffectConsumeRuleDefinition 型のフィールドを、
-    // 型未選択ならツリーポップアップを開く選択ボタン、選択済みなら BuildString() をラベルにしてフィールド展開する
-    // 単一フィールドは「要素を消して選び直す」ができないため、選択済みでも種類を切り替えるボタンを出す
+    // PPStatusEffectConsumeRuleDefinition 型のフィールドを描画する。型未選択なら型選択ボタン、選択済みなら BuildString() をラベルにして展開する
+    // 単一フィールドのため、選択済みでも種類を切り替えるボタンを出す
     [CustomPropertyDrawer(typeof(PPStatusEffectConsumeRuleDefinition), true)]
     public class PPStatusEffectConsumeRuleDefinitionDrawer : PropertyDrawer
     {
@@ -325,8 +300,6 @@ namespace PPCore
             => fieldInfo?.GetCustomAttribute<PPFieldLabelAttribute>()?.Text ?? DefaultDisplayLabel;
 
         // 型選択ツリーを開き、選ばれた型のインスタンスをプロパティへ設定する
-        // aActivatorRect : ポップアップを出す基準の矩形
-        // aProperty : 設定先の SerializeReference プロパティ
         private static void ShowTypePicker(Rect aActivatorRect, SerializedProperty aProperty)
         {
             // ポップアップのコールバックは非同期(フレームをまたぐ)ため、プロパティをコピーして保持する
@@ -344,8 +317,6 @@ namespace PPCore
             => PPTypeTreePickerTreeView.CollectDerived<PPStatusEffectConsumeRuleDefinition>(true);
 
         // 選ばれた型からインスタンスを組み立てる
-        // aType : 選ばれた型
-        // return : フィールドへ設定するインスタンス
         private static PPStatusEffectConsumeRuleDefinition CreateInstance(Type aType)
             => (PPStatusEffectConsumeRuleDefinition)Activator.CreateInstance(aType);
     }

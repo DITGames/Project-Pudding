@@ -12,11 +12,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ID から定義アセットを引くためのカタログの共通基底
-    // インスペクタではリストとして持ち、初回アクセス時に ID をキーとする辞書を組んでキャッシュする
-    // リストのまま毎回線形探索するのを避けつつ、インスペクタ上での編集しやすさを保つための構成
-    // ID が重複していると片方が引けなくなるため、キャッシュ構築時に Debug.LogError で検出できるようにしてある
-    // T : カタログが保持する定義アセットの型
+    // ID から定義アセットを引くためのカタログの共通基底。初回アクセス時に ID をキーとする辞書を組んでキャッシュする
+    // ID の重複はキャッシュ構築時に Debug.LogError で検出する
     public abstract class PPCatalogAsset<T> : ScriptableObject where T : ScriptableObject
     {
         [Label("リスト", true)] [SerializeField] private List<T> mItems = new();
@@ -24,13 +21,9 @@ namespace PPCore
         private Dictionary<string, T> mCache;
 
         // アセットから ID を取り出す。派生側で対応するプロパティを返す
-        // aItem : 対象のアセット
-        // return : そのアセットの ID
         protected abstract string IdOf(T aItem);
 
         // ID からアセットを解決する
-        // aId : 検索する ID
-        // return : 該当アセット。見つからなければ null
         public T Resolve(string aId)
         {
             mCache ??= BuildCache();
@@ -42,8 +35,6 @@ namespace PPCore
 
         // リストから ID をキーとする辞書を構築する
         // null 要素と ID を持たない要素は読み飛ばし、ID が重複している場合はエラーログを出す
-        // （後勝ちで上書きされ、先に登録された方が引けなくなる）
-        // return : 構築された辞書
         private Dictionary<string, T> BuildCache()
         {
             var dict = new Dictionary<string, T>();

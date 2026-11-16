@@ -14,12 +14,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // PPUnitDefinition のインスペクタ
-    // 基底の UnitDefinition が持つ基礎ステータス（基底の StatBlock。基底側のラベルは 最大HP / 攻撃力 / …）を、
-    // 本作の基礎能力名（HP / ちから / まもり / はやさ）で表示する。それ以外のフィールドは既定の描画のまま
-    // StatBlock 型の PropertyDrawer では実現できない点に注意：mBaseStatBlock には [Label] が付いており、
-    // Unity は属性のドロワーを型のドロワーより優先するため、型のドロワーが一度も呼ばれない
-    // このインスペクタは PPUnitDefinition（と派生）にだけ適用されるため、Core の UnitDefinition など他の型の表示は変わらない
+    // PPUnitDefinition のインスペクタ。基礎ステータスを基礎能力名（HP / ちから / まもり / はやさ）で表示する
+    // mBaseStatBlock の [Label] が型のドロワーより優先されるため、PropertyDrawer ではなくインスペクタで行う
     [CustomEditor(typeof(PPUnitDefinition), true)]
     [CanEditMultipleObjects]
     public class PPUnitDefinitionEditor : UnityEditor.Editor
@@ -66,8 +62,7 @@ namespace PPCore
         }
 
         // 基礎ステータスを「見出し → 折りたたみ → 各能力」の順で描画する
-        // 通常の PropertyField を通すと子の [Label]（Core 側の表示名）が優先されるため、見出しと折りたたみもここで描く
-        // aProperty : mBaseStatBlock のプロパティ
+        // 通常の PropertyField を通すと子の [Label]（基底側の表示名）が優先されるため、見出しと折りたたみもここで描く
         private static void DrawBaseStatBlock(SerializedProperty aProperty)
         {
             DrawDecorators();
@@ -111,7 +106,6 @@ namespace PPCore
 
         // 能力 1 つ分を能力名のラベルで描画する
         // 対応表に無いフィールドや float 以外の型は、通常の描画（[Label] があればその表示名）に任せる
-        // aProperty : StatBlock の子プロパティ
         private static void DrawAbility(SerializedProperty aProperty)
         {
             if (!mAbilityNames.TryGetValue(aProperty.name, out var abilityName)

@@ -13,10 +13,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ユニット AI の思考記録をためておくエディタ側のストア
-    // バトルはプッシャーと並行してリアルタイムに進むため、見たい瞬間をその場で捉えられない
-    // 一定件数を保持しておき、あとから遡って確認できるようにするのがこのクラスの役割
-    // ウィンドウを開いていない間もためたいので、購読はウィンドウではなくここが持つ
+    // ユニット AI の思考記録を一定件数ためておくエディタ側のストア
+    // ウィンドウを開いていない間もためるため、購読はここが持つ
     [InitializeOnLoad]
     public static class PPUnitAIDebugStore
     {
@@ -72,14 +70,10 @@ namespace PPCore
     }
 
     // ユニット AI の思考内容を 1 回分ずつ確認するウィンドウ
-    // 「そのユニットが何を選んだか」「なぜ撃たなかったか」「ゲージがどこまで溜まっているか」を
-    // 1 画面で追えるようにしてある
-    // 待機はログに現れにくく、ゲージ残量と併せて見ないと意図通りか判断できないため
+    // 選んだ行動・撃たなかった理由・ゲージ残量を 1 画面で追える
     public sealed class PPUnitAIDebugWindow : EditorWindow
     {
-        // 絞り込み設定の保存キー
-        // Play のたびにドメインリロードが走ってウィンドウの状態が初期化されるため、
-        // 毎回設定し直さずに済むよう EditorPrefs へ逃がしている
+        // 絞り込み設定の保存キー。ドメインリロードで初期化されるため EditorPrefs に保存する
         private const string PrefKeyFollowLatest = "PPCore.PPUnitAIDebugWindow.FollowLatest";
         private const string PrefKeyShowWaiting = "PPCore.PPUnitAIDebugWindow.ShowWaiting";
         private const string PrefKeySideFilter = "PPCore.PPUnitAIDebugWindow.SideFilter";
@@ -125,9 +119,7 @@ namespace PPCore
                 0, sSideFilterOptions.Length - 1);
         }
 
-        // 絞り込み設定を保存する
-        // ウィンドウを閉じたときだけでなく変更時にも呼ぶ。
-        // ドメインリロードでは OnDisable が呼ばれないことがあり、閉じるまで保存しないと取りこぼす
+        // 絞り込み設定を保存する。ドメインリロードでは OnDisable が呼ばれないことがあるため変更時にも呼ぶ
         private void SavePreferences()
         {
             EditorPrefs.SetBool(PrefKeyFollowLatest, mIsFollowLatest);
@@ -238,7 +230,6 @@ namespace PPCore
 
         // ユニット 1 体分の判断結果を描画する
         // 行を押すとツリーウィンドウ側でその経路が強調表示される
-        // aEntry : 描画する判断結果
         private void DrawUnitEntry(PPUnitAIThinkEntry aEntry)
         {
             using (new EditorGUILayout.VerticalScope(EditorStyles.helpBox))
@@ -277,7 +268,6 @@ namespace PPCore
 
         // 選んだ思考記録のツリーをツリーウィンドウで開く
         // 経路のハイライトだけでは今どのツリーの話か分かりにくいため、選んだ時点で該当のツリーへ切り替える
-        // aTree : 開く判断ツリー。null なら何もしない
         private static void OpenTreeWindow(PPUnitBehaviourTree aTree)
         {
             if (aTree == null) return;
@@ -290,8 +280,6 @@ namespace PPCore
         }
 
         // 表示対象の記録を解決する
-        // aReports : ためられている記録
-        // return : 表示する記録。1 件も無ければ null
         private PPUnitAIThinkReport ResolveSelected(IReadOnlyList<PPUnitAIThinkReport> aReports)
         {
             int index = ResolveSelectedIndex(aReports);
@@ -299,8 +287,6 @@ namespace PPCore
         }
 
         // 表示対象の位置を解決する。最新追従中は絞り込みに合う最後の記録を指す
-        // aReports : ためられている記録
-        // return : 表示する記録の位置。該当が無ければ -1
         private int ResolveSelectedIndex(IReadOnlyList<PPUnitAIThinkReport> aReports)
         {
             if (!mIsFollowLatest && mSelectedIndex >= 0 && mSelectedIndex < aReports.Count)
@@ -314,8 +300,6 @@ namespace PPCore
         }
 
         // 現在の絞り込みでその陣営を表示するか
-        // aSide : 判定する陣営
-        // return : 表示する場合 true
         private bool IsVisibleSide(BattleSide aSide)
             => mSideFilterIndex switch
             {
@@ -325,13 +309,9 @@ namespace PPCore
             };
 
         // 陣営を日本語表記へ変換する
-        // aSide : 対象の陣営
-        // return : 日本語の表記
         private static string SideLabel(BattleSide aSide) => aSide == BattleSide.Ally ? "味方" : "敵";
 
         // 選んだ行動を日本語表記へ変換する
-        // aDecision : 選んだ行動
-        // return : 日本語の表記
         private static string DecisionLabel(PPUnitAIDecision aDecision)
             => aDecision switch
             {
@@ -341,8 +321,6 @@ namespace PPCore
             };
 
         // 行動しなかった理由を日本語表記へ変換する
-        // aReason : 行動しなかった理由
-        // return : 日本語の表記
         private static string RejectLabel(PPUnitAIRejectReason aReason)
             => aReason switch
             {

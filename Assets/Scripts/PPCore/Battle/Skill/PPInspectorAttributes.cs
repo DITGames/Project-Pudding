@@ -11,14 +11,7 @@ using System;
 namespace PPCore
 {
     // [SerializeReference] のフィールドへ日本語の表示名を与えるための属性
-    //
-    // AttributeUtility.LabelAttribute は PropertyAttribute であり、Unity は属性側の PropertyDrawer を
-    // 型側の CustomPropertyDrawer より優先する。そのため型選択ツリーを持つフィールド（PPDurationConditionDefinition 等）に
-    // [Label] を付けると、型選択そのものができなくなる
-    // （リストなら LabelAttribute(text, applyToCollection: true) で回避できるが、単一フィールドでは回避できない）
-    //
-    // 本属性は PropertyAttribute ではなく素の Attribute のため描画へ介入しない
-    // 型側の PropertyDrawer が PropertyDrawer.fieldInfo 経由で読み取り、自前でラベルへ反映する
+    // [Label] は型側の PropertyDrawer より優先され型選択ができなくなるため、描画へ介入しない素の Attribute にしている
     [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
     public sealed class PPFieldLabelAttribute : Attribute
     {
@@ -32,9 +25,8 @@ namespace PPCore
         }
     }
 
-    // [SerializeReference] な型を選択するエディタ用ツリーに表示する位置を型へ付与する属性
-    // SkillEffect・StatusEffect のどちらの派生型にも共通して使う
-    // ランタイム側の型に付与するため、この属性自体は Editor アセンブリに置かない
+    // [SerializeReference] な型を選択するエディタ用ツリーでの表示位置を、型へ付与する属性
+    // ランタイム側の型に付与するため Editor アセンブリには置かない
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
     public sealed class PPTypeMenuNameAttribute : Attribute
     {

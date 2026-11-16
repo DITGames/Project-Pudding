@@ -22,8 +22,7 @@ namespace PPCore
         // 生成するレベル。成長曲線の評価に使う
         [Label("レベル")] public int Level = 1;
 
-        // 乱数のシードを固定するか
-        // 固定すると毎回同じ乱数列で動くため、AI の挙動を追いかけたい検証時に使う
+        // 乱数のシードを固定するか。固定すると毎回同じ乱数列で動く
         // 外した場合も、ユニットごとに別の乱数列は割り当てられる
         [Label("乱数シードを固定する")] public bool IsFixedSeed = false;
         // 固定時に使うシード値
@@ -33,11 +32,8 @@ namespace PPCore
         public int Seed = 0;
     }
 
-    // パーティ編成の定義（ScriptableObject）
-    // メンバー構成・コイン変換設定・AI の駆動設定をまとめて持つ
+    // パーティ編成の定義（ScriptableObject）。メンバー構成・コイン変換設定・AI の駆動設定を持つ
     // ランタイムの PPBattleParty への変換は PPPartyFactory が担う
-    // 敵の遭遇パターンを 1 アセット = 1 戦闘の単位で用意できる
-    // AI の判断内容はユニット側（PPUnitDefinition.BehaviourTree）が持つため、ここには駆動設定だけを置く
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
     public class PPPartyDefinition : ScriptableObject
     {

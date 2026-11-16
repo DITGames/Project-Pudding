@@ -19,8 +19,6 @@ namespace PPCore
 {
     // ユニットのステータス・所持スキル・状態異常を一覧表示する詳細ビュー
     // 表示は Show を呼んだ時点のスナップショットで、変更を購読しない
-    // 表示中に値が変わっても更新されないが、入力中は timeScale が 0 で
-    // 盤面が止まっているため実用上は問題にならない
     public class PPBattleDetailMenuView : MonoBehaviour
     {
         [Label("ユニット名")]
@@ -56,7 +54,6 @@ namespace PPCore
 
         // ユニットの情報を各ラベルへ流し込んで表示する
         // 表示中のパラメータはバフ込みの現在値。スキルと状態異常は空のときにプレースホルダを出す
-        // aUnit : 表示対象のユニット
         public void Show(BattleUnit aUnit)
         {
             gameObject.SetActive(true);

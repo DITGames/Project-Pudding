@@ -11,10 +11,8 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // PPPartyConditionValidator 型のフィールド・リスト要素を、
-    // 型未選択ならツリーポップアップ（PPTypeTreePickerPopup）を開く選択ボタン、
-    // 選択済みなら Description をラベルにしてフィールド展開する
-    // PPSkillEffectDefinitionDrawer と同じ形。選択済みの描画は PPManagedReferencePickerUtility に委譲する
+    // PPPartyConditionValidator のフィールド・リスト要素を描画する
+    // 型未選択なら型選択ボタン、選択済みなら Description をラベルにして展開する
     [CustomPropertyDrawer(typeof(PPPartyConditionValidator), true)]
     public class PPPartyConditionValidatorDrawer : PropertyDrawer
     {
@@ -44,10 +42,8 @@ namespace PPCore
             => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
     }
 
-    // PPUnitConditionValidator 型のフィールド・リスト要素を、
-    // 型未選択ならツリーポップアップ（PPTypeTreePickerPopup）を開く選択ボタン、
-    // 選択済みなら Description をラベルにしてフィールド展開する
-    // PPPartyConditionValidatorDrawer と同じ形。選択済みの描画は PPManagedReferencePickerUtility に委譲する
+    // PPUnitConditionValidator のフィールド・リスト要素を描画する
+    // 型未選択なら型選択ボタン、選択済みなら Description をラベルにして展開する
     [CustomPropertyDrawer(typeof(PPUnitConditionValidator), true)]
     public class PPUnitConditionValidatorDrawer : PropertyDrawer
     {

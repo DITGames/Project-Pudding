@@ -12,15 +12,8 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // 掛かっている間、対象へ行動制限を課す振る舞い
-    // 制限そのものは StatusEffect.Restriction / ActionFailChance が持ち、
-    // BattleUnit.CurrentRestrictions と RollActionBlocked が参照する
-    // 本振る舞いはその値を組み立てて設定する役割を持つ
-    //
-    // 失敗確率を経過ターン数で変化させられるため、
-    // 「掛かった直後ほど動けない麻痺」「時間が経つほど目覚めやすい睡眠」なども表現できる
-    // 1 つのエフェクトに複数の行動制限を積むと ActionFailChance が上書きし合うため、
-    // 制限は 1 エフェクトにつき 1 つを想定している
+    // 掛かっている間、対象へ行動制限を課す振る舞い。失敗確率は経過ターン数で変化させられる
+    // ActionFailChance が上書きし合うため、制限は 1 エフェクトにつき 1 つを想定している
     public sealed class ActionRestrictionBehaviour : StatusEffectBehaviour
     {
         // 課す行動制限
@@ -32,10 +25,6 @@ namespace PPCore
         // 経過ターン 1 つあたりの確率の増分。負の値なら経つほど動けるようになる
         private readonly float mChancePerElapsedTurn;
 
-        // aRestriction : 課す行動制限
-        // aIsAlwaysBlock : 確率抽選せず必ず阻害するか
-        // aBaseChance : 経過ターン 0 の時点での行動阻害確率
-        // aChancePerElapsedTurn : 経過ターン 1 つあたりの確率の増分
         public ActionRestrictionBehaviour(ActionRestriction aRestriction, bool aIsAlwaysBlock = true,
             float aBaseChance = 1f, float aChancePerElapsedTurn = 0f)
         {
@@ -67,12 +56,8 @@ namespace PPCore
         }
     }
 
-    // 掛かっている間、対象へ行動制限を課す振る舞いの定義
-    // 「確定で行動不能」なら睡眠、「確率で行動不能」なら麻痺として使える
-    // 確率は付与からの経過ターン数で変化させられるため、時間経過で動けるようになる麻痺なども作れる
-    //
-    // 睡眠のように「行動しようとしたときに一定確率で解ける」挙動は、
-    // この振る舞いではなくエフェクト側のスタック消費ルール（行動時＋確率で全消費）で組む
+    // 掛かっている間、対象へ行動制限を課す振る舞いの定義（確定なら睡眠、確率なら麻痺）
+    // 「行動しようとしたときに一定確率で解ける」挙動は、エフェクト側のスタック消費ルールで組む
     [Serializable]
     [PPTypeMenuName("行動制限")]
     public class PPActionRestrictionBehaviourDefinition : PPStatusEffectBehaviourDefinition
@@ -93,10 +78,6 @@ namespace PPCore
         // 表示と実行で扱いを揃えるため、常に 0～1 へ丸めた値を使う
         protected float BaseChance => Mathf.Clamp01(mBaseChance);
 
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new ActionRestrictionBehaviour(
@@ -114,8 +95,6 @@ namespace PPCore
 
         // 行動制限の日本語表示名を得る
         // 複数フラグの組み合わせは列挙値そのままを返す
-        // aRestriction : 対象の行動制限
-        // return : 表示名
         protected static string ToDisplayName(ActionRestriction aRestriction)
             => aRestriction switch
             {
@@ -139,9 +118,6 @@ namespace PPCore
         public override int Order => mOrder;
 
         // 増幅は先(Order小)、軽減は後(Order大)に適用されるよう既定値を分けておく
-        // aScale : 被ダメージ倍率
-        // aOrder : 適用順
-        // aIsExcludeStatusEffectDamage : 状態異常によるダメージを倍率の対象から外すか。既定は外さない（全ダメージに掛ける）
         public DamageScaleBehaviour(float aScale, int aOrder = 0, bool aIsExcludeStatusEffectDamage = false)
         {
             mScale = aScale;
@@ -170,14 +146,10 @@ namespace PPCore
         [Label("適用順")]
         [SerializeField]protected int mOrder = 0;
         // 毒などの状態異常によるダメージには倍率を掛けない（被ダメージアップなど）
-        // 既定は false で、防御姿勢などは従来どおりすべてのダメージに掛かる
+        // 既定は false で、防御姿勢などはすべてのダメージに掛かる
         [Label("状態異常ダメージには掛けない")]
         [SerializeField]protected bool mIsExcludeStatusEffectDamage = false;
 
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new DamageScaleBehaviour(mScale, mOrder, mIsExcludeStatusEffectDamage));
@@ -260,12 +232,8 @@ namespace PPCore
         Dexterity,
     }
 
-    // パラメータを増減させるバフ・デバフの振る舞い定義
-    // 「どのパラメータを」「どの方式で」「どれだけ」の 3 つをインスペクタで組み合わせて表現する
-    // 能力値のバフ・デバフは割合加算（+20% は 0.2、-10% は -0.1）を基本とする
-    // バフ／デバフの別は個別のフィールドを持たず、変動量の符号（加算・割合加算）・1 を挟んだ大小（乗算）でそのまま表す
-    // （対になるバフ・デバフが互いを検索して打ち消す実装は避け、最終計算時の合算に委ねる設計のため、
-    //   個々の振る舞い定義に「向き」という概念自体を持たせない）
+    // パラメータを増減させるバフ・デバフの振る舞い定義。対象パラメータ・方式・変動量を組み合わせる
+    // 割合加算（+20% は 0.2）を基本とし、バフ／デバフの別は変動量の符号や大小で表す
     [Serializable]
     [PPTypeMenuName("パラメータ変動")]
     public class PPParameterModifierBehaviourDefinition : PPStatusEffectBehaviourDefinition
@@ -304,10 +272,6 @@ namespace PPCore
                 _ => string.Empty,
             };
 
-        // aEffect : 組み立て先のエフェクト
-        // aSource : エフェクトの付与元ユニット
-        // aTarget : 付与される対象ユニット
-        // aContext : バトルコンテキスト
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new ParameterModifierBehaviour(ParamId, mModifierType, mAmount));
