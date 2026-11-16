@@ -58,10 +58,10 @@ Packages/, ProjectSettings/
 
 - `BattleContext` が 1 バトル分の状態を保持（`AllyParty` / `EnemyParty` / `Rules` / `TurnCount` / `Reward` / `Environment`）
 - `BattleStateMachine` の `BattleState`: `BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd`
-- コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()`（同期版）または `ExecuteNextCommandAsync()` / `ExecuteAllCommandAsync()`（`IBattlePresenter` による演出待ちあり）で実行
+- コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()` で実行（演出は待たない）
 - `AdvanceTick()` がターン経過。`OnTickEnded` → パーティ Tick → 勝敗判定 → `TurnCount++` → `OnTickStarted`
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
-  `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ICastValidator`, `ITargetFilter`, `IDeadTargetPolicy`, `ITurnOrderResolver`, `IBattleResultChecker`, `IBattleLogger`, `IBattlePresenter`
+  `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ICastValidator`, `ITargetFilter`, `IDeadTargetPolicy`, `ITurnOrderResolver`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
 - 挙動を観測する側は `BattleManager` の C# `event`（`OnDamageTaken`, `OnUnitDefeated`, `OnBattleEnded`, `OnStatsEffectAdded` …）を購読する。View / ブリッジ層はここに繋ぐ
 

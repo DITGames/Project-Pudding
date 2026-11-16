@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 using AttributeUtility;
 
@@ -32,15 +31,18 @@ namespace PPCore
         public int Seed = 0;
     }
 
-    // パーティ編成の定義（ScriptableObject）。メンバー構成・コイン変換設定・AI の駆動設定を持つ
+    // パーティ編成の定義（ScriptableObject）。配置ごとのメンバー・コイン変換設定・AI の駆動設定を持つ
     // ランタイムの PPBattleParty への変換は PPPartyFactory が担う
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
     public class PPPartyDefinition : ScriptableObject
     {
         /* インスペクタ設定 */
 
+        // 配置ごとのメンバー枠。ユニット定義が空の枠にはユニットを置かない
         [Header("パーティ")]
-        [Label("パーティメンバー", true)] public List<PPPartyMemberEntry> Members = new();
+        [Label("中央")] [SerializeField] private PPPartyMemberEntry mCenter = new();
+        [Label("右")] [SerializeField] private PPPartyMemberEntry mRight = new();
+        [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
         [Label("コイン変換レート初期値")] public float BaseResourceConversionRate = 1f;
 
         // 1 ティックの間に何回思考するか。思考間隔はティック間隔をこの値で割って決まる
@@ -51,5 +53,15 @@ namespace PPCore
         /* プロパティ */
 
         public int ThinkCountPerTick => Mathf.Max(1, mThinkCountPerTick);
+
+        /* 問い合わせ */
+
+        // 指定した配置のメンバー枠を返す。ユニット定義が空なら、その配置にはユニットを置かない
+        public PPPartyMemberEntry GetMember(PPPartyPosition aPosition) => aPosition switch
+        {
+            PPPartyPosition.Right => mRight,
+            PPPartyPosition.Left => mLeft,
+            _ => mCenter,
+        };
     }
 }

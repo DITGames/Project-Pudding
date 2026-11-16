@@ -12,13 +12,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d15b60e3b4af44429563ad7216f1735, type: 3}
   m_Name: PPD_Fire
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyDefinition
-  Members:
-  - Unit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+  mCenter:
+    Unit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
     Level: 1
-  - Unit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+    IsFixedSeed: 0
+    Seed: 0
+  mRight:
+    Unit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
     Level: 1
-  - Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+    IsFixedSeed: 0
+    Seed: 0
+  mLeft:
+    Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
     Level: 1
+    IsFixedSeed: 0
+    Seed: 0
   BaseResourceConversionRate: 1
   mThinkCountPerTick: 1
-  mTrendSampleCount: 4

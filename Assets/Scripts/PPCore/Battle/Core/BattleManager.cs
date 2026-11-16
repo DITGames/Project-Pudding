@@ -3,14 +3,12 @@
  * @file BattleManager.cs
  * @author hqrse
  * @date 2026/06/13
- * @brief バトル進行の統括（マネージャ・進行ステート・コマンドキュー・演出プレゼンター）
+ * @brief バトル進行の統括（マネージャ・進行ステート・コマンドキュー）
  * =====================================*/
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace PPCore
 {
@@ -26,10 +24,6 @@ namespace PPCore
         public BattleStateMachine StateMachine { get; } = new();
         // 実行待ちコマンドの FIFO キュー。リアクションは先頭へ割り込む
         public ActionQueue ActionQueue { get; } = new ActionQueue();
-        // スキル演出プレゼンター。null なら演出待ちなしで即座に処理が進む
-        public IBattlePresenter Presenter { get; set; }
-        // 進行中の演出スキップ用。各コマンド演出ごとに作り直す
-        public CancellationTokenSource PresentationCts { get; protected set; }
         // バトルログの出力先。判定ではなく出力先のため BattleRules ではなくこちらが持つ
         public IBattleLogger Logger { get; set; } = new DefaultBattleLogger();
         // バトルログのタイムスタンプ供給関数。既定は常に 0。Unity 側から Time.time 等を差し込む
@@ -144,7 +138,7 @@ namespace PPCore
             Log(BattleLogType.Action, aCommand.Source, null, $"{aCommand.Source.DisplayName} queued {aCommand.GetType().Name}.");
         }
 
-        // キュー先頭のコマンドを 1 件実行する（同期版・演出待ちなし）
+        // キュー先頭のコマンドを 1 件実行する
         // 実行 → 行動回数消費 → 勝敗チェック → コマンド入力ステートへ復帰、までを 1 呼び出しで行う
         public bool ExecuteNextCommand()
         {
@@ -183,62 +177,12 @@ namespace PPCore
         }
 
         // キューが空になるかバトルが終了するまで連続実行する。ターン制向けのユーティリティ
-        // 演出待ちがないので、演出を挟みたい場合は ExecuteAllCommandAsync を使う
         public void ExecuteAllCommands()
         {
             while (StateMachine.Current != BattleState.BattleEnd && ExecuteNextCommand())
             {
 
             }
-        }
-
-        // キュー先頭のコマンドを 1 件実行する（async 版）。Presenter による実行前後の演出待ちが入る
-        // Context.ExecutingCommand は効果の実行中だけ設定し、演出の待ち時間には残さない
-        public async ValueTask ExecuteNextCommandAsync(CancellationToken aCt = default)
-        {
-            if (StateMachine.Current == BattleState.BattleEnd) return;
-            if(!ActionQueue.TryDequeue(out var command)) return;
-
-            // 通常コマンドならリアクション数を数え直す
-            if (!command.IsReaction) mReactionsThisCommand = 0;
-
-            StateMachine.TransitionTo(BattleState.ActionExecution);
-
-            // コマンド実行前イベントの通知
-            OnPreCommand?.Invoke(command.Source, command);
-
-            if (command.Source.IsAlive)
-            {
-                if (command.Source.RollActionBlocked(Context))
-                {
-                    OnActionBlocked?.Invoke(command.Source, command);
-                    Log(BattleLogType.ActionBlocked, command.Source, null,
-                        $"{command.Source.DisplayName}'s action was blocked by a status effect.");
-                }
-                else
-                {
-                    // コマンド実行前演出
-                    if (Presenter != null)
-                    {
-                        await SafePlaySkillPresentation(Presenter.PlayPreExecute(command, Context, aCt));
-                    }
-
-                    // 実際のコマンド実行。実行中のコマンドの設定は演出の待ち時間を含まない同期区間に限る
-                    RunCommandBody(command);
-
-                    // コマンド実行後演出
-                    if (Presenter != null)
-                    {
-                        await SafePlaySkillPresentation(Presenter.PlayPostExecute(command, Context, aCt));
-                    }
-                }
-            }
-
-            // コマンド実行後イベントの通知
-            command.Source.Actions.Consume();
-            OnPostCommand?.Invoke(command.Source, command);
-
-            FinishCommand();
         }
 
         // コマンド 1 件の実行後に勝敗を判定し、決着していなければコマンド入力へ戻す
@@ -252,33 +196,6 @@ namespace PPCore
             if (StateMachine.Current != BattleState.BattleEnd)
             {
                 StateMachine.TransitionTo(BattleState.CommandInput);
-            }
-        }
-
-        // キューが空になるかバトルが終了するまで、演出待ちを挟みながら連続実行する（async 版）
-        // aCt : 演出スキップ用のキャンセルトークン
-        public async ValueTask ExecuteAllCommandAsync(CancellationToken aCt = default)
-        {
-            while (StateMachine.Current != BattleState.BattleEnd && ActionQueue.Count > 0)
-            {
-                await ExecuteNextCommandAsync(aCt);
-            }
-        }
-
-        // 進行中のスキル演出をキャンセルしてスキップする
-        public void SkipCurrentPresentation() => PresentationCts?.Cancel();
-
-        // スキル演出を実行し、スキップによるキャンセル例外だけを飲み込む
-        // 演出が中断されてもバトル進行自体は止めないためのラッパー
-        protected static async ValueTask SafePlaySkillPresentation(ValueTask aPlay)
-        {
-            try
-            {
-                await aPlay;
-            }
-            catch (OperationCanceledException)
-            {
-                // スキップされた場合。演出は中断
             }
         }
 
@@ -479,7 +396,7 @@ namespace PPCore
         BattleStart = 1,
         // コマンド入力待ち。プレイヤー入力および AI の思考を受け付ける
         CommandInput = 2,
-        // コマンド実行中。演出待ちもこのステートに含まれる
+        // コマンド実行中
         ActionExecution = 3,
         // 勝敗判定中
         ResultCheck = 4,
@@ -562,16 +479,5 @@ namespace PPCore
 
         // キューを空にする。バトル終了時に未実行コマンドを破棄する用途
         public void Clear() => Items.Clear();
-    }
-
-    // コマンド実行の前後に演出を差し込むためのインターフェース。演出が終わるまでバトル進行が待たされる
-    // キャンセルトークンは演出スキップに使う。実装側は OperationCanceledException で中断してよい
-    public interface IBattlePresenter
-    {
-        // コマンド実行前演出。詠唱やカットインなどに使う
-        ValueTask PlayPreExecute(BattleCommandBase aCmd, BattleContext aContext, CancellationToken aCt);
-
-        // コマンド実行後演出。ヒット演出やダメージポップアップなどに使う
-        ValueTask PlayPostExecute(BattleCommandBase aCmd, BattleContext aContext, CancellationToken aCt);
     }
 }

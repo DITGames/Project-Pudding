@@ -3,12 +3,13 @@
  * @file PPBattleParty.cs
  * @author hqrse
  * @date 2026/06/21
- * @brief バトルパーティ（陣営・パーティ・生成・セーブ供給元）
+ * @brief バトルパーティ（陣営・配置・パーティ・生成・セーブ供給元）
  * =====================================*/
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine;
 
 namespace PPCore
 {
@@ -98,14 +99,33 @@ namespace PPCore
         }
     }
 
+    // パーティ内の配置。定義順（Center → Right → Left）がコインを配る順番になる
+    public enum PPPartyPosition
+    {
+        [InspectorName("中央")]
+        Center,
+        [InspectorName("右")]
+        Right,
+        [InspectorName("左")]
+        Left,
+    }
+
     // コイン変換係数と、パーティ単位で行動を組み立てる AI ストラテジストを持つバトルパーティ
     // 行動リソースはユニットが専有するため、パーティ側は保持しない
     public class PPBattleParty : BattleParty
     {
+        /* 状態 */
+
         // コイン 1 枚あたりのゲージ変換係数。PPCoinResourceBridge が参照する
         public Parameter CoinConversionRate { get; }
         // このパーティの行動計画を立てる AI。プレイヤー操作パーティなら null のまま
         public IPPPartyCommandStrategist Strategist { get; set; }
+        // コインを配る順に並べたアクティブメンバー。配るたびに組み直して使い回す
+        private readonly List<PPBattleUnit> mCoinOrder = new();
+        // 直前にコインを受け取ったユニット。次のコインはこの次の順番から配る。null なら先頭から
+        private PPBattleUnit mLastCoinReceiver;
+
+        /* 生成 */
 
         public PPBattleParty(float aBaseCoinRate, BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
             IEnumerable<BattleUnit> aReserveMembers = null)
@@ -113,23 +133,78 @@ namespace PPCore
         {
             CoinConversionRate = new Parameter(aBaseCoinRate);
         }
+
+        /* 操作 */
+
+        // コインを 1 枚ずつ、配置の順に生存ユニットのコインゲージへ配り、配れた枚数を返す
+        // 前回の続きの順番から配り、倒れているユニットは飛ばす
+        public int DistributeCoins(int aCoinCount, float aGaugePerCoin)
+        {
+            if (aCoinCount <= 0 || aGaugePerCoin <= 0f) return 0;
+
+            RebuildCoinOrder();
+
+            int given = 0;
+            for (int i = 0; i < aCoinCount; i++)
+            {
+                var receiver = ResolveNextCoinReceiver();
+                if (receiver == null) break;
+
+                receiver.ExtraParameters.CoinGauge.Recover(aGaugePerCoin);
+                mLastCoinReceiver = receiver;
+                given++;
+            }
+            return given;
+        }
+
+        // アクティブメンバーを配置の順に並べ直す。同じ配置が重なった場合は編成順を保つ
+        private void RebuildCoinOrder()
+        {
+            mCoinOrder.Clear();
+            foreach (var member in ActiveMembers)
+            {
+                if (member is not PPBattleUnit unit) continue;
+
+                int index = mCoinOrder.Count;
+                while (index > 0 && mCoinOrder[index - 1].Position > unit.Position) index--;
+                mCoinOrder.Insert(index, unit);
+            }
+        }
+
+        // 直前の受け取り手の次から順に探し、最初に見つかった生存ユニットを返す。全員倒れていれば null
+        private PPBattleUnit ResolveNextCoinReceiver()
+        {
+            int count = mCoinOrder.Count;
+            int start = mLastCoinReceiver != null ? mCoinOrder.IndexOf(mLastCoinReceiver) : -1;
+            for (int step = 1; step <= count; step++)
+            {
+                var unit = mCoinOrder[(start + step) % count];
+                if (unit.IsAlive) return unit;
+            }
+            return null;
+        }
     }
 
     // PPPartyDefinition などの生成元から PPBattleParty を組み立てるファクトリ
     public static class PPPartyFactory
     {
+        // 配置の一覧。編成とコイン配布の順番（Center → Right → Left）で並べる
+        private static readonly PPPartyPosition[] Positions =
+            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
+
         // PPPartyDefinition からランタイムパーティを生成する
-        // メンバーごとにユニットを生成して編成し、それぞれへ専用の乱数供給元を割り当てる
+        // 配置の枠ごとにユニットを生成して編成し、それぞれへ専用の乱数供給元を割り当てる。空の枠は飛ばす
         public static PPBattleParty CreateFromDefinition(PPPartyDefinition aDefinition, BattleSide aSide)
         {
             var units = new List<BattleUnit>();
-            for (int i = 0; i < aDefinition.Members.Count; i++)
+            foreach (var position in Positions)
             {
-                var entry = aDefinition.Members[i];
+                var entry = aDefinition.GetMember(position);
                 if(entry == null || entry.Unit == null) continue;
 
                 var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
-                unit.Random = CreateRandom(entry, aSide, i);
+                unit.Random = CreateRandom(entry, aSide, (int)position);
+                unit.Position = position;
                 units.Add(unit);
             }
 
