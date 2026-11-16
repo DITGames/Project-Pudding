@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using CommandBattleCore;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,17 +17,24 @@ namespace PPCore
 {
     public sealed class PPUnitCreationValidation
     {
+        /* 状態 */
+
         public List<string> Errors { get; } = new();
         public List<string> Warnings { get; } = new();
         public List<string> Paths { get; } = new();
         // 編集モードで未登録のため登録するカタログのパス
         public List<string> CatalogPaths { get; } = new();
+
+        /* プロパティ */
+
         public bool IsValid => Errors.Count == 0;
     }
 
     // 編集モードの保存で書き換える・作成するアセットのパス。検証（表示）と保存で同じものを使う
     public sealed class PPUnitEditPlan
     {
+        /* 状態 */
+
         public string UnitPath { get; set; } = "";
         public string Folder { get; set; } = "";
         // 既存のビジュアル定義、または新規作成するパス。アイコン・立ち絵がなく既存もない場合は null（作らない）
@@ -37,38 +43,26 @@ namespace PPCore
         // 雛形から新規作成するビヘイビアツリーのパス。作らない場合は null
         public string TreePath { get; set; }
         public List<string> SkillPaths { get; } = new();
+
+        /* プロパティ */
+
         public IEnumerable<string> NewPaths => new[] { NewVisual ? VisualPath : null, TreePath }.Concat(SkillPaths).Where(aPath => aPath != null);
         public IEnumerable<string> AllPaths => new[] { UnitPath, VisualPath, TreePath }.Concat(SkillPaths).Where(aPath => aPath != null);
     }
 
     public static class PPUnitCreationValidator
     {
-        public static bool IsFinite(float aValue) => !float.IsNaN(aValue) && !float.IsInfinity(aValue);
+        /* 定数 */
 
-        // ファイル名として使えないIDは置換せず、入力へ返す
-        public static bool IsSafeId(string aId) => !string.IsNullOrWhiteSpace(aId)
-            && aId == aId.Trim() && aId != "." && aId != ".." && !aId.EndsWith(".")
-            && aId.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && !aId.Contains('/') && !aId.Contains('\\')
-            && !new[] { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" }.Contains(aId.Split('.')[0].ToUpperInvariant());
+        // 個別ツリーなしで、ロール既定・全体既定からも解決できないときの警告
+        public const string NoTreeWarning = "個別ツリーなし: ロール既定・全体既定のどちらも未設定のため、このユニットは待機します。PPRuntimeSettings の「ユニットAIの既定」を確認してください。";
+
+        /* 操作 */
 
         public static string OutputFolder(PPUnitCreationDraft aDraft) => aDraft.Folder + "/" + aDraft.Unit.UnitId;
 
         // 雛形から新規作成するビヘイビアツリーのファイル名
         public static string TreeFileName(string aUnitId) => "PUBT_" + aUnitId + ".asset";
-
-        // 個別ツリーなしで、ロール既定・全体既定からも解決できないときの警告
-        public const string NoTreeWarning = "個別ツリーなし: ロール既定・全体既定のどちらも未設定のため、このユニットは待機します。PPRuntimeSettings の「ユニットAIの既定」を確認してください。";
-
-        // ユニットが実際に使うツリーを解決する
-        // Edit モードで PPRuntimeSettings.Current を呼ぶと読み込みログや代替インスタンスの生成が起きるため、アセットを直接読む
-        // aUnit : 対象のユニット定義
-        // aSource : 解決したツリーの出どころ
-        // return : 使うツリー。どれも無ければ null
-        public static PPUnitBehaviourTree ResolveEffectiveTree(PPUnitDefinition aUnit, out PPUnitAITreeSource aSource)
-        {
-            var settings = AssetDatabase.LoadAssetAtPath<PPRuntimeSettings>(PPRuntimeSettings.AssetPath);
-            return PPUnitAIDefaultsDefinition.ResolveTree(aUnit, settings != null ? settings.UnitAIDefaults : null, out aSource);
-        }
 
         // 新規のスキル・ビジュアルは元ユニットと同じフォルダーへ「<ユニットID>_〜」の名前で、新規のツリーは「PUBT_<ユニットID>」の名前で作る
         public static PPUnitEditPlan EditPlan(PPUnitCreationDraft aDraft)
@@ -88,14 +82,11 @@ namespace PPCore
             return plan;
         }
 
-        // カタログに登録済みか。登録済みなら保存時に何もしない
-        public static bool IsRegistered(ScriptableObject aCatalog, UnityEngine.Object aItem)
-        {
-            var items = new SerializedObject(aCatalog).FindProperty("mItems");
-            for (var i = 0; i < items.arraySize; i++)
-                if (items.GetArrayElementAtIndex(i).objectReferenceValue == aItem) return true;
-            return false;
-        }
+        // サブアセットの定義もID重複の確認対象に含める
+        private static IEnumerable<T> LoadAll<T>() where T : UnityEngine.Object => AssetDatabase.FindAssets("t:" + typeof(T).Name)
+            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<T>();
+
+        /* 評価・判定 */
 
         // 検証は警告とエラーを分け、UIとMCPで同じ生成予定を返す
         public static PPUnitCreationValidation Validate(PPUnitCreationDraft aDraft)
@@ -269,8 +260,31 @@ namespace PPCore
             }
         }
 
-        // サブアセットの定義もID重複の確認対象に含める
-        private static IEnumerable<T> LoadAll<T>() where T : UnityEngine.Object => AssetDatabase.FindAssets("t:" + typeof(T).Name)
-            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<T>();
+        /* 問い合わせ */
+
+        public static bool IsFinite(float aValue) => !float.IsNaN(aValue) && !float.IsInfinity(aValue);
+
+        // ファイル名として使えないIDは置換せず、入力へ返す
+        public static bool IsSafeId(string aId) => !string.IsNullOrWhiteSpace(aId)
+            && aId == aId.Trim() && aId != "." && aId != ".." && !aId.EndsWith(".")
+            && aId.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && !aId.Contains('/') && !aId.Contains('\\')
+            && !new[] { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" }.Contains(aId.Split('.')[0].ToUpperInvariant());
+
+        // ユニットが実際に使うツリーを解決する
+        // Edit モードで PPRuntimeSettings.Current を呼ぶと読み込みログや代替インスタンスの生成が起きるため、アセットを直接読む
+        public static PPUnitBehaviourTree ResolveEffectiveTree(PPUnitDefinition aUnit, out PPUnitAITreeSource aSource)
+        {
+            var settings = AssetDatabase.LoadAssetAtPath<PPRuntimeSettings>(PPRuntimeSettings.AssetPath);
+            return PPUnitAIDefaultsDefinition.ResolveTree(aUnit, settings != null ? settings.UnitAIDefaults : null, out aSource);
+        }
+
+        // カタログに登録済みか。登録済みなら保存時に何もしない
+        public static bool IsRegistered(ScriptableObject aCatalog, UnityEngine.Object aItem)
+        {
+            var items = new SerializedObject(aCatalog).FindProperty("mItems");
+            for (var i = 0; i < items.arraySize; i++)
+                if (items.GetArrayElementAtIndex(i).objectReferenceValue == aItem) return true;
+            return false;
+        }
     }
 }

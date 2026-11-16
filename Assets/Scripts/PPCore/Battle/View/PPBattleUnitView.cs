@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System;
-using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -15,13 +14,12 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // 戦場に並ぶユニット 1 体分の表示
-    // 見た目（アイコン・アニメーション）の再生と、選択対象としての振る舞いを兼ねる
-    // 演出メソッドは PPBattleUnitViewBinder がバトルイベントを受けて呼び出す
-    // メニューの表示位置は MenuAnchor として公開し、
-    // 入力ステート側がここを基準にコマンドメニューを配置する
+    // 戦場に並ぶユニット 1 体分の表示。見た目の再生と、選択対象としての振る舞いを兼ねる
+    // 演出メソッドは PPBattleUnitViewBinder が呼び出し、メニューの表示位置は MenuAnchor で公開する
     public class PPBattleUnitView : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
+        /* インスペクタ設定 */
+
         [Label("ステータスウィジェット")]
         [SerializeField] private PPUnitStatusWidget mStatusWidget;
         [Label("アイコン")]
@@ -35,10 +33,15 @@ namespace PPCore
         [Label("メニューアンカー")]
         [SerializeField] private RectTransform mMenuAnchor;
 
+        /* 状態 */
+
         // このビューが表すユニット
         private BattleUnit mBattleUnit;
         // ステータスウィジェットへ渡した表示ソース。破棄時に購読を解除するため保持する
         private PPBattleUnitStatusSource mStatusSource;
+
+        /* プロパティ */
+
         // このビューが表すユニット
         public BattleUnit BattleUnit => mBattleUnit;
         // フォーカス対象となるオブジェクト
@@ -46,24 +49,34 @@ namespace PPCore
         // コマンドメニューを配置する位置の基準
         public RectTransform MenuAnchor => mMenuAnchor;
 
+        /* イベント */
+
         // ユニットが決定されたときの通知
         public event Action<PPBattleUnitView> OnDecided;
-
         // フォーカスが乗ったときの通知
         public event Action<PPBattleUnitView> OnSelected;
         // フォーカスが外れたときの通知
         public event Action<PPBattleUnitView> OnDeselected;
 
+        /* Unity イベント */
+
         // 選択ボタンの押下を決定通知へ中継する
         private void Awake() => mSelectButton.onClick.AddListener(() => OnDecided?.Invoke(this));
 
-        // 表示対象のユニットと見た目を設定する
-        // 味方は敵と向き合う形にするためアイコンを左右反転させる
-        // 見た目定義が解決できなかった場合もユニット自体の表示は成立させ、
-        // アイコンとアニメーターだけ未設定のままにする
-        // aUnit : 表示対象のユニット
-        // aVisualDefinition : 見た目の定義。カタログで解決できなければ null
-        // aSide : このユニットの陣営
+        // 破棄時にステータス表示の購読を解除する
+        // ウィジェット側とソース側で購読先が違うため、両方を明示的に切る
+        private void OnDestroy()
+        {
+            // 子オブジェクトの破棄順は保証されないため、先に破棄済みの可能性を見る
+            if (mStatusWidget != null) mStatusWidget.Unbind();
+            mStatusSource?.Dispose();
+            mStatusSource = null;
+        }
+
+        /* 初期化・接続 */
+
+        // 表示対象のユニットと見た目を設定する。味方はアイコンを左右反転させる
+        // 見た目定義が解決できなかった場合も、ユニット自体の表示は成立させる
         public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisualDefinition, BattleSide aSide)
         {
             mBattleUnit = aUnit;
@@ -84,15 +97,7 @@ namespace PPCore
             mStatusWidget.Bind(mStatusSource);
         }
 
-        // 破棄時にステータス表示の購読を解除する
-        // ウィジェット側とソース側で購読先が違うため、両方を明示的に切る
-        private void OnDestroy()
-        {
-            // 子オブジェクトの破棄順は保証されないため、先に破棄済みの可能性を見る
-            if (mStatusWidget != null) mStatusWidget.Unbind();
-            mStatusSource?.Dispose();
-            mStatusSource = null;
-        }
+        /* 操作 */
 
         // 選択できる状態かを切り替える。入力ステートが候補の絞り込みに使う
         // aSelectable : 選択可能にするなら true
@@ -108,26 +113,28 @@ namespace PPCore
             if (mFocusFrame != null) mFocusFrame.SetActive(aFocused);
         }
 
-        // フォーカスを得たときに枠を出して通知する
-        public void OnSelect(BaseEventData _)
-        {
-            SetFocused(true);
-            OnSelected?.Invoke(this);
-        }
-
-        // フォーカスを失ったときに枠を消して通知する
-        public void OnDeselect(BaseEventData _)
-        {
-            SetFocused(false);
-            OnDeselected?.Invoke(this);
-        }
-
         // 攻撃モーションを再生する
         // aCommand : 実行されたコマンド。現状は未使用だが、種別で演出を分ける拡張点
         public void CommandExecuted(BattleCommandBase aCommand)
         {
             mAnimator.SetTrigger("Attack");
         }
+
+        // 状態異常アイコンを追加する。未実装
+        // aEffect : 付与されたエフェクト
+        public void AddStatusIcon(StatusEffect aEffect)
+        {
+
+        }
+
+        // 状態異常アイコンを除去する。未実装
+        // aEffect : 除去されたエフェクト
+        public void RemoveStatusIcon(StatusEffect aEffect)
+        {
+
+        }
+
+        /* 表示 */
 
         // 被弾モーションを再生する。撃破時は撃破モーションが優先されるため、生存時のみ再生する
         // aDmg : 受けたダメージ量。現状は未使用
@@ -149,18 +156,20 @@ namespace PPCore
             mAnimator.SetTrigger("Defeated");
         }
 
-        // 状態異常アイコンを追加する。未実装
-        // aEffect : 付与されたエフェクト
-        public void AddStatusIcon(StatusEffect aEffect)
-        {
+        /* イベントハンドラ */
 
+        // フォーカスを得たときに枠を出して通知する
+        public void OnSelect(BaseEventData _)
+        {
+            SetFocused(true);
+            OnSelected?.Invoke(this);
         }
 
-        // 状態異常アイコンを除去する。未実装
-        // aEffect : 除去されたエフェクト
-        public void RemoveStatusIcon(StatusEffect aEffect)
+        // フォーカスを失ったときに枠を消して通知する
+        public void OnDeselect(BaseEventData _)
         {
-
+            SetFocused(false);
+            OnDeselected?.Invoke(this);
         }
     }
 }

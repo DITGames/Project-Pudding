@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System.Collections.Generic;
-using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.UI;
 using AttributeUtility;
@@ -15,12 +14,11 @@ using AttributeUtility;
 namespace PPCore
 {
     // BattleUnit と PPBattleUnitView を対応付ける橋渡し役
-    // 担うのは 2 つ。パーティのメンバー分だけビューを生成して辞書に登録することと、
-    // BattleManager のイベントを購読して該当ユニットのビューへ演出を振り分けること
-    // これにより、バトルロジック側はビューの存在を知らないまま演出が動く
-    // 入力ステートが対象ユニットのビューを引く際も、この GetView を使う
+    // メンバー分のビューを生成して登録し、BattleManager のイベントを購読して該当ビューへ演出を振り分ける
     public class PPBattleUnitViewBinder : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
         [Label("味方表示エリア")]
@@ -30,8 +28,12 @@ namespace PPCore
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
+        /* 状態 */
+
         // ユニットとビューの対応表
         private readonly Dictionary<BattleUnit, PPBattleUnitView> mViews = new();
+
+        /* 初期化・接続 */
 
         // 両パーティのビューを生成し、バトルイベントを購読して演出へ振り分ける
         // aManager : 購読対象のバトルマネージャ
@@ -77,11 +79,10 @@ namespace PPCore
             };
         }
 
+        /* 操作 */
+
         // パーティのアクティブメンバー分のビューを生成して並べ、対応表へ登録する
         // 生成直後は選択不可にしておき、入力ステートが必要なタイミングで有効化する
-        // aParty : 対象のパーティ
-        // aRow : ビューを並べる親
-        // aSide : このパーティの陣営。ビューの向きの決定に使う
         private void SpawnViews(BattleParty aParty, RectTransform aRow, BattleSide aSide)
         {
             if (aRow == null)
@@ -102,9 +103,9 @@ namespace PPCore
             LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
         }
 
+        /* 問い合わせ */
+
         // ユニットに対応するビューを取得する
-        // aUnit : 対象のユニット
-        // return : 対応するビュー。未登録なら null
         public PPBattleUnitView GetView(BattleUnit aUnit) => mViews.GetValueOrDefault(aUnit);
     }
 }

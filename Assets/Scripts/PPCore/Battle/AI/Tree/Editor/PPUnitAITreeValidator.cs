@@ -28,16 +28,52 @@ namespace PPCore
         }
     }
 
-    // 判断ツリーの構造上の問題を検出する
-    //
-    // 検出するのは「そのままでは絶対に行動へ到達しない」形だけに絞る
-    // 条件分岐の「成立しなかったとき」とターゲット検索の「なし」が未接続なのは、
-    // 次の候補へ流すという正常な書き方なので警告の対象にしない
+    // 判断ツリーの構造上の問題を検出する。対象は「そのままでは絶対に行動へ到達しない」形だけ
+    // 条件分岐の不成立側やターゲット検索の「なし」が未接続なのは正常な書き方として扱う
     public static class PPUnitAITreeValidator
     {
+        /* 操作 */
+
+        // 指定したツリーから辿って、目的のツリーへ到達するかを調べる
+        private static bool ReachesTree(PPUnitBehaviourTree aTree,
+            PPUnitBehaviourTree aTarget, HashSet<PPUnitBehaviourTree> aVisited)
+        {
+            if (aTree == aTarget) return true;
+            if (!aVisited.Add(aTree)) return false;
+
+            foreach (var node in aTree.Nodes)
+            {
+                if (node is not PPUnitAISubTreeNode subTreeNode || subTreeNode.SubTree == null) continue;
+                if (ReachesTree(subTreeNode.SubTree, aTarget, aVisited)) return true;
+            }
+            return false;
+        }
+
+        // 条件リストの中から、直接指定なのに未設定なものを探す
+        private static void AddIfUnsetDirectSkill(PPUnitAINode aNode,
+            IReadOnlyList<PPUnitConditionValidator> aConditions, List<PPUnitAITreeIssue> aIssues)
+        {
+            foreach (var condition in aConditions)
+            {
+                AddIfUnsetDirectSkill(aNode, condition as IPPUnitAISkillFilterOwner, aIssues);
+            }
+        }
+
+        // 絞り込みが直接指定なのにスキル定義が未設定なら問題として積む
+        private static void AddIfUnsetDirectSkill(PPUnitAINode aNode, IPPUnitAISkillFilterOwner aOwner,
+            List<PPUnitAITreeIssue> aIssues)
+        {
+            if (aOwner?.Filter == null) return;
+            if (aOwner.Filter.Mode != PPUnitAISkillFilterMode.Direct) return;
+            if (aOwner.Filter.SkillDefinition != null) return;
+
+            aIssues.Add(new PPUnitAITreeIssue(aNode.NodeId,
+                $"「{aNode.NodeName}」でスキルが直接指定されていますが、スキル定義が未設定です。"));
+        }
+
+        /* 評価・判定 */
+
         // ツリーを検査して問題を列挙する
-        // aTree : 検査する判断ツリー
-        // return : 見つかった問題の一覧。問題が無ければ空
         public static List<PPUnitAITreeIssue> Validate(PPUnitBehaviourTree aTree)
         {
             var issues = new List<PPUnitAITreeIssue>();
@@ -73,13 +109,10 @@ namespace PPCore
             return issues;
         }
 
+        /* 問い合わせ */
+
         // サブツリー参照が循環している箇所を検出する
-        //
-        // 循環はランタイム側でも打ち切られるが、その場合その枝は必ず不成立になる
-        // 意図した行動が「なぜか一度も出ない」形で表面化するため、組んだ時点で気付けるようにする
-        //
-        // aTree : 検査する判断ツリー
-        // aIssues : 見つかった問題の追加先
+        // 循環した枝はランタイムで必ず不成立になるため、組んだ時点で気付けるようにする
         private static void CollectCycleIssues(PPUnitBehaviourTree aTree,
             List<PPUnitAITreeIssue> aIssues)
         {
@@ -97,28 +130,7 @@ namespace PPCore
             }
         }
 
-        // 指定したツリーから辿って、目的のツリーへ到達するかを調べる
-        // aTree : 辿り始めるツリー
-        // aTarget : 到達を調べる対象のツリー
-        // aVisited : 既に辿ったツリー。同じツリーを二度辿らないための記録
-        // return : 到達するなら true
-        private static bool ReachesTree(PPUnitBehaviourTree aTree,
-            PPUnitBehaviourTree aTarget, HashSet<PPUnitBehaviourTree> aVisited)
-        {
-            if (aTree == aTarget) return true;
-            if (!aVisited.Add(aTree)) return false;
-
-            foreach (var node in aTree.Nodes)
-            {
-                if (node is not PPUnitAISubTreeNode subTreeNode || subTreeNode.SubTree == null) continue;
-                if (ReachesTree(subTreeNode.SubTree, aTarget, aVisited)) return true;
-            }
-            return false;
-        }
-
         // ノード 1 つ分の設定漏れを検出する
-        // aNode : 検査するノード
-        // aIssues : 見つかった問題の追加先
         private static void CollectNodeIssues(PPUnitAINode aNode, List<PPUnitAITreeIssue> aIssues)
         {
             switch (aNode)
@@ -170,8 +182,6 @@ namespace PPCore
 
         // スキルを直接指定しているのに定義が未設定な箇所を検出する
         // その状態ではどのスキルにも合致せず、枝が必ず不成立になるため設定漏れとして扱う
-        // aNode : 検査するノード
-        // aIssues : 見つかった問題の追加先
         private static void CollectSkillFilterIssues(PPUnitAINode aNode, List<PPUnitAITreeIssue> aIssues)
         {
             switch (aNode)
@@ -194,39 +204,8 @@ namespace PPCore
             }
         }
 
-        // 条件リストの中から、直接指定なのに未設定なものを探す
-        // aNode : 検査元のノード
-        // aConditions : 走査する条件リスト
-        // aIssues : 見つかった問題の追加先
-        private static void AddIfUnsetDirectSkill(PPUnitAINode aNode,
-            IReadOnlyList<PPUnitConditionValidator> aConditions, List<PPUnitAITreeIssue> aIssues)
-        {
-            foreach (var condition in aConditions)
-            {
-                AddIfUnsetDirectSkill(aNode, condition as IPPUnitAISkillFilterOwner, aIssues);
-            }
-        }
-
-        // 絞り込みが直接指定なのにスキル定義が未設定なら問題として積む
-        // aNode : 検査元のノード
-        // aOwner : 絞り込みの保持者。null なら何もしない
-        // aIssues : 見つかった問題の追加先
-        private static void AddIfUnsetDirectSkill(PPUnitAINode aNode, IPPUnitAISkillFilterOwner aOwner,
-            List<PPUnitAITreeIssue> aIssues)
-        {
-            if (aOwner?.Filter == null) return;
-            if (aOwner.Filter.Mode != PPUnitAISkillFilterMode.Direct) return;
-            if (aOwner.Filter.SkillDefinition != null) return;
-
-            aIssues.Add(new PPUnitAITreeIssue(aNode.NodeId,
-                $"「{aNode.NodeName}」でスキルが直接指定されていますが、スキル定義が未設定です。"));
-        }
-
         // ルートから辿り着けるノードの ID を集める
-        // ミュートされたノードも「構造としては繋がっている」ものとして辿る
-        // 一時的に外しただけのノードが到達不能として警告されるのを避けるため
-        // aTree : 検査する判断ツリー
-        // return : 到達できるノードの ID
+        // ミュートされたノードも繋がっているものとして辿る
         private static HashSet<string> CollectReachable(PPUnitBehaviourTree aTree)
         {
             var reachable = new HashSet<string>();

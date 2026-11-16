@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using CommandBattleCore;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -18,9 +17,10 @@ namespace PPCore
 {
     // ユニットの所持スキルをボタンとして並べるメニュー
     // 表示するたびにボタンを生成し直し、閉じるときに破棄する
-    // ユニットごとにスキル数が違うため、使い回さず作り直す方針
     public class PPBattleSkillMenuView : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         [Label("スキルボタンプレハブ")]
         [SerializeField] private PPBattleSkillButton mButtonPrefab;
         [Label("スキルリスト表示領域")]
@@ -30,13 +30,19 @@ namespace PPCore
         [Label("スキルカタログ")]
         [SerializeField] private PPSkillVisualCatalog mIconCatalog;
 
+        /* 状態 */
+
+        // 生成済みのスキルボタン。閉じるときにまとめて破棄する
+        private readonly List<PPBattleSkillButton> mSkillButtons = new();
+
+        /* イベント */
+
         // スキルが選択されたときに発火する
         public event Action<BattleSkill> OnSkillSelected;
         // 戻るが押されたときに発火する
         public event Action OnBackRequested;
 
-        // 生成済みのスキルボタン。閉じるときにまとめて破棄する
-        private readonly List<PPBattleSkillButton> mSkillButtons = new();
+        /* 初期化・接続 */
 
         // メニューを指定した位置へ移動させる。レイアウトを崩さないよう worldPositionStays は false
         // aAnchor : 配置先の親となる RectTransform
@@ -47,11 +53,31 @@ namespace PPCore
             rt.anchoredPosition = Vector2.zero;
         }
 
+        /* 操作 */
+
+        // 戻る操作を外部へ通知する
+        private void RaiseBack()
+        {
+            OnBackRequested?.Invoke();
+        }
+
+        // 戻るボタンの購読を解除し、生成済みのスキルボタンをすべて破棄する
+        // 表示のたびに作り直すため、開く前と閉じるときの両方から呼ばれる
+        private void Clear()
+        {
+            mBackButton.onClick.RemoveListener(RaiseBack);
+            foreach (var btn in mSkillButtons)
+            {
+                if(btn == null) continue;
+                Destroy(btn.gameObject);
+            }
+            mSkillButtons.Clear();
+        }
+
+        /* 表示 */
+
         // ユニットの所持スキル分のボタンを生成して表示する
-        // 各ボタンには発動可否を判定できるステータスソースを渡すため、
-        // リソース不足のスキルは自動的に押せない状態になる
-        // aUnit : スキルを表示する対象ユニット
-        // aContext : 発動可否の判定に使うバトルコンテキスト
+        // 各ボタンへステータスソースを渡すため、リソース不足のスキルは押せない状態になる
         public void Show(BattleUnit aUnit, BattleContext aContext, PPUnitActionLedger aLedger = null)
         {
             if (mContent == null)
@@ -94,25 +120,6 @@ namespace PPCore
         {
             Clear();
             gameObject.SetActive(false);
-        }
-
-        // 戻る操作を外部へ通知する
-        private void RaiseBack()
-        {
-            OnBackRequested?.Invoke();
-        }
-
-        // 戻るボタンの購読を解除し、生成済みのスキルボタンをすべて破棄する
-        // 表示のたびに作り直すため、開く前と閉じるときの両方から呼ばれる
-        private void Clear()
-        {
-            mBackButton.onClick.RemoveListener(RaiseBack);
-            foreach (var btn in mSkillButtons)
-            {
-                if(btn == null) continue;
-                Destroy(btn.gameObject);
-            }
-            mSkillButtons.Clear();
         }
     }
 }

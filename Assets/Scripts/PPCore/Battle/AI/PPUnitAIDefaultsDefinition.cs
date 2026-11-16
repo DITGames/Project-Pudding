@@ -18,42 +18,52 @@ namespace PPCore
     [Serializable]
     public sealed class PPUnitAIRoleTreeEntry
     {
+        /* インスペクタ設定 */
+
         [Label("ロール")]
         [SerializeField] private PPUnitRole mRole = PPUnitRole.Balance;
         [Label("既定ツリー")]
         [SerializeField] private PPUnitBehaviourTree mTree;
 
+        /* プロパティ */
+
         public PPUnitRole Role => mRole;
         public PPUnitBehaviourTree Tree => mTree;
     }
 
-    // ビヘイビアツリー未設定のユニットが使う既定ツリーを、ロール別と全体でまとめて持つ定義
-    // PPRuntimeSettings から参照し、解決順は ResolveTree に集約して実行時と作成ウィンドウで同じ規則を使う
-    // 個別ツリーから既定の動きを使いたいときは、サブツリー参照ノードで既定ツリーを明示的に繋ぐ
+    // ビヘイビアツリー未設定のユニットが使う既定ツリーを、ロール別と全体で持つ定義
+    // PPRuntimeSettings から参照し、解決順は ResolveTree に集約する
     [CreateAssetMenu(fileName = "PUAD_Default", menuName = "Project-Pudding/AI/PPUnitAIDefaultsDefinition")]
     public class PPUnitAIDefaultsDefinition : ScriptableObject
     {
+        /* 定数 */
+
         private const string LogTag = "AI";
+
+        /* インスペクタ設定 */
 
         // エントリが無いロールは全体既定ツリーで動く
         [Header("既定ツリー")]
         [Label("ロール別の既定ツリー", true)]
         [SerializeField] protected List<PPUnitAIRoleTreeEntry> mRoleTrees = new();
+
         [Label("全体既定ツリー")]
         [SerializeField] protected PPUnitBehaviourTree mGlobalTree;
+
+        /* 状態 */
 
         // ロールから既定ツリーを引くための索引。FindRoleTree の初回アクセス時にだけ組み立てる
         private Dictionary<PPUnitRole, PPUnitBehaviourTree> mRoleTreeMap;
         // エディタで設定の問題を知らせる遅延処理を登録済みか。同じフレームに OnValidate が重なっても 1 回だけ出すために持つ
         [NonSerialized] private bool mIsReportPending;
 
+        /* プロパティ */
+
         public PPUnitBehaviourTree GlobalTree => mGlobalTree;
 
+        /* static 関数 */
+
         // ユニットが使うツリーを 個別 → ロール既定 → 全体既定 の順で解決する
-        // aUnit : 対象のユニット定義。null なら個別とロールを飛ばして全体既定を見る
-        // aDefaults : 既定の定義。null なら個別ツリーだけを見る
-        // aSource : 解決したツリーの出どころ
-        // return : 使うツリー。どれも無ければ null
         public static PPUnitBehaviourTree ResolveTree(PPUnitDefinition aUnit, PPUnitAIDefaultsDefinition aDefaults,
             out PPUnitAITreeSource aSource)
         {
@@ -82,18 +92,10 @@ namespace PPCore
             return null;
         }
 
-        // ロールの既定ツリーを引く
-        // aRole : 対象のロール
-        // return : 既定ツリー。割り当てが無ければ null
-        public PPUnitBehaviourTree FindRoleTree(PPUnitRole aRole)
-        {
-            mRoleTreeMap ??= BuildRoleTreeMap();
-            return mRoleTreeMap.GetValueOrDefault(aRole);
-        }
+        /* 生成 */
 
         // ロールから既定ツリーを引く索引を組み立て、設定の問題をログへ出す
         // ロールが重複している場合は先勝ちとし、ツリーが空のエントリは索引に載せない
-        // return : 組み立てた索引
         private Dictionary<PPUnitRole, PPUnitBehaviourTree> BuildRoleTreeMap()
         {
             var map = new Dictionary<PPUnitRole, PPUnitBehaviourTree>();
@@ -126,9 +128,10 @@ namespace PPCore
             return map;
         }
 
+        /* Unity イベント */
+
         // アセットの読み込み・インスペクタ編集のたびに索引を捨てる
-        // エディタでは設定の問題を遅らせて知らせる
-        // 読み込みの途中は参照先が一時的に null に見え、未設定と誤検出することがあるため OnValidate の中では見ない
+        // 設定の問題は遅らせて知らせる（読み込み途中は参照先が null に見えて誤検出するため）
         protected virtual void OnValidate()
         {
             mRoleTreeMap = null;
@@ -140,10 +143,11 @@ namespace PPCore
 #endif
         }
 
+        /* 操作 */
+
 #if UNITY_EDITOR
-        // 設定の問題をログへ出す。遅延の間に破棄された場合は何もしない
-        // インポート・コンパイル中は参照先が読めていないことがあるため、終わるまで次の機会へ回す
-        // ここで組み立てた索引は保存しない。参照が欠けた索引が Edit モードの間残り、解決結果が変わるのを防ぐため
+        // 設定の問題をログへ出す。インポート・コンパイル中は終わるまで次の機会へ回す
+        // ここで組み立てた索引は保存しない
         private void ReportIssuesAfterValidate()
         {
             if (this == null) return;
@@ -158,5 +162,14 @@ namespace PPCore
             BuildRoleTreeMap();
         }
 #endif
+
+        /* 問い合わせ */
+
+        // ロールの既定ツリーを引く
+        public PPUnitBehaviourTree FindRoleTree(PPUnitRole aRole)
+        {
+            mRoleTreeMap ??= BuildRoleTreeMap();
+            return mRoleTreeMap.GetValueOrDefault(aRole);
+        }
     }
 }

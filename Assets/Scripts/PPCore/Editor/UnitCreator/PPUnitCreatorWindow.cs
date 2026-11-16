@@ -18,6 +18,63 @@ namespace PPCore
 {
     public sealed class PPUnitCreatorWindow : EditorWindow
     {
+        /* 内部型 */
+
+        // 操作ツール（MCP の pp_unit_creator_window）が表示状態と矩形を読み書きする口。描画には関与せず、下書きの内容も変えない
+        internal static class PPWindowAccess
+        {
+            /* プロパティ */
+
+            internal static string[] TabNames => PPUnitCreatorWindow.TabNames;
+            internal static string[] ParameterViews => PPUnitCreatorWindow.ParameterViews;
+
+            /* 操作 */
+
+            internal static string DraftId(PPUnitCreatorWindow aWindow) => aWindow.mDraftId;
+
+            internal static int Tab(PPUnitCreatorWindow aWindow) => Mathf.Clamp(aWindow.mTab, 0, PPUnitCreatorWindow.TabNames.Length - 1);
+
+            internal static int ParameterView(PPUnitCreatorWindow aWindow) => Mathf.Clamp(aWindow.mParameterView, 0, PPUnitCreatorWindow.ParameterViews.Length - 1);
+
+            internal static int RankingLevel(PPUnitCreatorWindow aWindow) => aWindow.mRankingEvalLevel;
+
+            internal static int RankingStat(PPUnitCreatorWindow aWindow) => aWindow.mRankingStat;
+
+            internal static bool ExtraCollapsed(PPUnitCreatorWindow aWindow) => aWindow.mExtraCollapsed;
+
+            internal static bool PreviewPending(PPUnitCreatorWindow aWindow) => aWindow.mPreviewPending;
+
+            internal static bool[] Series(PPUnitCreatorWindow aWindow) => aWindow.mSeries;
+
+            internal static Vector2 BodyScroll(PPUnitCreatorWindow aWindow) => aWindow.mScroll[Tab(aWindow)];
+
+            internal static IReadOnlyDictionary<string, Rect> Rects(PPUnitCreatorWindow aWindow) => aWindow.mControlRects;
+
+            internal static Vector2? ScreenOrigin(PPUnitCreatorWindow aWindow) => aWindow.mScreenOrigin;
+
+            internal static Vector2? LastMousePosition(PPUnitCreatorWindow aWindow) => aWindow.mLastMousePosition;
+
+            internal static void ClearLastMousePosition(PPUnitCreatorWindow aWindow) => aWindow.mLastMousePosition = null;
+
+            // 指定された項目だけを変える。値の範囲は描画時と同じく丸める
+            internal static void Set(PPUnitCreatorWindow aWindow, int? aTab, int? aParameterView, int? aCompareLevel, int? aRankingLevel, int? aRankingStat, bool? aExtraCollapsed, bool[] aSeries)
+            {
+                if (aTab.HasValue) aWindow.mTab = Mathf.Clamp(aTab.Value, 0, PPUnitCreatorWindow.TabNames.Length - 1);
+                if (aParameterView.HasValue) aWindow.mParameterView = Mathf.Clamp(aParameterView.Value, 0, PPUnitCreatorWindow.ParameterViews.Length - 1);
+                if (aCompareLevel.HasValue) aWindow.mCompareEvalLevel = Mathf.Max(1, aCompareLevel.Value);
+                if (aRankingLevel.HasValue) aWindow.mRankingEvalLevel = Mathf.Max(1, aRankingLevel.Value);
+                if (aRankingStat.HasValue) aWindow.mRankingStat = Mathf.Clamp(aRankingStat.Value, 0, PPUnitStatComparer.StatCount - 1);
+                if (aExtraCollapsed.HasValue) aWindow.mExtraCollapsed = aExtraCollapsed.Value;
+                if (aSeries != null) for (var i = 0; i < Mathf.Min(aSeries.Length, aWindow.mSeries.Length); i++) aWindow.mSeries[i] = aSeries[i];
+            }
+
+            /* 評価・判定 */
+
+            internal static int CompareLevel(PPUnitCreatorWindow aWindow) => aWindow.mCompareEvalLevel;
+        }
+
+        /* 定数 */
+
         private static readonly string[] TabNames = { "ビジュアル", "パラメータ", "スキル", "ディテイル" };
         private static readonly string[] ParameterViews = { "編集", "比較", "ランキング" };
         // ビヘイビアツリーの割り当て方。並びは PPUnitTreeAssignMode の値と揃える
@@ -29,6 +86,9 @@ namespace PPCore
         private const float CellWidth = 64;
         private const float ApplyWidth = 40;
         private const float ChartHeight = 170;
+
+        /* インスペクタ設定 */
+
         [Label("下書きID")][SerializeField] private string mDraftId;
         [Label("選択中タブ")][SerializeField] private int mTab;
         [Label("パラメータ表示")][SerializeField] private int mParameterView;
@@ -38,6 +98,9 @@ namespace PPCore
         [Label("ランキングの評価レベル")][SerializeField] private int mRankingEvalLevel = int.MaxValue;
         // 既定は展開。旧フィールド（mExtraExpanded=false）の保存値を引き継がないよう名前を変えている
         [Label("追加パラメータを閉じる")][SerializeField] private bool mExtraCollapsed;
+
+        /* 状態 */
+
         private PPUnitCreationDraft mDraft;
         private readonly Vector2[] mScroll = new Vector2[5];
         private readonly int[] mTemplates = new int[PPUnitCreationDraft.StatNames.Length];
@@ -58,6 +121,8 @@ namespace PPCore
         // 直近のマウスイベントが OnGUI に届いた時点の座標。操作ツールが送信座標と突き合わせてずれを実測する
         [NonSerialized] private Vector2? mLastMousePosition;
 
+        /* static 関数 */
+
         [MenuItem("Window/Project-Pudding/ユニット作成")]
         public static void Open() => GetWindow<PPUnitCreatorWindow>("ユニット作成");
 
@@ -68,6 +133,8 @@ namespace PPCore
             window.mValidatedRevision = -1;
             window.Repaint();
         }
+
+        /* Unity イベント */
 
         private void OnEnable()
         {
@@ -84,37 +151,6 @@ namespace PPCore
             EditorApplication.projectChanged -= Invalidate;
             Undo.undoRedoPerformed -= OnUndo;
             if (mSkillEditor != null) DestroyImmediate(mSkillEditor);
-        }
-
-        private void Invalidate() { mValidatedRevision = -1; mUnits = null; Repaint(); }
-        private void OnInspectorUpdate() => Repaint();
-        private void OnUndo() { if (mDraft != null && !mDraft.IsCreated) mDraft.Commit(); Invalidate(); }
-
-        // 既存ユニットを編集用の下書きへ読み込んで開く。元アセットは「保存」まで変わらない
-        private void OpenExisting(PPUnitDefinition aSource)
-        {
-            try
-            {
-                mDraft = PPUnitCreationDraft.CreateFrom(aSource);
-                PPUnitDraftStore.Save(mDraft);
-                mDraftId = mDraft.DraftId;
-                mValidatedRevision = -1;
-                mSkillIndex = -1;
-                mPreviewPending = false;
-                mError = null;
-            }
-            catch (Exception error) { mError = error.Message; }
-        }
-
-        private void NewDraft()
-        {
-            mDraft = PPUnitCreationDraft.Create();
-            PPUnitDraftStore.Save(mDraft);
-            mDraftId = mDraft.DraftId;
-            mValidatedRevision = -1;
-            mSkillIndex = -1;
-            mPreviewPending = false;
-            mError = null;
         }
 
         private void OnGUI()
@@ -146,9 +182,8 @@ namespace PPCore
             if (GUILayout.Button("新しい下書き", EditorStyles.toolbarButton, GUILayout.Width(110))) { NewDraft(); GUIUtility.ExitGUI(); }
             GUILayout.EndHorizontal();
             var footerRect = new Rect(4, position.height - 184, position.width - 8, 180);
-            // ヘッダーは「トロールバー + (Header装飾込みの)ユニットID/表示名行 + 保存先フォルダー行」の
-            // 固定3行構成。GUILayoutUtility.GetRectでの動的確保はBeginArea基準のビュー群と
-            // 相性が悪く描画されなくなる事象を確認したため、実測に基づく固定オフセットで確保する
+            // ヘッダーは固定 3 行構成（ツールバー・ユニット ID/表示名行・保存先フォルダー行）
+            // GUILayoutUtility.GetRect での動的確保は描画されなくなるため、固定オフセットで確保する
             const float headerBottom = 100f;
             var tabRect = new Rect(4, headerBottom, position.width - 8, 22);
             var body = new Rect(4, tabRect.yMax + 4, position.width - 8, Mathf.Max(200, footerRect.y - tabRect.yMax - 12));
@@ -196,21 +231,66 @@ namespace PPCore
             if (tab != mTab) { mTab = tab; Repaint(); }
         }
 
-        // 表示の切替はウィンドウの状態なので、下書きの変更（更新番号の加算）として扱わない
-        private static T KeepChanged<T>(Func<T> aDraw)
+        /* 操作 */
+
+        private void Invalidate() { mValidatedRevision = -1; mUnits = null; Repaint(); }
+
+        // 既存ユニットを編集用の下書きへ読み込んで開く。元アセットは「保存」まで変わらない
+        private void OpenExisting(PPUnitDefinition aSource)
         {
-            var changed = GUI.changed;
-            var result = aDraw();
-            GUI.changed = changed;
-            return result;
+            try
+            {
+                mDraft = PPUnitCreationDraft.CreateFrom(aSource);
+                PPUnitDraftStore.Save(mDraft);
+                mDraftId = mDraft.DraftId;
+                mValidatedRevision = -1;
+                mSkillIndex = -1;
+                mPreviewPending = false;
+                mError = null;
+            }
+            catch (Exception error) { mError = error.Message; }
         }
 
-        private static void KeepChanged(Action aDraw)
+        private void NewDraft()
         {
-            var changed = GUI.changed;
-            aDraw();
-            GUI.changed = changed;
+            mDraft = PPUnitCreationDraft.Create();
+            PPUnitDraftStore.Save(mDraft);
+            mDraftId = mDraft.DraftId;
+            mValidatedRevision = -1;
+            mSkillIndex = -1;
+            mPreviewPending = false;
+            mError = null;
         }
+
+        // 割り当て方ごとの説明文を返す
+        private string TreeModeHelp(PPUnitTreeAssignMode aMode, PPUnitBehaviourTree aEffectiveTree, PPUnitAITreeSource aTreeSource) => aMode switch
+        {
+            PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",
+            PPUnitTreeAssignMode.Template => "保存時に雛形（優先度リスト＋末尾に通常攻撃）から " + PPUnitCreationValidator.TreeFileName(mDraft.Unit.UnitId) + " を作成して割り当てます。生成後にUnit AI Treeで調整します。",
+            _ => aEffectiveTree != null
+                ? "個別ツリーなし: 「" + aEffectiveTree.name + "」（" + PPUnitAITreeSourceUtility.ToDisplayString(aTreeSource) + "）で行動します。"
+                : PPUnitCreationValidator.NoTreeWarning,
+        };
+
+        // 評価レベルのスライダー。最大Lvが下がった場合もここで 1〜最大Lv に丸める
+        private int LevelSlider(int aLevel)
+        {
+            var level = Mathf.Clamp(aLevel, 1, mDraft.MaxLevel);
+            return KeepChanged(() => EditorGUILayout.IntSlider("評価レベル", level, 1, mDraft.MaxLevel));
+        }
+
+        // 直前に描いた要素（または指定の矩形）をウィンドウ座標で記録する。スライダーは値を動かす溝の範囲も「〜Track」で記録する
+        private void RecordRect(string aKey, Rect? aRect = null, bool aSlider = false)
+        {
+            if (Event.current.type != EventType.Repaint || mScreenOrigin == null) return;
+            var rect = aRect ?? GUILayoutUtility.GetLastRect();
+            rect.position = GUIUtility.GUIToScreenPoint(rect.position) - mScreenOrigin.Value;
+            mControlRects[aKey] = rect;
+            // EditorGUI のスライダーは「ラベル幅 | 溝 | 5px | 数値欄（fieldWidth）」の並び
+            if (aSlider) mControlRects[aKey + "Track"] = new Rect(rect.x + EditorGUIUtility.labelWidth, rect.y, rect.width - EditorGUIUtility.labelWidth - EditorGUIUtility.fieldWidth - 5, rect.height);
+        }
+
+        /* 描画 */
 
         // 幅があればアイコンと立ち絵を横に並べ、狭ければ縦に積む。立ち絵は縦長なので高さを大きく取る
         private void DrawVisual()
@@ -280,20 +360,6 @@ namespace PPCore
             mDraft.VisualCatalog = (PPUnitVisualCatalog)EditorGUILayout.ObjectField("ビジュアル", mDraft.VisualCatalog, typeof(PPUnitVisualCatalog), false);
             mDraft.SkillCatalog = (PPSkillCatalog)EditorGUILayout.ObjectField("スキル", mDraft.SkillCatalog, typeof(PPSkillCatalog), false);
         }
-
-        // 割り当て方ごとの説明文を返す
-        // aMode : ビヘイビアツリーの割り当て方
-        // aEffectiveTree : 個別ツリーなしのときに実際に使うツリー。解決できなければ null
-        // aTreeSource : aEffectiveTree の出どころ
-        // return : HelpBox に出す説明文
-        private string TreeModeHelp(PPUnitTreeAssignMode aMode, PPUnitBehaviourTree aEffectiveTree, PPUnitAITreeSource aTreeSource) => aMode switch
-        {
-            PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",
-            PPUnitTreeAssignMode.Template => "保存時に雛形（優先度リスト＋末尾に通常攻撃）から " + PPUnitCreationValidator.TreeFileName(mDraft.Unit.UnitId) + " を作成して割り当てます。生成後にUnit AI Treeで調整します。",
-            _ => aEffectiveTree != null
-                ? "個別ツリーなし: 「" + aEffectiveTree.name + "」（" + PPUnitAITreeSourceUtility.ToDisplayString(aTreeSource) + "）で行動します。"
-                : PPUnitCreationValidator.NoTreeWarning,
-        };
 
         private void DrawParameterTab()
         {
@@ -413,13 +479,6 @@ namespace PPCore
             if (next != expanded) { mExtraCollapsed = !next; Repaint(); }
         }
 
-        // 評価レベルのスライダー。最大Lvが下がった場合もここで 1〜最大Lv に丸める
-        private int LevelSlider(int aLevel)
-        {
-            var level = Mathf.Clamp(aLevel, 1, mDraft.MaxLevel);
-            return KeepChanged(() => EditorGUILayout.IntSlider("評価レベル", level, 1, mDraft.MaxLevel));
-        }
-
         private void DrawCompare()
         {
             // 選び直した比較対象は次のイベントから描画し、同じイベント内でレイアウトの要素数が変わらないようにする
@@ -480,8 +539,6 @@ namespace PPCore
         }
 
         // 能力ごとに系列の縦棒を並べる。高さは基準値で正規化し、基準超過は上端で止めて赤線で示す
-        // aValues : 系列ごとの5能力の値（StatNames と同じ並び）
-        // aVisible : 系列の表示フラグ。指定すると凡例がそのまま表示トグルになる
         private void DrawBarChart(string[] aNames, Color[] aColors, float[][] aValues, bool[] aVisible = null)
         {
             var rect = GUILayoutUtility.GetRect(300, ChartHeight, GUILayout.ExpandWidth(true));
@@ -619,48 +676,28 @@ namespace PPCore
             GUILayout.EndArea();
         }
 
-        // 直前に描いた要素（または指定の矩形）をウィンドウ座標で記録する。スライダーは値を動かす溝の範囲も「〜Track」で記録する
-        private void RecordRect(string aKey, Rect? aRect = null, bool aSlider = false)
+        /* イベントハンドラ */
+
+        private void OnInspectorUpdate() => Repaint();
+
+        private void OnUndo() { if (mDraft != null && !mDraft.IsCreated) mDraft.Commit(); Invalidate(); }
+
+        /* ヘルパー */
+
+        // 表示の切替はウィンドウの状態なので、下書きの変更（更新番号の加算）として扱わない
+        private static T KeepChanged<T>(Func<T> aDraw)
         {
-            if (Event.current.type != EventType.Repaint || mScreenOrigin == null) return;
-            var rect = aRect ?? GUILayoutUtility.GetLastRect();
-            rect.position = GUIUtility.GUIToScreenPoint(rect.position) - mScreenOrigin.Value;
-            mControlRects[aKey] = rect;
-            // EditorGUI のスライダーは「ラベル幅 | 溝 | 5px | 数値欄（fieldWidth）」の並び
-            if (aSlider) mControlRects[aKey + "Track"] = new Rect(rect.x + EditorGUIUtility.labelWidth, rect.y, rect.width - EditorGUIUtility.labelWidth - EditorGUIUtility.fieldWidth - 5, rect.height);
+            var changed = GUI.changed;
+            var result = aDraw();
+            GUI.changed = changed;
+            return result;
         }
 
-        // 操作ツール（MCP の pp_unit_creator_window）が表示状態と矩形を読み書きする口。描画には関与せず、下書きの内容も変えない
-        internal static class PPWindowAccess
+        private static void KeepChanged(Action aDraw)
         {
-            internal static string[] TabNames => PPUnitCreatorWindow.TabNames;
-            internal static string[] ParameterViews => PPUnitCreatorWindow.ParameterViews;
-            internal static string DraftId(PPUnitCreatorWindow aWindow) => aWindow.mDraftId;
-            internal static int Tab(PPUnitCreatorWindow aWindow) => Mathf.Clamp(aWindow.mTab, 0, PPUnitCreatorWindow.TabNames.Length - 1);
-            internal static int ParameterView(PPUnitCreatorWindow aWindow) => Mathf.Clamp(aWindow.mParameterView, 0, PPUnitCreatorWindow.ParameterViews.Length - 1);
-            internal static int CompareLevel(PPUnitCreatorWindow aWindow) => aWindow.mCompareEvalLevel;
-            internal static int RankingLevel(PPUnitCreatorWindow aWindow) => aWindow.mRankingEvalLevel;
-            internal static int RankingStat(PPUnitCreatorWindow aWindow) => aWindow.mRankingStat;
-            internal static bool ExtraCollapsed(PPUnitCreatorWindow aWindow) => aWindow.mExtraCollapsed;
-            internal static bool PreviewPending(PPUnitCreatorWindow aWindow) => aWindow.mPreviewPending;
-            internal static bool[] Series(PPUnitCreatorWindow aWindow) => aWindow.mSeries;
-            internal static Vector2 BodyScroll(PPUnitCreatorWindow aWindow) => aWindow.mScroll[Tab(aWindow)];
-            internal static IReadOnlyDictionary<string, Rect> Rects(PPUnitCreatorWindow aWindow) => aWindow.mControlRects;
-            internal static Vector2? ScreenOrigin(PPUnitCreatorWindow aWindow) => aWindow.mScreenOrigin;
-            internal static Vector2? LastMousePosition(PPUnitCreatorWindow aWindow) => aWindow.mLastMousePosition;
-            internal static void ClearLastMousePosition(PPUnitCreatorWindow aWindow) => aWindow.mLastMousePosition = null;
-
-            // 指定された項目だけを変える。値の範囲は描画時と同じく丸める
-            internal static void Set(PPUnitCreatorWindow aWindow, int? aTab, int? aParameterView, int? aCompareLevel, int? aRankingLevel, int? aRankingStat, bool? aExtraCollapsed, bool[] aSeries)
-            {
-                if (aTab.HasValue) aWindow.mTab = Mathf.Clamp(aTab.Value, 0, PPUnitCreatorWindow.TabNames.Length - 1);
-                if (aParameterView.HasValue) aWindow.mParameterView = Mathf.Clamp(aParameterView.Value, 0, PPUnitCreatorWindow.ParameterViews.Length - 1);
-                if (aCompareLevel.HasValue) aWindow.mCompareEvalLevel = Mathf.Max(1, aCompareLevel.Value);
-                if (aRankingLevel.HasValue) aWindow.mRankingEvalLevel = Mathf.Max(1, aRankingLevel.Value);
-                if (aRankingStat.HasValue) aWindow.mRankingStat = Mathf.Clamp(aRankingStat.Value, 0, PPUnitStatComparer.StatCount - 1);
-                if (aExtraCollapsed.HasValue) aWindow.mExtraCollapsed = aExtraCollapsed.Value;
-                if (aSeries != null) for (var i = 0; i < Mathf.Min(aSeries.Length, aWindow.mSeries.Length); i++) aWindow.mSeries[i] = aSeries[i];
-            }
+            var changed = GUI.changed;
+            aDraw();
+            GUI.changed = changed;
         }
     }
 }

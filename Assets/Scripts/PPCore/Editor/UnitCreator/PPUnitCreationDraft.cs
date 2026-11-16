@@ -35,6 +35,22 @@ namespace PPCore
 
     public sealed class PPUnitCreationDraft : ScriptableObject
     {
+        /* 定数 */
+
+        // 成長する能力値の一覧。きようさだけは基礎値が追加ステータス側（mExpandStatBlock）にある
+        public static readonly string[] StatNames =
+        {
+            PPUnitAbilityDefinition.NameHp, PPUnitAbilityDefinition.NameStrength, PPUnitAbilityDefinition.NameGuard,
+            PPUnitAbilityDefinition.NameAgility, PPUnitAbilityDefinition.NameDexterity,
+        };
+
+        public static readonly string[] BaseFields = { "mBaseStatBlock.MaxHP", "mBaseStatBlock.Attack", "mBaseStatBlock.Defense", "mBaseStatBlock.Speed", "mExpandStatBlock.Dexterity" };
+        public static readonly string[] CurveFields = { "mHpGrowth", "mAttackGrowth", "mDefenseGrowth", "mSpeedGrowth", "mDexterityGrowth" };
+        // 棒グラフに載せる能力の数（HP・ちから・まもり・はやさ・きようさ）。チャート基準値（Scales）もこの数だけ持つ
+        public const int ChartAxisCount = 5;
+
+        /* インスペクタ設定 */
+
         [Label("下書きID")][SerializeField] private string mDraftId;
         [Label("更新番号")][SerializeField] private int mRevision;
         [Label("ユニット")][SerializeField] private PPUnitDefinition mUnit;
@@ -65,6 +81,8 @@ namespace PPCore
         [Label("保存時の更新番号")][SerializeField] private int mSavedRevision = -1;
         [Label("保存結果")][SerializeField] private string[] mSavedPaths = Array.Empty<string>();
 
+        /* プロパティ */
+
         public string DraftId => mDraftId;
         public int Revision => mRevision;
         public PPUnitDefinition Unit => mUnit;
@@ -73,6 +91,7 @@ namespace PPCore
         public string Folder { get => mFolder; set => mFolder = value; }
         public int MaxLevel => mMaxLevel;
         public int PreviewLevel { get => mPreviewLevel; set => mPreviewLevel = value; }
+
         // きようさの基準値を持たない旧下書き（4要素）は、不足分を既定値で補ってから返す
         public float[] Scales
         {
@@ -82,6 +101,7 @@ namespace PPCore
                 return mScales;
             }
         }
+
         public PPUnitTreeAssignMode TreeMode { get => mTreeMode; set => mTreeMode = value; }
         // 生成・保存のときに雛形からツリーを新規作成するか
         public bool IsNewTree => mTreeMode == PPUnitTreeAssignMode.Template;
@@ -106,16 +126,8 @@ namespace PPCore
         public string[] SavedPaths => mSavedPaths;
         // 読み込み後に編集元（ユニット・ビジュアル）のファイルが変わったか
         public bool IsSourceChanged => HashOf(mSource) != (mSourceHash ?? "") || HashOf(mSourceVisual) != (mSourceVisualHash ?? "");
-        // 成長する能力値の一覧。きようさだけは基礎値が追加ステータス側（mExpandStatBlock）にある
-        public static readonly string[] StatNames =
-        {
-            PPUnitAbilityDefinition.NameHp, PPUnitAbilityDefinition.NameStrength, PPUnitAbilityDefinition.NameGuard,
-            PPUnitAbilityDefinition.NameAgility, PPUnitAbilityDefinition.NameDexterity,
-        };
-        public static readonly string[] BaseFields = { "mBaseStatBlock.MaxHP", "mBaseStatBlock.Attack", "mBaseStatBlock.Defense", "mBaseStatBlock.Speed", "mExpandStatBlock.Dexterity" };
-        public static readonly string[] CurveFields = { "mHpGrowth", "mAttackGrowth", "mDefenseGrowth", "mSpeedGrowth", "mDexterityGrowth" };
-        // 棒グラフに載せる能力の数（HP・ちから・まもり・はやさ・きようさ）。チャート基準値（Scales）もこの数だけ持つ
-        public const int ChartAxisCount = 5;
+
+        /* static 関数 */
 
         // 初期アセットを作らず、編集専用インスタンスを組み立てる
         public static PPUnitCreationDraft Create()
@@ -180,11 +192,6 @@ namespace PPCore
             return draft;
         }
 
-        // ユニットIDが一致するビジュアル定義。サブアセットも対象にする
-        public static List<PPUnitVisualDefinition> FindVisuals(string aUnitId) => AssetDatabase.FindAssets("t:" + nameof(PPUnitVisualDefinition))
-            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<PPUnitVisualDefinition>()
-            .Where(aVisual => aVisual.UnitId == aUnitId).ToList();
-
         // 競合検出用のファイル内容のハッシュ。アセットがなければ空文字
         public static string HashOf(UnityEngine.Object aAsset)
         {
@@ -193,6 +200,31 @@ namespace PPCore
             using var sha = SHA256.Create();
             return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
         }
+
+        // ユニットIDが一致するビジュアル定義。サブアセットも対象にする
+        public static List<PPUnitVisualDefinition> FindVisuals(string aUnitId) => AssetDatabase.FindAssets("t:" + nameof(PPUnitVisualDefinition))
+            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<PPUnitVisualDefinition>()
+            .Where(aVisual => aVisual.UnitId == aUnitId).ToList();
+
+        /* 生成 */
+
+        // 変更要求は独立したコピーへ適用し、全項目の解釈に成功してから置き換える
+        public PPUnitCreationDraft CreateWorkingCopy()
+        {
+            var copy = Instantiate(this);
+            copy.mUnit = Instantiate(Unit);
+            copy.mNewSkills = new List<PPSkillDefinition>();
+            foreach (var skill in mNewSkills)
+            {
+                var cloned = Instantiate(skill);
+                copy.mNewSkills.Add(cloned);
+                for (var i = 0; i < copy.Unit.Skills.Count; i++)
+                    if (copy.Unit.Skills[i] == skill) copy.Unit.Skills[i] = cloned;
+            }
+            return copy;
+        }
+
+        /* 操作 */
 
         // 編集モードの保存後に、下書きを保存済みの状態へそろえる。新規スキル・新規ツリーは作成したアセットの参照に置き換え、
         // ハッシュを取り直して続けて編集・再保存できるようにする
@@ -252,22 +284,6 @@ namespace PPCore
             }
         }
 
-        // 変更要求は独立したコピーへ適用し、全項目の解釈に成功してから置き換える
-        public PPUnitCreationDraft CreateWorkingCopy()
-        {
-            var copy = Instantiate(this);
-            copy.mUnit = Instantiate(Unit);
-            copy.mNewSkills = new List<PPSkillDefinition>();
-            foreach (var skill in mNewSkills)
-            {
-                var cloned = Instantiate(skill);
-                copy.mNewSkills.Add(cloned);
-                for (var i = 0; i < copy.Unit.Skills.Count; i++)
-                    if (copy.Unit.Skills[i] == skill) copy.Unit.Skills[i] = cloned;
-            }
-            return copy;
-        }
-
         // 基礎値と終端実値を変更し、途中の曲線形状を維持する
         public void SetStat(int aIndex, float aInitial, float aFinal)
         {
@@ -296,10 +312,6 @@ namespace PPCore
             mPreviewLevel = Mathf.Clamp(mPreviewLevel, 1, mMaxLevel);
         }
 
-        public AnimationCurve GetCurve(int aIndex) => new SerializedObject(Unit).FindProperty(CurveFields[aIndex]).animationCurveValue;
-        public float GetInitial(int aIndex) => new SerializedObject(Unit).FindProperty(BaseFields[aIndex]).floatValue;
-        public float GetFinal(int aIndex) => GetInitial(aIndex) * Mathf.Max(1, GetCurve(aIndex).Evaluate(MaxLevel));
-
         // カスタム曲線の始点と終点の時刻を固定する
         public void SetCurve(int aIndex, AnimationCurve aCurve)
         {
@@ -318,13 +330,31 @@ namespace PPCore
             Unit.Skills.Add(skill);
             return skill;
         }
+
+        /* 問い合わせ */
+
+        public AnimationCurve GetCurve(int aIndex) => new SerializedObject(Unit).FindProperty(CurveFields[aIndex]).animationCurveValue;
+
+        public float GetInitial(int aIndex) => new SerializedObject(Unit).FindProperty(BaseFields[aIndex]).floatValue;
+
+        public float GetFinal(int aIndex) => GetInitial(aIndex) * Mathf.Max(1, GetCurve(aIndex).Evaluate(MaxLevel));
     }
 
     public static class PPUnitDraftStore
     {
+        /* 定数 */
+
         private const string DirectoryPath = "UserSettings/UnitCreator";
+
+        /* 状態 */
+
         private static readonly Dictionary<string, PPUnitCreationDraft> mLoaded = new();
+
+        /* プロパティ */
+
         public static string LastId => EditorPrefs.GetString(Application.dataPath + "/UnitCreator/LastId", "");
+
+        /* 操作 */
 
         // 内部シリアライザーに所有オブジェクトを渡し、既存アセット参照は外部参照として残す
         public static void Save(PPUnitCreationDraft aDraft)
@@ -359,6 +389,8 @@ namespace PPCore
             mLoaded[aId] = draft;
             return draft;
         }
+
+        /* 問い合わせ */
 
         private static string GetPath(string aId)
         {

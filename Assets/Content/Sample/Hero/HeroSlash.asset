@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 262673f1fd697394f9e85ab6a3628a3a, type: 3}
   m_Name: HeroSlash
-  m_EditorClassIdentifier: Assembly-CSharp::CommandBattleCore.AttackSkillDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.AttackSkillDefinition
   mSkillId: PSD_0006
   mDisplayName: "勇者の斬撃"
   mDescription: 
