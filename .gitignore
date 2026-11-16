@@ -120,3 +120,6 @@ PLAN.md
 
 # agentic-gamepm プラグイン用の個人設定
 .agentic-gamepm/user/
+
+# codex-bridge プラグイン用の個人設定
+.codex-bridge/user/
