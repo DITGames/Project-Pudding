@@ -354,12 +354,6 @@ namespace PPCore
                 aEntry.RejectReason = PPUnitAIRejectReason.NoTree;
                 return null;
             }
-            // 行動回数を使い切っているユニットはコマンドを積んでも空振りするため、ここで外す
-            if (!aUnit.Actions.CanAction)
-            {
-                aEntry.RejectReason = PPUnitAIRejectReason.NoActionBudget;
-                return null;
-            }
 
             var result = EvaluateTree(aUnit, aTree, aSnap, aContext, aEntry);
             if (!result.IsDecided)

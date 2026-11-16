@@ -154,19 +154,9 @@ namespace PPCore
         {
         }
 
-        // 味方陣営の生存アクティブメンバーのうち、まだ行動回数が残っているものを候補として返す
-        // 基底が 2 回走査するため、遅延評価にせずリストとして確定させる
+        // 味方陣営の生存アクティブメンバーを候補として返す
         protected override IEnumerable<BattleUnit> Candidates()
-        {
-            var candidates = new List<BattleUnit>();
-            foreach (var unit in mOwner.Manager.Context.GetParty(BattleSide.Ally).GetAliveActiveMembers())
-            {
-                if (!unit.Actions.CanAction) continue;
-
-                candidates.Add(unit);
-            }
-            return candidates;
-        }
+            => mOwner.Manager.Context.GetParty(BattleSide.Ally).GetAliveActiveMembers();
 
         // 選択されたユニットを記録し、コマンド選択ステートへ進む
         // aView : 決定されたユニットのビュー

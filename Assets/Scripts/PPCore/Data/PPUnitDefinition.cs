@@ -106,10 +106,15 @@ namespace PPCore
         }
 
         // 追加パラメータ一式を組み立てる。きようさ以外はレベル成長の対象外
-        // 行動回数上限は未設定のアセットで 0 になるため、下限 1 に丸めてから渡す
+        // コインゲージの上限は 行動コスト × 持ち越し上限 で決める。持ち越し上限が未設定のアセットは既定値を使う
         protected virtual PPParameterSet CreatePPParameterSet(int aLevel)
-            => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
-                mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.CoinGaugeMax, EvaluateDexterity(aLevel));
+        {
+            int carryOver = mExpandStatBlock.CarryOverActions > 0
+                ? mExpandStatBlock.CarryOverActions
+                : PPStatBlock.DefaultCarryOverActions;
+            return new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
+                mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.AttackCost * carryOver, EvaluateDexterity(aLevel));
+        }
 
         /* 評価・判定 */
 

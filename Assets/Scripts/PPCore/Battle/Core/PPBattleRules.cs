@@ -54,9 +54,10 @@ namespace PPCore
         // 通常攻撃（スキル未使用）の基礎AIスコア。スキルは PPSkillDefinition.AIScore 側に個別で持つのに対し、
         // 通常攻撃はスキル定義を持たないためここで一括して持つ
         public float NormalAttackAIScore = 1f;
-        // 1 ティック分の行動を実行順に並べるリゾルバ
-        // 優先度と速度で並べるのが既定。並べ方を変えたい場合はここを差し替える
-        public IPPActionOrderResolver ActionOrderResolver { get; set; } = new PPDefaultActionOrderResolver();
+        // 同時にコインゲージが溜まった行動を実行順に並べるリゾルバ
+        // 優先度と、素早さに 0〜1 の乱数を足した値で並べるのが既定。並べ方を変えたい場合はここを差し替える
+        public IPPActionOrderResolver ActionOrderResolver { get; set; } =
+            new PPDefaultActionOrderResolver { SpeedJitter = 1f };
         // 通常攻撃 1 回あたりに回復するスキルゲージ量
         // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
         public float NormalAttackSkillGaugeRecover = 5f;

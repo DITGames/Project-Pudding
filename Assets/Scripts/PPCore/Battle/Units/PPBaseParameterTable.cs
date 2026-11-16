@@ -170,10 +170,13 @@ namespace PPCore
         public const float DefaultDexterity = 20f;
         // 新規作成したユニット定義のスキルゲージ上限の既定値
         public const float DefaultSkillGaugeMax = 100f;
+        // 持ち越し上限が未設定（0 以下）のユニット定義で使う既定値
+        public const int DefaultCarryOverActions = 10;
 
         /* インスペクタ設定 */
 
-        [Label("通常攻撃コスト")]
+        // 1 回の行動に必要なコインゲージ量。通常攻撃でもスキルでも同じで、低いほど頻繁に行動する
+        [Label("行動コスト")]
         public float AttackCost;
         // 1 ティックあたりに行動できる回数。バフで増減しうるため、ここでは初期値だけを持つ
         [Label("行動回数上限")]
@@ -181,9 +184,9 @@ namespace PPCore
         // スキルゲージの上限。スキルの必要スキルゲージ量はこの範囲内で設定する
         [Label("スキルゲージ上限")]
         public float SkillGaugeMax;
-        // コインゲージの上限。通常攻撃コストはこの範囲内で設定する
-        [Label("コインゲージ上限")]
-        public float CoinGaugeMax;
+        // コインゲージに溜めておける行動の回数。コインゲージの上限は 行動コスト × この値 になる
+        [Label("持ち越し上限(行動回数)")]
+        public int CarryOverActions;
 
         // 会心率の元になる基礎能力（レベル 1 時点の値）。PPUnitDefinition の成長曲線でレベル成長する
         // 会心率(%) = 補正後きようさ × 0.25（0～100 に丸める）。既定値 20 で会心率 5%

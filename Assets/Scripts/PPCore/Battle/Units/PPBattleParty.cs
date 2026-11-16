@@ -125,6 +125,11 @@ namespace PPCore
         // 直前にコインを受け取ったユニット。次のコインはこの次の順番から配る。null なら先頭から
         private PPBattleUnit mLastCoinReceiver;
 
+        /* イベント */
+
+        // コインを 1 枚以上配り終えたとき
+        public event Action OnCoinsDistributed;
+
         /* 生成 */
 
         public PPBattleParty(float aBaseCoinRate, BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
@@ -154,6 +159,8 @@ namespace PPCore
                 mLastCoinReceiver = receiver;
                 given++;
             }
+
+            if (given > 0) OnCoinsDistributed?.Invoke();
             return given;
         }
 

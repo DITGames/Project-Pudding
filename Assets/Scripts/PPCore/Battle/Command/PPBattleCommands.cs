@@ -219,13 +219,13 @@ namespace PPCore
         public float AttackCost { get; }
     }
 
-    // コインゲージを消費する通常攻撃コマンド。属性相性を含むダメージ計算（PPDamageUtility）を使い、成立時はスキルゲージを回復する
-    // ダメージは先に全対象分を計算し、コストを支払えた場合にのみまとめて適用する
+    // 通常攻撃コマンド。属性相性を含むダメージ計算（PPDamageUtility）を使い、成立時はスキルゲージを回復する
+    // 行動コスト（コインゲージ）は行動を積む側が支払うため、ここでは消費しない
     public class PPAttackCommand : AttackCommand, IPPBattleCommand
     {
         /* 状態 */
 
-        // この攻撃に必要なコインゲージ量。生成時点の攻撃コストで固定される
+        // この行動に必要なコインゲージ量。生成時点の行動コストで固定される
         public float AttackCost {get; private set;}
 
         /* 生成 */
@@ -241,8 +241,7 @@ namespace PPCore
 
         /* 操作 */
 
-        // 対象ごとにダメージを算出したうえで、コインゲージを消費できた場合のみ適用する
-        // キューに積んでから実行までに残量が変わりうるため、ここでも支払いの成否を見る
+        // 対象ごとにダメージを算出して適用し、スキルゲージを回復する
         public override void Execute(BattleContext aContext)
         {
             if (Source is not PPBattleUnit ppSource)
@@ -260,13 +259,6 @@ namespace PPCore
                 var damageInfo = PPDamageUtility.CreateDamageInfo(Source, target, raw, PPSkillCategory.Physical, sourceAttribute,
                     new AttackDamageReason(this), aContext);
                 damages.Add(damageInfo);
-            }
-
-            // AI・UI 側でも実行可能かチェックされるが念のためコスト消費ができた場合のみ攻撃実行
-            if (!PPGaugeUtility.TryPay(ppSource.ExtraParameters.CoinGauge, AttackCost))
-            {
-                CustomConsoleLog.Warning("Battle", $"{Source.DisplayName}の通常攻撃はコインゲージ不足のため中止されました。");
-                return;
             }
 
             foreach (var damageInfo in damages) damageInfo.Target?.ApplyDamage(damageInfo, aContext);

@@ -410,7 +410,7 @@ namespace MCPBridgeBindings.Editor
                 ["unitCatalog"] = ReferenceSchema(), ["visualCatalog"] = ReferenceSchema(), ["skillCatalog"] = ReferenceSchema(),
                 ["compareTarget"] = ReferenceSchema("比較ビューとcompareの既定の比較対象PPUnitDefinition"),
                 ["scales"] = new JObject { ["type"] = "array", ["minItems"] = 4, ["maxItems"] = 5, ["description"] = "棒グラフの基準値。" + StatLegend + "の順。4要素ならきようさは変更しない", ["items"] = new JObject { ["type"] = "number", ["exclusiveMinimum"] = 0 } },
-                ["extra"] = new JObject { ["type"] = "object", ["description"] = "AttackCost, ActionCount, SkillGaugeMax, CoinGaugeMax" },
+                ["extra"] = new JObject { ["type"] = "object", ["description"] = "AttackCost, ActionCount, SkillGaugeMax, CarryOverActions" },
                 ["stats"] = new JObject { ["type"] = "array", ["description"] = "各要素: index(0=HP,1=攻撃,2=防御,3=速度), initial, final, template(線形/早熟/晩成/S字), curve({keys:[{time,value,inTangent,outTangent,inWeight,outWeight,weightedMode}],preWrapMode,postWrapMode})。templateとcurveは同時指定不可。" },
                 ["skills"] = new JObject { ["type"] = "array", ["description"] = "一覧を置換。各要素は{reference:{guid,localFileId}}または{new:{mSkillId:...,mDisplayName:...,mSkillEffects:[{type:完全型名,properties:{...}}]}}。get結果のpropertiesはそのままnewへ渡せる。" },
             },
