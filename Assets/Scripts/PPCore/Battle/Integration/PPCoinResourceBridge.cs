@@ -36,7 +36,7 @@ namespace PPCore
         public float Convert(int aCoinCount, float aRate) => aCoinCount * aRate;
     }
 
-    // プッシャー（物理）側とバトル側を繋ぐブリッジ。コイン獲得通知を購読し、生存ユニット全員のコインゲージへ均等分配する
+    // プッシャー（物理）側とバトル側を繋ぐブリッジ。コイン獲得通知を購読し、生存ユニットのコインゲージへ 1 枚ずつ順番に配る
     // 物理側とバトル側は直接結合させず、必ずここを経由させること
     public class PPCoinResourceBridge : MonoBehaviour
     {
@@ -101,7 +101,7 @@ namespace PPCore
 
         /* イベントハンドラ */
 
-        // コイン獲得通知を受けて、枚数をゲージ量へ変換し生存ユニットへ均等分配する
+        // コイン獲得通知を受けて、枚数をゲージ量へ変換し、1 枚ずつ配置の順に生存ユニットへ配る
         // コインの属性は分配先の選択には使わない
         private void HandleCoinGained(PPTypeAttribute a, int aCoinCount)
         {
@@ -112,8 +112,10 @@ namespace PPCore
             // 実質変化のない変換(0枚など)はログを出さない
             if (amount <= 0f) return;
 
-            CustomConsoleLog.Verbose("Resource", $"コイン{aCoinCount}枚をコインゲージ{amount:0.##}に変換します（レートx{rate}）。", this);
-            PPGaugeUtility.DistributeToAliveUnits(mTargetParty.ActiveMembers, PPGaugeKind.Coin, amount);
+            // 変換は枚数全体に対して行うため、1 枚あたりの量は合計から求める
+            int given = mTargetParty.DistributeCoins(aCoinCount, amount / aCoinCount);
+            CustomConsoleLog.Verbose("Resource",
+                $"コイン{aCoinCount}枚をコインゲージ{amount:0.##}に変換し、{given}枚分を配りました（レートx{rate}）。", this);
         }
     }
 }

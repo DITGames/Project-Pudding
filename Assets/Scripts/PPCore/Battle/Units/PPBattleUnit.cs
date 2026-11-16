@@ -414,6 +414,8 @@ namespace PPCore
         // 育成値とスキル効果値から BaseValue を組み立てるテーブル
         // パッシブスキルやパーティ効果は、ここへ効果値を足すことで BaseValue に反映させる
         public PPBaseParameterTable BaseParameters { get; }
+        // パーティ内の配置。コインを配る順番と正面の相手の判定に使う。パーティ生成時に定義から設定される
+        public PPPartyPosition Position { get; set; }
 
         /* 生成 */
 
