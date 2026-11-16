@@ -44,8 +44,8 @@ namespace PPCore
         float SkillGaugeCost { get; }
         // 今このスキルを発動できるか。ボタンの有効・無効に使う
         bool IsCastable { get; }
-        // 残りクールダウンターン数
-        int CooldownRemaining { get; }
+        // 残りクールタイム（秒）
+        float CooldownRemaining { get; }
 
         /* イベント */
 
@@ -155,8 +155,8 @@ namespace PPCore
         public string DisplayName => mSkill.DisplayName;
         // 発動に必要なスキルゲージ量。定義を引けない場合は無コスト扱い
         public float SkillGaugeCost => (mSkill.SourceDefinition as PPSkillDefinition)?.SkillGaugeCost ?? 0f;
-        // 残りクールダウンターン数
-        public int CooldownRemaining => mSkill.RemainingCooldown;
+        // 残りクールタイム（秒）
+        public float CooldownRemaining => mSkill.RemainingCooldown;
 
         // 今このスキルを発動できるか
         // バリデータの判定に加えて、同じティックに既に予約した行動で使う予定の分も差し引く

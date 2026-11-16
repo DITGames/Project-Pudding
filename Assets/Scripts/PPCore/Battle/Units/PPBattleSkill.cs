@@ -12,7 +12,7 @@ using System.Collections.Generic;
 namespace PPCore
 {
     // スキルのランタイムインスタンス。SkillDefinition の CreateRuntimeSkill() で生成される
-    // 効果本体をデリゲート Effect として保持し、クールダウンと使用回数を管理する
+    // 効果本体をデリゲート Effect として保持し、クールタイム（秒）と使用回数を管理する
     public class BattleSkill
     {
         /* 状態 */
@@ -28,17 +28,22 @@ namespace PPCore
         // 生成元の定義アセットへの参照
         // AI が定義型で判定するため、生成時に必ず設定する
         public object SourceDefinition { get; set; }
-        // クールダウンのターン数。0 ならクールダウンなし
-        public int MaxCooldown { get; set; } = 0; // クールダウンなし
-        // 残りクールダウンターン数。0 で再使用可能
-        public int RemainingCooldown { get; protected internal set; } = 0;
+        // クールタイムの長さ（秒）。0 ならクールタイムなし
+        public float MaxCooldown { get; set; } = 0f;
         // 1 戦闘あたりの最大使用可能回数。0 なら無制限
         public int MaxUsesPerBattle { get; set; } = 0; // 無制限
         // この戦闘で残っている使用回数
         public int UsesRemaining { get; protected internal set; } = 0;
+        // クールタイムを計る時計。使用時のバトル専用の時計を覚えておく。未使用なら null
+        private PPBattleClock mCooldownClock;
+        // クールタイムが明ける時刻（バトル専用の時計の秒）
+        private float mCooldownEndTime;
 
         /* プロパティ */
 
+        // 残りクールタイム（秒）。0 で再使用可能。バトル専用の時計で進むため、時計の停止中は減らない
+        public float RemainingCooldown
+            => mCooldownClock == null ? 0f : Math.Max(0f, mCooldownEndTime - mCooldownClock.Now);
         // クールダウンと使用回数をまとめて見た、今このスキルを撃てるかの判定
         public bool IsReady =>
             RemainingCooldown <= 0 && (MaxUsesPerBattle == 0 || UsesRemaining > 0);
@@ -68,22 +73,20 @@ namespace PPCore
         // BattleManager.StartBattle から全スキルに対して呼ばれる
         public void ResetForBattle()
         {
-            RemainingCooldown = 0;
+            mCooldownClock = null;
+            mCooldownEndTime = 0f;
             UsesRemaining = MaxUsesPerBattle;
         }
 
-        // スキル使用を記録し、クールダウン開始と使用回数の消費を行う
-        public void NotifyUsed()
+        // スキル使用を記録し、クールタイムの開始と使用回数の消費を行う
+        public void NotifyUsed(BattleContext aContext)
         {
-            // 使用後にTick走るのでRemainingCooldownはMaxCooldown + 1にすべき
-            if (MaxCooldown > 0) RemainingCooldown = MaxCooldown + 1;
+            if (MaxCooldown > 0f && aContext?.Clock != null)
+            {
+                mCooldownClock = aContext.Clock;
+                mCooldownEndTime = aContext.Clock.Now + MaxCooldown;
+            }
             if (MaxUsesPerBattle > 0 && UsesRemaining > 0) UsesRemaining--;
-        }
-
-        // クールダウンを 1 ターン分進める。BattleUnit.UnitTick から毎ターン呼ばれる
-        public void TickCooldown()
-        {
-            if (RemainingCooldown > 0) RemainingCooldown--;
         }
     }
 

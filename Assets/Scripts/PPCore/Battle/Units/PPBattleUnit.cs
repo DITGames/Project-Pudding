@@ -335,14 +335,11 @@ namespace PPCore
 
         /* 更新 */
 
-        // 1 ターン分の更新処理。ステータスエフェクトの更新と、全スキルのクールダウン消化をまとめて行う
+        // 1 回分の更新処理。ステータスエフェクトを更新する
+        // スキルのクールタイムはバトル専用の時計で進むため、ここでは扱わない
         public virtual void UnitTick(BattleContext aContext)
         {
             TickStatusEffects(aContext);
-            foreach (var skill in Skills)
-            {
-                skill.TickCooldown();
-            }
         }
 
         /* 問い合わせ */
@@ -371,11 +368,21 @@ namespace PPCore
         public PPBaseParameterTable BaseParameters { get; }
         // パーティ内の配置。コインを配る順番と正面の相手の判定に使う。パーティ生成時に定義から設定される
         public PPPartyPosition Position { get; set; }
+        // 選択中のスキル。行動を積むときに発動可能ならこのスキルを使い、そうでなければ通常攻撃になる。未選択なら null
+        // 使用後や失敗後も解除されず、取り消すまで残る
+        public BattleSkill SelectedSkill { get; private set; }
+        // 選択中のスキルの対象として選んだユニット。単体が対象のスキルで使う。未指定なら null
+        public BattleUnit SelectedSkillTarget { get; private set; }
 
         /* プロパティ */
 
         // 1 回の行動に必要なコインゲージ量。バフ・デバフ込みの現在値
         public float ActionCost => ExtraParameters.AttackCost.CurrentValue;
+
+        /* イベント */
+
+        // スキルの選択が変わったとき（選択・変更・取り消し）
+        public event Action<PPBattleUnit> OnSkillSelectionChanged;
 
         /* 生成 */
 
@@ -400,6 +407,29 @@ namespace PPCore
             table.Register(PPParameterSet.ParameterIdDexterity, ExtraParameters.Dexterity);
             table.Register(PPParameterSet.ParameterIdSkillGaugeMax, ExtraParameters.SkillGauge.Max);
             return table;
+        }
+
+        /* 操作 */
+
+        // 次の行動から使うスキルを選ぶ。自分の持っていないスキルは選べない
+        public bool SelectSkill(BattleSkill aSkill, BattleUnit aTarget = null)
+        {
+            if (aSkill == null || !Skills.Contains(aSkill)) return false;
+
+            SelectedSkill = aSkill;
+            SelectedSkillTarget = aTarget;
+            OnSkillSelectionChanged?.Invoke(this);
+            return true;
+        }
+
+        // スキルの選択を取り消し、通常攻撃を行う状態へ戻す
+        public void ClearSkillSelection()
+        {
+            if (SelectedSkill == null) return;
+
+            SelectedSkill = null;
+            SelectedSkillTarget = null;
+            OnSkillSelectionChanged?.Invoke(this);
         }
 
         /* 問い合わせ */

@@ -10,7 +10,6 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AttributeUtility;
-using CustomConsole;
 
 namespace PPCore
 {
@@ -44,6 +43,10 @@ namespace PPCore
         [Label("行動の演出時間")]
         [Min(0f)]
         [SerializeField] private float mActionPresentationSeconds = 0.5f;
+
+        // 有効なとき、味方が行動を積むタイミングで発動可能なスキルがあれば、スキル選択を開いて選び直せるようにする
+        [Label("スキル使用可能時にゲージが溜まったらコマンド選択を開く")]
+        [SerializeField] private bool mIsOpenCommandOnGaugeReady = false;
 
         // 敵が更新間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
         [Label("敵ゲージ供給")]
@@ -100,7 +103,9 @@ namespace PPCore
 
             mController.Bind(mBattleManager);
             mController.OnCommandConfirmed += HandleCommandConfirmed;
+            mController.OnInputClosed += mActionScheduler.ResumeAfterSelection;
 
+            mActionScheduler.SelectionRequester = HandleSelectionRequested;
             mActionScheduler.Bind(mBattleManager, mActionPresentationSeconds);
             mActionScheduler.StartStatusTick(mTurnTickInterval);
 
@@ -158,11 +163,18 @@ namespace PPCore
 
         /* イベントハンドラ */
 
-        // プレイヤーが確定したコマンドを受け取る。現在の進行は通常攻撃だけを行うため、確定した内容は使わない
+        // プレイヤーが確定したコマンドを、そのユニットのスキルの選択へ反映する
+        // その場では実行せず、コインゲージが溜まったときに進行役が積む
         private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
+            => mActionScheduler.ApplyPlayerCommand(aUnit, aCommand, mController.Context.Target);
+
+        // 行動を積む直前のコマンド選択を開くかを決める。設定が有効で、味方に発動可能なスキルがあるときだけ開く
+        private bool HandleSelectionRequested(PPBattleUnit aUnit)
         {
-            CustomConsoleLog.Warning("Battle",
-                $"{aUnit?.DisplayName} のコマンド選択は、スキルの選択が未実装のため反映されません。");
+            if (!mIsOpenCommandOnGaugeReady || aUnit.Side != BattleSide.Ally) return false;
+            if (!aUnit.CanValidateSkill(mBattleManager.Context)) return false;
+
+            return mController.BeginSkillSelect(aUnit);
         }
     }
 

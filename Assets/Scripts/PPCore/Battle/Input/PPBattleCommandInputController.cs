@@ -106,8 +106,13 @@ namespace PPCore
         private readonly Stack<IPPBattleInputState> mStateStack = new();
         // 選択途中の内容（ユニット・スキル・対象・コマンド生成関数）を保持するコンテキスト
         private readonly PPBattleSelectionContext mContext = new();
+        // 入力を開いているか。閉じた通知を 1 回の入力につき 1 回だけ出すために持つ
+        private bool mIsInputOpen;
 
         /* プロパティ */
+
+        // 入力を開いているか
+        public bool IsInputOpen => mIsInputOpen;
 
         // バインドされているバトルマネージャ
         public BattleManager Manager => mManager;
@@ -128,6 +133,8 @@ namespace PPCore
         public event Action<BattleUnit, BattleCommandBase> OnCommandConfirmed;
         // コマンドをキューへ流し終えたとき。入力 1 サイクルの完了通知
         public event Action OnCommandFlushed;
+        // 入力が閉じたとき。確定・中断のどちらでも発火する
+        public event Action OnInputClosed;
 
         /* 生成 */
 
@@ -186,17 +193,38 @@ namespace PPCore
             {
                 mInputStateBorder.gameObject.SetActive(true);
             }
+            mIsInputOpen = true;
             Push(new PPUnitSelectState(this));
             Time.timeScale = 0;
+        }
+
+        // 指定したユニットのスキル選択から入力を開始する。行動を積む直前に選び直させるときに使う
+        // 既に入力を開いている場合は割り込まず false を返す
+        public bool BeginSkillSelect(BattleUnit aUnit)
+        {
+            if (mManager == null || mManager.StateMachine.Current == BattleState.BattleEnd) return false;
+            if (aUnit == null || mIsInputOpen) return false;
+
+            mContext.Clear();
+            mContext.Unit = aUnit;
+            if (mInputStateBorder != null)
+            {
+                mInputStateBorder.gameObject.SetActive(true);
+            }
+            mIsInputOpen = true;
+            Push(new PPSkillSelectState(this));
+            Time.timeScale = 0;
+            return true;
         }
 
         // 入力を中断する（バトル終了・対象の消滅・キャンセルなど）
         // スタックを空にし、UI の選択状態も解除する
         public void Abort()
         {
-            ClearStack();
+            bool wasOpen = ClearStack();
             if (EventSystem.current != null)
                 EventSystem.current.SetSelectedGameObject(null);
+            if (wasOpen) OnInputClosed?.Invoke();
         }
 
         // 次のステートへ進む。現在のステートを Suspend してから新しいステートを積んで Enter する
@@ -241,14 +269,18 @@ namespace PPCore
         // 実行もキュー投入もせず、予約として扱う
         private void Flush()
         {
-            ClearStack();
+            bool wasOpen = ClearStack();
             OnCommandFlushed?.Invoke();
+            if (wasOpen) OnInputClosed?.Invoke();
         }
 
-        // ステートスタックを空にし、入力中表示を消して timeScale を戻す
+        // ステートスタックを空にし、入力中表示を消して timeScale を戻す。入力を開いていたかを返す
         // 積まれている全ステートに Exit を通すのでリソースは解放される
-        private void ClearStack()
+        private bool ClearStack()
         {
+            bool wasOpen = mIsInputOpen;
+            mIsInputOpen = false;
+
             while (mStateStack.Count > 0)
             {
                 mStateStack.Pop().Exit();
@@ -260,6 +292,7 @@ namespace PPCore
             }
 
             Time.timeScale = 1;
+            return wasOpen;
         }
 
         /* イベントハンドラ */

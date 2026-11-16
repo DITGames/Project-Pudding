@@ -174,7 +174,7 @@ namespace PPCore
             var skillGauge = aUnit.ExtraParameters.SkillGauge;
             if (aTicks <= 0) return skillGauge.Current;
 
-            float gained = EstimateAttackCount(aUnit, aTicks) * (aRules?.NormalAttackSkillGaugeRecover ?? 0f)
+            float gained = EstimateAttackCount(aUnit, aTicks) * (aRules?.ResolveNormalAttackSkillGauge(aUnit) ?? 0f)
                          + Mathf.Max(0f, aExtraSkillGaugePerTick) * aTicks;
 
             return Mathf.Min(skillGauge.Current + gained, skillGauge.Max.CurrentValue);

@@ -58,9 +58,9 @@ namespace PPCore
         // 優先度と、素早さに 0〜1 の乱数を足した値で並べるのが既定。並べ方を変えたい場合はここを差し替える
         public IPPActionOrderResolver ActionOrderResolver { get; set; } =
             new PPDefaultActionOrderResolver { SpeedJitter = 1f };
-        // 通常攻撃 1 回あたりに回復するスキルゲージ量
+        // 通常攻撃 1 回あたりに回復するスキルゲージの基礎量。実際の量は素早さに応じて増える
         // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
-        public float NormalAttackSkillGaugeRecover = 5f;
+        public float NormalAttackSkillGaugeRecover = 10f;
 
         /* 生成 */
 
@@ -70,6 +70,18 @@ namespace PPCore
         {
             CriticalResolver = new PPCriticalResolver();
             ClearStatusEffectsOnDefeat = true;
+        }
+
+        /* 評価・判定 */
+
+        // 通常攻撃 1 回で溜まるスキルゲージ量を返す。基礎量 ×(1 + 素早さ / 100) の小数点以下を切り捨てる
+        // 素早さはバフ・デバフ込みの現在値を使い、負の値は 0 として扱う
+        public virtual float ResolveNormalAttackSkillGauge(BattleUnit aUnit)
+        {
+            if (aUnit == null || NormalAttackSkillGaugeRecover <= 0f) return 0f;
+
+            float speed = Math.Max(0f, aUnit.Parameters.Speed.CurrentValue);
+            return (float)Math.Floor(NormalAttackSkillGaugeRecover * (1f + speed / 100f));
         }
     }
 

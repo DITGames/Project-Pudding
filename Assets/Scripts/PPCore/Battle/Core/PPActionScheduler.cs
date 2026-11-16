@@ -6,6 +6,7 @@
  * @brief コインゲージが溜まったユニットを行動させる進行役
  * =====================================*/
 
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,6 +18,11 @@ namespace PPCore
     {
         /* 状態 */
 
+        // 行動を積む直前に、そのユニットのコマンド選択を開くかを尋ねる関数。開いた場合は true を返す
+        // 開いた側は、選択が閉じたときに ResumeAfterSelection を呼ぶこと。未設定なら尋ねずに行動する
+        public Func<PPBattleUnit, bool> SelectionRequester { get; set; }
+        // コマンド選択が閉じるのを待っているユニット。待っていなければ null
+        private PPBattleUnit mSelectingUnit;
         // 行動を積む先のバトルマネージャ。未接続なら null
         protected BattleManager mManager;
         // 行動の演出に掛かる時間（秒）。この間、そのユニットは次の行動を積まない
@@ -55,6 +61,7 @@ namespace PPCore
             }
 
             mManager = null;
+            mSelectingUnit = null;
             mActingUnits.Clear();
         }
 
@@ -72,7 +79,8 @@ namespace PPCore
         // 行動できるユニットを調べ、素早さの順に 1 体ずつ行動させる。コインゲージが変化したあとに呼ぶ
         public void Evaluate()
         {
-            if (mManager?.Context == null || mIsEvaluating) return;
+            // コマンド選択が開いている間は、選択が閉じるまで誰も行動させない
+            if (mManager?.Context == null || mIsEvaluating || mSelectingUnit != null) return;
             if (mManager.StateMachine.Current == BattleState.BattleEnd) return;
 
             mIsEvaluating = true;
@@ -92,6 +100,8 @@ namespace PPCore
                 foreach (var action in ordered)
                 {
                     if (mManager.StateMachine.Current == BattleState.BattleEnd) break;
+                    // コマンド選択を開いた場合は、残りのユニットも選択が閉じてから調べ直す
+                    if (TryRequestSelection(action.Unit)) break;
                     Act(action.Unit, context);
                 }
             }
@@ -99,6 +109,55 @@ namespace PPCore
             {
                 mIsEvaluating = false;
             }
+        }
+
+        // コマンド選択が閉じたあとに呼ぶ。待っていたユニットを行動させ、残りのユニットを調べ直す
+        public void ResumeAfterSelection()
+        {
+            var unit = mSelectingUnit;
+            if (unit == null) return;
+
+            mSelectingUnit = null;
+            if (mManager?.Context == null || mManager.StateMachine.Current == BattleState.BattleEnd) return;
+
+            // 選び直しを続けて尋ねないよう、このユニットは尋ねずに行動させる
+            mIsEvaluating = true;
+            try
+            {
+                if (IsReady(unit)) Act(unit, mManager.Context);
+            }
+            finally
+            {
+                mIsEvaluating = false;
+            }
+
+            Evaluate();
+        }
+
+        // プレイヤーが確定したコマンドを、そのユニットのスキルの選択へ反映する
+        // スキルなら選択中のスキルにし、通常攻撃なら選択を取り消す。実際の行動はコインゲージが溜まったときに積まれる
+        public virtual void ApplyPlayerCommand(BattleUnit aUnit, BattleCommandBase aCommand, BattleUnit aTarget)
+        {
+            if (aUnit is not PPBattleUnit unit) return;
+
+            if (aCommand is SkillCommand skillCommand)
+            {
+                unit.SelectSkill(skillCommand.Skill, aTarget);
+            }
+            else if (aCommand is AttackCommand)
+            {
+                unit.ClearSkillSelection();
+            }
+        }
+
+        // 行動を積む直前のコマンド選択を開く。開いた場合は、閉じるまでそのユニットを待たせる
+        private bool TryRequestSelection(PPBattleUnit aUnit)
+        {
+            if (SelectionRequester == null || !IsReady(aUnit)) return false;
+            if (!SelectionRequester(aUnit)) return false;
+
+            mSelectingUnit = aUnit;
+            return true;
         }
 
         // ユニット 1 体を行動させる。行動コストを支払ってコマンドを実行し、演出の終了を予約する
@@ -148,11 +207,48 @@ namespace PPCore
             return cost > 0f && PPGaugeUtility.CanPay(aUnit.ExtraParameters.CoinGauge, cost);
         }
 
-        // ユニットが行う行動を決める。対象が居なければ null を返す
+        // ユニットが行う行動を決める。選択中のスキルを積めるならそのスキル、そうでなければ通常攻撃
+        // 対象が居なければ null を返す
         protected virtual BattleCommandBase SelectCommand(PPBattleUnit aUnit, BattleContext aContext)
         {
+            var skillCommand = BuildSelectedSkillCommand(aUnit, aContext);
+            if (skillCommand != null) return skillCommand;
+
             var target = ResolveDefaultTarget(aUnit, aContext);
             return target == null ? null : new PPAttackCommand(aUnit, new SingleEnemyResolver(target));
+        }
+
+        // 選択中のスキルのコマンドを作る。未選択・積めない・対象が居ない場合は null を返す
+        protected virtual BattleCommandBase BuildSelectedSkillCommand(PPBattleUnit aUnit, BattleContext aContext)
+        {
+            var skill = aUnit.SelectedSkill;
+            if (skill == null || !CanQueueSkill(aUnit, skill, aContext)) return null;
+
+            switch (skill.DefaultTargetResolver)
+            {
+                case SingleEnemyResolver:
+                    // 選んだ相手が倒れていれば、指定が無いときの規則で選び直す
+                    var enemy = aUnit.SelectedSkillTarget is { IsAlive: true } selected && selected.Side != aUnit.Side
+                        ? selected
+                        : ResolveDefaultTarget(aUnit, aContext);
+                    return enemy == null ? null : new PPSkillCommand(aUnit, skill, new SingleEnemyResolver(enemy));
+                case SingleAllyResolver:
+                    return new PPSkillCommand(aUnit, skill, new SingleAllyResolver(aUnit.SelectedSkillTarget));
+                default:
+                    return new PPSkillCommand(aUnit, skill);
+            }
+        }
+
+        // 選択中のスキルを今積めるか。発動可能（スキルゲージが足りていてクールタイム中でない）なら true
+        // スキル封じは「積んだうえで失敗する」扱いのため、他の条件を満たしていれば積める側に含める
+        protected virtual bool CanQueueSkill(PPBattleUnit aUnit, BattleSkill aSkill, BattleContext aContext)
+        {
+            var validation = aContext.Rules.CastValidator.Validate(aUnit, aSkill, aContext);
+            if (validation.CanCast) return true;
+            if (validation.Reason != CastFailReason.Silenced) return false;
+
+            float cost = (aSkill.SourceDefinition as PPSkillDefinition)?.SkillGaugeCost ?? 0f;
+            return aSkill.IsReady && PPGaugeUtility.CanPay(aUnit.ExtraParameters.SkillGauge, cost);
         }
 
         // 指定が無いときの対象を決める。正面の敵が生きていれば正面、倒れていれば残りの敵からランダムに選ぶ
