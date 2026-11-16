@@ -3,14 +3,435 @@
  * @file PPBattleUnit.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief バトルユニットのベースクラス
+ * @brief バトルユニットと行動回数
  * =====================================*/
 
-using CommandBattleCore;
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PPCore
 {
+    // 戦闘に参加する 1 体分のランタイムインスタンス
+    // パラメータ・スキル・ステータスエフェクト・リアクション・行動回数を保持し、
+    // ダメージ／回復／エフェクト付与といった「自分の状態が変わる操作」を受け付ける
+    // 状態が変わるたびに event を発火し、BattleManager がそれを購読して
+    // 全体への通知・ログ出力・リアクション発火へ変換する
+    // つまりこのクラス自体はバトル全体の進行を一切知らない
+    public class BattleUnit
+    {
+        // ユニットのID
+        public string UnitId { get; }
+        // UI表示名
+        public string DisplayName { get; }
+        // 味方か敵か。パーティ生成時に設定される
+        public BattleSide Side { get; protected internal set; }
+        // 生存中かどうか。HP が 1 以上なら true
+        public bool IsAlive => Parameters.Hp.CurrentValue > 0;
+
+        // HP・攻撃力などのパラメータ一式
+        public ParameterSet Parameters { get; }
+        // 発動中のステータスエフェクト（ステータス上昇や状態異常もこれに含まれる想定）
+        public List<StatusEffect> ActiveStatusEffects { get; } = new();
+        // 使用可能なスキル
+        public List<BattleSkill> Skills { get; } = new();
+        // 反撃などのリアクション定義。トリガー発生時に BattleManager が走査する
+        public List<IBattleReaction> Reactions { get; } = new();
+
+        // 1 ターンあたりの行動回数の管理
+        public ActionBudget Actions { get; } = new();
+        // コマンド決定クラス。AI 制御ユニットに設定する
+        public ICommandDecider CommandDecider { get; set; }
+        // 生成元の定義アセットへの参照
+        // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
+        public object SourceDefinition { get; set; }
+
+        // このユニット専用の乱数供給元
+        // 1 本の乱数列を全ユニットで共有すると、他のユニットが 1 回多く引いただけで
+        // 以降の全員の乱数がずれてしまい、そのユニット単体の挙動を追えなくなる
+        // ユニットごとに列を分けることで、他人の消費に影響されずに挙動を再現できる
+        // 未設定なら BattleRules.RandomProvider へフォールバックする
+        public IRandomProvider Random { get; set; }
+
+        // ダメージ適用前の介入(ダメージ情報)。ここで Amount を書き換えれば軽減・無効化できる
+        public event Action<DamageInfo> OnPreDamaged;
+        // ダメージデリゲート(対象ユニット, 値)。実際に HP が減ったときのみ発火する
+        public event Action<BattleUnit, float> OnDamaged;
+        // ダメージ適用後の介入(ダメージ情報)
+        public event Action<DamageInfo> OnPostDamaged;
+        // ダメージ結果のデリゲート(ダメージ情報)。ミス・無効化を含む全ての結果で発火する
+        public event Action<DamageInfo> OnDamageResolved;
+        // 回復デリゲート(対象ユニット, 値)
+        public event Action<BattleUnit, float> OnHealed;
+        // 撃破デリゲート(対象ユニット)
+        public event Action<BattleUnit> OnDefeated;
+        // ステータスエフェクト追加デリゲート(対象ユニット, エフェクト)
+        public event Action<BattleUnit, StatusEffect> OnStatusEffectAdded;
+        // ステータスエフェクト除去デリゲート(対象ユニット, エフェクト)
+        public event Action<BattleUnit, StatusEffect> OnStatusEffectRemoved;
+        // ステータスエフェクトスタック時デリゲート(対象ユニット, エフェクト)
+        public event Action<BattleUnit, StatusEffect> OnStatusEffectStacked;
+
+        // ユニットを生成する
+        // aUnitId : ユニットID
+        // aDisplayName : UI表示名
+        // aParameters : このユニットのパラメータ一式
+        public BattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameters)
+        {
+            UnitId = aUnitId;
+            DisplayName = aDisplayName;
+            Parameters = aParameters;
+        }
+
+        // 現在の行動制限状況。発動中の全ステータスエフェクトの制限をビット OR で合成して返す
+        public ActionRestriction CurrentRestrictions
+        {
+            get
+            {
+                var r = ActionRestriction.None;
+                foreach (var a in ActiveStatusEffects) r |= a.Restriction;
+                return r;
+            }
+        }
+
+        // このユニットが使う乱数供給元を解決する
+        // 自前の列を持っていればそちらを、無ければバトル共通の供給元を返す
+        // 「誰の乱数を引くか」を呼び出し側で分岐させないための入口
+        // aContext : 共通の供給元を引くためのバトルコンテキスト
+        // return : 使用する乱数供給元
+        public IRandomProvider ResolveRandom(BattleContext aContext)
+            => Random ?? aContext.Rules.RandomProvider;
+
+        // 状態異常によって今回の行動が失敗するかを抽選する
+        // 行動不能エフェクトのうち、失敗率が設定されていれば確率判定（麻痺など）、
+        // 未設定なら無条件で失敗（睡眠など）として扱う
+        // aContext : 乱数供給元を含むバトルコンテキスト
+        // return : 行動が阻害された場合 true
+        public bool RollActionBlocked(BattleContext aContext)
+        {
+            bool blocked = false;
+            foreach (var eff in ActiveStatusEffects)
+            {
+                if((eff.Restriction & ActionRestriction.CannotAct) == 0)
+                    continue;
+                if (eff.ActionFailChance is float chance)
+                {
+                    // 自分が行動できるかの抽選なので、自分の乱数列から引く
+                    if (ResolveRandom(aContext).NextBool(chance))
+                        blocked = true;
+                }
+                else
+                {
+                    blocked = true;
+                }
+            }
+            return blocked;
+        }
+
+        // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）
+        // 麻痺のように失敗率が設定された行動不能は「行動しようとすれば成功する可能性がある」ため含まない
+        // AI が「このユニットに行動を割り当てても無駄か」を判断するときに使う
+        // 失敗率が 1 以上のものは抽選しても必ず失敗するため、確定扱いにする
+        public bool IsActionCertainlyBlocked
+        {
+            get
+            {
+                foreach (var eff in ActiveStatusEffects)
+                {
+                    if ((eff.Restriction & ActionRestriction.CannotAct) == 0)
+                        continue;
+                    if (eff.ActionFailChance is not float chance || chance >= 1f)
+                        return true;
+                }
+                return false;
+            }
+        }
+
+        // パラメータをIDで解決する
+        // 追加のパラメータ群を持つ派生クラスはここをoverrideする
+        // aParamId : パラメータID
+        public virtual Parameter ResolveParameter(string aParamId) => Parameters.Get(aParamId);
+
+        // 数値だけを指定してダメージを適用する簡易版。攻撃元なしの DamageInfo を組んで委譲する
+        // スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算
+        // aAmount : ダメージ量
+        // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
+        public void ApplyDamage(float aAmount, BattleContext aContext = null)
+        {
+            // 発生源が分からない経路のため、攻撃とは見なさない
+            ApplyDamage(new DamageInfo(null, this, aAmount, OtherDamageReason.Default), aContext);
+        }
+
+        // ダメージを適用する
+        // ミス判定 → ステータスエフェクトによる軽減 → 実装先の介入 → 無効化判定 →
+        // HP 減算 → 撃破判定、の順に進み、各段階で対応する event を発火する
+        // aDamageInfo : 攻撃元・対象・ダメージ量・命中結果を持つダメージ情報
+        // aContext : バトルコンテキスト。ステータスエフェクトの被ダメージ介入で乱数等を参照する場合に渡す
+        public void ApplyDamage(DamageInfo aDamageInfo, BattleContext aContext = null)
+        {
+            if (!IsAlive) return;
+
+            // リアクションのコマンド実行中に発生したダメージへ、リアクションの深さと発生元を引き継ぐ
+            // ここで一度だけ行うことで、ダメージを組み立てる側（通常攻撃・スキル・反射など）が
+            // 自分が反撃の最中かどうかを意識しなくて済む
+            // Reason（攻撃・継続ダメージなど）は書き換えないため、反撃の攻撃も攻撃のまま扱われる
+            // 作る側が明示的に設定した Reaction があればそちらを優先する
+            if (aContext?.ExecutingCommand != null)
+            {
+                aDamageInfo.Reaction ??= aContext.ExecutingCommand.ReactionInfo;
+            }
+
+            // ミスの場合は結果通知だけ行って終了する
+            if (aDamageInfo.IsMiss)
+            {
+                OnDamageResolved?.Invoke(aDamageInfo);
+                return;
+            }
+
+            // ステータスエフェクトによるダメージ適用前の耐性や無効などを適用する
+            foreach (var ef in ActiveStatusEffects)
+            {
+                ef.NotifyIncomingDamage(this, aContext, aDamageInfo);
+            }
+
+            // 実装先でのダメージ適用前介入
+            OnPreDamaged?.Invoke(aDamageInfo);
+
+            // 無効化済みまたはダメージなし
+            if (aDamageInfo.IsNullified || aDamageInfo.Amount <= 0f)
+            {
+                OnPostDamaged?.Invoke(aDamageInfo);
+                OnDamageResolved?.Invoke(aDamageInfo);
+                return;
+            }
+
+            // ダメージ適用
+            float applied = aDamageInfo.Amount;
+            Parameters.Hp.Damage(aDamageInfo.Amount);
+            OnDamaged?.Invoke(this, applied);
+            OnPostDamaged?.Invoke(aDamageInfo);
+            OnDamageResolved?.Invoke(aDamageInfo);
+
+            // ダメージ量への介入（NotifyIncomingDamage）が済んだ後に消費させる
+            // 先に消費すると「次に受けるダメージを変化させる」効果が自分の出番で消えてしまう
+            // ダメージ情報を渡すことで、消費ルール側が「攻撃によるダメージのみ」等の絞り込みを行える
+            NotifyStatusEffectTrigger(StatusEffectConsumeTrigger.Damaged, aContext, aDamageInfo);
+
+            if (!IsAlive)
+            {
+                // 撃破を通知する前に状態異常を解除しておく
+                // OnDefeated の購読側（リアクション発火・勝敗判定・バトル終了通知）が
+                // 解除済みの状態を見られるようにし、バトル終了後に除去通知が届くことも防ぐ
+                // バトルコンテキストが無い経路ではルールを参照できないため解除しない
+                if (aContext?.Rules != null && aContext.Rules.ClearStatusEffectsOnDefeat)
+                {
+                    RemoveAllStatusEffects(aContext);
+                }
+                OnDefeated?.Invoke(this);
+            }
+        }
+
+        // 回復を適用する。戦闘不能状態のユニットは回復対象にならない
+        // aAmount : 回復量。0 以下なら何もしない
+        public void ApplyHeal(float aAmount)
+        {
+            if (!IsAlive || aAmount <= 0) return;
+            Parameters.Hp.Recover(aAmount);
+            OnHealed?.Invoke(this, aAmount);
+        }
+
+        // ステータスエフェクトを追加する
+        // 同一 ID のエフェクトが既に付与されている場合は
+        // StatusEffectStackPolicy に従って無視／継続時間更新／スタック加算／置き換えのいずれかを行う
+        // 死亡しているユニットには付与しない
+        // aStatusEffect : 付与するエフェクト
+        // aContext : バトルコンテキスト
+        public void AddStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
+        {
+            if (aStatusEffect == null || !IsAlive) return;
+
+            // 既に同じエフェクトが付いている場合はスタックポリシーで挙動を決める
+            var existing = ActiveStatusEffects.Find(e => e.EffectId == aStatusEffect.EffectId);
+            if (existing != null)
+            {
+                switch (aStatusEffect.StackPolicy)
+                {
+                    case StatusEffectStackPolicy.Ignore:
+                        return;
+                    case StatusEffectStackPolicy.Refresh:
+                        (existing.DurationCondition as IRefreshableDuration)?.Refresh();
+                        OnStatusEffectStacked?.Invoke(this, existing);
+                        return;
+                    case StatusEffectStackPolicy.StackCount:
+                        if (existing.TryAddStack(this, aContext))
+                        {
+                            OnStatusEffectStacked?.Invoke(this, existing);
+                        }
+                        return;
+                    case StatusEffectStackPolicy.StackCountAndRefresh:
+                        existing.TryAddStack(this, aContext);
+                        (existing.DurationCondition as IRefreshableDuration)?.Refresh();
+                        OnStatusEffectStacked?.Invoke(this, existing);
+                        return;
+                    case StatusEffectStackPolicy.Replace:
+                        RemoveStatusEffect(existing, aContext);
+                        // 置き換えるので下で処理
+                        break;
+                    case StatusEffectStackPolicy.Stack:
+                    default:
+                        break;
+                }
+            }
+
+            // 新規付与。効果を適用してから通知する
+            ActiveStatusEffects.Add(aStatusEffect);
+            aStatusEffect.AttachTo(this, aContext);
+            OnStatusEffectAdded?.Invoke(this, aStatusEffect);
+        }
+
+        // ステータスエフェクトを除去し、そのエフェクトが加えていた効果を巻き戻す
+        // aStatusEffect : 除去するエフェクト
+        // aContext : バトルコンテキスト
+        public void RemoveStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
+        {
+            if (!ActiveStatusEffects.Remove(aStatusEffect)) return;
+            aStatusEffect.DetachFrom(this, aContext);
+            OnStatusEffectRemoved?.Invoke(this, aStatusEffect);
+        }
+
+        // 掛かっているステータスエフェクトをすべて除去する
+        // 1 件ずつ RemoveStatusEffect を通すため、効果の巻き戻しと除去通知はエフェクトごとに行われる
+        // 除去中にリストが縮むため、末尾から逆順に走査している
+        // aContext : バトルコンテキスト
+        // return : 除去したエフェクトの件数
+        public int RemoveAllStatusEffects(BattleContext aContext)
+        {
+            int removedCount = 0;
+            for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
+            {
+                // 除去通知の購読側で他のエフェクトが除去され、添字がずれる可能性を考慮する
+                if (i >= ActiveStatusEffects.Count) continue;
+                RemoveStatusEffect(ActiveStatusEffects[i], aContext);
+                removedCount++;
+            }
+            return removedCount;
+        }
+
+        // 状況更新の度に呼び出す。各エフェクトの Tick（毒ダメージ等）を実行し、
+        // 持続条件が切れたものを除去する
+        // 除去中にリストが縮むため、末尾から逆順に走査している
+        // aContext : バトルコンテキスト
+        public void TickStatusEffects(BattleContext aContext)
+        {
+            for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
+            {
+                // 毒などで撃破され、撃破時の全解除でリストが空になっている場合がある
+                if (i >= ActiveStatusEffects.Count) continue;
+
+                var effect = ActiveStatusEffects[i];
+                effect.Tick(this, aContext);
+
+                // 自身の Tick の中で除去された（毒で撃破されて全解除された等）エフェクトは、
+                // 持続の消化やスタック消費を行わない。除去済みのエフェクトへ効果を掛け直さないため
+                if (!ActiveStatusEffects.Contains(effect)) continue;
+
+                if (!effect.DurationCondition.Tick())
+                {
+                    RemoveStatusEffect(effect, aContext);
+                    continue;
+                }
+
+                // 寿命が残っていても、ターン経過をきっかけにしたスタック消費で切れることがある
+                ApplyConsumeRule(effect, StatusEffectConsumeTrigger.TurnEnded, aContext, null);
+            }
+        }
+
+        // スタック消費のきっかけが起きたことを、掛かっている全エフェクトへ知らせる
+        // 消費でスタックを使い切ったエフェクトはその場で除去される
+        // 除去中にリストが縮むため、末尾から逆順に走査している
+        // aTrigger : 発生したきっかけ
+        // aContext : バトルコンテキスト
+        // aDamage : Damaged のきっかけで渡すダメージ情報。それ以外のきっかけでは null
+        public void NotifyStatusEffectTrigger(StatusEffectConsumeTrigger aTrigger, BattleContext aContext,
+            DamageInfo aDamage = null)
+        {
+            for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
+            {
+                // 直前の消費で他のエフェクトが除去され、添字がずれる可能性を考慮する
+                if (i >= ActiveStatusEffects.Count) continue;
+                ApplyConsumeRule(ActiveStatusEffects[i], aTrigger, aContext, aDamage);
+            }
+        }
+
+        // 1 つのエフェクトへ消費ルールを適用する
+        // aEffect : 対象のエフェクト
+        // aTrigger : 発生したきっかけ
+        // aContext : バトルコンテキスト
+        // aDamage : 被ダメージのきっかけで渡されるダメージ情報
+        private void ApplyConsumeRule(StatusEffect aEffect, StatusEffectConsumeTrigger aTrigger, BattleContext aContext,
+            DamageInfo aDamage)
+        {
+            if (aEffect?.ConsumeRule == null) return;
+
+            var effectContext = new StatusEffectContext(aEffect, this, aContext);
+            int consume = aEffect.ConsumeRule.ResolveConsumeStacks(aTrigger, effectContext, aDamage);
+            if (consume <= 0) return;
+
+            if (aEffect.ConsumeStacks(consume, this, aContext))
+            {
+                RemoveStatusEffect(aEffect, aContext);
+            }
+        }
+
+        // 1 ターン分の更新処理。ステータスエフェクトの更新、行動回数のリセット、
+        // 全スキルのクールダウン消化をまとめて行う
+        // aContext : バトルコンテキスト
+        public virtual void UnitTick(BattleContext aContext)
+        {
+            TickStatusEffects(aContext);
+            Actions.ResetForTurn();
+            foreach (var skill in Skills)
+            {
+                skill.TickCooldown();
+            }
+        }
+    }
+
+    // ユニット 1 体の 1 ターン内の行動回数を管理する
+    // 通常の行動回数と、一時的に付与された追加行動を分けて持つのが要点
+    // 消費は追加行動から先に減るため、ターン終了時のリセットで
+    // 使い残した追加行動が持ち越されることはない
+    public class ActionBudget
+    {
+        // 基本行動回数。ターン開始時にこの値まで回復する
+        public int Max { get; set; } = 1;
+        // このターンの残り行動回数
+        public int Remaining { get; protected set; } = 1;
+        // 一時的に付与された追加行動。ターンをまたいで持ち越されない
+        public int ExtraActions { get; protected set; } = 0;
+        // まだ行動できるか。通常分と追加分の合計で判定する
+        public bool CanAction => Remaining + ExtraActions > 0;
+
+        // ターン開始時のリセット。残り回数を上限へ戻し、未使用の追加行動を破棄する
+        public void ResetForTurn()
+        {
+            Remaining = Max;
+            ExtraActions = 0;
+        }
+
+        // 行動回数を 1 消費する。追加行動が残っていればそちらから先に減らす
+        // どちらも 0 の場合は何もしない（マイナスにはならない）
+        public void Consume()
+        {
+            if (ExtraActions > 0) ExtraActions--;
+            else if (Remaining > 0) Remaining--;
+        }
+
+        // 追加行動を付与する
+        // aCount : 付与する回数
+        public void GrantExtra(int aCount = 1) => ExtraActions += aCount;
+    }
+
     // Project-Pudding 固有の要素を載せたバトルユニット
     // 汎用の BattleUnit に対して、属性・拡張パラメータを追加する
     // 拡張パラメータの行動回数上限は、ティックごとに基底の ActionBudget へ同期される

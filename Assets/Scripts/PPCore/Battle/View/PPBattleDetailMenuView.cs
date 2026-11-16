@@ -8,7 +8,6 @@
 
 using System;
 using System.Linq;
-using CommandBattleCore;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;

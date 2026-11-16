@@ -8,7 +8,6 @@
 
 using System.Collections;
 using System.Collections.Generic;
-using CommandBattleCore;
 using PPCore;
 using UnityEngine;
 using UnityEngine.InputSystem;

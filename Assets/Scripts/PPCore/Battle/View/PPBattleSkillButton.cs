@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System;
-using CommandBattleCore;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;

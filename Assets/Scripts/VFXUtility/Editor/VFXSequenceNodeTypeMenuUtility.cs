@@ -5,7 +5,7 @@
  * @date 2026/08/18
  * @brief ノード種別と表示名の対応、およびノード追加メニュー構築を共通化するユーティリティ
  * PPCore/Editor/PPManagedReferencePickerUtility.cs と同様のパターンをVFXUtility内に個別実装したもの
- * (VFXUtilityはPPCore/CommandBattleCoreの2層構造に属さない独立ユーティリティのため直接参照はしない)
+ * (VFXUtilityはPPCoreに属さない独立ユーティリティのため直接参照はしない)
  * =====================================*/
 
 using System;

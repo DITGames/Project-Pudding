@@ -9,14 +9,13 @@
 using System.Collections.Generic;
 using System.Reflection;
 using AttributeUtility;
-using CommandBattleCore;
 using UnityEditor;
 using UnityEngine;
 
 namespace PPCore
 {
     // PPUnitDefinition のインスペクタ
-    // 基底の UnitDefinition が持つ基礎ステータス（CommandBattleCore の StatBlock。Core 側のラベルは 最大HP / 攻撃力 / …）を、
+    // 基底の UnitDefinition が持つ基礎ステータス（基底の StatBlock。基底側のラベルは 最大HP / 攻撃力 / …）を、
     // 本作の基礎能力名（HP / ちから / まもり / はやさ）で表示する。それ以外のフィールドは既定の描画のまま
     // StatBlock 型の PropertyDrawer では実現できない点に注意：mBaseStatBlock には [Label] が付いており、
     // Unity は属性のドロワーを型のドロワーより優先するため、型のドロワーが一度も呼ばれない

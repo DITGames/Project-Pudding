@@ -1,0 +1,207 @@
+/* =====================================
+ * Copyright WabisabiAndons. All rights reserved.
+ * @file PPParameterSet.cs
+ * @author hqrse
+ * @date 2026/06/25
+ * @brief ユニットのパラメータ集合
+ * =====================================*/
+
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace PPCore
+{
+    // ユニット 1 体分のパラメータ一式
+    // HP・攻撃・防御・速度をプロパティとして直接触れるようにしつつ、
+    // 同じ実体を ID 付きの辞書にも登録している
+    // 前者は通常の計算用、後者はエフェクトが「ID を指定してバフを掛ける」ための経路
+    // 最大 HP も修飾対象として辞書に入っているため、最大 HP 上昇バフが作れる
+    public class ParameterSet
+    {
+        // 最大 HP のパラメータ ID
+        public static readonly string ParamIdMaxHp = "MaxHP";
+        // 攻撃力のパラメータ ID
+        public static readonly string ParamIdAttack = "Attack";
+        // 防御力のパラメータ ID
+        public static readonly string ParamIdDefense = "Defense";
+        // 速度のパラメータ ID。行動順の決定に使う
+        public static readonly string ParamIdSpeed = "Speed";
+
+        // HP。消費・回復されるため ResourceParameter
+        public ResourceParameter Hp { get; }
+        // 攻撃力
+        public Parameter Attack { get; }
+        // 防御力
+        public Parameter Defense { get; }
+        // 速度
+        public Parameter Speed { get; }
+
+        // ID から引くための登録テーブル。値はプロパティ側と同じ実体を指す
+        protected readonly Dictionary<string, Parameter> mParameters = new();
+
+        // aMaxHp : 最大 HP
+        // aAttack : 攻撃力
+        // aDefense : 防御力
+        // aSpeed : 速度
+        public ParameterSet(float aMaxHp, float aAttack, float aDefense, float aSpeed)
+        {
+            Hp = new ResourceParameter(aMaxHp);
+
+            Attack = RegisterModifiable(ParamIdAttack, new Parameter(aAttack));
+            Defense = RegisterModifiable(ParamIdDefense, new Parameter(aDefense));
+            Speed = RegisterModifiable(ParamIdSpeed, new Parameter(aSpeed));
+
+            // HP 本体ではなく上限側を登録する。最大 HP へのバフを掛けられるようにするため
+            RegisterModifiable(ParamIdMaxHp, Hp.Max);
+        }
+
+        // パラメータを ID 付きで登録し、そのまま返すヘルパー
+        // 登録と代入を 1 行で書けるようにするためのもの
+        // aKey : パラメータ ID
+        // aParameter : 登録するパラメータ
+        // return : 渡されたパラメータをそのまま返す
+        protected Parameter RegisterModifiable(string aKey, Parameter aParameter)
+        {
+            mParameters[aKey] = aParameter;
+            return aParameter;
+        }
+
+        // ID からパラメータを取得する
+        // aKey : パラメータ ID
+        // return : 該当パラメータ。未登録なら null
+        public Parameter Get(string aKey)
+        {
+            return mParameters.TryGetValue(aKey, out var aParameter) ? aParameter : null;
+        }
+
+        // 登録済みパラメータの読み取り専用ビュー
+        public IReadOnlyDictionary<string, Parameter> Parameters => mParameters;
+
+        // すべてのパラメータから、指定した付与元の修飾子を除去する
+        // エフェクトが複数パラメータへバフを撒いている場合、解除時にこれ 1 回で剥がせる
+        // aSource : 付与元
+        public void RemoveModifiersFromSource(object aSource)
+        {
+            foreach (var param in mParameters.Values)
+            {
+                param.RemoveModifiersFromSource(aSource);
+            }
+        }
+    }
+
+    // ユニットが持つ行動リソースのゲージ種別
+    // スキルゲージとコインゲージはどちらも単一スカラーで、消費先だけが異なる
+    public enum PPGaugeKind
+    {
+        [InspectorName("スキルゲージ")]
+        Skill,
+        [InspectorName("コインゲージ")]
+        Coin,
+    }
+
+    // 本作固有の追加パラメータ一式
+    // 基底の ParameterSet を継承せず、PPBattleUnit.ExtraParameters として
+    // 別に持たせる構成。基本パラメータとは独立して修飾子を掛けられる
+    // ID から引く仕組みは ParameterSet と同じで、PPBattleUnit.ResolveParameter が両方をまたいで解決する
+    // 行動リソース（スキルゲージ・コインゲージ）はユニットごとに専有する
+    // パーティ共有のリソースプールは持たず、支払いは必ず行動するユニット自身のゲージから行う
+    public class PPParameterSet
+    {
+        // 通常攻撃コストのパラメータ ID
+        public static readonly string ParameterIdAttackCost = "AttackCost";
+        // 行動回数上限のパラメータ ID
+        public static readonly string ParameterIdActionCount = "ActionCount";
+        // きようさのパラメータ ID。会心率の算出に使う
+        public static readonly string ParameterIdDexterity = "Dexterity";
+        // スキルゲージ上限の ID。PPBaseParameterTable でスキル効果値を集計する際のキーにだけ使い、
+        // バフ・デバフの対象（mParameters）には登録しない（上限をバフで増減させない仕様のため）
+        public static readonly string ParameterIdSkillGaugeMax = "SkillGaugeMax";
+
+        // 通常攻撃 1 回あたりの消費コインゲージ量。バフで増減しうる
+        public Parameter AttackCost { get; }
+
+        // 1 ティックあたりに行動できる回数。Parameter で持つことで、
+        // 既存のパラメータ変動エフェクトでそのまま増減させられる
+        // 実際の消費・リセットは基底の ActionBudget が担うため、
+        // この値は PPBattleUnit.UnitTick が ActionBudget.Max へ同期する
+        public Parameter ActionCount { get; }
+
+        // きようさ。会心率(%) = 現在値 × 0.25 で求める（PPCriticalResolver 参照）
+        // Parameter で持つことで、既存のパラメータ変動エフェクトから ID 指定でバフ・デバフを掛けられる
+        public Parameter Dexterity { get; }
+
+        // スキル発動に使うゲージ。HP と同じ ResourceParameter で残量と上限を表す
+        public ResourceParameter SkillGauge { get; }
+
+        // 通常攻撃に使うゲージ。プッシャー由来のコインが PPCoinResourceBridge 経由でここへ加算される
+        public ResourceParameter CoinGauge { get; }
+
+        // ID から引くための登録テーブル。値はプロパティ側と同じ実体を指す
+        // ResourceParameter は Parameter を継承しないため、ゲージ 2 種はここに含まれない
+        protected readonly Dictionary<string, Parameter> mParameters = new();
+
+        // aAttackCost : 通常攻撃コストの初期値
+        // aActionCount : 行動回数上限の初期値。1 未満が渡された場合は 1 に丸める
+        // aSkillGaugeMax : スキルゲージの上限
+        // aCoinGaugeMax : コインゲージの上限
+        // aDexterity : きようさの育成値（レベル成長を反映した値）
+        public PPParameterSet(float aAttackCost, int aActionCount, float aSkillGaugeMax, float aCoinGaugeMax, float aDexterity)
+        {
+            AttackCost = RegisterModifiable(ParameterIdAttackCost, new Parameter(aAttackCost));
+            ActionCount = RegisterModifiable(ParameterIdActionCount, new Parameter(Mathf.Max(1, aActionCount)));
+            Dexterity = RegisterModifiable(ParameterIdDexterity, new Parameter(aDexterity));
+
+            SkillGauge = CreateEmptyGauge(aSkillGaugeMax);
+            CoinGauge = CreateEmptyGauge(aCoinGaugeMax);
+        }
+
+        // 種別に対応するゲージを取得する
+        // aKind : 取得するゲージの種別
+        // return : 該当するゲージ
+        public ResourceParameter Gauge(PPGaugeKind aKind)
+            => aKind == PPGaugeKind.Skill ? SkillGauge : CoinGauge;
+
+        // 残量 0 のゲージを生成する
+        // ResourceParameter は上限で満タン初期化されるため、生成直後に上限分を削って 0 から始める
+        // aMax : ゲージの上限。負値は 0 に丸める
+        // return : 残量 0 のゲージ
+        protected static ResourceParameter CreateEmptyGauge(float aMax)
+        {
+            float max = Mathf.Max(0f, aMax);
+            var gauge = new ResourceParameter(max);
+            gauge.Damage(max);
+            return gauge;
+        }
+
+        // パラメータを ID 付きで登録し、そのまま返すヘルパー
+        // aKey : パラメータ ID
+        // aParameter : 登録するパラメータ
+        // return : 渡されたパラメータをそのまま返す
+        protected Parameter RegisterModifiable(string aKey, Parameter aParameter)
+        {
+            mParameters[aKey] = aParameter;
+            return aParameter;
+        }
+
+        // ID からパラメータを取得する
+        // aKey : パラメータ ID
+        // return : 該当パラメータ。未登録なら null
+        public Parameter Get(string aKey)
+        {
+            return mParameters.TryGetValue(aKey, out Parameter aParameter) ? aParameter : null;
+        }
+
+        // 登録済みパラメータの読み取り専用ビュー
+        public IReadOnlyDictionary<string, Parameter> Parameters => mParameters;
+
+        // すべての追加パラメータから、指定した付与元の修飾子を除去する
+        // aSource : 付与元
+        public void RemoveModifiesFromSource(object aSource)
+        {
+            foreach (var param in mParameters.Values)
+            {
+                param.RemoveModifiersFromSource(aSource);
+            }
+        }
+    }
+}
