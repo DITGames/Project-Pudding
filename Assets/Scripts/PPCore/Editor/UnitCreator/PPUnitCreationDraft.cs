@@ -143,7 +143,7 @@ namespace PPCore
             so.FindProperty("mBaseStatBlock.Speed").floatValue = 10;
             so.FindProperty("mExpandStatBlock.ActionCount").intValue = 1;
             so.FindProperty("mExpandStatBlock.SkillGaugeMax").floatValue = 100;
-            so.FindProperty("mExpandStatBlock.CoinGaugeMax").floatValue = 100;
+            so.FindProperty("mExpandStatBlock.CarryOverActions").intValue = PPStatBlock.DefaultCarryOverActions;
             so.FindProperty("mExpandStatBlock.Dexterity").floatValue = PPStatBlock.DefaultDexterity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return draft;

@@ -239,7 +239,8 @@ namespace PPCore
         {
             if (aUnit == null) return false;
 
-            int total = aUnit.ResolveActionCount();
+            // 積める行動は 1 ユニットにつき 1 つまで
+            int total = 1;
             int reserved = aSnapShot.Ledger?.ReservedCount(aUnit) ?? 0;
             return PPConditionMath.Compare(Mathf.Max(0, total - reserved), mOp, mThreshold);
         }

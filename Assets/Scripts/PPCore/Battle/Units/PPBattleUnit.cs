@@ -3,7 +3,7 @@
  * @file PPBattleUnit.cs
  * @author hqrse
  * @date 2026/06/25
- * @brief バトルユニットと行動回数
+ * @brief バトルユニット
  * =====================================*/
 
 using System;
@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 戦闘に参加する 1 体分のランタイムインスタンス。パラメータ・スキル・ステータスエフェクト・リアクション・行動回数を保持する
+    // 戦闘に参加する 1 体分のランタイムインスタンス。パラメータ・スキル・ステータスエフェクト・リアクションを保持する
     // 状態が変わるたびに event を発火し、BattleManager が購読して通知・ログ・リアクション発火へ変換する
     public class BattleUnit
     {
@@ -32,8 +32,6 @@ namespace PPCore
         public List<BattleSkill> Skills { get; } = new();
         // 反撃などのリアクション定義。トリガー発生時に BattleManager が走査する
         public List<IBattleReaction> Reactions { get; } = new();
-        // 1 ターンあたりの行動回数の管理
-        public ActionBudget Actions { get; } = new();
         // コマンド決定クラス。AI 制御ユニットに設定する
         public ICommandDecider CommandDecider { get; set; }
         // 生成元の定義アセットへの参照
@@ -337,12 +335,10 @@ namespace PPCore
 
         /* 更新 */
 
-        // 1 ターン分の更新処理。ステータスエフェクトの更新、行動回数のリセット、
-        // 全スキルのクールダウン消化をまとめて行う
+        // 1 ターン分の更新処理。ステータスエフェクトの更新と、全スキルのクールダウン消化をまとめて行う
         public virtual void UnitTick(BattleContext aContext)
         {
             TickStatusEffects(aContext);
-            Actions.ResetForTurn();
             foreach (var skill in Skills)
             {
                 skill.TickCooldown();
@@ -361,48 +357,7 @@ namespace PPCore
         public virtual Parameter ResolveParameter(string aParamId) => Parameters.Get(aParamId);
     }
 
-    // ユニット 1 体の 1 ターン内の行動回数を管理する。通常の行動回数と一時的な追加行動を分けて持つ
-    // 消費は追加行動から先に減り、使い残した追加行動は持ち越されない
-    public class ActionBudget
-    {
-        /* 状態 */
-
-        // 基本行動回数。ターン開始時にこの値まで回復する
-        public int Max { get; set; } = 1;
-        // このターンの残り行動回数
-        public int Remaining { get; protected set; } = 1;
-        // 一時的に付与された追加行動。ターンをまたいで持ち越されない
-        public int ExtraActions { get; protected set; } = 0;
-
-        /* プロパティ */
-
-        // まだ行動できるか。通常分と追加分の合計で判定する
-        public bool CanAction => Remaining + ExtraActions > 0;
-
-        /* 操作 */
-
-        // ターン開始時のリセット。残り回数を上限へ戻し、未使用の追加行動を破棄する
-        public void ResetForTurn()
-        {
-            Remaining = Max;
-            ExtraActions = 0;
-        }
-
-        // 行動回数を 1 消費する。追加行動が残っていればそちらから先に減らす
-        // どちらも 0 の場合は何もしない（マイナスにはならない）
-        public void Consume()
-        {
-            if (ExtraActions > 0) ExtraActions--;
-            else if (Remaining > 0) Remaining--;
-        }
-
-        // 追加行動を付与する
-        // aCount : 付与する回数
-        public void GrantExtra(int aCount = 1) => ExtraActions += aCount;
-    }
-
-    // 属性と拡張パラメータを持つバトルユニット
-    // 拡張パラメータの行動回数上限は、ティックごとに ActionBudget へ同期される
+    // 属性・拡張パラメータ・配置を持つバトルユニット
     public class PPBattleUnit : BattleUnit
     {
         /* 状態 */
@@ -417,6 +372,11 @@ namespace PPCore
         // パーティ内の配置。コインを配る順番と正面の相手の判定に使う。パーティ生成時に定義から設定される
         public PPPartyPosition Position { get; set; }
 
+        /* プロパティ */
+
+        // 1 回の行動に必要なコインゲージ量。バフ・デバフ込みの現在値
+        public float ActionCost => ExtraParameters.AttackCost.CurrentValue;
+
         /* 生成 */
 
         public PPBattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameterSet,
@@ -426,10 +386,6 @@ namespace PPCore
             TypeAttribute = aTypeAttribute;
             // 生成時点の BaseValue は定義側で評価した育成値そのものなので、それを育成値として登録する
             BaseParameters = CreateBaseParameterTable();
-
-            // 最初のティックが来るまで既定値の 1 で据え置かれないよう、生成時点で上限を反映しておく
-            Actions.Max = ResolveActionCount();
-            Actions.ResetForTurn();
         }
 
         // 育成値テーブルを組み立てる。コンストラクタから呼ばれる
@@ -446,17 +402,6 @@ namespace PPCore
             return table;
         }
 
-        /* 操作 */
-
-        // 1 ティック分の更新処理
-        // 基底の更新（状態異常 → 行動回数のリセット → クールダウン消化）のあとで、バフ切れを反映した行動回数上限を同期し直す
-        public override void UnitTick(BattleContext aContext)
-        {
-            base.UnitTick(aContext);
-            Actions.Max = ResolveActionCount();
-            Actions.ResetForTurn();
-        }
-
         /* 問い合わせ */
 
         // 今の状況で発動できるスキルを 1 つでも持っているかを判定する
@@ -471,14 +416,6 @@ namespace PPCore
             }
 
             return false;
-        }
-
-        // 1 ティックあたりの行動回数上限を解決する
-        // バフデバフを載せた現在値を切り上げ、下限 1 で丸める
-        public int ResolveActionCount()
-        {
-            var parameter = ExtraParameters.Get(PPParameterSet.ParameterIdActionCount);
-            return parameter == null ? 1 : Mathf.Max(1, Mathf.CeilToInt(parameter.CurrentValue));
         }
 
         // ID からパラメータを解決する。基本パラメータを先に探し、無ければ拡張パラメータを探す

@@ -26,9 +26,10 @@ MonoBehaviour:
     AttackCost: 7
     ActionCount: 1
     SkillGaugeMax: 100
-    CoinGaugeMax: 100
+    CarryOverActions: 10
     Dexterity: 20
   mTypeAttribute: 2
+  mRole: 0
   mBehaviourTree: {fileID: 11400000, guid: af05137b16a249bcbe1aa348f5e6ae44, type: 2}
   mHpGrowth:
     serializedVersion: 2

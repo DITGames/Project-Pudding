@@ -181,17 +181,15 @@ namespace PPCore
         }
 
         // 指定ティック数の間に通常攻撃を何回撃てるかを見積もる
-        // コインゲージで払える回数と、行動回数で撃てる回数の小さいほうを採る
+        // 今のコインゲージで払える回数を返す。行動コストが 0 以下ならティック数ぶん撃てるものとして扱う
         public static int EstimateAttackCount(PPBattleUnit aUnit, int aTicks)
         {
             if (aTicks <= 0) return 0;
 
-            int byActions = aUnit.ResolveActionCount() * aTicks;
-            float attackCost = aUnit.ExtraParameters.Get(PPParameterSet.ParameterIdAttackCost)?.CurrentValue ?? 0f;
-            if (attackCost <= 0f) return byActions;
+            float attackCost = aUnit.ActionCost;
+            if (attackCost <= 0f) return aTicks;
 
-            int byCoin = Mathf.FloorToInt(aUnit.ExtraParameters.CoinGauge.Current / attackCost);
-            return Mathf.Min(byActions, byCoin);
+            return Mathf.FloorToInt(aUnit.ExtraParameters.CoinGauge.Current / attackCost);
         }
 
         // 指定量のスキルゲージへ到達するまでに掛かるティック数を見積もる

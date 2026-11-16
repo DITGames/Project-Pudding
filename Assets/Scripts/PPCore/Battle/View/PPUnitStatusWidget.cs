@@ -13,7 +13,7 @@ using UnityEngine.UI;
 
 namespace PPCore
 {
-    // 名前と HP バーを表示する共通ウィジェット。表示元は IPPUnitStatusSource として受け取る
+    // 名前・HP バー・コインゲージバーを表示する共通ウィジェット。表示元は IPPUnitStatusSource として受け取る
     // バインド中は変更通知を購読し、値が変わるたびに再描画する
     public class PPUnitStatusWidget : MonoBehaviour
     {
@@ -22,6 +22,9 @@ namespace PPCore
         // HP バーの塗り部分。fillAmount で残量を表現する
         [Label("HPバー")]
         [SerializeField] private Image mHpFill;
+        // コインゲージバーの塗り部分。次の行動までの溜まり具合を表す。未設定なら表示しない
+        [Label("コインゲージバー")]
+        [SerializeField] private Image mCoinFill;
         [Label("名前ラベル")]
         [SerializeField] private TMP_Text mNameLabel;
 
@@ -51,11 +54,12 @@ namespace PPCore
 
         /* 表示 */
 
-        // 表示元の現在値で名前と HP バーを更新する。最大 HP が 0 なら空表示にする
+        // 表示元の現在値で名前・HP バー・コインゲージバーを更新する。最大 HP が 0 なら空表示にする
         private void Refresh()
         {
             mNameLabel.text = mSource.DisplayName;
             mHpFill.fillAmount = mSource.MaxHP > 0 ? mSource.CurrentHP / mSource.MaxHP : 0;
+            if (mCoinFill != null) mCoinFill.fillAmount = mSource.CoinGaugeRate;
         }
     }
 }

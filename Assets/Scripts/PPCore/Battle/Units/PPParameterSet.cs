@@ -117,10 +117,9 @@ namespace PPCore
 
         /* 状態 */
 
-        // 通常攻撃 1 回あたりの消費コインゲージ量。バフで増減しうる
+        // 行動 1 回あたりの消費コインゲージ量（行動コスト）。バフで増減しうる
         public Parameter AttackCost { get; }
-        // 1 ティックあたりに行動できる回数。Parameter で持つため、パラメータ変動エフェクトで増減させられる
-        // この値は PPBattleUnit.UnitTick が ActionBudget.Max へ同期する
+        // 行動回数。進行では使っておらず、行動回数アップの状態異常と一緒に削除する予定
         public Parameter ActionCount { get; }
         // きようさ。会心率(%) = 現在値 × 0.25 で求める（PPCriticalResolver 参照）
         // Parameter で持つことで、既存のパラメータ変動エフェクトから ID 指定でバフ・デバフを掛けられる

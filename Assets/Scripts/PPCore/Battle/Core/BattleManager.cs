@@ -139,7 +139,7 @@ namespace PPCore
         }
 
         // キュー先頭のコマンドを 1 件実行する
-        // 実行 → 行動回数消費 → 勝敗チェック → コマンド入力ステートへ復帰、までを 1 呼び出しで行う
+        // 実行 → 勝敗チェック → コマンド入力ステートへ復帰、までを 1 呼び出しで行う
         public bool ExecuteNextCommand()
         {
             if(StateMachine.Current == BattleState.BattleEnd) return false;
@@ -168,8 +168,6 @@ namespace PPCore
                 }
             }
 
-            // 行動回数の消費
-            command.Source.Actions.Consume();
             OnPostCommand?.Invoke(command.Source, command);
 
             FinishCommand();

@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System;
+using UnityEngine;
 
 namespace PPCore
 {
@@ -22,6 +23,8 @@ namespace PPCore
         float CurrentHP { get; }
         // 最大 HP
         float MaxHP { get; }
+        // 次の行動までのコインゲージの溜まり具合（0〜1）。行動コスト分溜まると 1
+        float CoinGaugeRate { get; }
 
         /* イベント */
 
@@ -50,7 +53,7 @@ namespace PPCore
         event Action Changed;
     }
 
-    // BattleUnit を UI 向けの表示情報として見せるアダプタ。HP と最大 HP の変化を購読して Changed へ中継する
+    // BattleUnit を UI 向けの表示情報として見せるアダプタ。HP・最大 HP・コインゲージの変化を購読して Changed へ中継する
     // UI を破棄する際は必ず Dispose を呼ぶこと
     public class PPBattleUnitStatusSource : IPPUnitStatusSource, IDisposable
     {
@@ -70,6 +73,16 @@ namespace PPCore
         // 最大 HP。バフで変動しうるため現在値を返す
         public float MaxHP => mBattleUnit.Parameters.Hp.Max.CurrentValue;
 
+        // 次の行動までのコインゲージの溜まり具合（0〜1）。コインゲージを持たないユニットは 0
+        public float CoinGaugeRate
+        {
+            get
+            {
+                if (mBattleUnit is not PPBattleUnit unit || unit.ActionCost <= 0f) return 0f;
+                return Mathf.Clamp01(unit.ExtraParameters.CoinGauge.Current / unit.ActionCost);
+            }
+        }
+
         /* イベント */
 
         // 表示内容が変化したときに発火する
@@ -84,6 +97,12 @@ namespace PPCore
             // 最大HPもバフで変わるため両方購読する
             mBattleUnit.Parameters.Hp.OnValueChanged += HandleChanged;
             mBattleUnit.Parameters.Hp.Max.OnValueChanged += HandleChanged;
+            // 行動コストもバフで変わるため、ゲージと併せて購読する
+            if (mBattleUnit is PPBattleUnit unit)
+            {
+                unit.ExtraParameters.CoinGauge.OnValueChanged += HandleChanged;
+                unit.ExtraParameters.AttackCost.OnValueChanged += HandleChanged;
+            }
         }
 
         /* 初期化・接続 */
@@ -97,6 +116,11 @@ namespace PPCore
 
             mBattleUnit.Parameters.Hp.OnValueChanged -= HandleChanged;
             mBattleUnit.Parameters.Hp.Max.OnValueChanged -= HandleChanged;
+            if (mBattleUnit is PPBattleUnit unit)
+            {
+                unit.ExtraParameters.CoinGauge.OnValueChanged -= HandleChanged;
+                unit.ExtraParameters.AttackCost.OnValueChanged -= HandleChanged;
+            }
         }
 
         /* イベントハンドラ */
