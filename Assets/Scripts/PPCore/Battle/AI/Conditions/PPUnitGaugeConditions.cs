@@ -18,25 +18,34 @@ namespace PPCore
     [PPTypeMenuName("ゲージ/残量(絶対値)")]
     public sealed class PPUnitGaugeAmountCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("対象ゲージ")]
         [SerializeField] private PPGaugeKind mKind = PPGaugeKind.Skill;
         [Label("比較")]
         [SerializeField] private PPCompareOp mOp = PPCompareOp.GreaterOrEqual;
         [Label("ゲージ量")]
         [SerializeField] private float mThreshold = 20f;
+
         // 等値判定の許容誤差。等値・非等値のときのみ表示される
         [Label("許容値")]
         [EditCondition("IsEqualOp", true, false)]
         [SerializeField] private float mTolerance = 1f;
 
+        /* プロパティ */
+
         // 許容値の入力欄を出すかどうか（等値系の演算子でのみ意味を持つ）
         private bool IsEqualOp
             => mOp == PPCompareOp.Equal || mOp == PPCompareOp.NotEqual;
+
+        /* 評価・判定 */
 
         // ゲージの現在値を閾値と比較する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null
             && PPConditionMath.Compare(aUnit.ExtraParameters.Gauge(mKind).Current, mOp, mThreshold, mTolerance);
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる。等値系のときは許容値も併記する
         [ContextMenu("説明文を生成")]
@@ -67,26 +76,35 @@ namespace PPCore
     [PPTypeMenuName("ゲージ/残量(割合)")]
     public sealed class PPUnitGaugeRatioCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("対象ゲージ")]
         [SerializeField] private PPGaugeKind mKind = PPGaugeKind.Skill;
         [Label("比較")]
         [SerializeField] private PPCompareOp mOp = PPCompareOp.GreaterOrEqual;
         [PercentLabel("割合")]
         [SerializeField] private float mThreshold = 1f;
+
         // 等値判定の許容誤差（0〜1）。等値・非等値のときのみ表示される
         [Label("許容値")]
         [EditCondition("IsEqualOp", true, false)]
         [SerializeField] private float mTolerance = 0.01f;
 
+        /* プロパティ */
+
         // 許容値の入力欄を出すかどうか（等値系の演算子でのみ意味を持つ）
         private bool IsEqualOp
             => mOp == PPCompareOp.Equal || mOp == PPCompareOp.NotEqual;
+
+        /* 評価・判定 */
 
         // ゲージの充足率を閾値と比較する
         // 上限が 0 の場合は ResourceParameter.Ratio が 0 を返すため、0 として扱われる
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null
             && PPConditionMath.Compare(aUnit.ExtraParameters.Gauge(mKind).Ratio, mOp, mThreshold, mTolerance);
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる。等値系のときは許容値も併記する
         // 値は 0〜1 で保持しているが、説明文は読みやすさを優先してパーセント表記にする
@@ -118,6 +136,8 @@ namespace PPCore
     [PPTypeMenuName("ゲージ/主スキル分を残せる")]
     public sealed class PPUnitGaugeReserveCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
+        /* インスペクタ設定 */
+
         [Label("撃つ予定のスキル")]
         [SerializeField] private PPUnitAISkillFilter mSpendFilter = new();
         [Label("撃つ予定のスキルの選び方")]
@@ -128,8 +148,12 @@ namespace PPCore
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* プロパティ */
+
         // 残したいスキルの絞り込み条件。エディタの診断から参照する
         public PPUnitAISkillFilter Filter => mReserveFilter;
+
+        /* 評価・判定 */
 
         // 撃つ予定のスキルを撃っても、残したいスキルの分のゲージが残るかを判定する
         // 撃つ予定のスキルが撃てない場合は成立しない
@@ -148,6 +172,8 @@ namespace PPCore
             bool isReserved = remaining - spendCost + PPGaugeUtility.CompareEpsilon >= ResolveReserveCost(aUnit);
             return isReserved != mIsInvert;
         }
+
+        /* 問い合わせ */
 
         // 撃つ予定のスキルのコストを求める。撃てるスキルが無ければ -1
         // 選び方がランダムでも乱数は引かず最大コストで見る（実行ノードの抽選結果をずらさないため）
@@ -179,6 +205,8 @@ namespace PPCore
             return reserve;
         }
 
+        /* 説明文 */
+
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
@@ -197,10 +225,14 @@ namespace PPCore
     [PPTypeMenuName("行動/残り行動回数")]
     public sealed class PPUnitRemainingActionCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("比較")]
         [SerializeField] private PPCompareOp mOp = PPCompareOp.GreaterOrEqual;
         [Label("行動回数")]
         [SerializeField] private int mThreshold = 1;
+
+        /* 評価・判定 */
 
         // 残り行動回数を閾値と比較する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -211,6 +243,8 @@ namespace PPCore
             int reserved = aSnapShot.Ledger?.ReservedCount(aUnit) ?? 0;
             return PPConditionMath.Compare(Mathf.Max(0, total - reserved), mOp, mThreshold);
         }
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]

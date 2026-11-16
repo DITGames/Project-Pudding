@@ -40,9 +40,13 @@ namespace PPCore
     // 物理側とバトル側は直接結合させず、必ずここを経由させること
     public class PPCoinResourceBridge : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         // コイン取得通知元。IPPCoinGainNotifier 実装コンポーネントを差す
         [Label("コイン取得通知コンポーネント")]
         [SerializeField] private MonoBehaviour mCoinNotifierSource;
+
+        /* 状態 */
 
         // インスペクタで差された通知元をインターフェースとして解決したもの
         private IPPCoinGainNotifier mCoinNotifier;
@@ -50,6 +54,8 @@ namespace PPCore
         private IPPCoinResourceConverter mConverter = new PPLinearCoinResourceConverter();
         // 加算先のパーティ。Bind されるまでは null
         private PPBattleParty mTargetParty;
+
+        /* Unity イベント */
 
         // インスペクタで指定された通知元をインターフェースへ解決する
         private void Awake()
@@ -60,6 +66,11 @@ namespace PPCore
                 CustomConsoleLog.Warning("Resource", $"{nameof(mCoinNotifierSource)}はIPPCoinGainNotifierを実装している必要があります", this);
             }
         }
+
+        // 破棄時にイベント購読が残らないよう解除する
+        private void OnDestroy() => Unbind();
+
+        /* 初期化・接続 */
 
         // 指定陣営のパーティを加算先として設定し、コイン獲得通知の購読を開始する
         public void Bind(BattleManager aBattleManager, BattleSide aTargetSide)
@@ -88,6 +99,8 @@ namespace PPCore
             mTargetParty = null;
         }
 
+        /* イベントハンドラ */
+
         // コイン獲得通知を受けて、枚数をゲージ量へ変換し生存ユニットへ均等分配する
         // コインの属性は分配先の選択には使わない
         private void HandleCoinGained(PPTypeAttribute a, int aCoinCount)
@@ -102,8 +115,5 @@ namespace PPCore
             CustomConsoleLog.Verbose("Resource", $"コイン{aCoinCount}枚をコインゲージ{amount:0.##}に変換します（レートx{rate}）。", this);
             PPGaugeUtility.DistributeToAliveUnits(mTargetParty.ActiveMembers, PPGaugeKind.Coin, amount);
         }
-
-        // 破棄時にイベント購読が残らないよう解除する
-        private void OnDestroy() => Unbind();
     }
 }

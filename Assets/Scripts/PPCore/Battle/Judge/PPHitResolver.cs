@@ -76,10 +76,14 @@ namespace PPCore
     // 発生率の求め方だけを変えたい場合は、派生して ResolveCriticalChance をオーバーライドする
     public class StandardCriticalResolver : ICriticalResolver
     {
+        /* 定数 */
+
         // 既定の発生率（0～1）
         public const float DefaultCriticalChance = 0.1f;
         // 既定のクリティカル倍率
         public const float DefaultCriticalMultiplier = 1.2f;
+
+        /* 問い合わせ */
 
         // 発生率に応じてクリティカル判定を行う。倍率は発生有無に関わらず設定される
         public virtual CriticalInfo Resolve(BattleUnit aSource, BattleUnit aTarget, DamageInfo aInfo, BattleContext aContext)
@@ -105,10 +109,14 @@ namespace PPCore
     // きようさを持たないユニット（PPBattleUnit 以外）は基底の固定発生率で判定する
     public class PPCriticalResolver : StandardCriticalResolver
     {
+        /* 定数 */
+
         // きようさ 1 あたりの会心確率（0～1）。計算は ToCriticalChance を使う（定数は仕様の参照用）
         public const float CriticalChancePerDexterity = 0.0025f;
         // きようさ 1 あたりの会心率（%）
         public const float CriticalPercentPerDexterity = 0.25f;
+
+        /* 問い合わせ */
 
         // 補正後きようさから判定用の会心確率を求める
         // 0.0025 は float で正確に表せないため、百分率（× 0.25）を経由する

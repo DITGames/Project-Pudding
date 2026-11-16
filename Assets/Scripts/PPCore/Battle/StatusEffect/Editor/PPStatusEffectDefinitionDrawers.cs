@@ -20,6 +20,8 @@ namespace PPCore
     [CustomPropertyDrawer(typeof(PPStatusEffectBehaviourDefinition), true)]
     public class PPStatusEffectBehaviourDefinitionDrawer : PropertyDrawer
     {
+        /* 描画 */
+
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
             if (string.IsNullOrEmpty(aProperty.managedReferenceFullTypename))
@@ -44,6 +46,8 @@ namespace PPCore
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
             => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
 
+        /* ヘルパー */
+
         // PPStatusEffectBehaviourDefinition の具象派生型を候補として集める
         // return : 候補として並べる型のリスト
         private static List<Type> CollectCandidateTypes()
@@ -59,6 +63,8 @@ namespace PPCore
     [CustomPropertyDrawer(typeof(PPDurationConditionDefinition), true)]
     public class PPDurationConditionDefinitionDrawer : PropertyDrawer
     {
+        /* 定数 */
+
         // 表示名の既定値。フィールド側に [PPFieldLabel] があればそちらを優先する
         private const string DefaultDisplayLabel = "持続条件";
         // 値が未設定（null）のときにプルダウンへ出す項目。StatusEffect 側の既定により永続として扱われる
@@ -70,10 +76,14 @@ namespace PPCore
         // 同じ行の子フィールドのラベルと入力欄のあいだに空ける余白
         private const float InlineLabelMargin = 6f;
 
+        /* 状態 */
+
         // 候補となる具象派生型。ドメインの再読み込みまで変わらないため 1 度だけ集める
         private static List<Type> sCandidateTypes;
         // プルダウンに並べる表示名。sCandidateTypes と同じ並び
         private static GUIContent[] sCandidateOptions;
+
+        /* 描画 */
 
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
@@ -189,6 +199,15 @@ namespace PPCore
             EditorGUIUtility.labelWidth = previousWidth;
         }
 
+        /* 説明文 */
+
+        // 描画に使う表示名を解決する
+        // フィールドに [PPFieldLabel] があればその文字列、無ければ既定値を使う
+        private string ResolveDisplayLabel()
+            => fieldInfo?.GetCustomAttribute<PPFieldLabelAttribute>()?.Text ?? DefaultDisplayLabel;
+
+        /* ヘルパー */
+
         // SerializeReference プロパティの直下にある、インスペクタ表示対象の子プロパティを集める
         private static List<SerializedProperty> CollectVisibleChildren(SerializedProperty aProperty)
         {
@@ -226,11 +245,6 @@ namespace PPCore
             return null;
         }
 
-        // 描画に使う表示名を解決する
-        // フィールドに [PPFieldLabel] があればその文字列、無ければ既定値を使う
-        private string ResolveDisplayLabel()
-            => fieldInfo?.GetCustomAttribute<PPFieldLabelAttribute>()?.Text ?? DefaultDisplayLabel;
-
         // 候補の型と表示名を集める。集め方はツリー選択（PPTypeTreePickerTreeView）と同じ
         // 表示名は [PPTypeMenuName] のパスを使う
         private static void EnsureCandidates()
@@ -254,10 +268,14 @@ namespace PPCore
     [CustomPropertyDrawer(typeof(PPStatusEffectConsumeRuleDefinition), true)]
     public class PPStatusEffectConsumeRuleDefinitionDrawer : PropertyDrawer
     {
+        /* 定数 */
+
         // 種類切り替えボタンの幅
         private const float SwitchButtonWidth = 80f;
         // 表示名の既定値。フィールド側に [PPFieldLabel] があればそちらを優先する
         private const string DefaultDisplayLabel = "スタック消費ルール";
+
+        /* 描画 */
 
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
@@ -294,10 +312,14 @@ namespace PPCore
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
             => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
 
+        /* 説明文 */
+
         // 描画に使う表示名を解決する
         // return : 表示名
         private string ResolveDisplayLabel()
             => fieldInfo?.GetCustomAttribute<PPFieldLabelAttribute>()?.Text ?? DefaultDisplayLabel;
+
+        /* ヘルパー */
 
         // 型選択ツリーを開き、選ばれた型のインスタンスをプロパティへ設定する
         private static void ShowTypePicker(Rect aActivatorRect, SerializedProperty aProperty)

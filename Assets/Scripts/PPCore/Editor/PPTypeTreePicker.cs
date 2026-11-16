@@ -19,8 +19,8 @@ namespace PPCore
     // 選ばれた型をコールバックへ渡すだけで、インスタンスの生成は呼び出し側に任せる
     public sealed class PPTypeTreePickerPopup : PopupWindowContent
     {
-        // 型が選ばれたときに呼ぶコールバック
-        private readonly Action<Type> mOnSelected;
+        /* 状態 */
+
         // 選択候補を表示するツリービュー
         private readonly PPTypeTreePickerTreeView mTreeView;
         // ツリーの展開状態などを保持する状態オブジェクト
@@ -28,12 +28,26 @@ namespace PPCore
         // ツリーの絞り込み用検索欄
         private readonly SearchField mSearchField = new();
 
+        /* イベント */
+
+        // 型が選ばれたときに呼ぶコールバック
+        private readonly Action<Type> mOnSelected;
+
+        /* 生成 */
+
         private PPTypeTreePickerPopup(IReadOnlyList<Type> aCandidateTypes, string aEmptyMessage, Action<Type> aOnSelected)
         {
             mOnSelected = aOnSelected;
             mTreeView = new PPTypeTreePickerTreeView(mTreeViewState, aCandidateTypes, aEmptyMessage, OnTypePicked);
             mTreeView.ExpandAll();
         }
+
+        /* 問い合わせ */
+
+        // ポップアップのサイズ
+        public override Vector2 GetWindowSize() => new Vector2(320f, 360f);
+
+        /* 表示 */
 
         // ポップアップを表示する
         public static void Show(Rect aActivatorRect, IReadOnlyList<Type> aCandidateTypes,
@@ -47,8 +61,7 @@ namespace PPCore
             => Show(aActivatorRect, PPTypeTreePickerTreeView.CollectDerived<T>(), aEmptyMessage,
                 type => aOnCreated?.Invoke((T)Activator.CreateInstance(type)));
 
-        // ポップアップのサイズ
-        public override Vector2 GetWindowSize() => new Vector2(320f, 360f);
+        /* 描画 */
 
         // 上部に検索欄、その下にツリービューを配置して描画する
         // aRect : 描画領域
@@ -61,6 +74,8 @@ namespace PPCore
             mTreeView.searchString = mSearchField.OnGUI(searchRect, mTreeView.searchString);
             mTreeView.OnGUI(treeRect);
         }
+
+        /* イベントハンドラ */
 
         // 型が選ばれたときの処理。コールバックへ渡してポップアップを閉じる
         // aType : 選ばれた型
@@ -75,16 +90,23 @@ namespace PPCore
     // 階層は PPTypeMenuNameAttribute の Path から組み立てる
     internal sealed class PPTypeTreePickerTreeView : TreeView<int>
     {
+        /* 状態 */
+
         // ツリーに並べる候補の型
         private readonly IReadOnlyList<Type> mCandidateTypes;
         // 候補が 1 つも無い場合に表示する文言
         private readonly string mEmptyMessage;
-        // 型が選ばれたときのコールバック
-        private readonly Action<Type> mOnPickType;
         // ノード ID から型への対応
         private readonly Dictionary<int, Type> mIdToType = new();
         // フォルダノードに割り当てる次の ID。葉と衝突しないよう負方向へ進める
         private int mNextFolderId = -2;
+
+        /* イベント */
+
+        // 型が選ばれたときのコールバック
+        private readonly Action<Type> mOnPickType;
+
+        /* 生成 */
 
         public PPTypeTreePickerTreeView(TreeViewState<int> aState, IReadOnlyList<Type> aCandidateTypes,
             string aEmptyMessage, Action<Type> aOnPickType) : base(aState)
@@ -94,27 +116,6 @@ namespace PPCore
             mOnPickType = aOnPickType;
             showAlternatingRowBackgrounds = true;
             Reload();
-        }
-
-        // 基底型の具象派生型を集める
-        // 属性の無い型は、引数に応じて除外するか「未分類/型名」として並べる
-        public static List<Type> CollectDerived<T>(bool aIsSkipUnattributed = false)
-        {
-            var list = new List<Type>();
-            AppendDerived<T>(list, aIsSkipUnattributed);
-            return list;
-        }
-
-        // 既存のリストへ基底型の具象派生型を追記する
-        // 異なる型階層を 1 本のツリーへまとめたい場合に複数回呼ぶ
-        public static void AppendDerived<T>(List<Type> aList, bool aIsSkipUnattributed = false)
-        {
-            foreach (var type in TypeCache.GetTypesDerivedFrom<T>())
-            {
-                if (type.IsAbstract) continue;
-                if (aIsSkipUnattributed && type.GetCustomAttribute<PPTypeMenuNameAttribute>() == null) continue;
-                aList.Add(type);
-            }
         }
 
         // ツリーを構築する
@@ -164,6 +165,20 @@ namespace PPCore
             return root;
         }
 
+        /* 操作 */
+
+        // 既存のリストへ基底型の具象派生型を追記する
+        // 異なる型階層を 1 本のツリーへまとめたい場合に複数回呼ぶ
+        public static void AppendDerived<T>(List<Type> aList, bool aIsSkipUnattributed = false)
+        {
+            foreach (var type in TypeCache.GetTypesDerivedFrom<T>())
+            {
+                if (type.IsAbstract) continue;
+                if (aIsSkipUnattributed && type.GetCustomAttribute<PPTypeMenuNameAttribute>() == null) continue;
+                aList.Add(type);
+            }
+        }
+
         // ダブルクリックで選択を確定する
         // aId : ダブルクリックされたノードの ID
         protected override void DoubleClickedItem(int aId)
@@ -171,6 +186,19 @@ namespace PPCore
             if (mIdToType.TryGetValue(aId, out var type))
                 mOnPickType?.Invoke(type);
         }
+
+        /* 問い合わせ */
+
+        // 基底型の具象派生型を集める
+        // 属性の無い型は、引数に応じて除外するか「未分類/型名」として並べる
+        public static List<Type> CollectDerived<T>(bool aIsSkipUnattributed = false)
+        {
+            var list = new List<Type>();
+            AppendDerived<T>(list, aIsSkipUnattributed);
+            return list;
+        }
+
+        /* ヘルパー */
 
         // エディタ組み込みアイコンを名前で取得する
         private static Texture2D LoadIcon(string aName)
@@ -183,6 +211,30 @@ namespace PPCore
     // [SerializeReference] フィールドの「型未選択なら選択ボタン、選択済みならフィールド展開」を共通化する
     public static class PPManagedReferencePickerUtility
     {
+        /* 表示 */
+
+        // aBaseType の具象派生型一覧をメニュー表示し、選ばれた型のインスタンスを aProperty に設定する
+        private static void ShowTypeMenu(SerializedProperty aProperty, Type aBaseType)
+        {
+            var menu = new GenericMenu();
+            foreach (var type in TypeCache.GetTypesDerivedFrom(aBaseType))
+            {
+                if (type.IsAbstract) continue;
+
+                var path = type.GetCustomAttribute<PPTypeMenuNameAttribute>()?.Path
+                                   ?? ObjectNames.NicifyVariableName(type.Name);
+
+                menu.AddItem(new GUIContent(path), false, () =>
+                {
+                    aProperty.managedReferenceValue = Activator.CreateInstance(type);
+                    aProperty.serializedObject.ApplyModifiedProperties();
+                });
+            }
+            menu.ShowAsContext();
+        }
+
+        /* 描画 */
+
         public static void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel, Type aBaseType)
         {
             if (string.IsNullOrEmpty(aProperty.managedReferenceFullTypename))
@@ -221,26 +273,6 @@ namespace PPCore
                 case PPUnitAIActionBase action: label.text = action.ActionName; break;
             }
             EditorGUI.PropertyField(aPosition, aProperty, label, true);
-        }
-
-        // aBaseType の具象派生型一覧をメニュー表示し、選ばれた型のインスタンスを aProperty に設定する
-        private static void ShowTypeMenu(SerializedProperty aProperty, Type aBaseType)
-        {
-            var menu = new GenericMenu();
-            foreach (var type in TypeCache.GetTypesDerivedFrom(aBaseType))
-            {
-                if (type.IsAbstract) continue;
-
-                var path = type.GetCustomAttribute<PPTypeMenuNameAttribute>()?.Path
-                                   ?? ObjectNames.NicifyVariableName(type.Name);
-
-                menu.AddItem(new GUIContent(path), false, () =>
-                {
-                    aProperty.managedReferenceValue = Activator.CreateInstance(type);
-                    aProperty.serializedObject.ApplyModifiedProperties();
-                });
-            }
-            menu.ShowAsContext();
         }
     }
 }

@@ -15,13 +15,19 @@ namespace PPCore
     // バトルの組み立て方と、1 ターンの回し方（行動順取得 → コマンド決定 → キュー実行 → ターン経過）を示す
     public class TurnBattleRunnerSample : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         // 味方として生成するユニット定義
         [SerializeField] private UnitDefinition[] mAllyDefinitions;
         // 敵として生成するユニット定義
         [SerializeField] private UnitDefinition[] mEnemyDefinitions;
 
+        /* 状態 */
+
         // このサンプルが駆動するバトルマネージャ
         private BattleManager mBattleManager;
+
+        /* Unity イベント */
 
         // 定義からユニットを生成して両パーティを組み立て、
         // ログ出力用のイベントを購読してからバトルを開始する
@@ -45,6 +51,8 @@ namespace PPCore
 
             mBattleManager.StartBattle(context);
         }
+
+        /* 操作 */
 
         // 1 ターン分を進める。行動順に全ユニットのコマンドを積み、実行してからターンを経過させる
         // インスペクタのコンテキストメニューから手動で呼ぶ

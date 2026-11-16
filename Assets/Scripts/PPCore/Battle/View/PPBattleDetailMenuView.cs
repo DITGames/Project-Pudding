@@ -21,12 +21,16 @@ namespace PPCore
     // 表示は Show を呼んだ時点のスナップショットで、変更を購読しない
     public class PPBattleDetailMenuView : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         [Label("ユニット名")]
         [SerializeField] private TMP_Text mNameLabel;
+
         // HP ラベル（現在値/最大値）
         [FormerlySerializedAs("mHPLabel")]
         [Label("HP")]
         [SerializeField] private TMP_Text mHpLabel;
+
         [Label("攻撃力")]
         [SerializeField] private TMP_Text mAttackLabel;
         [Label("防御力")]
@@ -40,8 +44,12 @@ namespace PPCore
         [Label("戻るボタン")]
         [SerializeField] private Button mBackButton;
 
+        /* イベント */
+
         // 戻るが押されたときに発火する
         public event Action OnBackRequested;
+
+        /* 初期化・接続 */
 
         // ビューを指定した位置へ移動させる。レイアウトを崩さないよう worldPositionStays は false
         // aAnchor : 配置先の親となる RectTransform
@@ -51,6 +59,13 @@ namespace PPCore
             rt.SetParent(aAnchor, false);
             rt.anchoredPosition = Vector2.zero;
         }
+
+        /* 操作 */
+
+        // 戻る操作を外部へ通知する
+        private void RaiseBack() => OnBackRequested?.Invoke();
+
+        /* 表示 */
 
         // ユニットの情報を各ラベルへ流し込んで表示する
         // 表示中のパラメータはバフ込みの現在値。スキルと状態異常は空のときにプレースホルダを出す
@@ -84,8 +99,5 @@ namespace PPCore
             mBackButton.onClick.RemoveListener(RaiseBack);
             gameObject.SetActive(false);
         }
-
-        // 戻る操作を外部へ通知する
-        private void RaiseBack() => OnBackRequested?.Invoke();
     }
 }

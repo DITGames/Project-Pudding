@@ -17,6 +17,8 @@ namespace PPCore
     [CreateAssetMenu(menuName = "Project-Pudding/Definition/UnitDefinition", fileName = "NewUnit")]
     public class UnitDefinition : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         [Header("ユニット")]
         [Label("ユニットID")]
         [SerializeField] protected string mUnitId;
@@ -29,10 +31,14 @@ namespace PPCore
         [Label("使用可能スキル", true)]
         [SerializeField] protected List<SkillDefinition> mSkills = new();
 
+        /* プロパティ */
+
         public string UnitId => mUnitId;
         public string DisplayName => mDisplayName;
         public StatBlock BaseStatBlock => mBaseStatBlock;
         public List<SkillDefinition> Skills => mSkills;
+
+        /* 生成 */
 
         // この定義からランタイムのユニットインスタンスを生成する
         // パラメータを組み立て、所持スキルもランタイム化して持たせる（null は読み飛ばす）

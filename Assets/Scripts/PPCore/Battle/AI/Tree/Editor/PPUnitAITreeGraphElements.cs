@@ -18,11 +18,17 @@ namespace PPCore
     // 既定の Edge はポートの色から毎回線の色を計算し直すため、InputColor / OutputColor を差し替える
     internal sealed class PPUnitAITreeEdge : Edge
     {
-        // 強調時に使う色。null なら既定の計算に任せる
-        private Color? mHighlightColor;
+        /* 定数 */
 
         // 強調時の線の太さ
         private const int HighlightedEdgeWidth = 4;
+
+        /* 状態 */
+
+        // 強調時に使う色。null なら既定の計算に任せる
+        private Color? mHighlightColor;
+
+        /* 操作 */
 
         // 強調色を設定する。null を渡すと解除して既定の色・太さへ戻る
         // aColor : 強調色。解除する場合は null
@@ -52,6 +58,8 @@ namespace PPCore
     // Port を直接継承して m_EdgeConnector へこのクラス自身を設定する
     internal class PPUnitAITreePort : Port, IEdgeConnectorListener
     {
+        /* 生成 */
+
         public static PPUnitAITreePort Create(Orientation aOrientation, Direction aDirection, Capacity aCapacity)
         {
             var port = new PPUnitAITreePort(aOrientation, aDirection, aCapacity, typeof(bool));
@@ -64,6 +72,8 @@ namespace PPCore
             : base(aOrientation, aDirection, aCapacity, aType)
         {
         }
+
+        /* イベントハンドラ */
 
         // 既存ポート上でドロップされた際に接続を確定させる
         // 標準の OnDrop が呼ばれなくなるため、既存接続の削除・通知・要素追加・両端の接続を同等に再現する

@@ -19,6 +19,7 @@ namespace PPCore
     {
         // 現在値
         public float CurrentValue { get; }
+
         // 値が変化したときに発火する
         event Action<IReadableParameter> OnValueChanged;
     }
@@ -27,13 +28,16 @@ namespace PPCore
     // 基礎値と修飾子リストを分けて持ち、現在値は都度再計算するため、バフを剥がせば必ず元の値に戻る
     public class Parameter : IReadableParameter
     {
+        /* 状態 */
+
+        // バフなどの修飾子で変更される現在値。実際の計算に使うのはこちら
+        public float CurrentValue { get; protected set; }
         // 恒久的な値。修飾子の影響を受けない素の値
         protected float mBaseValue;
         // 現在掛かっている修飾子の一覧
         protected readonly List<ParameterModifier> mModifiers = new();
 
-        // 現在値が再計算されたときに発火する
-        public event Action<IReadableParameter> OnValueChanged;
+        /* プロパティ */
 
         // 基礎値。レベルアップなど恒久的な変化はこちらを書き換える
         // 設定しただけでは再計算されない（まとめて行う場合は SetBaseValue を使う）
@@ -43,11 +47,15 @@ namespace PPCore
             set => mBaseValue = value;
         }
 
-        // バフなどの修飾子で変更される現在値。実際の計算に使うのはこちら
-        public float CurrentValue { get; protected set; }
-
         // 掛かっている修飾子の読み取り専用ビュー
         public IReadOnlyList<ParameterModifier> Modifiers => mModifiers;
+
+        /* イベント */
+
+        // 現在値が再計算されたときに発火する
+        public event Action<IReadableParameter> OnValueChanged;
+
+        /* 生成 */
 
         // aBaseValue : 初期の基礎値。現在値もこの値で初期化される
         public Parameter(float aBaseValue)
@@ -55,6 +63,8 @@ namespace PPCore
             mBaseValue = aBaseValue;
             CurrentValue = aBaseValue;
         }
+
+        /* 操作 */
 
         // 割合の合計値を倍率へ変換する（+20% と +30% の合計 0.5 → 1.5 倍）
         // 倍率は 0 未満にならないよう丸める
@@ -129,18 +139,25 @@ namespace PPCore
     // 上限値を Parameter として持つため、最大 HP にもバフを掛けられる
     public class ResourceParameter : IReadableParameter
     {
+        /* 状態 */
+
         // 上限値。これ自体が修飾子を受け付ける Parameter
         public Parameter Max { get; }
         // 現在値。0 ～ Max の範囲に保たれる
         public float Current { get; protected set; }
 
+        /* プロパティ */
+
         // 現在値（IReadableParameter 用）
         public float CurrentValue => Current;
-        
         public float Ratio => Max.CurrentValue > 0 ? Current / Max.CurrentValue : 0f;
+
+        /* イベント */
 
         // 現在値または上限が変化したときに発火する
         public event Action<IReadableParameter> OnValueChanged;
+
+        /* 生成 */
 
         // 上限値を指定して生成する。現在値は満タンから始まる
         // 上限の変化を購読し、上限が下がった際に現在値を追従させる
@@ -155,6 +172,8 @@ namespace PPCore
                 OnValueChanged?.Invoke(this);
             };
         }
+
+        /* 操作 */
 
         // 現在値を減らす。0 未満にはならない
         // aAmount : 減少量。0 以下なら何もしない
@@ -212,6 +231,8 @@ namespace PPCore
     // 付与元を Source に持ち、Parameter.RemoveModifiersFromSource でまとめて剥がせる
     public sealed class ParameterModifier
     {
+        /* 状態 */
+
         // 適用方式（加算・乗算・上書き・割合加算）
         public ParameterModifierType Type { get; }
         // 修飾値。方式によって加算値・倍率・上書き値・割合（0.2 = +20%）のいずれかとして扱われる
@@ -220,6 +241,8 @@ namespace PPCore
         public object Source { get; }
         // Override 同士が競合したときの優先度。高い方が採用される
         public int Priority { get; }
+
+        /* 生成 */
 
         public ParameterModifier(ParameterModifierType aType, object aSource, float aValue, int aPriority = 0)
         {

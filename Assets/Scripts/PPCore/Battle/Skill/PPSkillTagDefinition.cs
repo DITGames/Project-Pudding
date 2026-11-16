@@ -17,6 +17,8 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPSkillTagDefinition", menuName = "Project-Pudding/AI/PPSkillTagDefinition")]
     public class PPSkillTagDefinition : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         [Label("タグ名")]
         [SerializeField] private string mTagName = "";
         // "攻撃/範囲" のようなスラッシュ区切りのパス。ピッカーのツリー構造はこの値から組む
@@ -25,11 +27,12 @@ namespace PPCore
         [Label("説明")]
         [SerializeField][Multiline] private string mDescription = "";
 
+        /* プロパティ */
+
         // 表示に使うタグ名。未入力ならアセット名で代用する
         public string TagName => string.IsNullOrEmpty(mTagName) ? name : mTagName;
         public string CategoryPath => mCategoryPath;
         public string Description => mDescription;
-
         // ツリー上でのフルパス。カテゴリパス未設定のタグは「未分類」へ集める
         public string MenuPath
             => string.IsNullOrEmpty(mCategoryPath) ? $"未分類/{TagName}" : $"{mCategoryPath}/{TagName}";
@@ -38,6 +41,8 @@ namespace PPCore
     // スキルタグによる絞り込みをまとめたヘルパー。複数のユニット条件から使う
     public static class PPSkillTagUtility
     {
+        /* 問い合わせ */
+
         // ユニットが持つスキルのうち、指定タグのいずれかに合致するものを列挙する
         // PP 側の定義を持たないスキルはタグを判定できないため対象外になる
         public static IEnumerable<(PPBattleSkill Skill, PPSkillDefinition Definition)> EnumerateTaggedSkills(
@@ -78,6 +83,8 @@ namespace PPCore
             }
             return false;
         }
+
+        /* 説明文 */
 
         // タグリストを説明文用の文字列へ整形する
         public static string ToDisplayString(IReadOnlyList<PPSkillTagDefinition> aTags)

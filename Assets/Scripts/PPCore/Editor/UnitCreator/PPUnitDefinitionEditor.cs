@@ -20,10 +20,17 @@ namespace PPCore
     [CanEditMultipleObjects]
     public class PPUnitDefinitionEditor : UnityEditor.Editor
     {
+        /* 定数 */
+
         // 能力名で表示し直す基礎ステータスのフィールド名（シリアライズ名）
         private const string BaseStatBlockPath = "mBaseStatBlock";
         // スクリプト参照の既定フィールド名。既定のインスペクタと同じく編集不可で表示する
         private const string ScriptPath = "m_Script";
+        // 基礎ステータスのフィールド定義。見出し（[Header]）と表示名（[Label]）を既定の描画と揃えるために読む
+        private static readonly FieldInfo mBaseStatBlockField =
+            typeof(UnitDefinition).GetField(BaseStatBlockPath, BindingFlags.Instance | BindingFlags.NonPublic);
+
+        /* 状態 */
 
         // StatBlock のフィールド名 → 本作の能力名
         private static readonly Dictionary<string, string> mAbilityNames = new()
@@ -34,9 +41,7 @@ namespace PPCore
             { nameof(StatBlock.Speed), PPUnitAbilityDefinition.NameAgility },
         };
 
-        // 基礎ステータスのフィールド定義。見出し（[Header]）と表示名（[Label]）を既定の描画と揃えるために読む
-        private static readonly FieldInfo mBaseStatBlockField =
-            typeof(UnitDefinition).GetField(BaseStatBlockPath, BindingFlags.Instance | BindingFlags.NonPublic);
+        /* Unity イベント */
 
         // 既定のインスペクタと同じ順にフィールドを並べ、基礎ステータスだけを能力名で描画する
         public override void OnInspectorGUI()
@@ -60,6 +65,8 @@ namespace PPCore
             }
             serializedObject.ApplyModifiedProperties();
         }
+
+        /* 描画 */
 
         // 基礎ステータスを「見出し → 折りたたみ → 各能力」の順で描画する
         // 通常の PropertyField を通すと子の [Label]（基底側の表示名）が優先されるため、見出しと折りたたみもここで描く

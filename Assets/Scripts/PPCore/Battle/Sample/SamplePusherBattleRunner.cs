@@ -17,10 +17,13 @@ using AttributeUtility;
 // ティックでターンを進めつつ、プレイヤーは任意のタイミングでコマンド入力を開始できる（入力中は timeScale が 0）
 public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
 {
+    /* インスペクタ設定 */
+
     // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
     [Header("コイン")]
     [Label("コインゲージブリッジ")]
     [SerializeField] private PPCoinResourceBridge mCoinResourceBridge;
+
     // コイン 1 枚あたりのゲージ変換係数の初期値
     [Label("コイン獲得レート初期値")]
     [SerializeField] private float mBaseCoinConversionRate = 1f;
@@ -49,26 +52,30 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     [Header("敵")]
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mEnemyUnit;
+
     // 1 ティックあたりの思考回数。判断の中身はユニット定義側のビヘイビアツリーが決める
     [Label("思考回数(1ティックあたり)")]
     [SerializeField] private int mThinkCountPerTick = 1;
+    // 敵がティックごとに得るゲージ量。敵にはプッシャーが無いため直接補給する
+    [Label("敵ゲージ供給")]
+    [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
+
+    /* 状態 */
+
     // 敵 AI を駆動するドライバ
     private PPEnemyAIDriver mEnemyAIDriver;
     // 敵の思考ルーチン。バトル進行のイベントを購読しているため、終了時に外せるよう持っておく
     private IPPPartyCommandStrategist mEnemyStrategist;
     // 1 ティック分の行動を集めて並べ替える収集役
     private readonly PPTickActionCollector mActionCollector = new();
-    // 敵がティックごとに得るゲージ量。敵にはプッシャーが無いため直接補給する
-    [Label("敵ゲージ供給")]
-    [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
-
     // バトル進行を統括するマネージャ
     private BattleManager mBattleManager = new();
-
     // 敵 AI のループを回しているコルーチン
     private Coroutine mEnemyActionCoroutine;
     // ターン経過を回しているコルーチン
     private Coroutine mTickCoroutine;
+
+    /* Unity イベント */
 
     // バトルを組み立てて開始する。ユニット生成 → コンテキスト構築 → 敵 AI の注入 → イベント購読 → バトル開始 →
     // View・コインブリッジ・入力の接続 → AI とティックのコルーチン起動、の順に進む
@@ -142,25 +149,7 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
     // バトルが決着しないまま破棄された場合にも、思考ルーチンの購読を外す
     void OnDestroy() => mEnemyStrategist?.Unbind();
 
-    // 今コマンド入力を始める意味があるかを判定する
-    // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
-    private bool CanSelectAnyCommand()
-    {
-        if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
-            return false;
-
-        var allyParty = mBattleManager.Context.GetParty(BattleSide.Ally);
-        foreach (var unit in allyParty.ActiveMembers)
-        {
-            if (unit is PPBattleUnit ppUnit)
-            {
-                // 何らかの発動可能なスキルがあるか?
-                if (ppUnit.CanValidateSkill(mBattleManager.Context))
-                    return true;
-            }
-        }
-        return false;
-    }
+    /* 操作 */
 
     // 一定間隔でターンを進めるコルーチン
     // プッシャーを持たない敵には、ティックごとにランダム量のゲージを直接補給する
@@ -197,6 +186,8 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
         mEnemyAIDriver?.ConsumePlan();
     }
 
+    /* 問い合わせ */
+
     // 指定した陣営の、まだ実行されていない行動を列挙する
     // 思考時点ではコマンド列が空のため、プレイヤーの予約と敵 AI の計画を直接読む
     public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
@@ -214,12 +205,24 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
         }
     }
 
-    // プレイヤーが確定したコマンドを、このティックの行動として予約する
-    private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
+    // 今コマンド入力を始める意味があるかを判定する
+    // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
+    private bool CanSelectAnyCommand()
     {
-        if (aUnit is not PPBattleUnit unit) return;
+        if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
+            return false;
 
-        mActionCollector.TryReserve(unit, aCommand);
+        var allyParty = mBattleManager.Context.GetParty(BattleSide.Ally);
+        foreach (var unit in allyParty.ActiveMembers)
+        {
+            if (unit is PPBattleUnit ppUnit)
+            {
+                // 何らかの発動可能なスキルがあるか?
+                if (ppUnit.CanValidateSkill(mBattleManager.Context))
+                    return true;
+            }
+        }
+        return false;
     }
 
     // コマンド入力の開始操作が行われたかを判定する
@@ -229,5 +232,15 @@ public class SamplePusherBattleRunner : MonoBehaviour, IPPPendingActionSource
         return
             (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame)
             || (Gamepad.current != null && Gamepad.current.triangleButton.wasPressedThisFrame);
+    }
+
+    /* イベントハンドラ */
+
+    // プレイヤーが確定したコマンドを、このティックの行動として予約する
+    private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
+    {
+        if (aUnit is not PPBattleUnit unit) return;
+
+        mActionCollector.TryReserve(unit, aCommand);
     }
 }

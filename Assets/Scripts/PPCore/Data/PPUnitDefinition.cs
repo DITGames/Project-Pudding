@@ -17,6 +17,8 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
     public class PPUnitDefinition : UnitDefinition
     {
+        /* インスペクタ設定 */
+
         [Header("ユニット拡張")]
         // 構造体はフィールド初期化子を持てないため、新規アセット用の既定値（きようさ・スキルゲージ上限）はここで与える
         // 既存アセットはシリアライズ済みの値が優先される
@@ -26,6 +28,7 @@ namespace PPCore
             SkillGaugeMax = PPStatBlock.DefaultSkillGaugeMax,
             Dexterity = PPStatBlock.DefaultDexterity,
         };
+
         // ユニットの属性。弱点・耐性の判定に使う
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
@@ -45,10 +48,14 @@ namespace PPCore
         [Label(PPUnitAbilityDefinition.NameAgility + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mSpeedGrowth = AnimationCurve.Linear(1, 1, 50, 3);
         [Label(PPUnitAbilityDefinition.NameDexterity + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mDexterityGrowth = AnimationCurve.Linear(1, 1, 50, 3);
 
+        /* プロパティ */
+
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
         public PPUnitRole Role => mRole;
         public PPUnitBehaviourTree BehaviourTree => mBehaviourTree;
+
+        /* 生成 */
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口
         public override BattleUnit CreateRuntimeUnit(ICommandDecider aDecider = null)
@@ -83,6 +90,21 @@ namespace PPCore
                 );
         }
 
+        // 追加パラメータ一式を組み立てる。きようさ以外はレベル成長の対象外
+        // 行動回数上限は未設定のアセットで 0 になるため、下限 1 に丸めてから渡す
+        protected virtual PPParameterSet CreatePPParameterSet(int aLevel)
+            => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
+                mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.CoinGaugeMax, EvaluateDexterity(aLevel));
+
+        /* 操作 */
+
+        // 育成値を整数へ丸める。0.5 は 0 から遠い側へ丸める（2.5 → 3、-2.5 → -3）
+        // Mathf.Round は偶数丸め（2.5 → 2）になるため使わない
+        public static float RoundGrowthValue(float aValue)
+            => (float)Math.Round((double)aValue, MidpointRounding.AwayFromZero);
+
+        /* 評価・判定 */
+
         // スキルやランタイムユニットを生成せず、表示と生成で同じ成長値（育成値）を評価する
         // きようさは基底の StatBlock に含まれないため EvaluateDexterity で別に評価する
         public virtual StatBlock EvaluateStats(int aLevel) => new()
@@ -104,16 +126,5 @@ namespace PPCore
             float rate = aCurve == null ? 1f : Mathf.Max(1f, aCurve.Evaluate(aLevel));
             return RoundGrowthValue(aBase * rate);
         }
-
-        // 育成値を整数へ丸める。0.5 は 0 から遠い側へ丸める（2.5 → 3、-2.5 → -3）
-        // Mathf.Round は偶数丸め（2.5 → 2）になるため使わない
-        public static float RoundGrowthValue(float aValue)
-            => (float)Math.Round((double)aValue, MidpointRounding.AwayFromZero);
-
-        // 追加パラメータ一式を組み立てる。きようさ以外はレベル成長の対象外
-        // 行動回数上限は未設定のアセットで 0 になるため、下限 1 に丸めてから渡す
-        protected virtual PPParameterSet CreatePPParameterSet(int aLevel)
-            => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
-                mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.CoinGaugeMax, EvaluateDexterity(aLevel));
     }
 }

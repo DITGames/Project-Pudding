@@ -32,12 +32,16 @@ namespace PPCore
     // ユニット 1 体分の行動割り当て。誰が・何を・どの順番で実行するかを 1 組にしたもの
     public readonly struct PPPartyActionAssignment
     {
+        /* 状態 */
+
         // 行動するユニット
         public PPBattleUnit Unit { get; }
         // 実行するコマンド
         public BattleCommandBase Command { get; }
         // 同一ティック内での実行順序。小さいほど先に実行される
         public int Order { get; }
+
+        /* 生成 */
 
         public PPPartyActionAssignment(PPBattleUnit aUnit, BattleCommandBase aCommand, int aOrder = 0)
         {
@@ -51,13 +55,22 @@ namespace PPCore
     // 割り当てが空であることが「今回は動かずゲージを溜める」を意味する
     public sealed class PPPartyPlan
     {
-        // 採用された行動の割り当て。実行前に PPPartyActionAssignment.Order 順へ並べ替えられる
-        public IReadOnlyList<PPPartyActionAssignment> Assignments { get; }
-        // 待機（何もせずゲージを溜める）かどうか
-        public bool IsWait => Assignments.Count == 0;
+        /* 定数 */
 
         // 待機を表す共有インスタンス。毎回の思考で新規生成しないためのもの
         public static readonly PPPartyPlan Wait = new PPPartyPlan(Array.Empty<PPPartyActionAssignment>());
+
+        /* 状態 */
+
+        // 採用された行動の割り当て。実行前に PPPartyActionAssignment.Order 順へ並べ替えられる
+        public IReadOnlyList<PPPartyActionAssignment> Assignments { get; }
+
+        /* プロパティ */
+
+        // 待機（何もせずゲージを溜める）かどうか
+        public bool IsWait => Assignments.Count == 0;
+
+        /* 生成 */
 
         // aAssignments : 採用された行動の割り当て
         public PPPartyPlan(IReadOnlyList<PPPartyActionAssignment> aAssignments) => Assignments = aAssignments;
@@ -67,6 +80,11 @@ namespace PPCore
     // MonoBehaviour ではないため、RunLoop を呼び出し側のコルーチンとして起動する
     public sealed class PPEnemyAIDriver
     {
+        /* 状態 */
+
+        // 直近の思考で立てた計画。ティックの終わりに収集役が取りに来る
+        // 複数回思考した場合は最後の内容で上書きされる
+        public PPPartyPlan LatestPlan { get; private set; }
         // コマンドの投入先
         private readonly BattleManager mManager;
         // 思考対象の陣営
@@ -76,12 +94,12 @@ namespace PPCore
         // 思考間隔（秒）。ティック間隔を思考回数で割って求める
         private readonly float mThinkInterval;
 
-        // 直近の思考で立てた計画。ティックの終わりに収集役が取りに来る
-        // 複数回思考した場合は最後の内容で上書きされる
-        public PPPartyPlan LatestPlan { get; private set; }
+        /* プロパティ */
 
         // 思考対象の陣営。実行待ちの行動を陣営で絞り込む側から参照する
         public BattleSide Side => mSide;
+
+        /* 生成 */
 
         public PPEnemyAIDriver(BattleManager aManager, BattleSide aSide,
             IPPPartyCommandStrategist aPartyCommandStrategist, float aTickInterval, int aThinkCountPerTick)
@@ -93,6 +111,8 @@ namespace PPCore
             // クールタイムなど AI の時間感覚がティック基準で揃うため、ティック側だけ調整すれば済む
             mThinkInterval = Mathf.Max(0.1f, aTickInterval / Mathf.Max(1, aThinkCountPerTick));
         }
+
+        /* 操作 */
 
         // 計画を破棄する。ティックの行動を流し終えたタイミングで呼ぶ
         public void ConsumePlan() => LatestPlan = null;

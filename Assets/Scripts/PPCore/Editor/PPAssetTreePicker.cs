@@ -18,8 +18,8 @@ namespace PPCore
     // 「名前 : 説明」のように中身が分かる表示で選ばせたい場合に使う
     public sealed class PPAssetTreePickerPopup : PopupWindowContent
     {
-        // アセットが選ばれたときに呼ぶコールバック
-        private readonly Action<UnityEngine.Object> mOnSelected;
+        /* 状態 */
+
         // 選択候補を表示するツリービュー
         private readonly PPAssetTreePickerTreeView mTreeView;
         // ツリーの展開状態などを保持する状態オブジェクト
@@ -29,6 +29,13 @@ namespace PPCore
         // ポップアップの表示サイズ
         private readonly Vector2 mWindowSize;
 
+        /* イベント */
+
+        // アセットが選ばれたときに呼ぶコールバック
+        private readonly Action<UnityEngine.Object> mOnSelected;
+
+        /* 生成 */
+
         private PPAssetTreePickerPopup(IReadOnlyList<PPAssetPickerEntry> aEntries, string aEmptyMessage,
             Vector2 aWindowSize, Action<UnityEngine.Object> aOnSelected)
         {
@@ -37,6 +44,13 @@ namespace PPCore
             mTreeView = new PPAssetTreePickerTreeView(mTreeViewState, aEntries, aEmptyMessage, OnAssetPicked);
             mTreeView.ExpandAll();
         }
+
+        /* 問い合わせ */
+
+        // ポップアップのサイズ
+        public override Vector2 GetWindowSize() => mWindowSize;
+
+        /* 表示 */
 
         // プロジェクト内の指定型アセットを候補にしてポップアップを表示する
         public static void ShowAssets<T>(Rect aActivatorRect, Func<T, (string FolderPath, string Label)> aEntryBuilder,
@@ -49,8 +63,7 @@ namespace PPCore
                 new PPAssetTreePickerPopup(entries, aEmptyMessage, size, picked => aOnSelected?.Invoke(picked as T)));
         }
 
-        // ポップアップのサイズ
-        public override Vector2 GetWindowSize() => mWindowSize;
+        /* 描画 */
 
         // 上部に検索欄、その下にツリービューを配置して描画する
         // aRect : 描画領域
@@ -63,6 +76,8 @@ namespace PPCore
             mTreeView.searchString = mSearchField.OnGUI(searchRect, mTreeView.searchString);
             mTreeView.OnGUI(treeRect);
         }
+
+        /* イベントハンドラ */
 
         // アセットが選ばれたときの処理。コールバックへ渡してポップアップを閉じる
         // aAsset : 選ばれたアセット
@@ -77,12 +92,16 @@ namespace PPCore
     // 葉の表示名に "/" が混ざっても階層に分解されないよう、フォルダ階層と表示名を分けて持つ
     internal readonly struct PPAssetPickerEntry
     {
+        /* 状態 */
+
         // 選択されたときに返すアセット
         public UnityEngine.Object Asset { get; }
         // "/" 区切りのフォルダ階層。空なら root 直下の葉になる
         public string FolderPath { get; }
         // 葉に表示する文字列
         public string Label { get; }
+
+        /* 生成 */
 
         public PPAssetPickerEntry(UnityEngine.Object aAsset, string aFolderPath, string aLabel)
         {
@@ -95,16 +114,23 @@ namespace PPCore
     // プロジェクト内のアセットをツリーに表示する汎用ビュー
     internal sealed class PPAssetTreePickerTreeView : TreeView<int>
     {
+        /* 状態 */
+
         // ツリーに並べる候補
         private readonly IReadOnlyList<PPAssetPickerEntry> mEntries;
         // 候補が 1 つも無い場合に表示する文言
         private readonly string mEmptyMessage;
-        // アセットが選ばれたときのコールバック
-        private readonly Action<UnityEngine.Object> mOnPickAsset;
         // ノード ID からアセットへの対応
         private readonly Dictionary<int, UnityEngine.Object> mIdToAsset = new();
         // フォルダノードに割り当てる次の ID。葉と衝突しないよう負方向へ進める
         private int mNextFolderId = -2;
+
+        /* イベント */
+
+        // アセットが選ばれたときのコールバック
+        private readonly Action<UnityEngine.Object> mOnPickAsset;
+
+        /* 生成 */
 
         public PPAssetTreePickerTreeView(TreeViewState<int> aState, IReadOnlyList<PPAssetPickerEntry> aEntries,
             string aEmptyMessage, Action<UnityEngine.Object> aOnPickAsset) : base(aState)
@@ -114,30 +140,6 @@ namespace PPCore
             mOnPickAsset = aOnPickAsset;
             showAlternatingRowBackgrounds = true;
             Reload();
-        }
-
-        // プロジェクト内の指定型アセットを集めて候補リストを作る
-        // 並びが安定しないとツリーの見た目が開くたびに変わるため、フォルダ＋表示名で整列させる
-        public static List<PPAssetPickerEntry> Collect<T>(Func<T, (string FolderPath, string Label)> aEntryBuilder)
-            where T : UnityEngine.Object
-        {
-            var list = new List<PPAssetPickerEntry>();
-            foreach (var guid in AssetDatabase.FindAssets($"t:{typeof(T).Name}"))
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var asset = AssetDatabase.LoadAssetAtPath<T>(path);
-                if (asset == null) continue;
-
-                var (folderPath, label) = aEntryBuilder(asset);
-                list.Add(new PPAssetPickerEntry(asset, folderPath, label));
-            }
-
-            list.Sort((a, b) =>
-            {
-                int folder = string.CompareOrdinal(a.FolderPath, b.FolderPath);
-                return folder != 0 ? folder : string.CompareOrdinal(a.Label, b.Label);
-            });
-            return list;
         }
 
         // ツリーを構築する
@@ -186,6 +188,8 @@ namespace PPCore
             return root;
         }
 
+        /* 操作 */
+
         // ダブルクリックで選択を確定する
         // aId : ダブルクリックされたノードの ID
         protected override void DoubleClickedItem(int aId)
@@ -193,6 +197,34 @@ namespace PPCore
             if (mIdToAsset.TryGetValue(aId, out var asset))
                 mOnPickAsset?.Invoke(asset);
         }
+
+        /* 問い合わせ */
+
+        // プロジェクト内の指定型アセットを集めて候補リストを作る
+        // 並びが安定しないとツリーの見た目が開くたびに変わるため、フォルダ＋表示名で整列させる
+        public static List<PPAssetPickerEntry> Collect<T>(Func<T, (string FolderPath, string Label)> aEntryBuilder)
+            where T : UnityEngine.Object
+        {
+            var list = new List<PPAssetPickerEntry>();
+            foreach (var guid in AssetDatabase.FindAssets($"t:{typeof(T).Name}"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+                if (asset == null) continue;
+
+                var (folderPath, label) = aEntryBuilder(asset);
+                list.Add(new PPAssetPickerEntry(asset, folderPath, label));
+            }
+
+            list.Sort((a, b) =>
+            {
+                int folder = string.CompareOrdinal(a.FolderPath, b.FolderPath);
+                return folder != 0 ? folder : string.CompareOrdinal(a.Label, b.Label);
+            });
+            return list;
+        }
+
+        /* ヘルパー */
 
         // エディタ組み込みアイコンを名前で取得する
         private static Texture2D LoadIcon(string aName)

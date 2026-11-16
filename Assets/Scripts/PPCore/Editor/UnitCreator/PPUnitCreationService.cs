@@ -17,6 +17,8 @@ namespace PPCore
 {
     public static class PPUnitCreationService
     {
+        /* 生成 */
+
         // 同一要求の再送は結果を返し、別要求や古い入力からは生成しない
         public static string[] Create(PPUnitCreationDraft aDraft, int aRevision, string aRequestId)
         {
@@ -126,6 +128,8 @@ namespace PPCore
                     if (obj != null && !EditorUtility.IsPersistent(obj)) UnityEngine.Object.DestroyImmediate(obj);
             }
         }
+
+        /* 操作 */
 
         // 編集モードの保存。既存アセットは値だけを書き写し、新規に作るのはツリー・スキル・（無ければ）ビジュアルだけ
         // 失敗時は作ったものを削除して書き換えた内容を戻す。同じ保存要求 ID の再送は記録済みの結果を返す

@@ -16,15 +16,14 @@ namespace PPCore
     // 状態が変わるたびに event を発火し、BattleManager が購読して通知・ログ・リアクション発火へ変換する
     public class BattleUnit
     {
+        /* 状態 */
+
         // ユニットのID
         public string UnitId { get; }
         // UI表示名
         public string DisplayName { get; }
         // 味方か敵か。パーティ生成時に設定される
         public BattleSide Side { get; protected internal set; }
-        // 生存中かどうか。HP が 1 以上なら true
-        public bool IsAlive => Parameters.Hp.CurrentValue > 0;
-
         // HP・攻撃力などのパラメータ一式
         public ParameterSet Parameters { get; }
         // 発動中のステータスエフェクト（ステータス上昇や状態異常もこれに含まれる想定）
@@ -33,7 +32,6 @@ namespace PPCore
         public List<BattleSkill> Skills { get; } = new();
         // 反撃などのリアクション定義。トリガー発生時に BattleManager が走査する
         public List<IBattleReaction> Reactions { get; } = new();
-
         // 1 ターンあたりの行動回数の管理
         public ActionBudget Actions { get; } = new();
         // コマンド決定クラス。AI 制御ユニットに設定する
@@ -41,10 +39,44 @@ namespace PPCore
         // 生成元の定義アセットへの参照
         // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }
-
         // このユニット専用の乱数供給元。ユニットごとに列を分けることで、他のユニットの消費に影響されずに挙動を再現できる
         // 未設定なら BattleRules.RandomProvider へフォールバックする
         public IRandomProvider Random { get; set; }
+
+        /* プロパティ */
+
+        // 生存中かどうか。HP が 1 以上なら true
+        public bool IsAlive => Parameters.Hp.CurrentValue > 0;
+
+        // 現在の行動制限状況。発動中の全ステータスエフェクトの制限をビット OR で合成して返す
+        public ActionRestriction CurrentRestrictions
+        {
+            get
+            {
+                var r = ActionRestriction.None;
+                foreach (var a in ActiveStatusEffects) r |= a.Restriction;
+                return r;
+            }
+        }
+
+        // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）。失敗率が 1 以上のものも確定扱いにする
+        // AI が「このユニットに行動を割り当てても無駄か」を判断するときに使う
+        public bool IsActionCertainlyBlocked
+        {
+            get
+            {
+                foreach (var eff in ActiveStatusEffects)
+                {
+                    if ((eff.Restriction & ActionRestriction.CannotAct) == 0)
+                        continue;
+                    if (eff.ActionFailChance is not float chance || chance >= 1f)
+                        return true;
+                }
+                return false;
+            }
+        }
+
+        /* 通知 */
 
         // ダメージ適用前の介入(ダメージ情報)。ここで Amount を書き換えれば軽減・無効化できる
         public event Action<DamageInfo> OnPreDamaged;
@@ -65,6 +97,8 @@ namespace PPCore
         // ステータスエフェクトスタック時デリゲート(対象ユニット, エフェクト)
         public event Action<BattleUnit, StatusEffect> OnStatusEffectStacked;
 
+        /* 生成 */
+
         // ユニットを生成する
         public BattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameters)
         {
@@ -73,65 +107,7 @@ namespace PPCore
             Parameters = aParameters;
         }
 
-        // 現在の行動制限状況。発動中の全ステータスエフェクトの制限をビット OR で合成して返す
-        public ActionRestriction CurrentRestrictions
-        {
-            get
-            {
-                var r = ActionRestriction.None;
-                foreach (var a in ActiveStatusEffects) r |= a.Restriction;
-                return r;
-            }
-        }
-
-        // このユニットが使う乱数供給元を解決する
-        // 自前の列を持っていればそちらを、無ければバトル共通の供給元を返す
-        public IRandomProvider ResolveRandom(BattleContext aContext)
-            => Random ?? aContext.Rules.RandomProvider;
-
-        // 状態異常によって今回の行動が失敗するかを抽選する
-        // 失敗率が設定されていれば確率判定（麻痺など）、未設定なら無条件で失敗（睡眠など）として扱う
-        public bool RollActionBlocked(BattleContext aContext)
-        {
-            bool blocked = false;
-            foreach (var eff in ActiveStatusEffects)
-            {
-                if((eff.Restriction & ActionRestriction.CannotAct) == 0)
-                    continue;
-                if (eff.ActionFailChance is float chance)
-                {
-                    // 自分が行動できるかの抽選なので、自分の乱数列から引く
-                    if (ResolveRandom(aContext).NextBool(chance))
-                        blocked = true;
-                }
-                else
-                {
-                    blocked = true;
-                }
-            }
-            return blocked;
-        }
-
-        // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）。失敗率が 1 以上のものも確定扱いにする
-        // AI が「このユニットに行動を割り当てても無駄か」を判断するときに使う
-        public bool IsActionCertainlyBlocked
-        {
-            get
-            {
-                foreach (var eff in ActiveStatusEffects)
-                {
-                    if ((eff.Restriction & ActionRestriction.CannotAct) == 0)
-                        continue;
-                    if (eff.ActionFailChance is not float chance || chance >= 1f)
-                        return true;
-                }
-                return false;
-            }
-        }
-
-        // パラメータをIDで解決する
-        // 追加のパラメータ群を持つ派生クラスはここをoverrideする
-        public virtual Parameter ResolveParameter(string aParamId) => Parameters.Get(aParamId);
+        /* ダメージと回復 */
 
         // 数値だけを指定してダメージを適用する簡易版。攻撃元なしの DamageInfo を組んで委譲する
         // スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算
@@ -208,6 +184,31 @@ namespace PPCore
             if (!IsAlive || aAmount <= 0) return;
             Parameters.Hp.Recover(aAmount);
             OnHealed?.Invoke(this, aAmount);
+        }
+
+        /* ステータスエフェクト */
+
+        // 状態異常によって今回の行動が失敗するかを抽選する
+        // 失敗率が設定されていれば確率判定（麻痺など）、未設定なら無条件で失敗（睡眠など）として扱う
+        public bool RollActionBlocked(BattleContext aContext)
+        {
+            bool blocked = false;
+            foreach (var eff in ActiveStatusEffects)
+            {
+                if((eff.Restriction & ActionRestriction.CannotAct) == 0)
+                    continue;
+                if (eff.ActionFailChance is float chance)
+                {
+                    // 自分が行動できるかの抽選なので、自分の乱数列から引く
+                    if (ResolveRandom(aContext).NextBool(chance))
+                        blocked = true;
+                }
+                else
+                {
+                    blocked = true;
+                }
+            }
+            return blocked;
         }
 
         // ステータスエフェクトを追加する。同一 ID が付与済みなら StatusEffectStackPolicy に従って処理する
@@ -334,6 +335,8 @@ namespace PPCore
             }
         }
 
+        /* 更新 */
+
         // 1 ターン分の更新処理。ステータスエフェクトの更新、行動回数のリセット、
         // 全スキルのクールダウン消化をまとめて行う
         public virtual void UnitTick(BattleContext aContext)
@@ -345,20 +348,38 @@ namespace PPCore
                 skill.TickCooldown();
             }
         }
+
+        /* 問い合わせ */
+
+        // このユニットが使う乱数供給元を解決する
+        // 自前の列を持っていればそちらを、無ければバトル共通の供給元を返す
+        public IRandomProvider ResolveRandom(BattleContext aContext)
+            => Random ?? aContext.Rules.RandomProvider;
+
+        // パラメータをIDで解決する
+        // 追加のパラメータ群を持つ派生クラスはここをoverrideする
+        public virtual Parameter ResolveParameter(string aParamId) => Parameters.Get(aParamId);
     }
 
     // ユニット 1 体の 1 ターン内の行動回数を管理する。通常の行動回数と一時的な追加行動を分けて持つ
     // 消費は追加行動から先に減り、使い残した追加行動は持ち越されない
     public class ActionBudget
     {
+        /* 状態 */
+
         // 基本行動回数。ターン開始時にこの値まで回復する
         public int Max { get; set; } = 1;
         // このターンの残り行動回数
         public int Remaining { get; protected set; } = 1;
         // 一時的に付与された追加行動。ターンをまたいで持ち越されない
         public int ExtraActions { get; protected set; } = 0;
+
+        /* プロパティ */
+
         // まだ行動できるか。通常分と追加分の合計で判定する
         public bool CanAction => Remaining + ExtraActions > 0;
+
+        /* 操作 */
 
         // ターン開始時のリセット。残り回数を上限へ戻し、未使用の追加行動を破棄する
         public void ResetForTurn()
@@ -384,15 +405,17 @@ namespace PPCore
     // 拡張パラメータの行動回数上限は、ティックごとに ActionBudget へ同期される
     public class PPBattleUnit : BattleUnit
     {
+        /* 状態 */
+
         // BattleUnit.Parameters に含まれない追加パラメータ
         public PPParameterSet ExtraParameters { get; }
-
         // ユニットの属性。弱点・耐性倍率の判定に使う
         public PPTypeAttribute TypeAttribute { get; }
-
         // 育成値とスキル効果値から BaseValue を組み立てるテーブル
         // パッシブスキルやパーティ効果は、ここへ効果値を足すことで BaseValue に反映させる
         public PPBaseParameterTable BaseParameters { get; }
+
+        /* 生成 */
 
         public PPBattleUnit(string aUnitId, string aDisplayName, ParameterSet aParameterSet,
             PPParameterSet aExtraParameterSet, PPTypeAttribute aTypeAttribute)  : base(aUnitId, aDisplayName, aParameterSet)
@@ -406,6 +429,33 @@ namespace PPCore
             Actions.Max = ResolveActionCount();
             Actions.ResetForTurn();
         }
+
+        // 育成値テーブルを組み立てる。コンストラクタから呼ばれる
+        // スキルゲージ上限はバフの対象外だが、パッシブによる上限上昇（S）の対象にはなるため登録する
+        protected virtual PPBaseParameterTable CreateBaseParameterTable()
+        {
+            var table = new PPBaseParameterTable();
+            table.Register(ParameterSet.ParamIdMaxHp, Parameters.Hp.Max);
+            table.Register(ParameterSet.ParamIdAttack, Parameters.Attack);
+            table.Register(ParameterSet.ParamIdDefense, Parameters.Defense);
+            table.Register(ParameterSet.ParamIdSpeed, Parameters.Speed);
+            table.Register(PPParameterSet.ParameterIdDexterity, ExtraParameters.Dexterity);
+            table.Register(PPParameterSet.ParameterIdSkillGaugeMax, ExtraParameters.SkillGauge.Max);
+            return table;
+        }
+
+        /* 操作 */
+
+        // 1 ティック分の更新処理
+        // 基底の更新（状態異常 → 行動回数のリセット → クールダウン消化）のあとで、バフ切れを反映した行動回数上限を同期し直す
+        public override void UnitTick(BattleContext aContext)
+        {
+            base.UnitTick(aContext);
+            Actions.Max = ResolveActionCount();
+            Actions.ResetForTurn();
+        }
+
+        /* 問い合わせ */
 
         // 今の状況で発動できるスキルを 1 つでも持っているかを判定する
         // リソース不足やクールダウンで全スキルが撃てない「手詰まり」の検出に使う
@@ -421,35 +471,12 @@ namespace PPCore
             return false;
         }
 
-        // 1 ティック分の更新処理
-        // 基底の更新（状態異常 → 行動回数のリセット → クールダウン消化）のあとで、バフ切れを反映した行動回数上限を同期し直す
-        public override void UnitTick(BattleContext aContext)
-        {
-            base.UnitTick(aContext);
-            Actions.Max = ResolveActionCount();
-            Actions.ResetForTurn();
-        }
-
         // 1 ティックあたりの行動回数上限を解決する
         // バフデバフを載せた現在値を切り上げ、下限 1 で丸める
         public int ResolveActionCount()
         {
             var parameter = ExtraParameters.Get(PPParameterSet.ParameterIdActionCount);
             return parameter == null ? 1 : Mathf.Max(1, Mathf.CeilToInt(parameter.CurrentValue));
-        }
-
-        // 育成値テーブルを組み立てる。コンストラクタから呼ばれる
-        // スキルゲージ上限はバフの対象外だが、パッシブによる上限上昇（S）の対象にはなるため登録する
-        protected virtual PPBaseParameterTable CreateBaseParameterTable()
-        {
-            var table = new PPBaseParameterTable();
-            table.Register(ParameterSet.ParamIdMaxHp, Parameters.Hp.Max);
-            table.Register(ParameterSet.ParamIdAttack, Parameters.Attack);
-            table.Register(ParameterSet.ParamIdDefense, Parameters.Defense);
-            table.Register(ParameterSet.ParamIdSpeed, Parameters.Speed);
-            table.Register(PPParameterSet.ParameterIdDexterity, ExtraParameters.Dexterity);
-            table.Register(PPParameterSet.ParameterIdSkillGaugeMax, ExtraParameters.SkillGauge.Max);
-            return table;
         }
 
         // ID からパラメータを解決する。基本パラメータを先に探し、無ければ拡張パラメータを探す

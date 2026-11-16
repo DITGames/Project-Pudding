@@ -16,10 +16,14 @@ namespace PPCore
     // [SerializeReference] の入れ子を保つため、ScriptableObject を挟んで EditorJsonUtility を通す
     internal sealed class PPUnitAITreeClipboard : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         // 複写するノード。EditorJsonUtility が読み書きする実体
         // インスペクタには出さないため表示名属性は付けない
         [SerializeReference]
         [SerializeField] private List<PPUnitAINode> mNodes = new();
+
+        /* 操作 */
 
         // ノード群を文字列へ書き出す
         public static string Serialize(IReadOnlyList<PPUnitAINode> aNodes)
@@ -61,6 +65,8 @@ namespace PPCore
                 DestroyImmediate(holder);
             }
         }
+
+        /* 問い合わせ */
 
         // 文字列が判断ツリーのノードとして読めるかを調べる
         // 貼り付け可否の判定に使う

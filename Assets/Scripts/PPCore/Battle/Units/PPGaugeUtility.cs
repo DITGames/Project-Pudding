@@ -16,16 +16,13 @@ namespace PPCore
     // バリデータ・コマンド・AI が同じ基準で判定できるよう、比較誤差の扱いをここへ寄せる
     public static class PPGaugeUtility
     {
+        /* 定数 */
+
         // 残量比較に使う許容誤差
         // 加算・減算を繰り返した結果 1 の位で誤差が出ても「ちょうど足りている」を不足扱いにしないための値
         public const float CompareEpsilon = 0.0001f;
 
-        // ゲージが指定量を支払えるかを、実際には消費せずに判定する
-        public static bool CanPay(ResourceParameter aGauge, float aAmount)
-        {
-            if (aAmount <= 0f) return true;
-            return aGauge != null && aGauge.Current + CompareEpsilon >= aAmount;
-        }
+        /* 操作 */
 
         // ゲージから指定量を消費する。足りない場合は何も消費せず失敗を返す
         // 比較の基準を CanPay と揃えるため、ResourceParameter.TryConsume を直接呼ばずここを通す
@@ -65,9 +62,14 @@ namespace PPCore
             return targets.Count;
         }
 
-        // ゲージ種別を日本語表記へ変換する
-        public static string ToDisplayString(PPGaugeKind aKind)
-            => aKind == PPGaugeKind.Skill ? "スキルゲージ" : "コインゲージ";
+        /* 問い合わせ */
+
+        // ゲージが指定量を支払えるかを、実際には消費せずに判定する
+        public static bool CanPay(ResourceParameter aGauge, float aAmount)
+        {
+            if (aAmount <= 0f) return true;
+            return aGauge != null && aGauge.Current + CompareEpsilon >= aAmount;
+        }
 
         // 不足量を 1 ティックあたりの増加量で割り、埋まるまでのティック数を見積もる
         // 増加が見込めない場合は無限大を返し、呼び出し側で「待っても撃てない」と判断させる
@@ -76,5 +78,11 @@ namespace PPCore
             if (aShortfall <= 0f) return 0f;
             return aGainPerTick > 0f ? aShortfall / aGainPerTick : Mathf.Infinity;
         }
+
+        /* 説明文 */
+
+        // ゲージ種別を日本語表記へ変換する
+        public static string ToDisplayString(PPGaugeKind aKind)
+            => aKind == PPGaugeKind.Skill ? "スキルゲージ" : "コインゲージ";
     }
 }

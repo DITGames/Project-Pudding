@@ -43,6 +43,8 @@ namespace PPCore
     // BattleContext.Rules へこの型を差し込むことで有効になる
     public class PPBattleRules : BattleRules
     {
+        /* 状態 */
+
         // AI の低HP判定閾値。HP 割合がこれを下回ると危機的状況として扱う
         public float CrisisHpRatio = 0.25f;
         // 弱点属性でヒットしたときのダメージ倍率
@@ -58,6 +60,8 @@ namespace PPCore
         // 通常攻撃 1 回あたりに回復するスキルゲージ量
         // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
         public float NormalAttackSkillGaugeRecover = 5f;
+
+        /* 生成 */
 
         // 既定のリゾルバとルール値を差し込む
         // 会心率は攻撃側のきようさから求め、戦闘不能になったユニットの状態異常はすべて解除する
@@ -75,12 +79,16 @@ namespace PPCore
         // 0 以上 aMaxExclusive 未満の整数を返す
         // aMaxExclusive : 上限（この値自体は含まない）
         int NextInt(int aMaxExclusive);
+
         // 指定範囲の整数を返す
         int NextInt(int aMinInclusive, int aMaxExclusive);
+
         // 0 以上 1 未満の実数を返す
         float NextFloat();
+
         // 指定範囲の実数を返す
         float NextFloat(float aMinInclusive, float aMaxExclusive);
+
         // 指定確率で true を返す
         // aTrueChance : true になる確率（0～1）
         bool NextBool(float aTrueChance);
@@ -89,21 +97,31 @@ namespace PPCore
     // Random を用いた標準の乱数供給実装。シードを与えれば同じ乱数列を再現できる
     public class DefaultRandomProvider : IRandomProvider
     {
+        /* 状態 */
+
         // 乱数生成器の実体
         protected readonly Random mRng;
+
+        /* 生成 */
 
         // aSeed : 固定シード。null なら時刻由来のシードで初期化する
         public DefaultRandomProvider(int? aSeed = null)
             => mRng = aSeed.HasValue ? new Random(aSeed.Value) : new Random();
 
+        /* 操作 */
+
         // 0 以上 aMaxExclusive 未満の整数を返す
         public int NextInt(int aMaxExclusive) => mRng.Next(aMaxExclusive);
+
         // 指定範囲の整数を返す
         public int NextInt(int aMinInclusive, int aMaxExclusive)  => mRng.Next(aMinInclusive, aMaxExclusive);
+
         // 0 以上 1 未満の実数を返す
         public float NextFloat() => (float)mRng.NextDouble();
+
         // 指定範囲の実数を返す
         public float NextFloat(float aMinInclusive, float aMaxExclusive) => aMinInclusive + (float)mRng.NextDouble() * (aMaxExclusive - aMinInclusive);
+
         // 指定確率で true を返す
         public bool NextBool(float aTrueChance) => mRng.NextDouble() < aTrueChance;
     }

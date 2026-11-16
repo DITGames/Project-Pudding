@@ -18,6 +18,21 @@ namespace PPCore
     // GraphView の StickyNote は入力欄の扱いに問題があるため使わない
     internal sealed class PPUnitAITreeNoteElement : GraphElement
     {
+        /* 内部型 */
+
+        // 掴んだつまみが動かす辺
+        [Flags]
+        private enum ResizeSide
+        {
+            None = 0,
+            Left = 1 << 0,
+            Right = 1 << 1,
+            Top = 1 << 2,
+            Bottom = 1 << 3,
+        }
+
+        /* 定数 */
+
         // ノードより後ろへ置くための層。GraphView は層の小さいものから描く
         private const int NoteLayer = -1;
         // 見出しの高さ。ここだけが文字の領域で、残りは面として空ける
@@ -34,24 +49,16 @@ namespace PPCore
         private const float MinHeight = TitleHeight + (HandleThickness * 2f) + 8f;
         // 選択したときの縁取りの太さ
         private const float SelectionBorderWidth = 2f;
-
         // 選択中を示す縁取りの色
         private static readonly Color SelectionOutlineColor = new(0.27f, 0.75f, 1f);
         // つまみに重ねる色。触れているときと掴んでいるときで濃さを変える
         private static readonly Color HandleHoverColor = new(1f, 1f, 1f, 0.22f);
         private static readonly Color HandleActiveColor = new(1f, 1f, 1f, 0.45f);
 
-        // 掴んだつまみが動かす辺
-        [Flags]
-        private enum ResizeSide
-        {
-            None = 0,
-            Left = 1 << 0,
-            Right = 1 << 1,
-            Top = 1 << 2,
-            Bottom = 1 << 3,
-        }
+        /* 状態 */
 
+        // 対応する注記データの ID
+        public string NoteId { get; }
         // 見出しの入力欄
         private readonly TextField mTitleField = new();
         // 面の色を選ぶ欄
@@ -59,16 +66,19 @@ namespace PPCore
         // 現在の面の色。選択の縁取りを解いたときに枠の色を戻すために覚えておく
         private Color mCurrentColor;
 
-        // 対応する注記データの ID
-        public string NoteId { get; }
+        /* プロパティ */
 
         // 見出しの文字列
         public string NoteTitle => mTitleField.value;
         // 面の色
         public Color NoteColor => mColorField.value;
 
+        /* イベント */
+
         // 見出しか色が変えられた際に通知する(引数なし)
         public event Action OnChanged;
+
+        /* 生成 */
 
         // aData : 表示する注記データ
         public PPUnitAITreeNoteElement(PPUnitAINoteData aData)
@@ -91,6 +101,8 @@ namespace PPCore
             ApplyColor(aData.Color);
         }
 
+        /* 初期化・接続 */
+
         // 大きさを変えるためのつまみを四辺と四隅へ置く。隅は辺より後に足して優先して掴めるようにする
         // GraphView の ResizableElement は上と左が正しく動かないため使わない
         private void SetupResizeHandles()
@@ -108,22 +120,6 @@ namespace PPCore
                 0f, float.NaN, float.NaN, 0f, HandleThickness, HandleThickness);
             AddResizeHandle(ResizeSide.Right | ResizeSide.Bottom,
                 float.NaN, 0f, float.NaN, 0f, HandleThickness, HandleThickness);
-        }
-
-        // つまみを 1 つ足す。位置の NaN は「その辺には貼り付けない」、大きさの NaN は「辺いっぱいに伸ばす」を表す
-        private void AddResizeHandle(ResizeSide aSide, float aLeft, float aRight, float aTop, float aBottom,
-            float aWidth, float aHeight)
-        {
-            var handle = new VisualElement { style = { position = Position.Absolute } };
-            if (!float.IsNaN(aLeft)) handle.style.left = aLeft;
-            if (!float.IsNaN(aRight)) handle.style.right = aRight;
-            if (!float.IsNaN(aTop)) handle.style.top = aTop;
-            if (!float.IsNaN(aBottom)) handle.style.bottom = aBottom;
-            if (!float.IsNaN(aWidth)) handle.style.width = aWidth;
-            if (!float.IsNaN(aHeight)) handle.style.height = aHeight;
-
-            RegisterResizeDrag(handle, aSide);
-            hierarchy.Add(handle);
         }
 
         // つまみへドラッグの処理を結び付ける
@@ -195,36 +191,6 @@ namespace PPCore
             });
         }
 
-        // 掴んだ辺と動かした量から、変更後の位置と大きさを求める
-        // 上と左は位置と大きさの両方を動かし、最小の大きさに当たったら位置も止める
-        private static Rect ResolveResizedRect(Rect aStart, ResizeSide aSide, Vector2 aDelta)
-        {
-            var rect = aStart;
-
-            if ((aSide & ResizeSide.Left) != 0)
-            {
-                float x = Mathf.Min(aStart.x + aDelta.x, aStart.xMax - MinWidth);
-                rect.x = x;
-                rect.width = aStart.xMax - x;
-            }
-            else if ((aSide & ResizeSide.Right) != 0)
-            {
-                rect.width = Mathf.Max(aStart.width + aDelta.x, MinWidth);
-            }
-
-            if ((aSide & ResizeSide.Top) != 0)
-            {
-                float y = Mathf.Min(aStart.y + aDelta.y, aStart.yMax - MinHeight);
-                rect.y = y;
-                rect.height = aStart.yMax - y;
-            }
-            else if ((aSide & ResizeSide.Bottom) != 0)
-            {
-                rect.height = Mathf.Max(aStart.height + aDelta.y, MinHeight);
-            }
-            return rect;
-        }
-
         // 面そのものの見た目を整える
         private void SetupStyle()
         {
@@ -273,6 +239,34 @@ namespace PPCore
             Add(header);
         }
 
+        /* 操作 */
+
+        // グラフ上の位置と大きさを設定する
+        // aRect : 設定する位置と大きさ
+        public override void SetPosition(Rect aRect)
+        {
+            style.left = aRect.x;
+            style.top = aRect.y;
+            style.width = aRect.width;
+            style.height = aRect.height;
+        }
+
+        // つまみを 1 つ足す。位置の NaN は「その辺には貼り付けない」、大きさの NaN は「辺いっぱいに伸ばす」を表す
+        private void AddResizeHandle(ResizeSide aSide, float aLeft, float aRight, float aTop, float aBottom,
+            float aWidth, float aHeight)
+        {
+            var handle = new VisualElement { style = { position = Position.Absolute } };
+            if (!float.IsNaN(aLeft)) handle.style.left = aLeft;
+            if (!float.IsNaN(aRight)) handle.style.right = aRight;
+            if (!float.IsNaN(aTop)) handle.style.top = aTop;
+            if (!float.IsNaN(aBottom)) handle.style.bottom = aBottom;
+            if (!float.IsNaN(aWidth)) handle.style.width = aWidth;
+            if (!float.IsNaN(aHeight)) handle.style.height = aHeight;
+
+            RegisterResizeDrag(handle, aSide);
+            hierarchy.Add(handle);
+        }
+
         // 面の色を当て、見出しの文字色を読める側へ寄せる
         // aColor : 設定する色
         private void ApplyColor(Color aColor)
@@ -297,6 +291,16 @@ namespace PPCore
             input.style.unityFontStyleAndWeight = FontStyle.Bold;
         }
 
+        /* 問い合わせ */
+
+        // グラフ上の位置と大きさを返す
+        // return : 位置と大きさ
+        public override Rect GetPosition()
+            => new(style.left.value.value, style.top.value.value,
+                style.width.value.value, style.height.value.value);
+
+        /* 表示 */
+
         // 枠の見た目を、選択の有無と現在の色から決める
         // 選択中は太い明るい縁取りにする
         private void RefreshBorder()
@@ -317,6 +321,8 @@ namespace PPCore
             style.borderRightColor = color;
         }
 
+        /* イベントハンドラ */
+
         // 選択されたときに縁取りを出す
         public override void OnSelected()
         {
@@ -331,20 +337,36 @@ namespace PPCore
             RefreshBorder();
         }
 
-        // グラフ上の位置と大きさを返す
-        // return : 位置と大きさ
-        public override Rect GetPosition()
-            => new(style.left.value.value, style.top.value.value,
-                style.width.value.value, style.height.value.value);
+        /* ヘルパー */
 
-        // グラフ上の位置と大きさを設定する
-        // aRect : 設定する位置と大きさ
-        public override void SetPosition(Rect aRect)
+        // 掴んだ辺と動かした量から、変更後の位置と大きさを求める
+        // 上と左は位置と大きさの両方を動かし、最小の大きさに当たったら位置も止める
+        private static Rect ResolveResizedRect(Rect aStart, ResizeSide aSide, Vector2 aDelta)
         {
-            style.left = aRect.x;
-            style.top = aRect.y;
-            style.width = aRect.width;
-            style.height = aRect.height;
+            var rect = aStart;
+
+            if ((aSide & ResizeSide.Left) != 0)
+            {
+                float x = Mathf.Min(aStart.x + aDelta.x, aStart.xMax - MinWidth);
+                rect.x = x;
+                rect.width = aStart.xMax - x;
+            }
+            else if ((aSide & ResizeSide.Right) != 0)
+            {
+                rect.width = Mathf.Max(aStart.width + aDelta.x, MinWidth);
+            }
+
+            if ((aSide & ResizeSide.Top) != 0)
+            {
+                float y = Mathf.Min(aStart.y + aDelta.y, aStart.yMax - MinHeight);
+                rect.y = y;
+                rect.height = aStart.yMax - y;
+            }
+            else if ((aSide & ResizeSide.Bottom) != 0)
+            {
+                rect.height = Mathf.Max(aStart.height + aDelta.y, MinHeight);
+            }
+            return rect;
         }
     }
 }

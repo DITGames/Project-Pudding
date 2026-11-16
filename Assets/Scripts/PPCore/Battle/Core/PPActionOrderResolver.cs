@@ -15,6 +15,8 @@ namespace PPCore
     // 優先度は積んだ時点の値を焼き込んでおく
     public readonly struct PPPendingAction
     {
+        /* 状態 */
+
         // 行動するユニット
         public PPBattleUnit Unit { get; }
         // 実行するコマンド
@@ -22,12 +24,16 @@ namespace PPCore
         // 並び替えに使う優先度
         public PPSkillActionPriority Priority { get; }
 
+        /* 生成 */
+
         public PPPendingAction(PPBattleUnit aUnit, BattleCommandBase aCommand, PPSkillActionPriority aPriority)
         {
             Unit = aUnit;
             Command = aCommand;
             Priority = aPriority;
         }
+
+        /* 操作 */
 
         // コマンドから優先度を判定して 1 件分を組み立てる
         // スキルは定義側の設定に従い、通常攻撃など定義を持たない行動は「通常」として扱う

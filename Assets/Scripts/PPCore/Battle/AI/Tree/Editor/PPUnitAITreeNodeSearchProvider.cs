@@ -17,17 +17,17 @@ namespace PPCore
     // 種別ごとに束ね、同名のノードを区別できるよう要約の 1 行目を添える
     internal sealed class PPUnitAITreeNodeSearchProvider : ScriptableObject, ISearchWindowProvider
     {
+        /* 状態 */
+
         // 検索対象の判断ツリー
         private PPUnitBehaviourTree mTree;
+
+        /* イベント */
+
         // ノードが選ばれたときに呼ぶ処理。ノード ID を渡す
         private Action<string> mOnSelected;
 
-        // 検索対象と選択時の処理を差し込む
-        public void Setup(PPUnitBehaviourTree aTree, Action<string> aOnSelected)
-        {
-            mTree = aTree;
-            mOnSelected = aOnSelected;
-        }
+        /* 生成 */
 
         // 検索窓に並べる項目を組み立てる
         public List<SearchTreeEntry> CreateSearchTree(SearchWindowContext aContext)
@@ -51,6 +51,17 @@ namespace PPCore
             return entries;
         }
 
+        /* 初期化・接続 */
+
+        // 検索対象と選択時の処理を差し込む
+        public void Setup(PPUnitBehaviourTree aTree, Action<string> aOnSelected)
+        {
+            mTree = aTree;
+            mOnSelected = aOnSelected;
+        }
+
+        /* イベントハンドラ */
+
         // 項目が選ばれたときに呼ばれる
         public bool OnSelectEntry(SearchTreeEntry aEntry, SearchWindowContext aContext)
         {
@@ -59,6 +70,8 @@ namespace PPCore
             mOnSelected?.Invoke(nodeId);
             return true;
         }
+
+        /* ヘルパー */
 
         // 一覧へ出す 1 行分の文言を組み立てる
         // 同名のノードを見分けられるよう、要約の 1 行目を添える

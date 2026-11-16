@@ -37,19 +37,22 @@ namespace PPCore
     // 属性に関する定数とヘルパー。表示名をハードコードせずここを参照する
     public static class PPTypeAttributeDefinition
     {
+        /* 定数 */
+
         // 属性の総数。属性別の配列長として使う（Normal を含む）
         public const int TypeCount = 6;
         // Normal を除いた、相性判定の対象になる属性の数
         public const int AttributeCount = 5;
         // 無属性（Normal）のインデックス
         public const int BaseIndex = (int)PPTypeAttribute.Normal;
-
         public const string TypeNormal = "ノーマル";
         public const string TypeFire = "火";
         public const string TypeWater = "水";
         public const string TypeEarth = "土";
         public const string TypeShine = "光";
         public const string TypeDark = "闇";
+
+        /* 問い合わせ */
 
         // 相性判定の対象になる属性かどうか。Normal のみ false を返す
         // a : 判定する属性
@@ -75,11 +78,15 @@ namespace PPCore
     // ロールの表示名をまとめた定義。表示名をハードコードせずここを参照する
     public static class PPUnitRoleDefinition
     {
+        /* 定数 */
+
         public const string NameBalance = "バランス型";
         public const string NameAttacker = "攻撃型";
         public const string NameSupporter = "支援型";
         public const string NameDisruptor = "妨害型";
         public const string NameHealer = "回復型";
+
+        /* 説明文 */
 
         // ロールを日本語表記へ変換する
         public static string ToDisplayString(PPUnitRole aRole)
@@ -140,9 +147,13 @@ namespace PPCore
     // 同種グループの日本語表示名を集約した定数群。表示文字列をハードコードせずここを参照する
     public static class PPSkillGroupDefinition
     {
+        /* 定数 */
+
         public const string NameAttack = "攻撃";
         public const string NameSupport = "支援";
         public const string NameHeal = "回復";
+
+        /* 説明文 */
 
         // 同種グループを日本語表記へ変換する
         public static string ToDisplayString(PPSkillGroup aGroup)
@@ -170,9 +181,13 @@ namespace PPCore
     // 行動優先度の日本語表示名を集約した定数群。表示文字列をハードコードせずここを参照する
     public static class PPSkillActionPriorityDefinition
     {
+        /* 定数 */
+
         public const string NameFirst = "先攻";
         public const string NameNormal = "通常";
         public const string NameLast = "後攻";
+
+        /* 説明文 */
 
         // 優先度を日本語表記へ変換する
         public static string ToDisplayString(PPSkillActionPriority aPriority)

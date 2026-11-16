@@ -18,23 +18,42 @@ namespace PPCore
     [InitializeOnLoad]
     public static class PPUnitAIDebugStore
     {
+        /* 定数 */
+
         // 保持する記録の最大件数。超えた分は古いものから捨てる
         public const int MaxCount = 200;
+
+        /* 状態 */
 
         // ためている記録。新しいものほど後ろ
         private static readonly List<PPUnitAIThinkReport> mReports = new();
 
-        // 記録が追加されたときに呼ばれる。ウィンドウの再描画に使う
-        public static event Action OnAdded;
+        /* プロパティ */
 
         // ためている記録の読み取り専用ビュー
         public static IReadOnlyList<PPUnitAIThinkReport> Reports => mReports;
+
+        /* イベント */
+
+        // 記録が追加されたときに呼ばれる。ウィンドウの再描画に使う
+        public static event Action OnAdded;
+
+        /* 生成 */
 
         static PPUnitAIDebugStore()
         {
             PPUnitAIDebugHub.OnReported += Add;
             // ドメインリロードやプレイモード切り替えをまたいだ記録は混ざると紛らわしいので捨てる
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
+        }
+
+        /* 操作 */
+
+        // ためている記録をすべて捨てる
+        public static void Clear()
+        {
+            mReports.Clear();
+            OnAdded?.Invoke();
         }
 
         // 記録を 1 件追加する。上限を超えた分は古い方から捨てる
@@ -51,12 +70,7 @@ namespace PPCore
             OnAdded?.Invoke();
         }
 
-        // ためている記録をすべて捨てる
-        public static void Clear()
-        {
-            mReports.Clear();
-            OnAdded?.Invoke();
-        }
+        /* イベントハンドラ */
 
         // プレイモードに入るタイミングで記録を初期化する
         // aState : 遷移後のプレイモード状態
@@ -73,13 +87,16 @@ namespace PPCore
     // 選んだ行動・撃たなかった理由・ゲージ残量を 1 画面で追える
     public sealed class PPUnitAIDebugWindow : EditorWindow
     {
+        /* 定数 */
+
         // 絞り込み設定の保存キー。ドメインリロードで初期化されるため EditorPrefs に保存する
         private const string PrefKeyFollowLatest = "PPCore.PPUnitAIDebugWindow.FollowLatest";
         private const string PrefKeyShowWaiting = "PPCore.PPUnitAIDebugWindow.ShowWaiting";
         private const string PrefKeySideFilter = "PPCore.PPUnitAIDebugWindow.SideFilter";
-
         // 陣営フィルタの選択肢。値は mSideFilterIndex と対応する
         private static readonly string[] sSideFilterOptions = { "両陣営", "味方", "敵" };
+
+        /* 状態 */
 
         // 表示中の記録の位置。-1 なら最新を追いかける
         // 記録は Play のたびに破棄されるため、この位置は保存しない
@@ -91,12 +108,10 @@ namespace PPCore
         private int mSideFilterIndex;
         // 行動しなかったユニットも表示するか
         private bool mIsShowWaiting = true;
-
         private Vector2 mListScroll;
         private Vector2 mDetailScroll;
 
-        [MenuItem("Window/Unit AI Debug")]
-        private static void Open() => GetWindow<PPUnitAIDebugWindow>("Unit AI");
+        /* Unity イベント */
 
         private void OnEnable()
         {
@@ -108,23 +123,6 @@ namespace PPCore
         {
             PPUnitAIDebugStore.OnAdded -= Repaint;
             SavePreferences();
-        }
-
-        // 保存済みの絞り込み設定を読み込む。未保存なら既定値のまま
-        private void LoadPreferences()
-        {
-            mIsFollowLatest = EditorPrefs.GetBool(PrefKeyFollowLatest, mIsFollowLatest);
-            mIsShowWaiting = EditorPrefs.GetBool(PrefKeyShowWaiting, mIsShowWaiting);
-            mSideFilterIndex = Mathf.Clamp(EditorPrefs.GetInt(PrefKeySideFilter, mSideFilterIndex),
-                0, sSideFilterOptions.Length - 1);
-        }
-
-        // 絞り込み設定を保存する。ドメインリロードでは OnDisable が呼ばれないことがあるため変更時にも呼ぶ
-        private void SavePreferences()
-        {
-            EditorPrefs.SetBool(PrefKeyFollowLatest, mIsFollowLatest);
-            EditorPrefs.SetBool(PrefKeyShowWaiting, mIsShowWaiting);
-            EditorPrefs.SetInt(PrefKeySideFilter, mSideFilterIndex);
         }
 
         private void OnGUI()
@@ -144,6 +142,58 @@ namespace PPCore
                 DrawDetail(ResolveSelected(reports));
             }
         }
+
+        /* 操作 */
+
+        // 保存済みの絞り込み設定を読み込む。未保存なら既定値のまま
+        private void LoadPreferences()
+        {
+            mIsFollowLatest = EditorPrefs.GetBool(PrefKeyFollowLatest, mIsFollowLatest);
+            mIsShowWaiting = EditorPrefs.GetBool(PrefKeyShowWaiting, mIsShowWaiting);
+            mSideFilterIndex = Mathf.Clamp(EditorPrefs.GetInt(PrefKeySideFilter, mSideFilterIndex),
+                0, sSideFilterOptions.Length - 1);
+        }
+
+        // 絞り込み設定を保存する。ドメインリロードでは OnDisable が呼ばれないことがあるため変更時にも呼ぶ
+        private void SavePreferences()
+        {
+            EditorPrefs.SetBool(PrefKeyFollowLatest, mIsFollowLatest);
+            EditorPrefs.SetBool(PrefKeyShowWaiting, mIsShowWaiting);
+            EditorPrefs.SetInt(PrefKeySideFilter, mSideFilterIndex);
+        }
+
+        /* 問い合わせ */
+
+        // 表示対象の記録を解決する
+        private PPUnitAIThinkReport ResolveSelected(IReadOnlyList<PPUnitAIThinkReport> aReports)
+        {
+            int index = ResolveSelectedIndex(aReports);
+            return index >= 0 && index < aReports.Count ? aReports[index] : null;
+        }
+
+        // 表示対象の位置を解決する。最新追従中は絞り込みに合う最後の記録を指す
+        private int ResolveSelectedIndex(IReadOnlyList<PPUnitAIThinkReport> aReports)
+        {
+            if (!mIsFollowLatest && mSelectedIndex >= 0 && mSelectedIndex < aReports.Count)
+                return mSelectedIndex;
+
+            for (int i = aReports.Count - 1; i >= 0; i--)
+            {
+                if (IsVisibleSide(aReports[i].Side)) return i;
+            }
+            return -1;
+        }
+
+        // 現在の絞り込みでその陣営を表示するか
+        private bool IsVisibleSide(BattleSide aSide)
+            => mSideFilterIndex switch
+            {
+                1 => aSide == BattleSide.Ally,
+                2 => aSide == BattleSide.Enemy,
+                _ => true,
+            };
+
+        /* 描画 */
 
         // 上部のツールバーを描画する
         private void DrawToolbar()
@@ -266,6 +316,11 @@ namespace PPCore
             }
         }
 
+        /* ヘルパー */
+
+        [MenuItem("Window/Unit AI Debug")]
+        private static void Open() => GetWindow<PPUnitAIDebugWindow>("Unit AI");
+
         // 選んだ思考記録のツリーをツリーウィンドウで開く
         // 経路のハイライトだけでは今どのツリーの話か分かりにくいため、選んだ時点で該当のツリーへ切り替える
         private static void OpenTreeWindow(PPUnitBehaviourTree aTree)
@@ -278,35 +333,6 @@ namespace PPCore
             window.Show();
             window.Focus();
         }
-
-        // 表示対象の記録を解決する
-        private PPUnitAIThinkReport ResolveSelected(IReadOnlyList<PPUnitAIThinkReport> aReports)
-        {
-            int index = ResolveSelectedIndex(aReports);
-            return index >= 0 && index < aReports.Count ? aReports[index] : null;
-        }
-
-        // 表示対象の位置を解決する。最新追従中は絞り込みに合う最後の記録を指す
-        private int ResolveSelectedIndex(IReadOnlyList<PPUnitAIThinkReport> aReports)
-        {
-            if (!mIsFollowLatest && mSelectedIndex >= 0 && mSelectedIndex < aReports.Count)
-                return mSelectedIndex;
-
-            for (int i = aReports.Count - 1; i >= 0; i--)
-            {
-                if (IsVisibleSide(aReports[i].Side)) return i;
-            }
-            return -1;
-        }
-
-        // 現在の絞り込みでその陣営を表示するか
-        private bool IsVisibleSide(BattleSide aSide)
-            => mSideFilterIndex switch
-            {
-                1 => aSide == BattleSide.Ally,
-                2 => aSide == BattleSide.Enemy,
-                _ => true,
-            };
 
         // 陣営を日本語表記へ変換する
         private static string SideLabel(BattleSide aSide) => aSide == BattleSide.Ally ? "味方" : "敵";

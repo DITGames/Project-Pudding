@@ -20,35 +20,19 @@ namespace PPCore
     [InitializeOnLoad]
     public sealed class PPRuntimeSettingsValidator : IPreprocessBuildWithReport
     {
+        /* プロパティ */
+
         // ビルド前処理の実行順。ほかの前処理との順序の指定は特にない
         public int callbackOrder => 0;
+
+        /* 生成 */
 
         static PPRuntimeSettingsValidator()
         {
             EditorApplication.playModeStateChanged += OnPlayModeChanged;
         }
 
-        // ビルドの直前に検査し、問題があればビルドを止める
-        // aReport : ビルドの情報
-        public void OnPreprocessBuild(BuildReport aReport)
-        {
-            if (!Validate(out var message))
-            {
-                throw new BuildFailedException($"[{PPRuntimeSettings.LogTag}] {message}");
-            }
-        }
-
-        // Play に入った直後に検査し、問題があればエラーログを出す
-        // Clear on Play に消されないよう、ExitingEditMode ではなく EnteredPlayMode で検査する
-        private static void OnPlayModeChanged(PlayModeStateChange aState)
-        {
-            if (aState != PlayModeStateChange.EnteredPlayMode) return;
-
-            if (!Validate(out var message))
-            {
-                CustomConsoleLog.Error(PPRuntimeSettings.LogTag, message);
-            }
-        }
+        /* 評価・判定 */
 
         // アセットが正しい場所に 1 つだけあるかを検査する
         // 0 件、2 件以上、または PPRuntimeSettings.AssetPath 以外にある場合を問題とする
@@ -79,6 +63,32 @@ namespace PPCore
 
             aMessage = null;
             return true;
+        }
+
+        /* イベントハンドラ */
+
+        // ビルドの直前に検査し、問題があればビルドを止める
+        // aReport : ビルドの情報
+        public void OnPreprocessBuild(BuildReport aReport)
+        {
+            if (!Validate(out var message))
+            {
+                throw new BuildFailedException($"[{PPRuntimeSettings.LogTag}] {message}");
+            }
+        }
+
+        /* ヘルパー */
+
+        // Play に入った直後に検査し、問題があればエラーログを出す
+        // Clear on Play に消されないよう、ExitingEditMode ではなく EnteredPlayMode で検査する
+        private static void OnPlayModeChanged(PlayModeStateChange aState)
+        {
+            if (aState != PlayModeStateChange.EnteredPlayMode) return;
+
+            if (!Validate(out var message))
+            {
+                CustomConsoleLog.Error(PPRuntimeSettings.LogTag, message);
+            }
         }
 
         // PPRuntimeSettings アセットを選択して、プロジェクトウィンドウ上で示す

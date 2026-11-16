@@ -15,20 +15,26 @@ namespace PPCore
     // 毒・火傷など。更新のたびに固定量のダメージを与える
     public class PeriodicDamageBehaviour : StatusEffectBehaviour
     {
+        /* 状態 */
+
         protected readonly float mAmountPerStack;
 
+        /* 生成 */
+
         public PeriodicDamageBehaviour(float aAmountPerStack) => mAmountPerStack = aAmountPerStack;
+
+        // ダメージ情報の生成だけを差し替えられるようにしておく(PP側で属性付きにする等)
+        protected virtual DamageInfo CreateDamage(StatusEffectContext aContext)
+            => new DamageInfo(aContext.Source, aContext.Owner,
+                mAmountPerStack * aContext.Stacks, new StatusEffectDamageReason(aContext.Effect));
+
+        /* イベントハンドラ */
 
         public override void OnTick(StatusEffectContext aContext)
         {
             if (aContext.Owner == null || !aContext.Owner.IsAlive) return;
             aContext.Owner.ApplyDamage(CreateDamage(aContext), aContext.Battle);
         }
-
-        // ダメージ情報の生成だけを差し替えられるようにしておく(PP側で属性付きにする等)
-        protected virtual DamageInfo CreateDamage(StatusEffectContext aContext)
-            => new DamageInfo(aContext.Source, aContext.Owner,
-                mAmountPerStack * aContext.Stacks, new StatusEffectDamageReason(aContext.Effect));
     }
 
     // リジェネなど。更新のたびに固定量を回復する
@@ -61,9 +67,13 @@ namespace PPCore
     // 基準は現在 HP ではなく最大 HP（現在 HP 基準だと減るほど威力が落ちて倒し切れないため）
     public sealed class PPHpRatePeriodicDamageBehaviour : StatusEffectBehaviour
     {
+        /* 状態 */
+
         // 1スタックあたりの最大HP割合（0～1）
         private readonly float mRatePerStack;
         private readonly PPTypeAttribute mAttribute;
+
+        /* 生成 */
 
         // aRatePerStack : 1スタックあたりの最大HP割合（0～1）
         // aAttribute : ダメージの属性
@@ -71,12 +81,6 @@ namespace PPCore
         {
             mRatePerStack = aRatePerStack;
             mAttribute = aAttribute;
-        }
-
-        public override void OnTick(StatusEffectContext aContext)
-        {
-            if (aContext.Owner == null || !aContext.Owner.IsAlive) return;
-            aContext.Owner.ApplyDamage(CreateDamage(aContext), aContext.Battle);
         }
 
         // 対象の最大 HP とスタック数からダメージ情報を組み立てる
@@ -90,6 +94,14 @@ namespace PPCore
             return new PPDamageInfo(aContext.Source, aContext.Owner, amount,
                 PPSkillCategory.Debuff, mAttribute, new StatusEffectDamageReason(aContext.Effect));
         }
+
+        /* イベントハンドラ */
+
+        public override void OnTick(StatusEffectContext aContext)
+        {
+            if (aContext.Owner == null || !aContext.Owner.IsAlive) return;
+            aContext.Owner.ApplyDamage(CreateDamage(aContext), aContext.Battle);
+        }
     }
 
     // 毎ターン一定量のダメージを与える振る舞いの定義
@@ -98,16 +110,22 @@ namespace PPCore
     [PPTypeMenuName("継続ダメージ/固定")]
     public class PPPeriodicDamageBehaviourDefinition : PPStatusEffectBehaviourDefinition
     {
+        /* インスペクタ設定 */
+
         [Header("固定継続ダメージ")]
         [Label("毎ターンダメージ量")][Min(0)]
         [SerializeField]protected float mDamagePerTurn = 5f;
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
 
+        /* 初期化・接続 */
+
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new PPPeriodicDamageBehaviour(mDamagePerTurn, mAttribute));
         }
+
+        /* 説明文 */
 
         public override string BuildString()
             => $"継続ダメージ：{mDamagePerTurn}/ターン（{mAttribute}）";
@@ -119,20 +137,29 @@ namespace PPCore
     [PPTypeMenuName("継続ダメージ/HP割合")]
     public class PPHpRatePeriodicDamageBehaviourDefinition : PPStatusEffectBehaviourDefinition
     {
+        /* インスペクタ設定 */
+
         [Header("HP割合継続ダメージ")]
         // 対象の最大HPに対する割合。0.05 で最大HPの 5% になる
         [Label("毎ターン割合")][Range(0f, 1f)]
         [SerializeField]protected float mHpRatePerTurn = 0.05f;
+
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
 
+        /* プロパティ */
+
         // 表示と実行で扱いを揃えるため、常に 0～1 へ丸めた値を使う
         protected float HpRatePerTurn => Mathf.Clamp01(mHpRatePerTurn);
+
+        /* 初期化・接続 */
 
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new PPHpRatePeriodicDamageBehaviour(HpRatePerTurn, mAttribute));
         }
+
+        /* 説明文 */
 
         public override string BuildString()
             => $"継続ダメージ：最大HPの{HpRatePerTurn:P0}/ターン（{mAttribute}）";

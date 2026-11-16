@@ -16,20 +16,32 @@ namespace PPCore
     // 退避と破棄は同じ処理を共有し、Resume は選択途中の内容をリセットしてから開き直す
     public abstract class PPBattleMenuStateBase : IPPBattleInputState
     {
+        /* 状態 */
+
         // このステートを保持する入力コントローラー
         protected readonly PPBattleCommandInputController mOwner;
+
+        /* 生成 */
 
         // aOwner : このステートを保持する入力コントローラー
         protected PPBattleMenuStateBase(PPBattleCommandInputController aOwner) => mOwner = aOwner;
 
-        // メニュー UI を表示する
-        protected abstract void ShowView(BattleUnit aUnit, RectTransform aAnchor);
-        // メニュー UI を隠す
-        protected abstract void HideView();
+        /* 初期化・接続 */
+
         // メニューの決定イベントなどを購読する
         protected abstract void Subscribe();
+
         // 購読を解除する
         protected abstract void Unsubscribe();
+
+        // 購読解除と UI の非表示をまとめて行う
+        private void Detach()
+        {
+            Unsubscribe();
+            HideView();
+        }
+
+        /* 操作 */
 
         // 選択中ユニットのビューからアンカーを引いてメニューを表示し、入力を購読する
         public void Enter()
@@ -50,32 +62,49 @@ namespace PPCore
 
         // 先へ進むため退避する。UI を閉じて購読を切る
         public void Suspend() => Detach();
+
         // 破棄する。UI を閉じて購読を切る
         public void Exit() => Detach();
 
-        // 購読解除と UI の非表示をまとめて行う
-        private void Detach()
-        {
-            Unsubscribe();
-            HideView();
-        }
+        /* 表示 */
+
+        // メニュー UI を表示する
+        protected abstract void ShowView(BattleUnit aUnit, RectTransform aAnchor);
+
+        // メニュー UI を隠す
+        protected abstract void HideView();
     }
 
     // 盤上のユニットを直接選ばせる入力ステートの共通実装
     // 派生側は「候補は誰か」と「決まったら何をするか」の 2 つだけを実装する
     public abstract class PPBattleUnitPickerStateBase : IPPBattleInputState
     {
+        /* 状態 */
+
         // このステートを保持する入力コントローラー
         protected readonly PPBattleCommandInputController mOwner;
+
+        /* 生成 */
 
         // aOwner : このステートを保持する入力コントローラー
         protected PPBattleUnitPickerStateBase(PPBattleCommandInputController aOwner) => mOwner = aOwner;
 
-        // 選択候補となるユニットを列挙する
-        protected abstract IEnumerable<BattleUnit> Candidates();
-        // 候補が決定されたときの処理
-        // aView : 決定されたユニットのビュー
-        protected abstract void HandleDecided(PPBattleUnitView aView);
+        /* 初期化・接続 */
+
+        // 候補ユニットの選択可能状態を解除し、決定イベントの購読を切る
+        // 購読が残るとステートを抜けた後も入力を拾ってしまうため、退避・破棄の双方で必ず通す
+        private void Detach()
+        {
+            foreach (var unit in Candidates())
+            {
+                var view = mOwner.ViewBinder.GetView(unit);
+                if(view == null) continue;
+                view.SetSelectable(false);
+                view.OnDecided -= HandleDecided;
+            }
+        }
+
+        /* 操作 */
 
         // 候補ユニットのビューを選択可能にして決定イベントを購読し、先頭の候補にフォーカスを当てる
         // ビューを持たない候補は読み飛ばす
@@ -99,23 +128,21 @@ namespace PPCore
 
         // 先へ進むため退避する。選択可能状態と購読を解除する
         public virtual void Suspend() => Detach();
+
         // 戻ってきたときの復帰処理。候補を選び直せる状態にする
         public virtual void Resume() => Enter();
+
         // 破棄する。選択可能状態と購読を解除する
         public virtual void Exit() => Detach();
 
-        // 候補ユニットの選択可能状態を解除し、決定イベントの購読を切る
-        // 購読が残るとステートを抜けた後も入力を拾ってしまうため、退避・破棄の双方で必ず通す
-        private void Detach()
-        {
-            foreach (var unit in Candidates())
-            {
-                var view = mOwner.ViewBinder.GetView(unit);
-                if(view == null) continue;
-                view.SetSelectable(false);
-                view.OnDecided -= HandleDecided;
-            }
-        }
+        // 選択候補となるユニットを列挙する
+        protected abstract IEnumerable<BattleUnit> Candidates();
+
+        /* イベントハンドラ */
+
+        // 候補が決定されたときの処理
+        // aView : 決定されたユニットのビュー
+        protected abstract void HandleDecided(PPBattleUnitView aView);
     }
 
     // 「誰が行動するか」を選ぶ入力ステート。コマンド入力の起点になる
@@ -154,24 +181,14 @@ namespace PPCore
     // 攻撃はその場で対象選択へ、スキルと詳細はそれぞれ専用のステートへ進む
     public class PPCommandSelectState : PPBattleMenuStateBase
     {
+        /* 生成 */
+
         // aOwner : このステートを保持する入力コントローラー
         public PPCommandSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
         }
 
-        // 選択中ユニットの隣にコマンドメニューを出す
-        // スキルを 1 つも持たないユニットではスキル項目を出さない
-        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
-        {
-            if (aAnchor != null)
-            {
-                mOwner.CommandMenu.AttachTo(aAnchor);
-            }
-            mOwner.CommandMenu.Show(aUnit.Skills.Count > 0);
-        }
-
-        // コマンドメニューを閉じる
-        protected override void HideView() => mOwner.CommandMenu.Hide();
+        /* 初期化・接続 */
 
         // 各コマンドの決定と戻る操作を購読する
         protected override void Subscribe()
@@ -190,6 +207,24 @@ namespace PPCore
             mOwner.CommandMenu.OnDetail -= HandleDetail;
             mOwner.CommandMenu.OnBackRequested -= mOwner.Back;
         }
+
+        /* 表示 */
+
+        // 選択中ユニットの隣にコマンドメニューを出す
+        // スキルを 1 つも持たないユニットではスキル項目を出さない
+        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
+        {
+            if (aAnchor != null)
+            {
+                mOwner.CommandMenu.AttachTo(aAnchor);
+            }
+            mOwner.CommandMenu.Show(aUnit.Skills.Count > 0);
+        }
+
+        // コマンドメニューを閉じる
+        protected override void HideView() => mOwner.CommandMenu.Hide();
+
+        /* イベントハンドラ */
 
         // 通常攻撃を選んだときの処理
         // 対象範囲を敵単体に固定し、コマンドビルダーを仕込んでから対象選択へ進む
@@ -213,10 +248,30 @@ namespace PPCore
     // 選んだスキルのターゲット範囲に応じて、対象選択へ進むかその場で確定するかが分かれる
     public class PPSkillSelectState : PPBattleMenuStateBase
     {
+        /* 生成 */
+
         // aOwner : このステートを保持する入力コントローラー
         public PPSkillSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
         }
+
+        /* 初期化・接続 */
+
+        // スキルの決定と戻る操作を購読する
+        protected override void Subscribe()
+        {
+            mOwner.SkillMenu.OnSkillSelected += HandleSkillSelected;
+            mOwner.SkillMenu.OnBackRequested += HandleBack;
+        }
+
+        // 購読を解除する
+        protected override void Unsubscribe()
+        {
+            mOwner.SkillMenu.OnSkillSelected -= HandleSkillSelected;
+            mOwner.SkillMenu.OnBackRequested -= HandleBack;
+        }
+
+        /* 表示 */
 
         // 選択中ユニットの隣にスキルメニューを出す
         // コンテキストを渡すことで、メニュー側が発動可否を見て項目の有効・無効を切り替える
@@ -232,19 +287,7 @@ namespace PPCore
         // スキルメニューを閉じる
         protected override void HideView() => mOwner.SkillMenu.Hide();
 
-        // スキルの決定と戻る操作を購読する
-        protected override void Subscribe()
-        {
-            mOwner.SkillMenu.OnSkillSelected += HandleSkillSelected;
-            mOwner.SkillMenu.OnBackRequested += HandleBack;
-        }
-
-        // 購読を解除する
-        protected override void Unsubscribe()
-        {
-            mOwner.SkillMenu.OnSkillSelected -= HandleSkillSelected;
-            mOwner.SkillMenu.OnBackRequested -= HandleBack;
-        }
+        /* イベントハンドラ */
 
         // スキルが選ばれたときの処理。ターゲット範囲を記録し、コマンドビルダーを仕込む
         // 単体対象なら対象選択へ進み、全体・自己対象ならそのまま確定させる
@@ -302,10 +345,22 @@ namespace PPCore
     // コマンドを確定させないため、戻る以外の遷移を持たない点が他のメニューステートと異なる
     public class PPUnitDetailViewState : PPBattleMenuStateBase
     {
+        /* 生成 */
+
         // aOwner : このステートを保持する入力コントローラー
         public PPUnitDetailViewState(PPBattleCommandInputController aOwner) : base(aOwner)
         {
         }
+
+        /* 初期化・接続 */
+
+        // 戻る操作を購読する
+        protected override void Subscribe() => mOwner.DetailMenu.OnBackRequested += HandleBack;
+
+        // 購読を解除する
+        protected override void Unsubscribe() => mOwner.DetailMenu.OnBackRequested -= HandleBack;
+
+        /* 表示 */
 
         // 選択中ユニットの隣に詳細ビューを出す
         protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
@@ -319,10 +374,9 @@ namespace PPCore
 
         // 詳細ビューを閉じる
         protected override void HideView() => mOwner.DetailMenu.Hide();
-        // 戻る操作を購読する
-        protected override void Subscribe() => mOwner.DetailMenu.OnBackRequested += HandleBack;
-        // 購読を解除する
-        protected override void Unsubscribe() => mOwner.DetailMenu.OnBackRequested -= HandleBack;
+
+        /* イベントハンドラ */
+
         // 戻る操作。1 段ポップしてコマンド選択へ戻る
         private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
     }

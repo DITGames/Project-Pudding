@@ -18,6 +18,8 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPSkillDefinition", menuName = "Project-Pudding/Skill/PPSkillDefinition")]
     public class PPSkillDefinition : SkillDefinition
     {
+        /* インスペクタ設定 */
+
         // AI の条件判定がこのスキルを指すための分類タグ
         [Header("拡張")]
         [Label("スキルタグ", true)]
@@ -26,11 +28,9 @@ namespace PPCore
         // 同種グループ。AI は同じグループ内で「今撃つか、上位を待つか」を比較する
         [Label("同種グループ")]
         [SerializeField] protected PPSkillGroup mGroup = PPSkillGroup.Attack;
-
         // 1 ティック内で行動を並べるときの優先度。同じ優先度どうしは速度で順序が決まる
         [Label("行動優先度")]
         [SerializeField] protected PPSkillActionPriority mActionPriority = PPSkillActionPriority.Normal;
-
         // 発動に必要なスキルゲージ量。発動者自身のスキルゲージから支払う
         [Label("必要スキルゲージ量")]
         [SerializeField] protected float mSkillGaugeCost = 0f;
@@ -45,6 +45,8 @@ namespace PPCore
         [Label("AIスコア")]
         [SerializeField]protected float mAIScore = 1f;
 
+        /* プロパティ */
+
         public IReadOnlyList<PPSkillTagDefinition> Tags => mTags;
         public PPSkillGroup Group => mGroup;
         public PPSkillActionPriority ActionPriority => mActionPriority;
@@ -54,35 +56,7 @@ namespace PPCore
         // コストを必要としないか
         public bool IsFreeCost => SkillGaugeCost <= 0f;
 
-        // 指定タグのいずれかを持つかを判定する
-        public bool HasAnyTag(IReadOnlyList<PPSkillTagDefinition> aTags)
-        {
-            if (aTags == null || aTags.Count == 0) return true;
-
-            foreach (var tag in aTags)
-            {
-                if (tag != null && mTags.Contains(tag)) return true;
-            }
-            return false;
-        }
-
-        // このスキルを aTarget へ撃った場合の効果量を、実行せずに見積もる
-        // 発動者自身に掛かる効果（ApplyTarget = Self）は合算しない
-        public PPEffectEstimate EstimateFor(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
-        {
-            var result = PPEffectEstimate.None;
-            if (aTarget == null || mSkillEffects == null)
-                return result;
-
-            foreach (var effect in mSkillEffects)
-            {
-                if (effect == null || effect.ApplyTarget != PPEffectApplyTarget.Target)
-                    continue;
-
-                result = result.Merge(effect.Estimate(aSource, aTarget, aContext));
-            }
-            return result;
-        }
+        /* 生成 */
 
         // この定義からスキルのランタイムインスタンスを生成する
         // 生成物には自身への参照（SourceDefinition）を必ず設定する（ゲージ消費がこれを参照する）
@@ -121,6 +95,38 @@ namespace PPCore
                     }
                 }
             };
+        }
+
+        /* 問い合わせ */
+
+        // 指定タグのいずれかを持つかを判定する
+        public bool HasAnyTag(IReadOnlyList<PPSkillTagDefinition> aTags)
+        {
+            if (aTags == null || aTags.Count == 0) return true;
+
+            foreach (var tag in aTags)
+            {
+                if (tag != null && mTags.Contains(tag)) return true;
+            }
+            return false;
+        }
+
+        // このスキルを aTarget へ撃った場合の効果量を、実行せずに見積もる
+        // 発動者自身に掛かる効果（ApplyTarget = Self）は合算しない
+        public PPEffectEstimate EstimateFor(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
+        {
+            var result = PPEffectEstimate.None;
+            if (aTarget == null || mSkillEffects == null)
+                return result;
+
+            foreach (var effect in mSkillEffects)
+            {
+                if (effect == null || effect.ApplyTarget != PPEffectApplyTarget.Target)
+                    continue;
+
+                result = result.Merge(effect.Estimate(aSource, aTarget, aContext));
+            }
+            return result;
         }
     }
 }

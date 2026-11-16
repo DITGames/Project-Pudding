@@ -17,6 +17,8 @@ namespace PPCore
     // メンバー分のビューを生成して登録し、BattleManager のイベントを購読して該当ビューへ演出を振り分ける
     public class PPBattleUnitViewBinder : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         [Label("ユニットビュー")]
         [SerializeField] private PPBattleUnitView mUnitViewPrefab;
         [Label("味方表示エリア")]
@@ -26,8 +28,12 @@ namespace PPCore
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
+        /* 状態 */
+
         // ユニットとビューの対応表
         private readonly Dictionary<BattleUnit, PPBattleUnitView> mViews = new();
+
+        /* 初期化・接続 */
 
         // 両パーティのビューを生成し、バトルイベントを購読して演出へ振り分ける
         // aManager : 購読対象のバトルマネージャ
@@ -73,6 +79,8 @@ namespace PPCore
             };
         }
 
+        /* 操作 */
+
         // パーティのアクティブメンバー分のビューを生成して並べ、対応表へ登録する
         // 生成直後は選択不可にしておき、入力ステートが必要なタイミングで有効化する
         private void SpawnViews(BattleParty aParty, RectTransform aRow, BattleSide aSide)
@@ -94,6 +102,8 @@ namespace PPCore
             // 直後にアンカー位置を参照するため、レイアウトの反映を次フレームまで待たない
             LayoutRebuilder.ForceRebuildLayoutImmediate(aRow);
         }
+
+        /* 問い合わせ */
 
         // ユニットに対応するビューを取得する
         public PPBattleUnitView GetView(BattleUnit aUnit) => mViews.GetValueOrDefault(aUnit);

@@ -18,12 +18,7 @@ namespace PPCore
     // 上側に入力ポート、右側にノード種別ごとの出力ポートを生やす
     internal sealed class PPUnitAITreeNodeView : Node
     {
-        // 表示対象のノード
-        public PPUnitAINode Node { get; }
-        // 親から繋がる入力ポート
-        public Port InputPort { get; }
-        // 接続口ごとの出力ポート。添字が PPUnitAINode の接続口番号と対応する
-        public IReadOnlyList<Port> OutputPorts => mOutputPorts;
+        /* 定数 */
 
         // 警告アイコンの大きさ。タイトルバーの高さに収まる値にしてある
         private const float IssueIconSize = 16f;
@@ -33,6 +28,12 @@ namespace PPCore
         private static readonly Color HeatColorCold = new(0.16f, 0.20f, 0.30f);
         private static readonly Color HeatColorHot = new(0.95f, 0.20f, 0.10f);
 
+        /* 状態 */
+
+        // 表示対象のノード
+        public PPUnitAINode Node { get; }
+        // 親から繋がる入力ポート
+        public Port InputPort { get; }
         private readonly List<Port> mOutputPorts = new();
         // ノード種別ごとのタイトル色。他の表示から戻す際の基準にする
         private Color mTitleColor;
@@ -46,10 +47,18 @@ namespace PPCore
 
         // 診断に引っかかっているか
         private bool mIsIssue;
+
         // 通過経路としての強調の種類
         private PPUnitAITreeHighlight mHighlight = PPUnitAITreeHighlight.None;
         // 通過回数の濃淡。ヒートマップ表示中でなければ負値
         private float mHeatRatio = -1f;
+
+        /* プロパティ */
+
+        // 接続口ごとの出力ポート。添字が PPUnitAINode の接続口番号と対応する
+        public IReadOnlyList<Port> OutputPorts => mOutputPorts;
+
+        /* 生成 */
 
         // aNode : 表示対象のノード
         public PPUnitAITreeNodeView(PPUnitAINode aNode)
@@ -87,6 +96,8 @@ namespace PPCore
             style.top = aNode.GraphPosition.y;
         }
 
+        /* 初期化・接続 */
+
         // 要約ラベルをノードの本体側へ差し込む（ポートの並びと混ざらない位置に置く）
         private void SetupSummaryLabel()
         {
@@ -118,79 +129,7 @@ namespace PPCore
             titleContainer.Add(mIssueIcon);
         }
 
-        // 要約の表示をノードの現在の設定へ合わせる
-        // 何も返さないノード種別ではラベルごと畳み、余白が空くのを防ぐ
-        private void RefreshSummary()
-        {
-            string summary = Node.Summary;
-            bool hasSummary = !string.IsNullOrEmpty(summary);
-
-            mSummaryLabel.text = summary;
-            mSummaryLabel.style.display = hasSummary ? DisplayStyle.Flex : DisplayStyle.None;
-        }
-
-        // ノード種別に応じたタイトル色を当てる
-        // 種別はノードを作り直さない限り変わらないため、生成時に 1 回だけ決める
-        private void ApplyTitleColor(PPUnitAINode aNode)
-        {
-            Color color = aNode switch
-            {
-                PPUnitAISelectorNode => new Color(0.20f, 0.32f, 0.42f),
-                PPUnitAISequenceNode => new Color(0.20f, 0.40f, 0.34f),
-                PPUnitAILotteryNode => new Color(0.33f, 0.20f, 0.42f),
-                PPUnitAIProbabilityNode => new Color(0.42f, 0.20f, 0.34f),
-                PPUnitAIConditionNode => new Color(0.34f, 0.30f, 0.16f),
-                PPUnitAILatchNode => new Color(0.40f, 0.26f, 0.14f),
-                PPUnitAISearchNode => new Color(0.16f, 0.40f, 0.22f),
-                PPUnitAISubTreeNode => new Color(0.16f, 0.36f, 0.44f),
-                PPUnitAIActionNode => new Color(0.45f, 0.16f, 0.16f),
-                _ => new Color(0.24f, 0.24f, 0.24f),
-            };
-            mTitleColor = color;
-            titleContainer.style.backgroundColor = color;
-        }
-
-        // 枠線を現在の状態へ合わせる。優先順は「経路強調 > 割り込み指定」
-        // 経路強調はノード全体を太い枠で囲む。対象外に戻った場合は枠を消す
-        private void RefreshBorder()
-        {
-            if (mHighlight != PPUnitAITreeHighlight.None)
-            {
-                var color = mHighlight == PPUnitAITreeHighlight.Decided
-                    ? new Color(1f, 0.85f, 0.1f)
-                    : new Color(0.25f, 0.75f, 1f);
-                SetBorder(4f, color);
-                return;
-            }
-
-            if (Node.IsInterrupt)
-            {
-                SetBorder(2f, new Color(0.95f, 0.65f, 0.20f));
-                return;
-            }
-
-            SetBorder(0f, Color.clear);
-        }
-
-        // 枠線の太さと色をまとめて設定する
-        private void SetBorder(float aWidth, Color aColor)
-        {
-            style.borderTopWidth = aWidth;
-            style.borderBottomWidth = aWidth;
-            style.borderLeftWidth = aWidth;
-            style.borderRightWidth = aWidth;
-            style.borderTopColor = aColor;
-            style.borderBottomColor = aColor;
-            style.borderLeftColor = aColor;
-            style.borderRightColor = aColor;
-        }
-
-        // 評価から外されているノードを半透明にする
-        // 接続線は残したまま「今は通らない枝」であることを見分けられるようにする
-        private void RefreshMutedStyle()
-        {
-            style.opacity = Node.IsMuted ? 0.35f : 1f;
-        }
+        /* 操作 */
 
         // 診断で見つかった問題をノードへ反映する（タイトルバーのグレー表示と右上の警告アイコン）
         // アイコンは経路の強調やヒートマップと独立して出る
@@ -223,6 +162,81 @@ namespace PPCore
             RefreshTitleColor();
         }
 
+        // ノード種別に応じたタイトル色を当てる
+        // 種別はノードを作り直さない限り変わらないため、生成時に 1 回だけ決める
+        private void ApplyTitleColor(PPUnitAINode aNode)
+        {
+            Color color = aNode switch
+            {
+                PPUnitAISelectorNode => new Color(0.20f, 0.32f, 0.42f),
+                PPUnitAISequenceNode => new Color(0.20f, 0.40f, 0.34f),
+                PPUnitAILotteryNode => new Color(0.33f, 0.20f, 0.42f),
+                PPUnitAIProbabilityNode => new Color(0.42f, 0.20f, 0.34f),
+                PPUnitAIConditionNode => new Color(0.34f, 0.30f, 0.16f),
+                PPUnitAILatchNode => new Color(0.40f, 0.26f, 0.14f),
+                PPUnitAISearchNode => new Color(0.16f, 0.40f, 0.22f),
+                PPUnitAISubTreeNode => new Color(0.16f, 0.36f, 0.44f),
+                PPUnitAIActionNode => new Color(0.45f, 0.16f, 0.16f),
+                _ => new Color(0.24f, 0.24f, 0.24f),
+            };
+            mTitleColor = color;
+            titleContainer.style.backgroundColor = color;
+        }
+
+        // 枠線の太さと色をまとめて設定する
+        private void SetBorder(float aWidth, Color aColor)
+        {
+            style.borderTopWidth = aWidth;
+            style.borderBottomWidth = aWidth;
+            style.borderLeftWidth = aWidth;
+            style.borderRightWidth = aWidth;
+            style.borderTopColor = aColor;
+            style.borderBottomColor = aColor;
+            style.borderLeftColor = aColor;
+            style.borderRightColor = aColor;
+        }
+
+        /* 表示 */
+
+        // 表示名と各種の見た目をノードの現在値へ更新する
+        // インスペクタでノード名・割り込み指定・評価除外を編集した直後に呼ぶ
+        public void RefreshView(bool aIsRoot)
+        {
+            title = aIsRoot ? $"★ {Node.NodeName}" : Node.NodeName;
+            RefreshSummary();
+            RefreshBorder();
+            RefreshMutedStyle();
+        }
+
+        // 枠線を現在の状態へ合わせる。優先順は「経路強調 > 割り込み指定」
+        // 経路強調はノード全体を太い枠で囲む。対象外に戻った場合は枠を消す
+        private void RefreshBorder()
+        {
+            if (mHighlight != PPUnitAITreeHighlight.None)
+            {
+                var color = mHighlight == PPUnitAITreeHighlight.Decided
+                    ? new Color(1f, 0.85f, 0.1f)
+                    : new Color(0.25f, 0.75f, 1f);
+                SetBorder(4f, color);
+                return;
+            }
+
+            if (Node.IsInterrupt)
+            {
+                SetBorder(2f, new Color(0.95f, 0.65f, 0.20f));
+                return;
+            }
+
+            SetBorder(0f, Color.clear);
+        }
+
+        // 評価から外されているノードを半透明にする
+        // 接続線は残したまま「今は通らない枝」であることを見分けられるようにする
+        private void RefreshMutedStyle()
+        {
+            style.opacity = Node.IsMuted ? 0.35f : 1f;
+        }
+
         // 診断・濃淡・経路強調の 3 状態からタイトル色を確定させる
         // 優先順は「経路強調 > 濃淡 > 診断 > 種別の色」
         private void RefreshTitleColor()
@@ -248,14 +262,17 @@ namespace PPCore
             titleContainer.style.backgroundColor = mIsIssue ? new Color(0.30f, 0.30f, 0.30f) : mTitleColor;
         }
 
-        // 表示名と各種の見た目をノードの現在値へ更新する
-        // インスペクタでノード名・割り込み指定・評価除外を編集した直後に呼ぶ
-        public void RefreshView(bool aIsRoot)
+        /* 説明文 */
+
+        // 要約の表示をノードの現在の設定へ合わせる
+        // 何も返さないノード種別ではラベルごと畳み、余白が空くのを防ぐ
+        private void RefreshSummary()
         {
-            title = aIsRoot ? $"★ {Node.NodeName}" : Node.NodeName;
-            RefreshSummary();
-            RefreshBorder();
-            RefreshMutedStyle();
+            string summary = Node.Summary;
+            bool hasSummary = !string.IsNullOrEmpty(summary);
+
+            mSummaryLabel.text = summary;
+            mSummaryLabel.style.display = hasSummary ? DisplayStyle.Flex : DisplayStyle.None;
         }
     }
 }

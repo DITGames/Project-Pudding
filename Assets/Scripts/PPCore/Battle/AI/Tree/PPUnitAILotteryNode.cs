@@ -17,18 +17,26 @@ namespace PPCore
     [Serializable]
     public sealed class PPUnitAILotteryEntry
     {
+        /* インスペクタ設定 */
+
         // 抽選対象の子ノード ID。接続操作から設定されるため手で編集しない
         [HideInInspector]
         [SerializeField] private string mChildId = "";
         // 当たりやすさ。0 以下にするとその枝は引かれなくなる
         [SerializeField] private float mWeight = 1f;
 
+        /* プロパティ */
+
         public string ChildId => mChildId;
         // 抽選の重み。負値は 0 として扱い、抽選対象から外す
         public float Weight => Mathf.Max(0f, mWeight);
 
+        /* 生成 */
+
         // aChildId : 抽選対象の子ノード ID
         public PPUnitAILotteryEntry(string aChildId) => mChildId = aChildId;
+
+        /* 操作 */
 
         // 抽選の重みを設定する。正規化など、まとめて書き換える処理から使う
         // aWeight : 設定する重み。負値は 0 に丸める
@@ -45,18 +53,23 @@ namespace PPCore
     [PPTypeMenuName("制御/抽選")]
     public sealed class PPUnitAILotteryNode : PPUnitAINode
     {
+        /* インスペクタ設定 */
+
         [Header("子ノード")]
         // 抽選対象の枝。接続すると自動で追加され、外すと取り除かれる
         [Label("抽選対象", true)]
         [SerializeField] private List<PPUnitAILotteryEntry> mEntries = new();
+
         // 引いた枝が実行できなかったとき、残りの枝から引き直すか
         [Label("外れたら引き直す")]
         [SerializeField] private bool mIsRetryOnFail = true;
 
+        /* 状態 */
+
         // 接続口へ渡す子ノード ID の並び。エディタからの問い合わせのたびに組み直す
         private readonly List<string> mChildIdCache = new();
 
-        protected override string DefaultNodeName => "抽選";
+        /* プロパティ */
 
         public override IReadOnlyList<PPUnitAINodePort> Ports
         {
@@ -93,6 +106,99 @@ namespace PPCore
                 return string.Join(" / ", parts);
             }
         }
+
+        protected override string DefaultNodeName => "抽選";
+
+        /* 初期化・接続 */
+
+        // 子ノードを末尾へ繋ぐ。既に繋がっている場合は何もしない
+        // 重みの既定は 1 で、繋いだあとインスペクタから調整する
+        public override void ConnectChild(int aPortIndex, string aChildId)
+        {
+            if (string.IsNullOrEmpty(aChildId) || IndexOfChild(aChildId) >= 0) return;
+
+            mEntries.Add(new PPUnitAILotteryEntry(aChildId));
+        }
+
+        // 子ノードとの接続を外す。枝ごと取り除くため重みも一緒に消える
+        public override void DisconnectChild(int aPortIndex, string aChildId)
+        {
+            int index = IndexOfChild(aChildId);
+            if (index < 0) return;
+
+            mEntries.RemoveAt(index);
+        }
+
+        /* 操作 */
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // 枝を作り直さず ID だけ差し替えるため、複製しても当たりやすさの配分がそのまま残る
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
+        {
+            for (int i = mEntries.Count - 1; i >= 0; i--)
+            {
+                if (mEntries[i] == null)
+                {
+                    mEntries.RemoveAt(i);
+                    continue;
+                }
+
+                string mapped = RemapChildId(mEntries[i].ChildId, aMap);
+                // 複写の範囲外だった枝は、繋ぎ先が無いので枝ごと落とす
+                if (string.IsNullOrEmpty(mapped)) mEntries.RemoveAt(i);
+                else mEntries[i].SetChildId(mapped);
+            }
+        }
+
+        // 枝の並び順を指定どおりに揃える
+        // 重みは枝に付いているため、並べ替えても配分は変わらない
+        public override void ReorderChildren(int aPortIndex, IReadOnlyList<string> aOrderedChildIds)
+        {
+            var ordered = new List<PPUnitAILotteryEntry>(mEntries.Count);
+            foreach (var id in aOrderedChildIds)
+            {
+                int index = IndexOfChild(id);
+                if (index < 0) continue;
+
+                ordered.Add(mEntries[index]);
+            }
+
+            // 並べ替え指定に含まれなかった枝は落とさず末尾へ残す
+            foreach (var entry in mEntries)
+            {
+                if (entry != null && !ordered.Contains(entry)) ordered.Add(entry);
+            }
+
+            mEntries.Clear();
+            mEntries.AddRange(ordered);
+        }
+
+        // 重みの合計が 1 になるよう割り直す（抽選は比率で行うため挙動は変わらない）
+        // 端数は小数第 3 位で丸め、重みが全て 0 の場合は均等割りにする
+        public void NormalizeWeights()
+        {
+            int count = 0;
+            float total = 0f;
+            foreach (var entry in mEntries)
+            {
+                if (entry == null) continue;
+
+                count++;
+                total += entry.Weight;
+            }
+            if (count == 0) return;
+
+            float average = 1f / count;
+            foreach (var entry in mEntries)
+            {
+                if (entry == null) continue;
+
+                float weight = total > 0f ? entry.Weight / total : average;
+                entry.SetWeight(Mathf.Round(weight * 1000f) / 1000f);
+            }
+        }
+
+        /* 評価・判定 */
 
         // 子を重み付き抽選で選んで評価する
         // 確定した場合は道順（PPUnitAIEvalContext.Path）に選ばれた子の添字を残す
@@ -165,6 +271,32 @@ namespace PPCore
             return PPUnitAINodeResult.Failed;
         }
 
+        /* 問い合わせ */
+
+        // 指定した添字の枝が持つ抽選の重みを引く
+        private float ResolveWeight(int aIndex)
+            => aIndex >= 0 && aIndex < mEntries.Count && mEntries[aIndex] != null ? mEntries[aIndex].Weight : 0f;
+
+        // 指定した添字の枝が指す子ノードを引く
+        private PPUnitAINode ResolveChild(PPUnitAIEvalContext aContext, int aIndex)
+        {
+            if (aIndex < 0 || aIndex >= mEntries.Count || mEntries[aIndex] == null) return null;
+
+            return aContext.ResolveNode(mEntries[aIndex].ChildId);
+        }
+
+        // 指定した子ノード ID を持つ枝の位置を探す
+        private int IndexOfChild(string aChildId)
+        {
+            for (int i = 0; i < mEntries.Count; i++)
+            {
+                if (mEntries[i] != null && mEntries[i].ChildId == aChildId) return i;
+            }
+            return -1;
+        }
+
+        /* 表示 */
+
         // 残り候補から重みに応じて 1 つ引く
         // 乱数はシード管理・再現性のため、行動するユニット自身の供給元を経由する
         private int DrawIndex(PPUnitAIEvalContext aContext, IReadOnlyList<int> aRemaining)
@@ -184,113 +316,6 @@ namespace PPCore
             }
             // 浮動小数の誤差で最後まで引き切れなかった場合は末尾を返す
             return aRemaining.Count - 1;
-        }
-
-        // 指定した添字の枝が持つ抽選の重みを引く
-        private float ResolveWeight(int aIndex)
-            => aIndex >= 0 && aIndex < mEntries.Count && mEntries[aIndex] != null ? mEntries[aIndex].Weight : 0f;
-
-        // 指定した添字の枝が指す子ノードを引く
-        private PPUnitAINode ResolveChild(PPUnitAIEvalContext aContext, int aIndex)
-        {
-            if (aIndex < 0 || aIndex >= mEntries.Count || mEntries[aIndex] == null) return null;
-
-            return aContext.ResolveNode(mEntries[aIndex].ChildId);
-        }
-
-        // 子ノードを末尾へ繋ぐ。既に繋がっている場合は何もしない
-        // 重みの既定は 1 で、繋いだあとインスペクタから調整する
-        public override void ConnectChild(int aPortIndex, string aChildId)
-        {
-            if (string.IsNullOrEmpty(aChildId) || IndexOfChild(aChildId) >= 0) return;
-
-            mEntries.Add(new PPUnitAILotteryEntry(aChildId));
-        }
-
-        // 接続先の子ノード ID を対応表に従って置き換える
-        // 枝を作り直さず ID だけ差し替えるため、複製しても当たりやすさの配分がそのまま残る
-        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
-        {
-            for (int i = mEntries.Count - 1; i >= 0; i--)
-            {
-                if (mEntries[i] == null)
-                {
-                    mEntries.RemoveAt(i);
-                    continue;
-                }
-
-                string mapped = RemapChildId(mEntries[i].ChildId, aMap);
-                // 複写の範囲外だった枝は、繋ぎ先が無いので枝ごと落とす
-                if (string.IsNullOrEmpty(mapped)) mEntries.RemoveAt(i);
-                else mEntries[i].SetChildId(mapped);
-            }
-        }
-
-        // 子ノードとの接続を外す。枝ごと取り除くため重みも一緒に消える
-        public override void DisconnectChild(int aPortIndex, string aChildId)
-        {
-            int index = IndexOfChild(aChildId);
-            if (index < 0) return;
-
-            mEntries.RemoveAt(index);
-        }
-
-        // 枝の並び順を指定どおりに揃える
-        // 重みは枝に付いているため、並べ替えても配分は変わらない
-        public override void ReorderChildren(int aPortIndex, IReadOnlyList<string> aOrderedChildIds)
-        {
-            var ordered = new List<PPUnitAILotteryEntry>(mEntries.Count);
-            foreach (var id in aOrderedChildIds)
-            {
-                int index = IndexOfChild(id);
-                if (index < 0) continue;
-
-                ordered.Add(mEntries[index]);
-            }
-
-            // 並べ替え指定に含まれなかった枝は落とさず末尾へ残す
-            foreach (var entry in mEntries)
-            {
-                if (entry != null && !ordered.Contains(entry)) ordered.Add(entry);
-            }
-
-            mEntries.Clear();
-            mEntries.AddRange(ordered);
-        }
-
-        // 重みの合計が 1 になるよう割り直す（抽選は比率で行うため挙動は変わらない）
-        // 端数は小数第 3 位で丸め、重みが全て 0 の場合は均等割りにする
-        public void NormalizeWeights()
-        {
-            int count = 0;
-            float total = 0f;
-            foreach (var entry in mEntries)
-            {
-                if (entry == null) continue;
-
-                count++;
-                total += entry.Weight;
-            }
-            if (count == 0) return;
-
-            float average = 1f / count;
-            foreach (var entry in mEntries)
-            {
-                if (entry == null) continue;
-
-                float weight = total > 0f ? entry.Weight / total : average;
-                entry.SetWeight(Mathf.Round(weight * 1000f) / 1000f);
-            }
-        }
-
-        // 指定した子ノード ID を持つ枝の位置を探す
-        private int IndexOfChild(string aChildId)
-        {
-            for (int i = 0; i < mEntries.Count; i++)
-            {
-                if (mEntries[i] != null && mEntries[i].ChildId == aChildId) return i;
-            }
-            return -1;
         }
     }
 }

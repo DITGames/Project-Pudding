@@ -14,12 +14,22 @@ namespace PPCore
 {
     public sealed class PPUnitCreationSettings : ScriptableObject
     {
-        [Label("作成時の最大レベル")][SerializeField] private int mMaxLevel = 50;
-        [Label("チャート基準値")][SerializeField] private float[] mScales;
+        /* 定数 */
+
         // 棒グラフの基準値の既定（HP・ちから・まもり・はやさ・きようさ）。表示専用で、超えても計算には影響しない
         public static readonly float[] DefaultScales = { 9999, 999, 999, 999, 999 };
+
+        /* インスペクタ設定 */
+
+        [Label("作成時の最大レベル")][SerializeField] private int mMaxLevel = 50;
+        [Label("チャート基準値")][SerializeField] private float[] mScales;
+
+        /* プロパティ */
+
         public int MaxLevel => mMaxLevel;
         public float[] Scales => mScales == null ? null : Complete(mScales);
+
+        /* 初期化・接続 */
 
         // 作成設定を記録するだけで、ユニットの評価範囲は変更しない
         public void Initialize(int aMaxLevel, float[] aScales)
@@ -27,6 +37,8 @@ namespace PPCore
             mMaxLevel = aMaxLevel;
             mScales = (float[])aScales.Clone();
         }
+
+        /* 操作 */
 
         // きようさの基準値を持たない旧データ（4要素）は、不足分を既定値で補ったコピーを返す
         public static float[] Complete(float[] aScales)

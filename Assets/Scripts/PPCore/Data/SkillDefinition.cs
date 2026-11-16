@@ -17,6 +17,8 @@ namespace PPCore
     // 効果の中身は BuildEffect を派生側でオーバーライドして実装する
     public class SkillDefinition : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         [Header("スキル")]
         [Label("スキルID")]
         [SerializeField] protected string mSkillId;
@@ -30,15 +32,20 @@ namespace PPCore
         [Header("詳細")]
         [Label("ターゲット選択")]
         [SerializeField] protected TargetScope mTargetScope = TargetScope.SingleEnemy;
+
         [Label("クールタイム")]
         [SerializeField] protected int mMaxCooldown = 0;
         [Label("最大使用回数")]
         [SerializeField] protected int mMaxUsesPerBattle = 0;
 
+        /* プロパティ */
+
         public string SkillId => mSkillId;
         public string DisplayName => mDisplayName;
         public string Description => mDescription;
         public TargetScope TargetScope => mTargetScope;
+
+        /* 生成 */
 
         // この定義からランタイムのスキルインスタンスを生成する
         // 生成物には自身への参照（SourceDefinition）を必ず設定する

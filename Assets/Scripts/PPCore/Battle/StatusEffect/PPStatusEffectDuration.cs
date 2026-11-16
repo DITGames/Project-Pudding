@@ -33,10 +33,14 @@ namespace PPCore
     // Tick は減算してから判定する。付与直後にも Tick が回る前提の呼び出し順になっている点に注意
     public sealed class TurnDurationCondition : IDurationCondition, IRefreshableDuration
     {
-        // リフレッシュ時に戻す初期ターン数
-        private readonly int mInitialDuration;
+        /* 状態 */
+
         // 残りターン数
         public int RemainingDuration {get; private set;}
+        // リフレッシュ時に戻す初期ターン数
+        private readonly int mInitialDuration;
+
+        /* 生成 */
 
         // aDuration : 持続ターン数
         public TurnDurationCondition(int aDuration)
@@ -45,8 +49,13 @@ namespace PPCore
             RemainingDuration = aDuration;
         }
 
+        /* 操作 */
+
         // 残りターン数を 1 減らし、まだ残っていれば継続を返す
         public bool Tick() => --RemainingDuration > 0;
+
+        /* 表示 */
+
         // 残りターン数を初期値へ戻す
         public void Refresh() => RemainingDuration = mInitialDuration;  // 初期ターン数に復帰する
     }
@@ -102,13 +111,21 @@ namespace PPCore
     [PPTypeMenuName("ターン経過")]
     public class PPTurnDurationConditionDefinition : PPDurationConditionDefinition
     {
+        /* インスペクタ設定 */
+
         // 持続条件のドロワーが種類のプルダウンと同じ行に並べるため、[Header] は付けない
         [Label("期間")][Min(1)]
         [SerializeField]protected int mDuration = 3;
 
+        /* プロパティ */
+
         public int Duration => mDuration;
 
+        /* 生成 */
+
         public override IDurationCondition CreateDurationCondition() => new TurnDurationCondition(mDuration);
+
+        /* 説明文 */
 
         public override string BuildString() => $"{mDuration}ターン";
     }

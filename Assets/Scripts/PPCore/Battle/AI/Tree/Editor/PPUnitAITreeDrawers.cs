@@ -76,10 +76,14 @@ namespace PPCore
     [CustomPropertyDrawer(typeof(PPUnitAILotteryEntry))]
     public class PPUnitAILotteryEntryDrawer : PropertyDrawer
     {
+        /* 定数 */
+
         // 重み入力欄の幅
         private const float WeightWidth = 60f;
         // ノード名と重み入力欄のあいだの余白
         private const float Spacing = 6f;
+
+        /* 描画 */
 
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
@@ -109,6 +113,8 @@ namespace PPCore
 
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
             => EditorGUIUtility.singleLineHeight;
+
+        /* ヘルパー */
 
         // 接続先の子ノード名を引く
         // 未接続や、削除済みノードを指している場合は分かる表記へ落とす

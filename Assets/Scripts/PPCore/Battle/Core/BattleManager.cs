@@ -18,6 +18,8 @@ namespace PPCore
     // 判定ロジックは持たず、差し替え可能なインターフェースへ委譲する
     public class BattleManager
     {
+        /* 進行状態 */
+
         // 1 バトル当たりの状態（両パーティ・ルール・ターン数・報酬）を持つコンテキスト
         public BattleContext Context { get; protected set; }
         // バトル進行ステート（BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd）の管理
@@ -30,8 +32,12 @@ namespace PPCore
         public CancellationTokenSource PresentationCts { get; protected set; }
         // バトルログの出力先。判定ではなく出力先のため BattleRules ではなくこちらが持つ
         public IBattleLogger Logger { get; set; } = new DefaultBattleLogger();
+        // バトルログのタイムスタンプ供給関数。既定は常に 0。Unity 側から Time.time 等を差し込む
+        public Func<float> TimeProvider { get; set; } = () => 0f;
         // 現在のコマンドが誘発したリアクション総数。Rules.MaxReactionPerEvent との比較に使う
         protected int mReactionsThisCommand = 0;
+
+        /* 通知 */
 
         // ステート変更時(バトル状態)
         public event Action<BattleState> OnStateChanged;
@@ -68,14 +74,15 @@ namespace PPCore
         // バトル終了時(リザルト)
         public event Action<BattleResult> OnBattleEnded;
 
-        // バトルログのタイムスタンプ供給関数。既定は常に 0。Unity 側から Time.time 等を差し込む
-        public Func<float> TimeProvider { get; set; } = () => 0f;
+        /* 生成 */
 
         // ステートマシンの遷移イベントを自身の OnStateChanged へ中継する
         public BattleManager()
         {
             StateMachine.OnStateChanged += (_, next) => OnStateChanged?.Invoke(next);
         }
+
+        /* 開始と終了 */
 
         // コンテキストを受け取ってバトルを開始する
         // 両パーティのイベント購読、全スキルのクールダウン／使用回数リセット、入れ替え通知の接続までを行う
@@ -98,70 +105,33 @@ namespace PPCore
             aContext.EnemyParty.OnSwapped += HandleSwap;
         }
 
-        // パーティに属する全ユニット（アクティブ・控え両方）のイベントを購読する
-        // aParty : 購読対象のパーティ
-        protected virtual void SubscribeParty(BattleParty aParty)
+        // 勝敗をチェックし、決着していれば EndBattle を呼んでバトルを終了させる
+        // return : 判定結果。コンテキスト未設定または終了済みなら null
+        public BattleResult CheckBattleResult()
         {
-            foreach (var unit in aParty.ActiveMembers) SubscribeUnit(unit);
-            foreach (var unit in aParty.ReserveMembers) SubscribeUnit(unit);
+            if(Context == null || StateMachine.Current == BattleState.BattleEnd) return null;
+
+            var result = Context.Rules.ResultChecker.CheckResult(Context);
+            if (result.Type != BattleResultType.InProgress)
+            {
+                EndBattle(result);
+            }
+
+            return result;
         }
 
-        // ユニット単位のイベントを購読し、BattleManager のイベント通知・バトルログ出力・
-        // リアクション発火・撃破時の勝敗判定へ変換する中継を張る
-        protected virtual void SubscribeUnit(BattleUnit aUnit)
+        // バトルを終了させる。未実行コマンドを破棄し、終了ステートへ遷移して結果を通知する
+        // aResult : 確定した戦闘結果
+        protected virtual void EndBattle(BattleResult aResult)
         {
-            aUnit.OnDamaged += (u, dmg) =>
-            {
-                OnDamageTaken?.Invoke(u, dmg);
-                Log(BattleLogType.Damage, null, u, $"{u.DisplayName} took {dmg} damage.");
-            };
-            aUnit.OnHealed += (u, amt) =>
-            {
-                OnHealed?.Invoke(u, amt);
-                DispatchReactions(new ReactionContext(
-                    ReactionTrigger.OnHealed, u, u));
-                Log(BattleLogType.Heal, null, u, $"{u.DisplayName} recovered {amt} HP.");
-            };
-            aUnit.OnDefeated += u =>
-            {
-                OnUnitDefeated?.Invoke(u);
-                DispatchReactions(new ReactionContext(
-                    ReactionTrigger.OnUnitDefeated, null, u));
-                Log(BattleLogType.UnitDefeated, null, u, $"{u.DisplayName} was defeated.");
-                // 撃破で全滅している可能性があるため、その場で勝敗を判定する
-                CheckBattleResult();
-            };
-            aUnit.OnStatusEffectAdded += (u, e) =>
-            {
-                OnStatsEffectAdded?.Invoke(u, e);
-                DispatchReactions(new ReactionContext(
-                    ReactionTrigger.OnStatusAdded, null, u));
-                Log(BattleLogType.StatusEffect, null, u, $"{u.DisplayName} gained {e.DisplayName}.");
-            };
-            aUnit.OnStatusEffectRemoved += (u, e) =>
-            {
-                OnStatsEffectRemoved?.Invoke(u, e);
-                Log(BattleLogType.StatusEffect, null, u, $"{u.DisplayName} lost {e.DisplayName}.");
-            };
-            aUnit.OnStatusEffectStacked += (u, e) =>
-            {
-                OnStatusEffectStacked?.Invoke(u, e);
-                Log(BattleLogType.StatusEffect, null, u, $"{u.DisplayName}'s {e.DisplayName} stacked ({e.CurrentStacks}).");
-            };
-            aUnit.OnDamageResolved += info =>
-            {
-                OnDamageResolved?.Invoke(info);
-                DispatchReactions(new ReactionContext(
-                    ReactionTrigger.OnDamaged, info.Source, info.Target, info));
-            };
+            ActionQueue.Clear();
+            StateMachine.TransitionTo(BattleState.BattleEnd);
+            Log(aResult.Type == BattleResultType.Escaped ? BattleLogType.Escape : BattleLogType.Custom, null, null,
+                $"Battle ended: {aResult.Type}");
+            OnBattleEnded?.Invoke(aResult);
         }
 
-        // パーティのメンバー入れ替えを受けて通知とログ出力を行う
-        protected virtual void HandleSwap(BattleUnit aOut, BattleUnit aIn)
-        {
-            OnUnitSwapped?.Invoke(aOut, aIn);
-            Log(BattleLogType.Swap, aOut, aIn, $"{aOut.DisplayName} swapped out for {aIn.DisplayName}.");
-        }
+        /* コマンド実行 */
 
         // コマンドをキュー末尾に積む。積むタイミングは採用先（プレイヤー入力 / AI）に委ねられる
         // aCommand : 実行待ちにするコマンド
@@ -342,6 +312,34 @@ namespace PPCore
             }
         }
 
+        /* ターン進行 */
+
+        // ターン経過処理。ターン終了通知 → 両パーティの Tick → 勝敗判定 → ターン番号加算 → ターン開始通知の順に進む
+        public void AdvanceTick()
+        {
+            OnTickEnded?.Invoke(Context.TurnCount);
+            DispatchReactions(new ReactionContext(
+                ReactionTrigger.OnTurnEnded, null, null, null, Context));
+
+            Context.AllyParty.PartyTick(Context);
+            Context.EnemyParty.PartyTick(Context);
+
+            // 毒などの継続ダメージで決着する場合があるためここで判定する
+            CheckBattleResult();
+            if (StateMachine.Current == BattleState.BattleEnd) return;
+
+            Context.TurnCount++;
+            OnTickStarted?.Invoke(Context.TurnCount);
+            DispatchReactions(new ReactionContext(
+                ReactionTrigger.OnTurnStarted, null, null, null, Context));
+        }
+
+        // 現在の行動順を取得する。並び替えロジックは Rules.TurnOrderResolver に委譲する
+        // return : 行動順に並んだユニットのリスト
+        public List<BattleUnit> GetTurnOrder() => Context.Rules.TurnOrderResolver.ResolveOrder(Context);
+
+        /* リアクション */
+
         // リアクショントリガーを発火し、条件を満たしたユニットのコマンドをキュー先頭へ割り込ませる（上限は Rules.MaxReactionPerEvent）
         // 連鎖の可否はリアクション側が ReactionContext を見て判断する。積むコマンドには引き金の深さ + 1 を設定する
         protected virtual void DispatchReactions(ReactionContext aContext)
@@ -373,62 +371,81 @@ namespace PPCore
             }
         }
 
+        /* イベント中継 */
+
+        // パーティに属する全ユニット（アクティブ・控え両方）のイベントを購読する
+        // aParty : 購読対象のパーティ
+        protected virtual void SubscribeParty(BattleParty aParty)
+        {
+            foreach (var unit in aParty.ActiveMembers) SubscribeUnit(unit);
+            foreach (var unit in aParty.ReserveMembers) SubscribeUnit(unit);
+        }
+
+        // ユニット単位のイベントを購読し、BattleManager のイベント通知・バトルログ出力・
+        // リアクション発火・撃破時の勝敗判定へ変換する中継を張る
+        protected virtual void SubscribeUnit(BattleUnit aUnit)
+        {
+            aUnit.OnDamaged += (u, dmg) =>
+            {
+                OnDamageTaken?.Invoke(u, dmg);
+                Log(BattleLogType.Damage, null, u, $"{u.DisplayName} took {dmg} damage.");
+            };
+            aUnit.OnHealed += (u, amt) =>
+            {
+                OnHealed?.Invoke(u, amt);
+                DispatchReactions(new ReactionContext(
+                    ReactionTrigger.OnHealed, u, u));
+                Log(BattleLogType.Heal, null, u, $"{u.DisplayName} recovered {amt} HP.");
+            };
+            aUnit.OnDefeated += u =>
+            {
+                OnUnitDefeated?.Invoke(u);
+                DispatchReactions(new ReactionContext(
+                    ReactionTrigger.OnUnitDefeated, null, u));
+                Log(BattleLogType.UnitDefeated, null, u, $"{u.DisplayName} was defeated.");
+                // 撃破で全滅している可能性があるため、その場で勝敗を判定する
+                CheckBattleResult();
+            };
+            aUnit.OnStatusEffectAdded += (u, e) =>
+            {
+                OnStatsEffectAdded?.Invoke(u, e);
+                DispatchReactions(new ReactionContext(
+                    ReactionTrigger.OnStatusAdded, null, u));
+                Log(BattleLogType.StatusEffect, null, u, $"{u.DisplayName} gained {e.DisplayName}.");
+            };
+            aUnit.OnStatusEffectRemoved += (u, e) =>
+            {
+                OnStatsEffectRemoved?.Invoke(u, e);
+                Log(BattleLogType.StatusEffect, null, u, $"{u.DisplayName} lost {e.DisplayName}.");
+            };
+            aUnit.OnStatusEffectStacked += (u, e) =>
+            {
+                OnStatusEffectStacked?.Invoke(u, e);
+                Log(BattleLogType.StatusEffect, null, u, $"{u.DisplayName}'s {e.DisplayName} stacked ({e.CurrentStacks}).");
+            };
+            aUnit.OnDamageResolved += info =>
+            {
+                OnDamageResolved?.Invoke(info);
+                DispatchReactions(new ReactionContext(
+                    ReactionTrigger.OnDamaged, info.Source, info.Target, info));
+            };
+        }
+
+        // パーティのメンバー入れ替えを受けて通知とログ出力を行う
+        protected virtual void HandleSwap(BattleUnit aOut, BattleUnit aIn)
+        {
+            OnUnitSwapped?.Invoke(aOut, aIn);
+            Log(BattleLogType.Swap, aOut, aIn, $"{aOut.DisplayName} swapped out for {aIn.DisplayName}.");
+        }
+
+        /* ヘルパー */
+
         // 敵味方双方の、生存しているアクティブメンバーを順に列挙する
         // return : 味方 → 敵の順に並んだ生存ユニット列
         protected virtual IEnumerable<BattleUnit> EnumerateAllAliveUnits()
         {
             foreach (var unit in Context.AllyParty.GetAliveActiveMembers()) yield return unit;
             foreach (var unit in Context.EnemyParty.GetAliveActiveMembers()) yield return unit;
-        }
-
-        // ターン経過処理。ターン終了通知 → 両パーティの Tick → 勝敗判定 → ターン番号加算 → ターン開始通知の順に進む
-        public void AdvanceTick()
-        {
-            OnTickEnded?.Invoke(Context.TurnCount);
-            DispatchReactions(new ReactionContext(
-                ReactionTrigger.OnTurnEnded, null, null, null, Context));
-
-            Context.AllyParty.PartyTick(Context);
-            Context.EnemyParty.PartyTick(Context);
-
-            // 毒などの継続ダメージで決着する場合があるためここで判定する
-            CheckBattleResult();
-            if (StateMachine.Current == BattleState.BattleEnd) return;
-
-            Context.TurnCount++;
-            OnTickStarted?.Invoke(Context.TurnCount);
-            DispatchReactions(new ReactionContext(
-                ReactionTrigger.OnTurnStarted, null, null, null, Context));
-        }
-
-        // 現在の行動順を取得する。並び替えロジックは Rules.TurnOrderResolver に委譲する
-        // return : 行動順に並んだユニットのリスト
-        public List<BattleUnit> GetTurnOrder() => Context.Rules.TurnOrderResolver.ResolveOrder(Context);
-
-        // 勝敗をチェックし、決着していれば EndBattle を呼んでバトルを終了させる
-        // return : 判定結果。コンテキスト未設定または終了済みなら null
-        public BattleResult CheckBattleResult()
-        {
-            if(Context == null || StateMachine.Current == BattleState.BattleEnd) return null;
-
-            var result = Context.Rules.ResultChecker.CheckResult(Context);
-            if (result.Type != BattleResultType.InProgress)
-            {
-                EndBattle(result);
-            }
-
-            return result;
-        }
-
-        // バトルを終了させる。未実行コマンドを破棄し、終了ステートへ遷移して結果を通知する
-        // aResult : 確定した戦闘結果
-        protected virtual void EndBattle(BattleResult aResult)
-        {
-            ActionQueue.Clear();
-            StateMachine.TransitionTo(BattleState.BattleEnd);
-            Log(aResult.Type == BattleResultType.Escaped ? BattleLogType.Escape : BattleLogType.Custom, null, null,
-                $"Battle ended: {aResult.Type}");
-            OnBattleEnded?.Invoke(aResult);
         }
 
         // バトルログ出力のヘルパー。TimeProvider でタイムスタンプを付けて Logger へ流す
@@ -461,15 +478,20 @@ namespace PPCore
     // 遷移の可否は TransitionValidator で差し込む。未設定なら任意のステートへ遷移できる
     public class BattleStateMachine
     {
+        /* 状態 */
+
         // 現在のバトルステート
         public BattleState Current { get; protected set; } = BattleState.None;
+        // 遷移可否検証のチェック関数。採用先が遷移ルールを差し込める
+        // 引数は（遷移前, 遷移後）で、false を返すと遷移は行われない
+        public Func<BattleState, BattleState, bool> TransitionValidator { get; set; }
+
+        /* イベント */
 
         // ステート変更デリゲート（遷移前、遷移後）
         public event Action<BattleState, BattleState> OnStateChanged;
 
-        // 遷移可否検証のチェック関数。採用先が遷移ルールを差し込める
-        // 引数は（遷移前, 遷移後）で、false を返すと遷移は行われない
-        public Func<BattleState, BattleState, bool> TransitionValidator { get; set; }
+        /* 操作 */
 
         // 指定ステートへ遷移する。バリデータが拒否した場合は現在値を変えずに終わる
         public bool TransitionTo(BattleState aState)
@@ -490,11 +512,17 @@ namespace PPCore
     // 通常のコマンドは末尾へ積み、リアクションは EnqueueFront で先頭へ割り込ませる
     public class ActionQueue
     {
+        /* 状態 */
+
         // 実行待ちコマンドの実体。先頭が次に実行される
         protected readonly LinkedList<BattleCommandBase> Items = new();
 
+        /* プロパティ */
+
         // キューに残っているコマンド数
         public int Count => Items.Count;
+
+        /* 操作 */
 
         // コマンドをキュー末尾へ積む
         // aCommand : 積むコマンド

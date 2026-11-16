@@ -21,10 +21,10 @@ namespace PPCore
         [Label("ユニット定義")] public PPUnitDefinition Unit;
         // 生成するレベル。成長曲線の評価に使う
         [Label("レベル")] public int Level = 1;
-
         // 乱数のシードを固定するか。固定すると毎回同じ乱数列で動く
         // 外した場合も、ユニットごとに別の乱数列は割り当てられる
         [Label("乱数シードを固定する")] public bool IsFixedSeed = false;
+
         // 固定時に使うシード値
         // 同じユニット定義を複数体並べる場合はここを変えないと全員が同じ行動をする
         [Label("乱数シード")]
@@ -37,6 +37,8 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
     public class PPPartyDefinition : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         [Header("パーティ")]
         [Label("パーティメンバー", true)] public List<PPPartyMemberEntry> Members = new();
         [Label("コイン変換レート初期値")] public float BaseResourceConversionRate = 1f;
@@ -45,6 +47,8 @@ namespace PPCore
         // ドライバの駆動周期はパーティ単位のため、ユニットごとではなくここで持つ
         [Header("AI")]
         [Label("1ティックあたりの思考回数")] [SerializeField] private int mThinkCountPerTick = 1;
+
+        /* プロパティ */
 
         public int ThinkCountPerTick => Mathf.Max(1, mThinkCountPerTick);
     }

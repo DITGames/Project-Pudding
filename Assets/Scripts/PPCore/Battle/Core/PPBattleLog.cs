@@ -38,6 +38,8 @@ namespace PPCore
     // 関係ユニットの参照も持つため、演出やデバッグ表示にも使える
     public record BattleLogEntry
     {
+        /* 状態 */
+
         // ログ種別
         public BattleLogType LogType { get; protected set; }
         // 行動主体のユニット。無い場合は null
@@ -48,6 +50,8 @@ namespace PPCore
         public string Description { get; protected set; }
         // 記録時刻。BattleManager.TimeProvider から取得した値
         public float TimeStamp { get; protected set; }
+
+        /* 生成 */
 
         public BattleLogEntry(BattleLogType aType, BattleUnit aSource, BattleUnit aTarget, string aDescription,
             float aTimeStamp)
@@ -75,8 +79,10 @@ namespace PPCore
     {
         // 記録された全ログ
         protected readonly List<BattleLogEntry> mHistory = new();
+
         // ログ履歴の読み取り専用ビュー
         public IReadOnlyList<BattleLogEntry> History => mHistory;
+
         // ログを履歴へ追加する
         public virtual void Log(BattleLogEntry entry) => mHistory.Add(entry);
     }
@@ -105,7 +111,11 @@ namespace PPCore
     // バトル組み立て時（StartBattle前後）に1度だけ呼び出す
     public static class PPBattleLogBinder
     {
+        /* 定数 */
+
         private const string BattleTag = "Battle";
+
+        /* 初期化・接続 */
 
         // BattleManager.Logger の差し込みと、ダメージ発生源・キャスト失敗の購読をまとめて行う
         public static void Bind(BattleManager aManager, BattleContext aContext)
@@ -114,6 +124,20 @@ namespace PPCore
             aManager.OnDamageResolved += HandleDamageResolved;
             aContext.OnCastFailed += HandleCastFailed;
         }
+
+        /* 問い合わせ */
+
+        // ダメージ理由を解決できる場合だけ文字列を返す。解決できなければ null
+        // スキル由来のダメージは発生元コマンドも持つため、通常攻撃の判定より先にスキルを見る
+        private static string ResolveDamageReason(DamageReasonBase aReason) => aReason switch
+        {
+            AttackDamageReason { Skill: PPSkillDefinition skill } => skill.DisplayName,
+            StatusEffectDamageReason { Effect: { } effect } => effect.DisplayName,
+            AttackDamageReason { Command: IPPBattleCommand } => "通常攻撃",
+            _ => null,
+        };
+
+        /* イベントハンドラ */
 
         // ダメージ確定時に、発生源を解決できればその理由を添えてログを出す
         // aInfo : 確定したダメージ情報
@@ -128,16 +152,6 @@ namespace PPCore
             CustomConsoleLog.Log(BattleTag,
                 $"{aInfo.Target?.DisplayName} took {aInfo.Amount} damage{reasonPart}.");
         }
-
-        // ダメージ理由を解決できる場合だけ文字列を返す。解決できなければ null
-        // スキル由来のダメージは発生元コマンドも持つため、通常攻撃の判定より先にスキルを見る
-        private static string ResolveDamageReason(DamageReasonBase aReason) => aReason switch
-        {
-            AttackDamageReason { Skill: PPSkillDefinition skill } => skill.DisplayName,
-            StatusEffectDamageReason { Effect: { } effect } => effect.DisplayName,
-            AttackDamageReason { Command: IPPBattleCommand } => "通常攻撃",
-            _ => null,
-        };
 
         // スキル発動失敗時に理由付きでログを出す
         private static void HandleCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)

@@ -25,13 +25,19 @@ namespace PPCore
     // アクティブメンバーと控えを分けて持ち、入れ替え・全滅判定・パーティ単位の Tick を担う
     public class BattleParty
     {
+        /* メンバー */
+
         // 戦場に出ているメンバー。全滅判定や生存確認はこちらを見る
         public List<BattleUnit> ActiveMembers { get; } = new();
         // 控えのメンバー。入れ替えでアクティブと交代する
         public List<BattleUnit> ReserveMembers { get; } = new();
 
+        /* 通知 */
+
         // 入れ替えデリゲート（退場ユニット、参戦ユニット）
         public Action<BattleUnit, BattleUnit> OnSwapped { get; set; }
+
+        /* 生成 */
 
         // メンバーを受け取ってパーティを構築する。同時に各ユニットへ陣営を設定する
         public BattleParty(BattleSide aSide, IEnumerable<BattleUnit> aActiveMembers,
@@ -53,6 +59,8 @@ namespace PPCore
             }
         }
 
+        /* メンバー操作 */
+
         // アクティブメンバーとリザーブメンバーを双方向に入れ替える
         // 並び順を保つため、それぞれのリストの同じ位置に相手を差し込む
         public bool SwapMember(BattleUnit aActiveUnit, BattleUnit aReserveUnit)
@@ -67,6 +75,8 @@ namespace PPCore
             return true;
         }
 
+        /* 状態の問い合わせ */
+
         // 生きているアクティブメンバーを取得する
         // return : 生存中のアクティブメンバーのリスト
         public List<BattleUnit> GetAliveActiveMembers() => ActiveMembers.Where(u => u.IsAlive).ToList();
@@ -74,6 +84,8 @@ namespace PPCore
         // 全滅判定。アクティブメンバー全員が戦闘不能なら全滅とみなす（控えは数に入れない）
         // return : 全滅していれば true
         public virtual bool IsWiped() => ActiveMembers.All(u => !u.IsAlive);
+
+        /* 更新 */
 
         // パーティ単位の 1 ターン更新。アクティブメンバー全員の UnitTick を回す
         // パーティ共有リソースの更新を足す場合はここをオーバーライドする
@@ -92,7 +104,6 @@ namespace PPCore
     {
         // コイン 1 枚あたりのゲージ変換係数。PPCoinResourceBridge が参照する
         public Parameter CoinConversionRate { get; }
-
         // このパーティの行動計画を立てる AI。プレイヤー操作パーティなら null のまま
         public IPPPartyCommandStrategist Strategist { get; set; }
 

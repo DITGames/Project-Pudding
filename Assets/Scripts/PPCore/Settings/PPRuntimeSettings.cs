@@ -17,6 +17,8 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPRuntimeSettings", menuName = "Project-Pudding/Settings/PPRuntimeSettings")]
     public sealed class PPRuntimeSettings : ScriptableObject
     {
+        /* 定数 */
+
         // Resources.Load に渡すパス
         public const string ResourcesPath = "PPRuntimeSettings";
         // アセットの正しい配置先。エディタ側の検査で使う
@@ -24,17 +26,25 @@ namespace PPCore
         // ログのタグ
         public const string LogTag = "Settings";
 
+        /* インスペクタ設定 */
+
         [Label("ユニットAIの既定")]
         [SerializeField] private PPUnitAIDefaultsDefinition mUnitAIDefaults;
 
-        public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
+        /* 状態 */
 
+        // アセットが見つからなかったときに作った代替インスタンスか
+        public bool IsFallback { get; private set; }
         // Resources から読み込んだアセット。見つからなかった場合は代替インスタンス
         private static PPRuntimeSettings sLoaded;
         // SetOverride で差し替えられたアセット。null なら差し替えなし
         private static PPRuntimeSettings sOverride;
         // アセットが見つからないエラーを報告済みか。同じエラーを何度も出さないために持つ
         private static bool sHasReportedMissing;
+
+        /* プロパティ */
+
+        public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
 
         // 現在有効な設定。優先順は 差し替え → 読み込み済み → その場で読み込み（見つからなければ代替）
         // null は返さない
@@ -52,8 +62,7 @@ namespace PPCore
             }
         }
 
-        // アセットが見つからなかったときに作った代替インスタンスか
-        public bool IsFallback { get; private set; }
+        /* 操作 */
 
         // 現在の設定を差し替える。null を渡すと ClearOverride と同じ
         // aSettings : 差し替える設定
@@ -67,6 +76,8 @@ namespace PPCore
         {
             sOverride = null;
         }
+
+        /* ヘルパー */
 
         // static の状態を初期化する（Domain Reload 無効時に前回の Play の値を持ち越さないため）
         // 前回の代替インスタンスは DestroyImmediate で破棄する

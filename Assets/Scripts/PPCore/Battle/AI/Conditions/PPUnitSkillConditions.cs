@@ -19,18 +19,26 @@ namespace PPCore
     [PPTypeMenuName("スキル/所持している")]
     public sealed class PPUnitHasSkillCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
+        /* インスペクタ設定 */
+
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
         // 反転すると「そのスキルを持っていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* プロパティ */
+
         // 保持しているスキルの絞り込み条件。エディタの診断から参照する
         public PPUnitAISkillFilter Filter => mFilter;
+
+        /* 評価・判定 */
 
         // 絞り込みに合致するスキルを所持しているかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => PPUnitAISkillQuery.HasAny(aUnit, mFilter) != mIsInvert;
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -47,15 +55,21 @@ namespace PPCore
     [PPTypeMenuName("スキル/指定タグを保持")]
     public sealed class PPUnitHasSkillTagCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("対象スキルタグ", true)]
         [SerializeField] private List<PPSkillTagDefinition> mTags = new();
         // 反転すると「そのタグのスキルを持っていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* 評価・判定 */
+
         // 指定タグのスキルを持っているかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => PPSkillTagUtility.HasTaggedSkill(aUnit, mTags) != mIsInvert;
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -72,17 +86,23 @@ namespace PPCore
     [PPTypeMenuName("スキル/発動できる")]
     public sealed class PPUnitCanCastSkillCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
+        /* インスペクタ設定 */
+
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
         // 絞り込んだ中で最も AI スコアの高いスキルが発動できる場合だけ成立させるか
         [Label("最も強いものに限る")]
         [SerializeField] private bool mIsStrongestOnly = false;
-
-        // 保持しているスキルの絞り込み条件。エディタの診断から参照する
-        public PPUnitAISkillFilter Filter => mFilter;
         // 反転すると「そのスキルが撃てない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
+
+        /* プロパティ */
+
+        // 保持しているスキルの絞り込み条件。エディタの診断から参照する
+        public PPUnitAISkillFilter Filter => mFilter;
+
+        /* 評価・判定 */
 
         // 絞り込みに合致するスキルが発動可能かを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -97,6 +117,8 @@ namespace PPCore
             return isCastable != mIsInvert;
         }
 
+        /* 問い合わせ */
+
         // 絞り込んだ中で最も強いスキルが、今まさに発動できるかを判定する
         // 所持している最強スキルと、今撃てる中の最強スキルが同一かどうかで見る
         private bool IsStrongestCastable(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -108,6 +130,8 @@ namespace PPCore
                 PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context, aSnapShot.Ledger);
             return ReferenceEquals(castable, strongest);
         }
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -125,15 +149,21 @@ namespace PPCore
     [PPTypeMenuName("スキル/指定タグが発動可能")]
     public sealed class PPUnitSkillCastableCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("対象スキルタグ", true)]
         [SerializeField] private List<PPSkillTagDefinition> mTags = new();
         // 反転すると「そのタグのスキルを撃てない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* 評価・判定 */
+
         // 指定タグのスキルが発動可能かを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => PPSkillTagUtility.HasCastableTaggedSkill(aUnit, mTags, aSnapShot.Context) != mIsInvert;
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -150,20 +180,28 @@ namespace PPCore
     [PPTypeMenuName("スキル/待てば強いスキルが撃てる")]
     public sealed class PPUnitStrongerSkillReachableCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
+        /* インスペクタ設定 */
+
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
         [Label("待てるティック数")]
         [SerializeField] private int mAllowedWaitTicks = 3;
+
         // この差より AI スコアが上でなければ「強い」とみなさない
         // わずかな差のために手を止めるのを防ぐ
         [Label("必要なAIスコア差")]
         [SerializeField] private float mRequiredScoreGain = 0.01f;
+
         // 反転すると「待っても届かない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* プロパティ */
+
         // 保持しているスキルの絞り込み条件。エディタの診断から参照する
         public PPUnitAISkillFilter Filter => mFilter;
+
+        /* 評価・判定 */
 
         // 待てば今より強いスキルへ届くかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -172,6 +210,8 @@ namespace PPCore
 
             return IsReachable(aUnit, aSnapShot) != mIsInvert;
         }
+
+        /* 問い合わせ */
 
         // 待機で手が届く上位スキルがあるかを調べる
         private bool IsReachable(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -198,6 +238,8 @@ namespace PPCore
             }
             return false;
         }
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]

@@ -63,6 +63,8 @@ namespace PPCore
     [Serializable]
     public sealed class PPUnitAISkillFilter
     {
+        /* インスペクタ設定 */
+
         [Label("スキルの指定方法")]
         [SerializeField] private PPUnitAISkillFilterMode mMode = PPUnitAISkillFilterMode.GroupAndTag;
         [Label("スキル定義")]
@@ -78,6 +80,22 @@ namespace PPCore
         [EditCondition(nameof(IsFilterMode), true, false)]
         [SerializeField] private List<PPSkillTagDefinition> mTags = new();
 
+        /* プロパティ */
+
+        public PPUnitAISkillFilterMode Mode => mMode;
+        public PPSkillDefinition SkillDefinition => mSkillDefinition;
+        public bool IsFilterByGroup => mIsFilterByGroup;
+        public PPSkillGroup Group => mGroup;
+        public IReadOnlyList<PPSkillTagDefinition> Tags => mTags;
+        // スキル定義を直接指定するモードか。入力欄の出し分けに使う
+        private bool IsDirectMode => mMode == PPUnitAISkillFilterMode.Direct;
+        // 絞り込みモードか。入力欄の出し分けに使う
+        private bool IsFilterMode => mMode == PPUnitAISkillFilterMode.GroupAndTag;
+        // 同種グループの選択欄を出すか。絞り込みモードで、かつグループ絞りが有効なときだけ意味を持つ
+        private bool IsGroupFilterEnabled => IsFilterMode && mIsFilterByGroup;
+
+        /* 生成 */
+
         // 既定の絞り込み（攻撃グループ）で作る。Unity がシリアライズから復元するときもこれを使うため残す
         public PPUnitAISkillFilter()
         {
@@ -90,18 +108,7 @@ namespace PPCore
             mGroup = aGroup;
         }
 
-        public PPUnitAISkillFilterMode Mode => mMode;
-        public PPSkillDefinition SkillDefinition => mSkillDefinition;
-        public bool IsFilterByGroup => mIsFilterByGroup;
-        public PPSkillGroup Group => mGroup;
-        public IReadOnlyList<PPSkillTagDefinition> Tags => mTags;
-
-        // スキル定義を直接指定するモードか。入力欄の出し分けに使う
-        private bool IsDirectMode => mMode == PPUnitAISkillFilterMode.Direct;
-        // 絞り込みモードか。入力欄の出し分けに使う
-        private bool IsFilterMode => mMode == PPUnitAISkillFilterMode.GroupAndTag;
-        // 同種グループの選択欄を出すか。絞り込みモードで、かつグループ絞りが有効なときだけ意味を持つ
-        private bool IsGroupFilterEnabled => IsFilterMode && mIsFilterByGroup;
+        /* 問い合わせ */
 
         // 指定スキルがこの絞り込みに合致するかを判定する
         // ここを通る経路が 1 本なので、直接指定は行動側と条件側の双方へ同時に効く
@@ -114,6 +121,8 @@ namespace PPCore
             if (mIsFilterByGroup && aDefinition.Group != mGroup) return false;
             return aDefinition.HasAnyTag(mTags);
         }
+
+        /* 説明文 */
 
         // 絞り込み内容を説明文用の文字列へ整形する
         // return : 日本語の表記
@@ -135,33 +144,7 @@ namespace PPCore
     // 乱数は行動するユニット自身の供給元を経由すること（UnityEngine.Random は使わない）
     public static class PPUnitAISkillQuery
     {
-        // 絞り込みに合致する所持スキルを列挙する
-        // PP 側の定義を持たないスキルは判定できないため対象外になる
-        public static IEnumerable<(PPBattleSkill Skill, PPSkillDefinition Definition)> Enumerate(
-            PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
-        {
-            if (aUnit == null) yield break;
-
-            foreach (var skill in aUnit.Skills)
-            {
-                if (skill is not PPBattleSkill ppSkill) continue;
-                if (ppSkill.SourceDefinition is not PPSkillDefinition definition) continue;
-                if (aFilter != null && !aFilter.IsMatch(definition)) continue;
-
-                yield return (ppSkill, definition);
-            }
-        }
-
-        // 絞り込みに合致するスキルを 1 つでも持っているかを判定する
-        // 発動可否は見ないため、単に所持しているかどうかの判定になる
-        public static bool HasAny(PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
-        {
-            foreach (var _ in Enumerate(aUnit, aFilter))
-            {
-                return true;
-            }
-            return false;
-        }
+        /* 操作 */
 
         // 絞り込みに合致するスキルのうち、今すぐ発動できるものから 1 つ選ぶ
         // クールダウン・使用回数・スキルゲージ残量の判定はバリデータへ委ねる
@@ -179,21 +162,6 @@ namespace PPCore
                 candidates.Add(candidate);
             }
             return Select(candidates, aRule, aUnit, aContext);
-        }
-
-        // 絞り込みに合致する所持スキルのうち、最も強い（AI スコアが高い）ものを返す
-        // 発動可否は見ないため、「持っている中で一番強いのはどれか」の判定に使う
-        public static PPSkillDefinition SelectStrongest(PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
-        {
-            PPSkillDefinition best = null;
-            foreach (var (_, definition) in Enumerate(aUnit, aFilter))
-            {
-                if (best == null || definition.AIScore > best.AIScore)
-                {
-                    best = definition;
-                }
-            }
-            return best;
         }
 
         // 候補リストから選択規則に従って 1 つ選ぶ
@@ -231,5 +199,50 @@ namespace PPCore
                 PPUnitAISkillSelectRule.LowestGaugeCost => -aDefinition.SkillGaugeCost,
                 _ => 0f,
             };
+
+        /* 問い合わせ */
+
+        // 絞り込みに合致する所持スキルを列挙する
+        // PP 側の定義を持たないスキルは判定できないため対象外になる
+        public static IEnumerable<(PPBattleSkill Skill, PPSkillDefinition Definition)> Enumerate(
+            PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
+        {
+            if (aUnit == null) yield break;
+
+            foreach (var skill in aUnit.Skills)
+            {
+                if (skill is not PPBattleSkill ppSkill) continue;
+                if (ppSkill.SourceDefinition is not PPSkillDefinition definition) continue;
+                if (aFilter != null && !aFilter.IsMatch(definition)) continue;
+
+                yield return (ppSkill, definition);
+            }
+        }
+
+        // 絞り込みに合致するスキルを 1 つでも持っているかを判定する
+        // 発動可否は見ないため、単に所持しているかどうかの判定になる
+        public static bool HasAny(PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
+        {
+            foreach (var _ in Enumerate(aUnit, aFilter))
+            {
+                return true;
+            }
+            return false;
+        }
+
+        // 絞り込みに合致する所持スキルのうち、最も強い（AI スコアが高い）ものを返す
+        // 発動可否は見ないため、「持っている中で一番強いのはどれか」の判定に使う
+        public static PPSkillDefinition SelectStrongest(PPBattleUnit aUnit, PPUnitAISkillFilter aFilter)
+        {
+            PPSkillDefinition best = null;
+            foreach (var (_, definition) in Enumerate(aUnit, aFilter))
+            {
+                if (best == null || definition.AIScore > best.AIScore)
+                {
+                    best = definition;
+                }
+            }
+            return best;
+        }
     }
 }

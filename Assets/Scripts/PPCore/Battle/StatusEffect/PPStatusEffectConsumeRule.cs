@@ -42,6 +42,8 @@ namespace PPCore
     // 「行動したら全部使い切る」「ダメージを受けたら1つ減る」といった確定的な消費に使う
     public class TriggerConsumeRule : IStatusEffectConsumeRule
     {
+        /* 状態 */
+
         // 消費のきっかけ
         protected readonly StatusEffectConsumeTrigger mTrigger;
         // 1 回あたりの消費スタック数
@@ -55,6 +57,8 @@ namespace PPCore
         // 種類を限定している場合（mDamageReasonFilter が null でない場合）のみ意味を持つ
         protected readonly bool mIsIncludeReactionDamage;
 
+        /* 生成 */
+
         public TriggerConsumeRule(StatusEffectConsumeTrigger aTrigger, int aStacks = 1, bool aIsConsumeAll = false,
             DamageReasonKind? aDamageReasonFilter = null, bool aIsIncludeReactionDamage = false)
         {
@@ -65,13 +69,7 @@ namespace PPCore
             mIsIncludeReactionDamage = aIsIncludeReactionDamage;
         }
 
-        public virtual int ResolveConsumeStacks(StatusEffectConsumeTrigger aTrigger, StatusEffectContext aContext,
-            DamageInfo aDamage)
-        {
-            if (aTrigger != mTrigger) return 0;
-            if (!MatchesDamageReason(aDamage)) return 0;
-            return mIsConsumeAll ? aContext.Stacks : mStacks;
-        }
+        /* 評価・判定 */
 
         // ダメージの種類が対象に合致するかを判定する
         // 被ダメージ以外のきっかけでは常に合致とみなす
@@ -86,16 +84,30 @@ namespace PPCore
             if (aDamage.IsReaction && !mIsIncludeReactionDamage) return false;
             return DamageReasonKindUtility.Matches(aDamage.Reason, mDamageReasonFilter.Value);
         }
+
+        /* 問い合わせ */
+
+        public virtual int ResolveConsumeStacks(StatusEffectConsumeTrigger aTrigger, StatusEffectContext aContext,
+            DamageInfo aDamage)
+        {
+            if (aTrigger != mTrigger) return 0;
+            if (!MatchesDamageReason(aDamage)) return 0;
+            return mIsConsumeAll ? aContext.Stacks : mStacks;
+        }
     }
 
     // 指定したきっかけが起きたときに確率で消費するルール
     // 確率は付与からの経過ターン数に応じて増減させられる（時間が経つほど解けやすい状態異常など）
     public sealed class ChanceTriggerConsumeRule : TriggerConsumeRule
     {
+        /* 状態 */
+
         // 経過ターン数 0 の時点での消費確率（0～1）
         private readonly float mBaseChance;
         // 経過ターン 1 つあたりの確率の増分。負の値なら経つほど解けにくくなる
         private readonly float mChancePerElapsedTurn;
+
+        /* 生成 */
 
         public ChanceTriggerConsumeRule(StatusEffectConsumeTrigger aTrigger, float aBaseChance,
             float aChancePerElapsedTurn = 0f, int aStacks = 1, bool aIsConsumeAll = false,
@@ -105,6 +117,8 @@ namespace PPCore
             mBaseChance = aBaseChance;
             mChancePerElapsedTurn = aChancePerElapsedTurn;
         }
+
+        /* 問い合わせ */
 
         public override int ResolveConsumeStacks(StatusEffectConsumeTrigger aTrigger, StatusEffectContext aContext,
             DamageInfo aDamage)
@@ -128,9 +142,13 @@ namespace PPCore
     [Serializable]
     public abstract class PPStatusEffectConsumeRuleDefinition
     {
+        /* 生成 */
+
         // この定義から消費ルールのランタイムインスタンスを生成する
         // return : 生成された消費ルール
         public abstract IStatusEffectConsumeRule CreateConsumeRule();
+
+        /* 説明文 */
 
         // フィールドラベルに表示する、この消費ルールの内容を要約した文字列を組み立てる
         public abstract string BuildString();
@@ -162,6 +180,8 @@ namespace PPCore
     [Serializable]
     public abstract class PPTriggerConsumeRuleDefinitionBase : PPStatusEffectConsumeRuleDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("全て消費する")]
         [SerializeField]protected bool mIsConsumeAll = true;
         // 全て消費する場合は参照されない
@@ -174,18 +194,22 @@ namespace PPCore
         [Label("1ターンあたりの増分")][Range(-1f, 1f)]
         [SerializeField]protected float mChancePerElapsedTurn = 0f;
 
+        /* 状態 */
+
         // 消費のきっかけ
         protected abstract StatusEffectConsumeTrigger Trigger { get; }
 
+        /* プロパティ */
+
         // 対象とするダメージの種類。null なら種類を問わない。被ダメージ時のきっかけだけが上書きする
         protected virtual DamageReasonKind? DamageReasonFilter => null;
-
         // 種類を限定する場合に、リアクション（反撃など）のダメージも対象にするか。被ダメージ時のきっかけだけが上書きする
         protected virtual bool IsIncludeReactionDamage => false;
-
         // 確率が常に 1 以上になり、乱数を引く必要が無いか
         // 増分が負だと経過ターンで 1 を下回るため、確定扱いにしない
         protected bool IsCertain => Mathf.Clamp01(mBaseChance) >= 1f && mChancePerElapsedTurn >= 0f;
+
+        /* 生成 */
 
         // 確定なら乱数を引かない TriggerConsumeRule を、そうでなければ ChanceTriggerConsumeRule を生成する
         // 乱数を引けない経路でも、確率 1 のルールが消費されるようにするため
@@ -200,6 +224,8 @@ namespace PPCore
             return new ChanceTriggerConsumeRule(Trigger, Mathf.Clamp01(mBaseChance), mChancePerElapsedTurn,
                 stacks, mIsConsumeAll, DamageReasonFilter, IsIncludeReactionDamage);
         }
+
+        /* 説明文 */
 
         // ラベルに出す要約を組み立てる。例: 「攻撃時に全消費」「行動時に33%で全消費 毎ターン+10%」
         // 確定の場合は確率と増分を省く
@@ -255,23 +281,28 @@ namespace PPCore
     [PPTypeMenuName("被ダメージ時")]
     public class PPDamagedConsumeRuleDefinition : PPTriggerConsumeRuleDefinitionBase
     {
+        /* インスペクタ設定 */
+
         [Header("被ダメージの条件")]
         [Label("ダメージ種別を限定する")]
         [SerializeField]protected bool mIsFilterDamageReason = true;
         [Label("対象ダメージ種別")]
         [EditCondition(nameof(mIsFilterDamageReason))]
         [SerializeField]protected DamageReasonKind mDamageReason = DamageReasonKind.Attack;
+
         // 種別を限定しない場合は反撃のダメージも常に対象になるため、限定するときだけ編集できる
         [Label("反撃のダメージも含める")]
         [EditCondition(nameof(mIsFilterDamageReason))]
         [SerializeField]protected bool mIsIncludeReactionDamage = false;
 
-        protected override StatusEffectConsumeTrigger Trigger => StatusEffectConsumeTrigger.Damaged;
+        /* プロパティ */
 
+        protected override StatusEffectConsumeTrigger Trigger => StatusEffectConsumeTrigger.Damaged;
         // 限定しない場合は null を返し、種別を問わず消費させる
         protected override DamageReasonKind? DamageReasonFilter => mIsFilterDamageReason ? mDamageReason : null;
-
         protected override bool IsIncludeReactionDamage => mIsIncludeReactionDamage;
+
+        /* 説明文 */
 
         // 種別を限定している場合は、その種別と反撃を含めるかも添える
         // return : 表示文字列

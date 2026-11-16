@@ -16,6 +16,8 @@ namespace PPCore
     // 再計算のたびに育成値から組み立て直す。効果値は割合で持ち（+20% は 0.2）、合計してから倍率にする
     public class PPBaseParameterTable
     {
+        /* 内部型 */
+
         // 1 件分のスキル効果値。付与元は解除時の照合に使う
         protected readonly struct SkillEffectValue
         {
@@ -42,11 +44,17 @@ namespace PPCore
             public readonly List<SkillEffectValue> SkillEffects = new();
         }
 
+        /* 状態 */
+
         // パラメータ ID → 登録内容
         protected readonly Dictionary<string, Entry> mEntries = new();
 
+        /* プロパティ */
+
         // 登録済みのパラメータ ID 一覧
         public IEnumerable<string> Ids => mEntries.Keys;
+
+        /* 初期化・接続 */
 
         // パラメータを登録する。登録時点の BaseValue をそのまま育成値として扱う
         // ランタイムユニットの生成直後（スキル効果が 1 つも掛かっていない状態）で呼ぶ前提
@@ -64,12 +72,7 @@ namespace PPCore
             Recalculate(aId);
         }
 
-        // 指定 ID が登録済みかを返す
-        public bool Contains(string aId) => mEntries.ContainsKey(aId);
-
-        // 育成値を取得する
-        public float GetGrowthValue(string aId)
-            => mEntries.TryGetValue(aId, out var entry) ? entry.GrowthValue : 0f;
+        /* 操作 */
 
         // 育成値を差し替えて BaseValue を組み立て直す。レベルアップなど恒久的な成長で使う
         public void SetGrowthValue(string aId, float aGrowthValue)
@@ -100,19 +103,6 @@ namespace PPCore
             }
         }
 
-        // 指定パラメータに掛かっているスキル効果値の合計
-        public float GetSkillEffectSum(string aId)
-        {
-            if (!mEntries.TryGetValue(aId, out var entry)) return 0f;
-            float sum = 0f;
-            foreach (var effect in entry.SkillEffects) sum += effect.Value;
-            return sum;
-        }
-
-        // スキル効果の倍率 S = max(0, 1 + 効果値の合計)
-        public float GetSkillMultiplier(string aId)
-            => Parameter.RatioSumToMultiplier(GetSkillEffectSum(aId));
-
         // 育成値とスキル効果値から BaseValue を組み立て直し、CurrentValue も再計算する
         // 上限系（最大 HP・スキルゲージ上限）の場合、上限が下がれば ResourceParameter 側で残量が切り詰められる
         public virtual void Recalculate(string aId)
@@ -129,6 +119,28 @@ namespace PPCore
                 Recalculate(id);
             }
         }
+
+        /* 問い合わせ */
+
+        // 指定 ID が登録済みかを返す
+        public bool Contains(string aId) => mEntries.ContainsKey(aId);
+
+        // 育成値を取得する
+        public float GetGrowthValue(string aId)
+            => mEntries.TryGetValue(aId, out var entry) ? entry.GrowthValue : 0f;
+
+        // 指定パラメータに掛かっているスキル効果値の合計
+        public float GetSkillEffectSum(string aId)
+        {
+            if (!mEntries.TryGetValue(aId, out var entry)) return 0f;
+            float sum = 0f;
+            foreach (var effect in entry.SkillEffects) sum += effect.Value;
+            return sum;
+        }
+
+        // スキル効果の倍率 S = max(0, 1 + 効果値の合計)
+        public float GetSkillMultiplier(string aId)
+            => Parameter.RatioSumToMultiplier(GetSkillEffectSum(aId));
     }
 
     // ユニット定義がインスペクタ上で基礎ステータスを設定するための構造体
@@ -152,10 +164,14 @@ namespace PPCore
     [Serializable]
     public struct PPStatBlock
     {
+        /* 定数 */
+
         // 新規作成したユニット定義のきようさ既定値（会心率 5%）
         public const float DefaultDexterity = 20f;
         // 新規作成したユニット定義のスキルゲージ上限の既定値
         public const float DefaultSkillGaugeMax = 100f;
+
+        /* インスペクタ設定 */
 
         [Label("通常攻撃コスト")]
         public float AttackCost;
@@ -168,6 +184,7 @@ namespace PPCore
         // コインゲージの上限。通常攻撃コストはこの範囲内で設定する
         [Label("コインゲージ上限")]
         public float CoinGaugeMax;
+
         // 会心率の元になる基礎能力（レベル 1 時点の値）。PPUnitDefinition の成長曲線でレベル成長する
         // 会心率(%) = 補正後きようさ × 0.25（0～100 に丸める）。既定値 20 で会心率 5%
         [Label(PPUnitAbilityDefinition.NameDexterity)]
@@ -188,7 +205,6 @@ namespace PPCore
         public const string NameAgility = "はやさ";
         // 会心率の元になる能力
         public const string NameDexterity = "きようさ";
-
         // 成長曲線のラベルに付ける接尾辞
         public const string GrowthCurveSuffix = "成長曲線";
     }

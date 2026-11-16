@@ -23,10 +23,13 @@ namespace PPCore
     {
         // 初めてこのステートに入るときに呼ばれる。UI の表示と購読を行う
         void Enter();
+
         // 一つ先のステートから戻ってきたときに呼ばれる
         void Resume();
+
         // 一つ先へ進むため退避するときに呼ばれる。UI を一時的に隠す
         void Suspend();
+
         // 完全に破棄されるときに呼ばれる。購読解除と後始末を行う
         void Exit();
     }
@@ -35,18 +38,20 @@ namespace PPCore
     // CommandBuilder は「対象さえ決まればコマンドを作れる」状態を表す
     public class PPBattleSelectionContext
     {
+        /* 状態 */
+
         // 行動するユニット。ユニット選択で決まる
         public BattleUnit Unit;
         // 使用するスキル。スキル選択で決まる。通常攻撃なら null のまま
         public BattleSkill Skill;
         // 対象ユニット。対象選択で決まる
         public BattleUnit Target;
-
         // 対象を受け取ってコマンドを生成する関数。コマンド／スキル選択の時点で設定される
         public Func<BattleUnit, BattleCommandBase> CommandBuilder;
-
         // 選択中の行動のターゲット範囲。未確定なら null
         public TargetScope? TargetScope;
+
+        /* 操作 */
 
         // すべての選択内容を破棄する。入力を最初から始めるときに使う
         public void Clear()
@@ -73,6 +78,8 @@ namespace PPCore
     // キャンセルはスタックを 1 段ポップし、空になれば入力を中断する。選択途中の状態は PPBattleSelectionContext に集約する
     public class PPBattleCommandInputController : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         [Label("ユニットビューバインダー")]
         [SerializeField] private PPBattleUnitViewBinder mViewBinder;
         [Label("コマンドメニュー")]
@@ -88,6 +95,11 @@ namespace PPCore
         [Label("入力ステートボーダー")]
         [SerializeField] private Image mInputStateBorder;
 
+        /* 状態 */
+
+        // このティックの行動を仮押さえしている台帳。予約分を差し引いた残量でスキルの発動可否を出すために使う
+        // 未設定なら実際のゲージ残量だけで判定される
+        public PPUnitActionLedger ActionLedger { get; set; }
         // コマンドの投入先。Bind で受け取る
         private BattleManager mManager;
         // 入力ステートのスタック。先頭が現在アクティブなステート
@@ -95,14 +107,7 @@ namespace PPCore
         // 選択途中の内容（ユニット・スキル・対象・コマンド生成関数）を保持するコンテキスト
         private readonly PPBattleSelectionContext mContext = new();
 
-        // コマンド確定時(行動ユニット, 確定したコマンド)。キュー投入前に発火する
-        public event Action<BattleUnit, BattleCommandBase> OnCommandConfirmed;
-
-        // このティックの行動を仮押さえしている台帳。予約分を差し引いた残量でスキルの発動可否を出すために使う
-        // 未設定なら実際のゲージ残量だけで判定される
-        public PPUnitActionLedger ActionLedger { get; set; }
-        // コマンドをキューへ流し終えたとき。入力 1 サイクルの完了通知
-        public event Action OnCommandFlushed;
+        /* プロパティ */
 
         // バインドされているバトルマネージャ
         public BattleManager Manager => mManager;
@@ -116,6 +121,40 @@ namespace PPCore
         public PPBattleDetailMenuView DetailMenu => mDetailMenu;
         // 選択途中の状態を保持するコンテキスト
         public PPBattleSelectionContext Context => mContext;
+
+        /* イベント */
+
+        // コマンド確定時(行動ユニット, 確定したコマンド)。キュー投入前に発火する
+        public event Action<BattleUnit, BattleCommandBase> OnCommandConfirmed;
+        // コマンドをキューへ流し終えたとき。入力 1 サイクルの完了通知
+        public event Action OnCommandFlushed;
+
+        /* 生成 */
+
+        // スキル既定のリゾルバに、プレイヤーが選んだ対象を焼き込んだリゾルバを組み立てる
+        // 単体対象のリゾルバのみ差し替え、全体対象などはそのまま既定を返す
+        public ITargetResolver BuildResolver(ITargetResolver aDefault, BattleUnit aTarget)
+            => aTarget == null
+                ? aDefault
+                : aDefault switch
+                {
+                    SingleEnemyResolver => new SingleEnemyResolver(aTarget),
+                    SingleAllyResolver => new SingleAllyResolver(aTarget),
+                    _ => aDefault
+                };
+
+        /* Unity イベント */
+
+        // 破棄時にキャンセル入力の購読を解除する
+        private void OnDestroy()
+        {
+            if (mUIInputModule != null)
+            {
+                mUIInputModule.cancel.action.performed -= HandleCancelPerformed;
+            }
+        }
+
+        /* 初期化・接続 */
 
         // バトルマネージャを紐づけ、戻るボタンとキャンセル入力を購読する
         // aManager : 確定したコマンドの投入先
@@ -133,24 +172,7 @@ namespace PPCore
             }
         }
 
-        // 破棄時にキャンセル入力の購読を解除する
-        private void OnDestroy()
-        {
-            if (mUIInputModule != null)
-            {
-                mUIInputModule.cancel.action.performed -= HandleCancelPerformed;
-            }
-        }
-
-        // キャンセル入力を受けて 1 段戻る。入力中でなければ何もしない
-        // ctx : Input System のコールバックコンテキスト
-        private void HandleCancelPerformed(InputAction.CallbackContext ctx)
-        {
-            if (mStateStack.Count > 0)
-            {
-                Back();
-            }
-        }
+        /* 操作 */
 
         // コマンド入力を開始する。選択内容とステートスタックを初期化し、ユニット選択から始める
         // 入力中はプッシャー側の物理を止めるため timeScale を 0 にする
@@ -240,16 +262,16 @@ namespace PPCore
             Time.timeScale = 1;
         }
 
-        // スキル既定のリゾルバに、プレイヤーが選んだ対象を焼き込んだリゾルバを組み立てる
-        // 単体対象のリゾルバのみ差し替え、全体対象などはそのまま既定を返す
-        public ITargetResolver BuildResolver(ITargetResolver aDefault, BattleUnit aTarget)
-            => aTarget == null
-                ? aDefault
-                : aDefault switch
-                {
-                    SingleEnemyResolver => new SingleEnemyResolver(aTarget),
-                    SingleAllyResolver => new SingleAllyResolver(aTarget),
-                    _ => aDefault
-                };
+        /* イベントハンドラ */
+
+        // キャンセル入力を受けて 1 段戻る。入力中でなければ何もしない
+        // ctx : Input System のコールバックコンテキスト
+        private void HandleCancelPerformed(InputAction.CallbackContext ctx)
+        {
+            if (mStateStack.Count > 0)
+            {
+                Back();
+            }
+        }
     }
 }

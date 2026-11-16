@@ -18,6 +18,8 @@ namespace PPCore
     [PPTypeMenuName("行動/実行")]
     public sealed class PPUnitAIActionNode : PPUnitAINode
     {
+        /* インスペクタ設定 */
+
         [Header("行動")]
         [Label("実行する行動")]
         [SerializeReference]
@@ -33,17 +35,12 @@ namespace PPCore
         [Label("狙いを固定するティック数")]
         [SerializeField] private int mFocusTicks = 0;
 
-        protected override string DefaultNodeName => mAction != null ? mAction.ActionName : "行動";
+        /* プロパティ */
 
         // 実行する行動が設定されているか。エディタの診断から参照する
         public bool HasAction => mAction != null;
-
         // 実行する行動。エディタの診断が設定漏れを調べるために参照する
         public PPUnitAIActionBase Action => mAction;
-
-        // 実行する行動を設定する。雛形の生成など、エディタからノードを組み立てる処理で使う
-        // aAction : 設定する行動
-        public void SetAction(PPUnitAIActionBase aAction) => mAction = aAction;
 
         // 行動の要約に、判断の維持と狙いの固定を添える
         public override string Summary
@@ -58,6 +55,16 @@ namespace PPCore
                 return body;
             }
         }
+
+        protected override string DefaultNodeName => mAction != null ? mAction.ActionName : "行動";
+
+        /* 操作 */
+
+        // 実行する行動を設定する。雛形の生成など、エディタからノードを組み立てる処理で使う
+        // aAction : 設定する行動
+        public void SetAction(PPUnitAIActionBase aAction) => mAction = aAction;
+
+        /* 評価・判定 */
 
         // アクションを組み立てて確定させる
         protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
@@ -78,19 +85,26 @@ namespace PPCore
     [Serializable]
     public abstract class PPUnitAIActionBase
     {
+        /* インスペクタ設定 */
+
         [Header("表示")]
         [Label("行動名")]
         [SerializeField] protected string mActionName = "";
 
-        // 記録・ログに出す行動名。未入力なら型ごとの既定名を使う
-        public string ActionName => string.IsNullOrEmpty(mActionName) ? DefaultActionName : mActionName;
+        /* 状態 */
 
         // 型ごとの既定表示名。派生側で上書きする
         protected abstract string DefaultActionName { get; }
 
+        /* プロパティ */
+
+        // 記録・ログに出す行動名。未入力なら型ごとの既定名を使う
+        public string ActionName => string.IsNullOrEmpty(mActionName) ? DefaultActionName : mActionName;
         // グラフ上のノードへ出す設定内容の要約
         // 「何を・誰に」が行動ノードのタイトルだけでは読めないため、派生側で示す
         public virtual string Summary => "";
+
+        /* 生成 */
 
         // 今の状況でこの行動を組み立てる
         // 派生クラスで実装する。バトルの状態を変えず、コマンドを作るだけに留めること
@@ -103,20 +117,27 @@ namespace PPCore
     [PPTypeMenuName("通常攻撃")]
     public sealed class PPUnitAIAttackAction : PPUnitAIActionBase
     {
+        /* インスペクタ設定 */
+
         [Header("対象")]
         [Label("対象の選び方")]
         [SerializeField] private PPUnitAITargetPolicy mTargetPolicy = PPUnitAITargetPolicy.LowestHpRatioEnemy;
+
         // 指定した選び方で対象が見つからなかった場合に、HP 割合が最も低い敵へ切り替えるか
         // 「倒せる敵」「弱点を突ける敵」のように、該当者が居ないことが普通にある方針で使う
         [Label("見つからなければ他の敵を狙う")]
         [SerializeField] private bool mIsFallbackAnyEnemy = true;
 
-        protected override string DefaultActionName => "通常攻撃";
+        /* プロパティ */
 
         // 狙う相手と、外れたときの振る舞いを 1 行で示す
         public override string Summary
             => $"対象 : {PPUnitAITargeting.ToDisplayString(mTargetPolicy)}"
                + (mIsFallbackAnyEnemy ? "（居なければ他の敵）" : "");
+
+        protected override string DefaultActionName => "通常攻撃";
+
+        /* 生成 */
 
         // コインゲージの残量と対象を確認し、足りていれば通常攻撃コマンドを組み立てる
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
@@ -159,6 +180,8 @@ namespace PPCore
     [PPTypeMenuName("スキル発動")]
     public sealed class PPUnitAISkillAction : PPUnitAIActionBase, IPPUnitAISkillFilterOwner
     {
+        /* インスペクタ設定 */
+
         [Header("スキル")]
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
@@ -169,15 +192,19 @@ namespace PPCore
         [Label("対象の選び方")]
         [SerializeField] private PPUnitAITargetPolicy mTargetPolicy = PPUnitAITargetPolicy.ScopeDefault;
 
+        /* プロパティ */
+
         // 保持しているスキルの絞り込み条件。エディタの診断から参照する
         public PPUnitAISkillFilter Filter => mFilter;
-
-        protected override string DefaultActionName => $"スキル発動（{mFilter.ToDisplayString()}）";
 
         // 「何を・どう選んで・誰に」を 1 行にまとめる
         public override string Summary
             => $"{mFilter.ToDisplayString()} ・ {PPUnitAISkillSelectRuleUtility.ToDisplayString(mSelectRule)}"
                + $"\n対象 : {PPUnitAITargeting.ToDisplayString(mTargetPolicy)}";
+
+        protected override string DefaultActionName => $"スキル発動（{mFilter.ToDisplayString()}）";
+
+        /* 生成 */
 
         // 今発動できるスキルを絞り込んで 1 つ選び、対象を解決してコマンドを組み立てる
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
@@ -199,6 +226,8 @@ namespace PPCore
             var command = new PPSkillCommand(aContext.Unit, skill, resolver);
             return PPUnitAINodeResult.Execute(command, ActionName, target);
         }
+
+        /* ヘルパー */
 
         // 対象の選び方が「スコープ既定」なのに単体対象だった場合の落としどころを決める
         // 味方単体なら HP 割合が最も低い味方、敵単体なら HP 割合が最も低い敵を狙う

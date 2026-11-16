@@ -19,25 +19,31 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPEffectDefinition", menuName = "Project-Pudding/Effect/PPEffectDefinition")]
     public class PPEffectDefinition : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         [Header("エフェクト")]
         [Label("エフェクトID")]
         [SerializeField]protected string mEffectId;
         [Label("表示名")]
         [SerializeField]protected string mDisplayName;
+
         // 持続条件。未設定の場合は永続になる
         // [Label] を付けると種類のプルダウンを出せなくなるため、表示名は [PPFieldLabel] で与える
         [PPFieldLabel("持続条件")]
         [SerializeReference]
         [SerializeField]protected PPDurationConditionDefinition mDurationCondition = new PPTurnDurationConditionDefinition();
+
         [Label("スタックポリシー")]
         [SerializeField]protected StatusEffectStackPolicy mStackPolicy = StatusEffectStackPolicy.Refresh;
         [Label("最大スタック")]
         [SerializeField]protected int mMaxStack = 1;
+
         // 何をきっかけにスタックが減るか。未設定ならスタックは自然には減らない（持続条件が切れるまで残る）
         // 持続条件と違い「行動したら消える」「攻撃したら消える」といった寿命以外の切れ方を表す
         [PPFieldLabel("スタック消費ルール")]
         [SerializeReference]
         [SerializeField]protected PPStatusEffectConsumeRuleDefinition mConsumeRule;
+
         // UI・AI・解除スキルから共通に参照できるゲーム固有分類。振る舞いの構成とは独立して手入力する
         [Label("分類")]
         [SerializeField]protected PPEffectCategory mCategory = PPEffectCategory.None;
@@ -52,12 +58,16 @@ namespace PPCore
         [SerializeReference]
         [SerializeField]protected List<PPStatusEffectBehaviourDefinition> mBehaviours = new();
 
+        /* プロパティ */
+
         public string EffectId => mEffectId;
         public string DisplayName => mDisplayName;
         public PPDurationConditionDefinition DurationCondition => mDurationCondition;
         public StatusEffectStackPolicy StackPolicy => mStackPolicy;
         public PPEffectCategory Category => mCategory;
         public StatusEffectTag Tags => mTags;
+
+        /* 生成 */
 
         // この定義からランタイムのステータスエフェクトを生成する
         // 共通部分を組み立てたのち、mBehaviours の各要素へ効き目の組み立てを委ねる
@@ -79,6 +89,8 @@ namespace PPCore
             }
             return effect;
         }
+
+        /* 説明文 */
 
         // フィールドラベルに表示する、この StatusEffect の内容を要約した文字列を組み立てる
         public virtual string BuildString()

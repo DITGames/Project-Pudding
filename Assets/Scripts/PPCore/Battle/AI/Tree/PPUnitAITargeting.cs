@@ -72,6 +72,30 @@ namespace PPCore
     // 乱数は行動するユニット自身の供給元を経由すること（UnityEngine.Random は使わない）
     public static class PPUnitAITargeting
     {
+        /* 生成 */
+
+        // 解決した対象を焼き込んだリゾルバを組み立てる
+        // 対象が未指定（スコープ既定）の場合は null を返し、行動側の既定リゾルバを使わせる
+        public static ITargetResolver BuildResolver(TargetScope aScope, PPBattleUnit aTarget)
+        {
+            if (aTarget == null) return null;
+
+            return aScope switch
+            {
+                TargetScope.SingleEnemy => new SingleEnemyResolver(aTarget),
+                TargetScope.SingleAlly => new SingleAllyResolver(aTarget),
+                _ => null,
+            };
+        }
+
+        /* 操作 */
+
+        // 対象を明示的に決める必要がある対象範囲かを判定する
+        public static bool NeedsExplicitTarget(TargetScope aScope)
+            => aScope is TargetScope.SingleEnemy or TargetScope.SingleAlly;
+
+        /* 問い合わせ */
+
         // 方針に従って対象を 1 体解決する
         // 該当者が居ない場合は null を返し、呼び出し側でその行動を取りやめる
         public static PPBattleUnit Resolve(PPUnitAITargetPolicy aPolicy, PPUnitAIEvalContext aContext)
@@ -98,48 +122,6 @@ namespace PPCore
                 _ => null,
             };
         }
-
-        // 対象選択方針を表示用の日本語へ変換する
-        // グラフ上の要約表示から使う。インスペクタの表記と揃えてある
-        public static string ToDisplayString(PPUnitAITargetPolicy aPolicy)
-            => aPolicy switch
-            {
-                PPUnitAITargetPolicy.ScopeDefault => "スコープ既定",
-                PPUnitAITargetPolicy.ConditionedUnit => "条件を満たしているユニット",
-                PPUnitAITargetPolicy.FinishableEnemy => "通常攻撃で倒せる敵",
-                PPUnitAITargetPolicy.WeaknessEnemy => "弱点を突ける敵",
-                PPUnitAITargetPolicy.LowestHpRatioEnemy => "HP割合が最低の敵",
-                PPUnitAITargetPolicy.LowestHpEnemy => "HPが最低の敵",
-                PPUnitAITargetPolicy.HighestHpEnemy => "HPが最高の敵",
-                PPUnitAITargetPolicy.HighestThreatEnemy => "最も脅威の高い敵",
-                PPUnitAITargetPolicy.RandomEnemy => "ランダムな敵",
-                PPUnitAITargetPolicy.FocusedEnemy => "固定した敵",
-                PPUnitAITargetPolicy.LowestHpRatioAlly => "HP割合が最低の味方",
-                PPUnitAITargetPolicy.HighestHpRatioAlly => "HP割合が最高の味方",
-                PPUnitAITargetPolicy.RandomAlly => "ランダムな味方",
-                PPUnitAITargetPolicy.RandomAllyExceptSelf => "自分以外のランダムな味方",
-                PPUnitAITargetPolicy.HateTopEnemy => "最も殴ってきた敵",
-                PPUnitAITargetPolicy.Self => "自分自身",
-                _ => "",
-            };
-
-        // 解決した対象を焼き込んだリゾルバを組み立てる
-        // 対象が未指定（スコープ既定）の場合は null を返し、行動側の既定リゾルバを使わせる
-        public static ITargetResolver BuildResolver(TargetScope aScope, PPBattleUnit aTarget)
-        {
-            if (aTarget == null) return null;
-
-            return aScope switch
-            {
-                TargetScope.SingleEnemy => new SingleEnemyResolver(aTarget),
-                TargetScope.SingleAlly => new SingleAllyResolver(aTarget),
-                _ => null,
-            };
-        }
-
-        // 対象を明示的に決める必要がある対象範囲かを判定する
-        public static bool NeedsExplicitTarget(TargetScope aScope)
-            => aScope is TargetScope.SingleEnemy or TargetScope.SingleAlly;
 
         // ターゲット検索ノードが積んだ対象候補から 1 体を選ぶ
         // 重複して積まれたユニットはその回数だけ抽選に入るため、重ねて条件に合うほど選ばれやすくなる
@@ -209,5 +191,31 @@ namespace PPCore
             }
             return PickRandom(candidates, aContext);
         }
+
+        /* 説明文 */
+
+        // 対象選択方針を表示用の日本語へ変換する
+        // グラフ上の要約表示から使う。インスペクタの表記と揃えてある
+        public static string ToDisplayString(PPUnitAITargetPolicy aPolicy)
+            => aPolicy switch
+            {
+                PPUnitAITargetPolicy.ScopeDefault => "スコープ既定",
+                PPUnitAITargetPolicy.ConditionedUnit => "条件を満たしているユニット",
+                PPUnitAITargetPolicy.FinishableEnemy => "通常攻撃で倒せる敵",
+                PPUnitAITargetPolicy.WeaknessEnemy => "弱点を突ける敵",
+                PPUnitAITargetPolicy.LowestHpRatioEnemy => "HP割合が最低の敵",
+                PPUnitAITargetPolicy.LowestHpEnemy => "HPが最低の敵",
+                PPUnitAITargetPolicy.HighestHpEnemy => "HPが最高の敵",
+                PPUnitAITargetPolicy.HighestThreatEnemy => "最も脅威の高い敵",
+                PPUnitAITargetPolicy.RandomEnemy => "ランダムな敵",
+                PPUnitAITargetPolicy.FocusedEnemy => "固定した敵",
+                PPUnitAITargetPolicy.LowestHpRatioAlly => "HP割合が最低の味方",
+                PPUnitAITargetPolicy.HighestHpRatioAlly => "HP割合が最高の味方",
+                PPUnitAITargetPolicy.RandomAlly => "ランダムな味方",
+                PPUnitAITargetPolicy.RandomAllyExceptSelf => "自分以外のランダムな味方",
+                PPUnitAITargetPolicy.HateTopEnemy => "最も殴ってきた敵",
+                PPUnitAITargetPolicy.Self => "自分自身",
+                _ => "",
+            };
     }
 }

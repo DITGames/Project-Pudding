@@ -28,6 +28,8 @@ namespace PPCore
     // ステータスエフェクトや購読側が Amount やフラグを書き換えて軽減・無効化を表現するため、参照型にしている
     public class DamageInfo
     {
+        /* 状態 */
+
         // ダメージの発生元ユニット
         // 反射ダメージなどコマンド以外で設定すると、反射が反射を呼ぶループになるため避ける
         public BattleUnit Source { get; }
@@ -41,15 +43,19 @@ namespace PPCore
         // リアクション（反撃など）として発生したダメージなら、その深さと発生元。null ならリアクションではない
         // 作る側が設定しなければ、リアクションのコマンド実行中に BattleUnit.ApplyDamage が設定する
         public ReactionDamageInfo Reaction { get; set; }
-        // リアクションとして発生したダメージなら true
-        public bool IsReaction => Reaction != null;
-
         // クリティカルヒットしたか
         public bool IsCritical { get; set; } = false;
         // 無効化されたか。true なら Amount によらずダメージは入らない
         public bool IsNullified { get; set; } = false;
         // 攻撃が外れたか。true なら軽減処理を通さず結果通知のみ行われる
         public bool IsMiss { get; set; } = false;
+
+        /* プロパティ */
+
+        // リアクションとして発生したダメージなら true
+        public bool IsReaction => Reaction != null;
+
+        /* 生成 */
 
         // ダメージ情報を生成する
         public DamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, DamageReasonBase aReason)
@@ -138,15 +144,18 @@ namespace PPCore
     // 弱点／耐性フラグは演出側がダメージ表示を出し分けるために使う
     public class PPDamageInfo : DamageInfo
     {
+        /* 状態 */
+
         // スキル種別
         public PPSkillCategory Category { get; set; }
         // 攻撃属性。相性判定の攻撃側として使われる
         public PPTypeAttribute Attribute { get; set; }
-
         // 弱点を突いたか。相性判定の結果として設定される
         public bool IsWeaknessHit { get; set; } = false;
         // 耐性で軽減されたか。相性判定の結果として設定される
         public bool IsResistHit { get; set; } = false;
+
+        /* 生成 */
 
         public PPDamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, PPSkillCategory aCategory,
             PPTypeAttribute aAttribute, DamageReasonBase aReason)

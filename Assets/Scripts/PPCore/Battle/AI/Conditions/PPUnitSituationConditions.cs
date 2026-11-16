@@ -85,12 +85,16 @@ namespace PPCore
     [PPTypeMenuName("戦況/不利属性の敵に狙われている")]
     public sealed class PPUnitTargetedByDisadvantagedCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         // 直近の被弾をさかのぼって見るティック数。0 なら経過を問わない
         [Label("さかのぼるティック数")]
         [SerializeField] private int mWithinTicks = 1;
         // 反転すると「不利属性の敵に狙われていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
+
+        /* 評価・判定 */
 
         // 直近の加害者が自分に対して有利な属性かを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -101,14 +105,7 @@ namespace PPCore
             return isTargeted != mIsInvert;
         }
 
-        // 設定内容から説明文を組み立てる
-        [ContextMenu("説明文を生成")]
-        protected override void BuildDescription()
-        {
-            string range = mWithinTicks > 0 ? $"直近{mWithinTicks}ティック以内に" : "";
-            string body = $"{range}不利属性の敵に狙われている";
-            mDescription = mIsInvert ? body.Replace("狙われている", "狙われていない") : body;
-        }
+        /* 問い合わせ */
 
         // 直近の加害者が不利属性かを調べる
         private bool IsTargetedByDisadvantaged(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -122,6 +119,17 @@ namespace PPCore
                 return false;
 
             return PPAttributeAffinity.Resolve(attacker.TypeAttribute, aUnit.TypeAttribute) == PPAffinityResult.Weak;
+        }
+
+        /* 説明文 */
+
+        // 設定内容から説明文を組み立てる
+        [ContextMenu("説明文を生成")]
+        protected override void BuildDescription()
+        {
+            string range = mWithinTicks > 0 ? $"直近{mWithinTicks}ティック以内に" : "";
+            string body = $"{range}不利属性の敵に狙われている";
+            mDescription = mIsInvert ? body.Replace("狙われている", "狙われていない") : body;
         }
     }
 
@@ -163,6 +171,8 @@ namespace PPCore
     [PPTypeMenuName("戦況/敵の次の行動")]
     public sealed class PPUnitEnemyPendingActionCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
+        /* インスペクタ設定 */
+
         // スキルで絞り込むか。false なら「何らかの行動が積まれているか」の判定になる
         [Label("スキルで絞り込む")]
         [SerializeField] private bool mIsFilterBySkill = true;
@@ -173,9 +183,13 @@ namespace PPCore
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* プロパティ */
+
         // 保持しているスキルの絞り込み条件。エディタの診断から参照する
         // 絞り込みを使わない設定のときは、未設定でも問題にならないよう null を返す
         public PPUnitAISkillFilter Filter => mIsFilterBySkill ? mFilter : null;
+
+        /* 評価・判定 */
 
         // 相手陣営の実行待ちの行動に、条件へ合うものがあるかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -186,15 +200,7 @@ namespace PPCore
             return isFound != mIsInvert;
         }
 
-        // 設定内容から説明文を組み立てる
-        [ContextMenu("説明文を生成")]
-        protected override void BuildDescription()
-        {
-            string body = mIsFilterBySkill
-                ? $"敵が {mFilter.ToDisplayString()} のスキルを撃とうとしている"
-                : "敵が行動を積んでいる";
-            mDescription = mIsInvert ? $"{body} 状態ではない" : body;
-        }
+        /* 問い合わせ */
 
         // 相手陣営の実行待ちの行動を走査する
         private bool HasMatchedPending(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -212,6 +218,18 @@ namespace PPCore
                 if (mFilter.IsMatch(definition)) return true;
             }
             return false;
+        }
+
+        /* 説明文 */
+
+        // 設定内容から説明文を組み立てる
+        [ContextMenu("説明文を生成")]
+        protected override void BuildDescription()
+        {
+            string body = mIsFilterBySkill
+                ? $"敵が {mFilter.ToDisplayString()} のスキルを撃とうとしている"
+                : "敵が行動を積んでいる";
+            mDescription = mIsInvert ? $"{body} 状態ではない" : body;
         }
     }
 
@@ -232,6 +250,8 @@ namespace PPCore
     [PPTypeMenuName("戦況/直前の出来事")]
     public sealed class PPUnitRecentEventCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("出来事")]
         [SerializeField] private PPUnitRecentEventKind mKind = PPUnitRecentEventKind.Damaged;
         // さかのぼって見るティック数。0 を指定すると「バトル中に一度でも起きたか」になる
@@ -240,6 +260,8 @@ namespace PPCore
         // 反転すると「起きていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
+
+        /* 評価・判定 */
 
         // 指定した出来事が直前に起きたかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -260,6 +282,8 @@ namespace PPCore
             };
             return isHappened != mIsInvert;
         }
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]

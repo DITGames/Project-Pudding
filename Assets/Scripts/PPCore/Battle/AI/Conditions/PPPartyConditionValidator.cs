@@ -17,21 +17,39 @@ namespace PPCore
     [Serializable]
     public abstract class PPPartyConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Header("表示")]
         // 説明文を設定内容から自動生成するか。外すと書いた文面がそのまま残る
         // 枝を置いた意図など、自動生成では表せない説明を残したい場合に外す
         [Label("説明を自動生成する")]
         [SerializeField] protected bool mIsAutoDescription = true;
+
         [Label("説明")]
         [TextArea]
         [SerializeField] protected string mDescription;
 
+        /* プロパティ */
+
         // 条件の説明文
         public string Description => mDescription;
+
+        /* 評価・判定 */
 
         // 現在のスナップショットに対して条件を満たすか判定する
         // 派生クラスで実装する。状態を変えず判定のみを行うこと
         public abstract bool Evaluate(PPPartyAIContext aSnapShot);
+
+        /* 説明文 */
+
+        // 設定内容から説明文を組み立て直す。ツリー編集のたびに呼び、サマリ表示と設定を一致させる
+        // 自動生成を外している場合は何もしない
+        public void RefreshDescription()
+        {
+            if (!mIsAutoDescription) return;
+
+            BuildDescription();
+        }
 
         // 比較演算子を説明文用の日本語へ変換する
         protected virtual string GetOpString(PPCompareOp aOp)
@@ -45,15 +63,6 @@ namespace PPCore
                 PPCompareOp.LessThan => "未満",
                 _ => ""
             };
-
-        // 設定内容から説明文を組み立て直す。ツリー編集のたびに呼び、サマリ表示と設定を一致させる
-        // 自動生成を外している場合は何もしない
-        public void RefreshDescription()
-        {
-            if (!mIsAutoDescription) return;
-
-            BuildDescription();
-        }
 
         // 設定内容から mDescription を組み立てる
         // 派生クラスでオーバーライドして、インスペクタ上で条件の意味が読めるようにする

@@ -16,8 +16,12 @@ namespace PPCore
     // 「優先度リスト＋末尾に無条件の通常攻撃」を最初から入れ、何も行動が決まらない状態を避ける
     public static class PPUnitBehaviourTreeTemplateFactory
     {
+        /* 定数 */
+
         // 新規作成したアセットの既定名
         private const string DefaultAssetName = "PUBT_New";
+
+        /* 生成 */
 
         // 雛形からツリーを新規作成する
         // 選択中のフォルダへ作り、名前の入力状態で Project ウィンドウへ出す
@@ -68,6 +72,8 @@ namespace PPCore
             serialized.ApplyModifiedPropertiesWithoutUndo();
             aTree.InvalidateNodeMap();
         }
+
+        /* 操作 */
 
         // ノードをリストの末尾へ足す
         private static void AppendNode(SerializedProperty aNodesProperty, PPUnitAINode aNode)

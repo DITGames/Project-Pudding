@@ -19,14 +19,19 @@ namespace PPCore
     [PPTypeMenuName("制御/条件分岐")]
     public sealed class PPUnitAIConditionNode : PPUnitAINode
     {
+        /* 定数 */
+
         // 接続口の番号。エディタからの接続操作で使う
         private const int PortMatched = 0;
         private const int PortUnmatched = 1;
+
+        /* インスペクタ設定 */
 
         [Header("条件")]
         [Label("ユニット条件", true)]
         [SerializeReference]
         [SerializeField] private List<PPUnitConditionValidator> mUnitConditions = new();
+
         [Label("パーティ条件", true)]
         [SerializeReference]
         [SerializeField] private List<PPPartyConditionValidator> mPartyConditions = new();
@@ -38,14 +43,14 @@ namespace PPCore
         [Header("枝")]
         [Label("成立したとき")]
         [SerializeField] private string mMatchedId = "";
+
         [Label("成立しなかったとき")]
         [SerializeField] private string mUnmatchedId = "";
 
-        protected override string DefaultNodeName => "条件分岐";
+        /* プロパティ */
 
         // 成立側の枝が繋がっているか。エディタの診断から参照する
         public bool HasMatchedBranch => !string.IsNullOrEmpty(mMatchedId);
-
         // 判定に使うユニット条件。エディタの診断が設定漏れを調べるために参照する
         public IReadOnlyList<PPUnitConditionValidator> UnitConditions => mUnitConditions;
 
@@ -66,22 +71,9 @@ namespace PPCore
             }
         }
 
-        // 条件を評価し、対応する枝へ進む
-        // 枝が未接続の場合は不成立として扱い、親の次の候補へ処理を渡す
-        protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
-        {
-            bool isMatched = EvaluateConditions(aContext) != mIsInvert;
-            var next = aContext.ResolveNode(isMatched ? mMatchedId : mUnmatchedId);
+        protected override string DefaultNodeName => "条件分岐";
 
-            return next == null ? PPUnitAINodeResult.Failed : next.Evaluate(aContext);
-        }
-
-        // 持っている条件の説明文を組み立て直す
-        public override void RefreshConditionDescriptions()
-        {
-            RefreshDescriptions(mUnitConditions);
-            RefreshDescriptions(mPartyConditions);
-        }
+        /* 初期化・接続 */
 
         // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
         public override void ConnectChild(int aPortIndex, string aChildId)
@@ -89,6 +81,15 @@ namespace PPCore
             if (aPortIndex == PortMatched) mMatchedId = aChildId;
             else if (aPortIndex == PortUnmatched) mUnmatchedId = aChildId;
         }
+
+        // 指定した接続口の接続を外す
+        public override void DisconnectChild(int aPortIndex, string aChildId)
+        {
+            if (aPortIndex == PortMatched && mMatchedId == aChildId) mMatchedId = "";
+            else if (aPortIndex == PortUnmatched && mUnmatchedId == aChildId) mUnmatchedId = "";
+        }
+
+        /* 操作 */
 
         // 接続先の子ノード ID を対応表に従って置き換える
         // aMap : 対応表
@@ -98,11 +99,16 @@ namespace PPCore
             mUnmatchedId = RemapChildId(mUnmatchedId, aMap);
         }
 
-        // 指定した接続口の接続を外す
-        public override void DisconnectChild(int aPortIndex, string aChildId)
+        /* 評価・判定 */
+
+        // 条件を評価し、対応する枝へ進む
+        // 枝が未接続の場合は不成立として扱い、親の次の候補へ処理を渡す
+        protected override PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext)
         {
-            if (aPortIndex == PortMatched && mMatchedId == aChildId) mMatchedId = "";
-            else if (aPortIndex == PortUnmatched && mUnmatchedId == aChildId) mUnmatchedId = "";
+            bool isMatched = EvaluateConditions(aContext) != mIsInvert;
+            var next = aContext.ResolveNode(isMatched ? mMatchedId : mUnmatchedId);
+
+            return next == null ? PPUnitAINodeResult.Failed : next.Evaluate(aContext);
         }
 
         // ユニット条件とパーティ条件を AND で評価する
@@ -119,6 +125,17 @@ namespace PPCore
             }
             return true;
         }
+
+        /* 説明文 */
+
+        // 持っている条件の説明文を組み立て直す
+        public override void RefreshConditionDescriptions()
+        {
+            RefreshDescriptions(mUnitConditions);
+            RefreshDescriptions(mPartyConditions);
+        }
+
+        /* ヘルパー */
 
         // 単一の接続先を接続口の形式へ揃える。未接続なら空の並びを返す
         private static IReadOnlyList<string> ToSingle(string aChildId)
@@ -142,12 +159,15 @@ namespace PPCore
     [PPTypeMenuName("制御/一度きり・ラッチ")]
     public sealed class PPUnitAILatchNode : PPUnitAINode
     {
+        /* 定数 */
+
         // 接続口の番号。エディタからの接続操作で使う
         private const int PortMatched = 0;
         private const int PortUnmatched = 1;
-
         // 成立の記憶に使うキーの接尾辞。ノード自身の通過記録と区別するために付ける
         private const string MatchedKeySuffix = "#matched";
+
+        /* インスペクタ設定 */
 
         [Header("振る舞い")]
         [Label("モード")]
@@ -157,6 +177,7 @@ namespace PPCore
         [Label("ユニット条件", true)]
         [SerializeReference]
         [SerializeField] private List<PPUnitConditionValidator> mUnitConditions = new();
+
         [Label("パーティ条件", true)]
         [SerializeReference]
         [SerializeField] private List<PPPartyConditionValidator> mPartyConditions = new();
@@ -168,15 +189,14 @@ namespace PPCore
         [Header("枝")]
         [Label("成立したとき")]
         [SerializeField] private string mMatchedId = "";
+
         [Label("成立しなかったとき")]
         [SerializeField] private string mUnmatchedId = "";
 
-        protected override string DefaultNodeName
-            => mMode == PPUnitAILatchMode.Once ? "一度きり" : "ラッチ";
+        /* プロパティ */
 
         // 成立側の枝が繋がっているか。エディタの診断から参照する
         public bool HasMatchedBranch => !string.IsNullOrEmpty(mMatchedId);
-
         // 判定に使うユニット条件。エディタの診断が設定漏れを調べるために参照する
         public IReadOnlyList<PPUnitConditionValidator> UnitConditions => mUnitConditions;
 
@@ -197,6 +217,39 @@ namespace PPCore
                 return mIsInvert ? $"{mode} : {body} ／ 反転" : $"{mode} : {body}";
             }
         }
+
+        protected override string DefaultNodeName
+            => mMode == PPUnitAILatchMode.Once ? "一度きり" : "ラッチ";
+        // 成立の記憶に使うキー
+        private string MatchedKey => mNodeId + MatchedKeySuffix;
+
+        /* 初期化・接続 */
+
+        // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
+        public override void ConnectChild(int aPortIndex, string aChildId)
+        {
+            if (aPortIndex == PortMatched) mMatchedId = aChildId;
+            else if (aPortIndex == PortUnmatched) mUnmatchedId = aChildId;
+        }
+
+        // 指定した接続口の接続を外す
+        public override void DisconnectChild(int aPortIndex, string aChildId)
+        {
+            if (aPortIndex == PortMatched && mMatchedId == aChildId) mMatchedId = "";
+            else if (aPortIndex == PortUnmatched && mUnmatchedId == aChildId) mUnmatchedId = "";
+        }
+
+        /* 操作 */
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // aMap : 対応表
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
+        {
+            mMatchedId = RemapChildId(mMatchedId, aMap);
+            mUnmatchedId = RemapChildId(mUnmatchedId, aMap);
+        }
+
+        /* 評価・判定 */
 
         // 記憶と条件から進む枝を決める
         // 一度きりは記憶が立っていれば条件を見ずに不成立、ラッチは記憶が立っていれば条件を見ずに成立になる
@@ -220,38 +273,6 @@ namespace PPCore
             return next == null ? PPUnitAINodeResult.Failed : next.Evaluate(aContext);
         }
 
-        // 持っている条件の説明文を組み立て直す
-        public override void RefreshConditionDescriptions()
-        {
-            RefreshDescriptions(mUnitConditions);
-            RefreshDescriptions(mPartyConditions);
-        }
-
-        // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
-        public override void ConnectChild(int aPortIndex, string aChildId)
-        {
-            if (aPortIndex == PortMatched) mMatchedId = aChildId;
-            else if (aPortIndex == PortUnmatched) mUnmatchedId = aChildId;
-        }
-
-        // 接続先の子ノード ID を対応表に従って置き換える
-        // aMap : 対応表
-        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
-        {
-            mMatchedId = RemapChildId(mMatchedId, aMap);
-            mUnmatchedId = RemapChildId(mUnmatchedId, aMap);
-        }
-
-        // 指定した接続口の接続を外す
-        public override void DisconnectChild(int aPortIndex, string aChildId)
-        {
-            if (aPortIndex == PortMatched && mMatchedId == aChildId) mMatchedId = "";
-            else if (aPortIndex == PortUnmatched && mUnmatchedId == aChildId) mUnmatchedId = "";
-        }
-
-        // 成立の記憶に使うキー
-        private string MatchedKey => mNodeId + MatchedKeySuffix;
-
         // ユニット条件とパーティ条件を AND で評価する
         // どちらも空なら「条件なし」とみなして成立する
         private bool EvaluateConditions(PPUnitAIEvalContext aContext)
@@ -266,6 +287,17 @@ namespace PPCore
             }
             return true;
         }
+
+        /* 説明文 */
+
+        // 持っている条件の説明文を組み立て直す
+        public override void RefreshConditionDescriptions()
+        {
+            RefreshDescriptions(mUnitConditions);
+            RefreshDescriptions(mPartyConditions);
+        }
+
+        /* ヘルパー */
 
         // 単一の接続先を接続口の形式へ揃える。未接続なら空の並びを返す
         private static IReadOnlyList<string> ToSingle(string aChildId)
@@ -289,17 +321,23 @@ namespace PPCore
     [PPTypeMenuName("制御/ターゲット検索")]
     public sealed class PPUnitAISearchNode : PPUnitAINode
     {
+        /* 定数 */
+
         // 接続口の番号。エディタからの接続操作で使う
         private const int PortFound = 0;
         private const int PortNotFound = 1;
 
+        /* インスペクタ設定 */
+
         [Header("探索")]
         [Label("探索範囲")]
         [SerializeField] private PPUnitAISearchScope mScope = PPUnitAISearchScope.Ally;
+
         // 候補 1 体ずつに対して評価する条件。全て満たしたユニットだけを積む
         [Label("抽出条件", true)]
         [SerializeReference]
         [SerializeField] private List<PPUnitConditionValidator> mConditions = new();
+
         // 自分自身を探索対象に含めるか。味方への支援で自分を除きたい場合に外す
         [Label("自分自身を含める")]
         [SerializeField] private bool mIsIncludeSelf = true;
@@ -309,6 +347,7 @@ namespace PPCore
         // 複数の検索ノードを重ねて候補を積み増したい場合は外す
         [Label("探索前に候補を空にする")]
         [SerializeField] private bool mIsResetBefore = true;
+
         // 既に積まれているユニットを積み直さないか
         // 外すと重複して積まれ、その分だけランダム選択で選ばれやすくなる
         [Label("重複して積まない")]
@@ -320,17 +359,24 @@ namespace PPCore
         [Label("見つからなかったとき")]
         [SerializeField] private string mNotFoundId = "";
 
-        protected override string DefaultNodeName => "ターゲット検索";
+        /* プロパティ */
 
         // 発見側の枝が繋がっているか。エディタの診断から参照する
         public bool HasFoundBranch => !string.IsNullOrEmpty(mFoundId);
-
         // 絞り込みに使う条件。エディタの診断が設定漏れを調べるために参照する
         public IReadOnlyList<PPUnitConditionValidator> Conditions => mConditions;
-
         // 探索範囲と抽出条件を要約する
         public override string Summary
             => $"{ScopeDisplayName} から探す\n{BuildConditionSummary(mConditions)}";
+
+        public override IReadOnlyList<PPUnitAINodePort> Ports
+            => new[]
+            {
+                new PPUnitAINodePort("発見", ToSingle(mFoundId), false),
+                new PPUnitAINodePort("なし", ToSingle(mNotFoundId), false),
+            };
+
+        protected override string DefaultNodeName => "ターゲット検索";
 
         // 探索範囲の日本語表記。インスペクタの表記と揃えてある
         private string ScopeDisplayName
@@ -342,12 +388,33 @@ namespace PPCore
                 _ => "",
             };
 
-        public override IReadOnlyList<PPUnitAINodePort> Ports
-            => new[]
-            {
-                new PPUnitAINodePort("発見", ToSingle(mFoundId), false),
-                new PPUnitAINodePort("なし", ToSingle(mNotFoundId), false),
-            };
+        /* 初期化・接続 */
+
+        // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
+        public override void ConnectChild(int aPortIndex, string aChildId)
+        {
+            if (aPortIndex == PortFound) mFoundId = aChildId;
+            else if (aPortIndex == PortNotFound) mNotFoundId = aChildId;
+        }
+
+        // 指定した接続口の接続を外す
+        public override void DisconnectChild(int aPortIndex, string aChildId)
+        {
+            if (aPortIndex == PortFound && mFoundId == aChildId) mFoundId = "";
+            else if (aPortIndex == PortNotFound && mNotFoundId == aChildId) mNotFoundId = "";
+        }
+
+        /* 操作 */
+
+        // 接続先の子ノード ID を対応表に従って置き換える
+        // aMap : 対応表
+        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
+        {
+            mFoundId = RemapChildId(mFoundId, aMap);
+            mNotFoundId = RemapChildId(mNotFoundId, aMap);
+        }
+
+        /* 評価・判定 */
 
         // 探索範囲のユニットを条件で絞り込み、合致したものを対象候補へ積む
         // 1 体でも積めたら発見側の枝へ、1 体も積めなければ なし 側の枝へ進む
@@ -367,6 +434,8 @@ namespace PPCore
             return next == null ? PPUnitAINodeResult.Failed : next.Evaluate(aContext);
         }
 
+        /* 問い合わせ */
+
         // 指定範囲のユニットを条件で絞り込んで積む
         private int Collect(IReadOnlyList<PPBattleUnit> aCandidates, PPUnitAIEvalContext aContext)
         {
@@ -384,30 +453,12 @@ namespace PPCore
             return count;
         }
 
+        /* 説明文 */
+
         // 持っている条件の説明文を組み立て直す
         public override void RefreshConditionDescriptions() => RefreshDescriptions(mConditions);
 
-        // 指定した接続口へ子ノードを繋ぐ。既に繋がっていた場合は置き換える
-        public override void ConnectChild(int aPortIndex, string aChildId)
-        {
-            if (aPortIndex == PortFound) mFoundId = aChildId;
-            else if (aPortIndex == PortNotFound) mNotFoundId = aChildId;
-        }
-
-        // 接続先の子ノード ID を対応表に従って置き換える
-        // aMap : 対応表
-        public override void RemapChildIds(IReadOnlyDictionary<string, string> aMap)
-        {
-            mFoundId = RemapChildId(mFoundId, aMap);
-            mNotFoundId = RemapChildId(mNotFoundId, aMap);
-        }
-
-        // 指定した接続口の接続を外す
-        public override void DisconnectChild(int aPortIndex, string aChildId)
-        {
-            if (aPortIndex == PortFound && mFoundId == aChildId) mFoundId = "";
-            else if (aPortIndex == PortNotFound && mNotFoundId == aChildId) mNotFoundId = "";
-        }
+        /* ヘルパー */
 
         // 単一の接続先を接続口の形式へ揃える。未接続なら空の並びを返す
         private static IReadOnlyList<string> ToSingle(string aChildId)

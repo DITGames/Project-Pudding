@@ -17,15 +17,20 @@ namespace PPCore
     // バインド中は変更通知を購読し、値が変わるたびに再描画する
     public class PPUnitStatusWidget : MonoBehaviour
     {
+        /* インスペクタ設定 */
+
         // HP バーの塗り部分。fillAmount で残量を表現する
         [Label("HPバー")]
         [SerializeField] private Image mHpFill;
-
         [Label("名前ラベル")]
         [SerializeField] private TMP_Text mNameLabel;
 
+        /* 状態 */
+
         // 表示元。未バインドなら null
         private IPPUnitStatusSource mSource;
+
+        /* 初期化・接続 */
 
         // 表示元を差し替える
         // 前のバインドが残っていても二重購読にならないよう、先に解除してから繋ぎ直す
@@ -43,6 +48,8 @@ namespace PPCore
             if (mSource != null) mSource.Changed -= Refresh;
             mSource = null;
         }
+
+        /* 表示 */
 
         // 表示元の現在値で名前と HP バーを更新する。最大 HP が 0 なら空表示にする
         private void Refresh()

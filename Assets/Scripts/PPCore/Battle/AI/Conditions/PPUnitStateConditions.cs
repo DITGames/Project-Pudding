@@ -18,14 +18,20 @@ namespace PPCore
     [PPTypeMenuName("ユニット状態/HP割合")]
     public sealed class PPUnitHpRatioCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("比較")]
         [SerializeField] private PPCompareOp mOp = PPCompareOp.LessOrEqual;
         [PercentLabel("HP割合")]
         [SerializeField] private float mThreshold = 0.5f;
 
+        /* 評価・判定 */
+
         // HP 割合を閾値と比較する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null && PPConditionMath.Compare(PPPartyAIContext.HpRatio(aUnit), mOp, mThreshold);
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -39,12 +45,16 @@ namespace PPCore
     [PPTypeMenuName("ユニット状態/行動可能")]
     public sealed class PPUnitAliveCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         // 生存だけでなく麻痺などの行動不可も見るか
         [Label("行動制限も見る")]
         [SerializeField] private bool mIsCheckRestriction = true;
         // 反転すると「行動できない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
+
+        /* 評価・判定 */
 
         // ユニットが行動可能かを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -58,6 +68,8 @@ namespace PPCore
             }
             return canAct != mIsInvert;
         }
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -94,12 +106,16 @@ namespace PPCore
     [PPTypeMenuName("ユニット状態/パラメータ比較")]
     public sealed class PPUnitParameterCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("対象パラメータ")]
         [SerializeField] private PPUnitParameterKind mKind = PPUnitParameterKind.Attack;
         [Label("比較")]
         [SerializeField] private PPCompareOp mOp = PPCompareOp.GreaterOrEqual;
         [Label("閾値")]
         [SerializeField] private float mThreshold = 0f;
+
+        /* 評価・判定 */
 
         // パラメータの現在値を閾値と比較する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
@@ -109,6 +125,8 @@ namespace PPCore
             float? value = ResolveValue(aUnit);
             return value.HasValue && PPConditionMath.Compare(value.Value, mOp, mThreshold);
         }
+
+        /* 問い合わせ */
 
         // 種別に対応する現在値を引く
         // 現在 HP だけは修飾子の対象ではなく残量そのものを見るため、ID 経由ではなく直接参照する
@@ -120,6 +138,15 @@ namespace PPCore
             var parameter = aUnit.ResolveParameter(ResolveParameterId(mKind));
             return parameter?.CurrentValue;
         }
+
+        /* 説明文 */
+
+        // 設定内容から説明文を組み立てる
+        [ContextMenu("説明文を生成")]
+        protected override void BuildDescription()
+            => mDescription = $"{GetKindString(mKind)}が{mThreshold}{GetOpString(mOp)}";
+
+        /* ヘルパー */
 
         // 種別に対応するパラメータ ID を返す
         private static string ResolveParameterId(PPUnitParameterKind aKind)
@@ -133,11 +160,6 @@ namespace PPCore
                 PPUnitParameterKind.ActionCount => PPParameterSet.ParameterIdActionCount,
                 _ => "",
             };
-
-        // 設定内容から説明文を組み立てる
-        [ContextMenu("説明文を生成")]
-        protected override void BuildDescription()
-            => mDescription = $"{GetKindString(mKind)}が{mThreshold}{GetOpString(mOp)}";
 
         // パラメータ種別を説明文用の日本語へ変換する
         private static string GetKindString(PPUnitParameterKind aKind)
@@ -160,15 +182,21 @@ namespace PPCore
     [PPTypeMenuName("ユニット状態/属性")]
     public sealed class PPUnitTypeAttributeCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Label("対象属性")]
         [SerializeField] private PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
         // 反転すると「その属性ではない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* 評価・判定 */
+
         // ユニットの属性が指定と一致するかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null && (aUnit.TypeAttribute == mTypeAttribute) != mIsInvert;
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
@@ -177,6 +205,8 @@ namespace PPCore
             string type = GetResourceTypeString(mTypeAttribute);
             mDescription = mIsInvert ? $"属性が{type}ではない" : $"属性が{type}";
         }
+
+        /* ヘルパー */
 
         // 属性を説明文用の日本語へ変換する。表示名は定数から引くためハードコードしない
         private static string GetResourceTypeString(PPTypeAttribute aTypeAttribute)
@@ -198,6 +228,8 @@ namespace PPCore
     [PPTypeMenuName("ユニット状態/状態異常の付与")]
     public sealed class PPUnitStatusEffectCondition : PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         // 判定するエフェクト。未設定なら特定のエフェクトでは絞り込まない
         [Label("エフェクト")]
         [SerializeField] private PPEffectDefinition mEffect;
@@ -208,9 +240,13 @@ namespace PPCore
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
+        /* 評価・判定 */
+
         // 指定の状態異常が付与されているかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
             => aUnit != null && HasMatchingEffect(aUnit) != mIsInvert;
+
+        /* 問い合わせ */
 
         // 条件に合致する状態異常を持っているかを走査する
         // ID とタグはどちらも未指定なら素通しになるため、両方未指定だと付与の有無だけを見る
@@ -226,6 +262,8 @@ namespace PPCore
             }
             return false;
         }
+
+        /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]

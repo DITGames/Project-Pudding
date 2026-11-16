@@ -25,13 +25,19 @@ namespace PPCore
     [CreateAssetMenu(fileName = "AttackSkillDefinition", menuName = "Project-Pudding/Skill/AttackSkillDefinition")]
     public class AttackSkillDefinition : SkillDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("種別")]
         [SerializeField] protected AttackCategory mCategory;
-        public AttackCategory Category => mCategory;
-
         // ダメージ量の基礎値になる
         [Label("スキルパワー")]
         [SerializeField] protected float mPower = 10f;
+
+        /* プロパティ */
+
+        public AttackCategory Category => mCategory;
+
+        /* 生成 */
 
         // 対象全員にダメージを与える効果を組み立てる
         // 対象ごとに、ダメージ算出 → 命中判定 → クリティカル補正 → 適用を行う

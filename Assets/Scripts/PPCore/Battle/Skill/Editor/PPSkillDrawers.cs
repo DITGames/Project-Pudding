@@ -62,6 +62,8 @@ namespace PPCore
     [CustomPropertyDrawer(typeof(PPSkillEffectDefinition), true)]
     public class PPSkillEffectDefinitionDrawer : PropertyDrawer
     {
+        /* 描画 */
+
         public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
         {
             if (string.IsNullOrEmpty(aProperty.managedReferenceFullTypename))
@@ -85,6 +87,8 @@ namespace PPCore
 
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel)
             => PPManagedReferencePickerUtility.GetPropertyHeight(aProperty);
+
+        /* ヘルパー */
 
         // PPSkillEffectDefinition の具象派生型を候補として集める
         // return : 候補として並べる型のリスト

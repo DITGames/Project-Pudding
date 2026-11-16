@@ -19,6 +19,8 @@ namespace PPCore
     // パーティ生成は PPPartyFactory を経由し、味方パーティのデバッグ編集とオートバトル切り替えに対応する
     public class PPBattleRunner : MonoBehaviour, IPPPendingActionSource
     {
+        /* インスペクタ設定 */
+
         // プッシャーのコイン獲得をゲージへ橋渡しするブリッジ
         [Header("コイン")]
         [Label("コインゲージブリッジ")]
@@ -38,6 +40,7 @@ namespace PPCore
         [Header("バトル設定")]
         [Label("ターン更新間隔")]
         [SerializeField] private float mTurnTickInterval = 5f;
+
         // 敵がティックごとに得るゲージ量。敵にはプッシャーが無いため直接補給する
         [Label("敵ゲージ供給")]
         [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
@@ -46,6 +49,7 @@ namespace PPCore
         [Header("パーティ")]
         [Label("味方パーティ定義")]
         [SerializeField] private PPPartyDefinition mAllyPartyDefinition;
+
         // 敵として編成するパーティ定義
         [Label("敵パーティ定義")]
         [SerializeField] private PPPartyDefinition mEnemyPartyDefinition;
@@ -54,38 +58,53 @@ namespace PPCore
         [Header("デバッグ")]
         [Label("オートバトル(初期状態)")]
         [SerializeField] private bool mIsAutoBattle = false;
+
         // trueの場合、プッシャーのコイン獲得の代わりにティックごとのゲージ加算で味方を進行させる
         // 実機のコインプッシャーが無いシミュレーション環境向け
         [Label("味方ゲージをシミュレーション供給")]
         [SerializeField] private bool mIsSimulateAllyResource = false;
+
         // 味方がティックごとに得るゲージ量。mIsSimulateAllyResourceがtrueのときのみ使用
         [Label("味方ゲージ供給(シミュレーション)")]
         [EditCondition(nameof(mIsSimulateAllyResource), true, false)]
         [SerializeField] private PPResourceSimulation mAllyResourceSimulation = new ();
 
+        /* 状態 */
+
         // バトル進行を統括するマネージャ
         private BattleManager mBattleManager = new();
-
         // 1 ティック分の行動を集めて並べ替える収集役
         // プレイヤーの予約はここへ積まれ、ティックの終わりにまとめて実行される
         private readonly PPTickActionCollector mActionCollector = new();
-
         // 敵AIを駆動するドライバ
         private PPEnemyAIDriver mEnemyAIDriver;
         // 味方AIを駆動するドライバ（オートバトル中のみコルーチンを起動する）
         private PPEnemyAIDriver mAllyAIDriver;
-
         // 各陣営の思考ルーチン。バトル進行のイベントを購読しているため、
         // 終了時に購読を外せるようここで持っておく
         private IPPPartyCommandStrategist mEnemyStrategist;
         private IPPPartyCommandStrategist mAllyStrategist;
-
         // 敵AIのループを回しているコルーチン
         private Coroutine mEnemyActionCoroutine;
         // 味方AIのループを回しているコルーチン。手動モード中は null
         private Coroutine mAllyActionCoroutine;
         // ターン経過を回しているコルーチン
         private Coroutine mTickCoroutine;
+
+        /* 生成 */
+
+        // パーティ定義に対応する思考ルーチンを生成する
+        // 判断の中身はユニット側のビヘイビアツリーが決めるため、ここでは生成するだけ
+        private IPPPartyCommandStrategist CreateStrategist(PPPartyDefinition aDefinition)
+            => new PPUnitAIStrategist();
+
+        // パーティ定義に対応する思考ドライバを生成する
+        // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
+        private PPEnemyAIDriver CreateDriver(BattleSide aSide, IPPPartyCommandStrategist aStrategist,
+            PPPartyDefinition aDefinition)
+            => new PPEnemyAIDriver(mBattleManager, aSide, aStrategist, mTurnTickInterval, aDefinition.ThinkCountPerTick);
+
+        /* Unity イベント */
 
         // バトルを組み立てて開始する。ユニット生成 → コンテキスト構築 → AI の注入 → イベント購読 → バトル開始 →
         // View・コインブリッジ・入力の接続 → AI とティックのコルーチン起動、の順に進む
@@ -178,6 +197,8 @@ namespace PPCore
         // バトルが決着しないまま破棄された場合にも、思考ルーチンの購読を外す
         void OnDestroy() => UnbindStrategists();
 
+        /* 初期化・接続 */
+
         // 両陣営の思考ルーチンをバトル進行から切り離す
         // 二重に呼ばれても問題ないよう、Unbind 側で購読済みかを見ている
         private void UnbindStrategists()
@@ -186,61 +207,7 @@ namespace PPCore
             mAllyStrategist?.Unbind();
         }
 
-        // 指定した陣営の、まだ実行されていない行動を列挙する
-        // 思考時点ではコマンド列が空のため、プレイヤーの予約と AI の計画を直接読む
-        public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
-        {
-            // プレイヤーが予約した行動。オートバトル中は空になる
-            foreach (var reservation in mActionCollector.Reservations)
-            {
-                if (reservation.Unit != null && reservation.Unit.Side == aSide) yield return reservation;
-            }
-
-            foreach (var action in EnumeratePlan(mEnemyAIDriver, aSide)) yield return action;
-            foreach (var action in EnumeratePlan(mAllyAIDriver, aSide)) yield return action;
-        }
-
-        // ドライバが立てた計画を実行待ちの行動として列挙する
-        private static IEnumerable<PPPendingAction> EnumeratePlan(PPEnemyAIDriver aDriver, BattleSide aSide)
-        {
-            if (aDriver == null || aDriver.Side != aSide || aDriver.LatestPlan == null) yield break;
-
-            foreach (var assignment in aDriver.LatestPlan.Assignments)
-            {
-                yield return PPPendingAction.FromCommand(assignment.Unit, assignment.Command);
-            }
-        }
-
-        // パーティ定義に対応する思考ルーチンを生成する
-        // 判断の中身はユニット側のビヘイビアツリーが決めるため、ここでは生成するだけ
-        private IPPPartyCommandStrategist CreateStrategist(PPPartyDefinition aDefinition)
-            => new PPUnitAIStrategist();
-
-        // パーティ定義に対応する思考ドライバを生成する
-        // 思考間隔はティック間隔を思考回数で割って決まるため、ドライバへはその 2 つをそのまま渡す
-        private PPEnemyAIDriver CreateDriver(BattleSide aSide, IPPPartyCommandStrategist aStrategist,
-            PPPartyDefinition aDefinition)
-            => new PPEnemyAIDriver(mBattleManager, aSide, aStrategist, mTurnTickInterval, aDefinition.ThinkCountPerTick);
-
-        // 今コマンド入力を始める意味があるかを判定する
-        // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
-        private bool CanSelectAnyCommand()
-        {
-            if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
-                return false;
-
-            var allyParty = mBattleManager.Context.GetParty(BattleSide.Ally);
-            foreach (var unit in allyParty.ActiveMembers)
-            {
-                if (unit is PPBattleUnit ppUnit)
-                {
-                    // 何らかの発動可能なスキルがあるか?
-                    if (ppUnit.CanValidateSkill(mBattleManager.Context))
-                        return true;
-                }
-            }
-            return false;
-        }
+        /* 操作 */
 
         // 一定間隔でターンを進めるコルーチン。ゲージ補給 → 行動の収集と実行 → ターン経過の順に進める
         // プッシャーを持たない敵には、ティックごとにランダム量のゲージを直接補給する
@@ -319,13 +286,40 @@ namespace PPCore
             }
         }
 
-        // プレイヤーが確定したコマンドを、このティックの行動として予約する
-        // 実行はティックの終わりにまとめて行うため、ここでは積むだけに留める
-        private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
-        {
-            if (aUnit is not PPBattleUnit unit) return;
+        /* 問い合わせ */
 
-            mActionCollector.TryReserve(unit, aCommand);
+        // 指定した陣営の、まだ実行されていない行動を列挙する
+        // 思考時点ではコマンド列が空のため、プレイヤーの予約と AI の計画を直接読む
+        public IEnumerable<PPPendingAction> EnumeratePending(BattleSide aSide)
+        {
+            // プレイヤーが予約した行動。オートバトル中は空になる
+            foreach (var reservation in mActionCollector.Reservations)
+            {
+                if (reservation.Unit != null && reservation.Unit.Side == aSide) yield return reservation;
+            }
+
+            foreach (var action in EnumeratePlan(mEnemyAIDriver, aSide)) yield return action;
+            foreach (var action in EnumeratePlan(mAllyAIDriver, aSide)) yield return action;
+        }
+
+        // 今コマンド入力を始める意味があるかを判定する
+        // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
+        private bool CanSelectAnyCommand()
+        {
+            if (mBattleManager.StateMachine.Current == BattleState.BattleEnd)
+                return false;
+
+            var allyParty = mBattleManager.Context.GetParty(BattleSide.Ally);
+            foreach (var unit in allyParty.ActiveMembers)
+            {
+                if (unit is PPBattleUnit ppUnit)
+                {
+                    // 何らかの発動可能なスキルがあるか?
+                    if (ppUnit.CanValidateSkill(mBattleManager.Context))
+                        return true;
+                }
+            }
+            return false;
         }
 
         // コマンド入力の開始操作が行われたかを判定する
@@ -353,6 +347,30 @@ namespace PPCore
             return
                 (Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame)
                 || (Gamepad.current != null && Gamepad.current.rightShoulder.wasPressedThisFrame);
+        }
+
+        /* イベントハンドラ */
+
+        // プレイヤーが確定したコマンドを、このティックの行動として予約する
+        // 実行はティックの終わりにまとめて行うため、ここでは積むだけに留める
+        private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
+        {
+            if (aUnit is not PPBattleUnit unit) return;
+
+            mActionCollector.TryReserve(unit, aCommand);
+        }
+
+        /* ヘルパー */
+
+        // ドライバが立てた計画を実行待ちの行動として列挙する
+        private static IEnumerable<PPPendingAction> EnumeratePlan(PPEnemyAIDriver aDriver, BattleSide aSide)
+        {
+            if (aDriver == null || aDriver.Side != aSide || aDriver.LatestPlan == null) yield break;
+
+            foreach (var assignment in aDriver.LatestPlan.Assignments)
+            {
+                yield return PPPendingAction.FromCommand(assignment.Unit, assignment.Command);
+            }
         }
     }
 

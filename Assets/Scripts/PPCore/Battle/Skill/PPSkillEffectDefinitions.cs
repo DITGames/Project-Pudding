@@ -28,17 +28,28 @@ namespace PPCore
     [Serializable]
     public abstract class PPSkillEffectDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("対象")]
         [SerializeField] private PPEffectApplyTarget mApplyTarget = PPEffectApplyTarget.Target;
+
+        /* プロパティ */
+
         public PPEffectApplyTarget ApplyTarget => mApplyTarget;
+
+        /* 操作 */
 
         // この効果を対象 1 体に適用する
         public abstract void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext);
+
+        /* 問い合わせ */
 
         // この効果を実行せずに効果量を見積もる。AI の効用計算から呼ばれる
         // 状態を変えず、乱数も引かないこと。既定は「効果なし」
         public virtual PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
             => PPEffectEstimate.None;
+
+        /* 説明文 */
 
         // リストの要素ラベルに表示する、この効果の内容を要約した文字列を組み立てる
         // ApplyTarget は含めず、エフェクト固有の設定値のみを表す
@@ -51,12 +62,16 @@ namespace PPCore
     [PPTypeMenuName("ダメージ")]
     public class PPAttackSkillEffectDefinition : PPSkillEffectDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("属性")]
         [SerializeField] private PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
         [PercentLabel("威力", 0, 10)]
         [SerializeField] private float mPower = 1.2f;
         [Label("種別")]
         [SerializeField] private PPSkillCategory mCategory = PPSkillCategory.Physical;
+
+        /* 操作 */
 
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
@@ -67,6 +82,8 @@ namespace PPCore
             var damageInfo = PPDamageUtility.CreateDamageInfo(aSource, aTarget, dmg, mCategory, attribute, reason, aContext);
             aTarget.ApplyDamage(damageInfo, aContext);
         }
+
+        /* 問い合わせ */
 
         // 基礎ダメージ量をそのまま見積もりとして返す
         // 命中・クリティカル・属性相性は乱数を含むため見積もりに含めない
@@ -79,6 +96,8 @@ namespace PPCore
                 PPDamageUtility.ResolveAttackSkillDamage(aSource, aTarget, mPower, mCategory));
         }
 
+        /* 説明文 */
+
         public override string BuildString()
             => $"ダメージ：{mAttribute} / {mCategory} / 威力{mPower:0%}";
     }
@@ -89,18 +108,26 @@ namespace PPCore
     [PPTypeMenuName("回復")]
     public class PPHealSkillEffectDefinition : PPSkillEffectDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("回復量")]
         [SerializeField] private float mPower = 10f;
+
+        /* 操作 */
 
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
             aTarget.ApplyHeal(mPower);
         }
 
+        /* 問い合わせ */
+
         // 回復量をそのまま見積もりとして返す
         // 対象の HP がどれだけ欠けているかは見ず、純粋な回復量の見積もりを返す
         public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
             => PPEffectEstimate.FromHeal(mPower);
+
+        /* 説明文 */
 
         public override string BuildString()
             => $"回復：{mPower}";
@@ -112,10 +139,14 @@ namespace PPCore
     [PPTypeMenuName("ゲージ回復")]
     public class PPResourceGainSkillEffectDefinition : PPSkillEffectDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("対象ゲージ")]
         [SerializeField] private PPGaugeKind mKind = PPGaugeKind.Skill;
         [Label("回復量")]
         [SerializeField] private float mAmount = 0f;
+
+        /* 操作 */
 
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
@@ -123,6 +154,8 @@ namespace PPCore
 
             ppTarget.ExtraParameters.Gauge(mKind).Recover(mAmount);
         }
+
+        /* 説明文 */
 
         public override string BuildString()
             => $"ゲージ回復：{PPGaugeUtility.ToDisplayString(mKind)} {mAmount}";
@@ -134,6 +167,8 @@ namespace PPCore
     [PPTypeMenuName("StatusEffect付与")]
     public class PPStatusApplySkillEffectDefinition : PPSkillEffectDefinition
     {
+        /* インスペクタ設定 */
+
         [Label("エフェクト")]
         [SerializeField]
         private PPEffectDefinition mEffect;
@@ -143,8 +178,12 @@ namespace PPCore
         [SerializeField]
         private float mApplyChance = 1f;
 
+        /* プロパティ */
+
         // 表示と判定で扱いを揃えるため、常に 0～1 へ丸めた値を使う
         private float ApplyChance => Mathf.Clamp01(mApplyChance);
+
+        /* 操作 */
 
         public override void Apply(BattleUnit aSource, BattleUnit aTarget, PPSkillDefinition aSourceSkill, BattleContext aContext)
         {
@@ -154,6 +193,8 @@ namespace PPCore
             aTarget.AddStatusEffect(
                 mEffect.CreateRuntimeStatusEffect(aSource, aTarget, aContext), aContext);
         }
+
+        /* 評価・判定 */
 
         // 付与確率の抽選を行う
         // 乱数は再現性を保つため必ず Rules.RandomProvider を経由する
@@ -170,10 +211,14 @@ namespace PPCore
             return false;
         }
 
+        /* 問い合わせ */
+
         // 付与するエフェクトの識別子を見積もりとして返す
         // AI はこれを対象の ActiveStatusEffects と突き合わせ、既に付いている場合の重ね掛けを避ける
         public override PPEffectEstimate Estimate(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
             => mEffect != null ? PPEffectEstimate.FromStatus(mEffect.EffectId) : PPEffectEstimate.None;
+
+        /* 説明文 */
 
         public override string BuildString()
         {
@@ -217,12 +262,21 @@ namespace PPCore
     // スキル効果を実行せずに見積もった結果。AI が行動の価値を判断するために使う
     public readonly struct PPEffectEstimate
     {
+        /* 状態 */
+
         // 与ダメージの見込み量。命中率・クリティカル・属性相性は含めない
         public float Damage { get; }
         // 回復量の見込み
         public float Heal { get; }
         // 付与する StatusEffect の識別子。重複付与の判定に使う。付与しないなら null
         public string StatusEffectId { get; }
+
+        /* プロパティ */
+
+        // 効果なしを表す見積もり。推定に対応していない効果はこれを返す
+        public static PPEffectEstimate None => default;
+
+        /* 生成 */
 
         private PPEffectEstimate(float aDamage, float aHeal, string aStatusEffectId)
         {
@@ -231,8 +285,7 @@ namespace PPCore
             StatusEffectId = aStatusEffectId;
         }
 
-        // 効果なしを表す見積もり。推定に対応していない効果はこれを返す
-        public static PPEffectEstimate None => default;
+        /* 操作 */
 
         // aDamage : 与ダメージの見込み量
         public static PPEffectEstimate FromDamage(float aDamage) => new(aDamage, 0f, null);

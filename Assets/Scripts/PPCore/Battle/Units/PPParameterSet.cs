@@ -15,6 +15,8 @@ namespace PPCore
     // プロパティとして直接触れるほか、エフェクトが ID を指定して修飾できるよう辞書にも登録している
     public class ParameterSet
     {
+        /* 定数 */
+
         // 最大 HP のパラメータ ID
         public static readonly string ParamIdMaxHp = "MaxHP";
         // 攻撃力のパラメータ ID
@@ -24,6 +26,8 @@ namespace PPCore
         // 速度のパラメータ ID。行動順の決定に使う
         public static readonly string ParamIdSpeed = "Speed";
 
+        /* 状態 */
+
         // HP。消費・回復されるため ResourceParameter
         public ResourceParameter Hp { get; }
         // 攻撃力
@@ -32,9 +36,15 @@ namespace PPCore
         public Parameter Defense { get; }
         // 速度
         public Parameter Speed { get; }
-
         // ID から引くための登録テーブル。値はプロパティ側と同じ実体を指す
         protected readonly Dictionary<string, Parameter> mParameters = new();
+
+        /* プロパティ */
+
+        // 登録済みパラメータの読み取り専用ビュー
+        public IReadOnlyDictionary<string, Parameter> Parameters => mParameters;
+
+        /* 生成 */
 
         public ParameterSet(float aMaxHp, float aAttack, float aDefense, float aSpeed)
         {
@@ -48,6 +58,8 @@ namespace PPCore
             RegisterModifiable(ParamIdMaxHp, Hp.Max);
         }
 
+        /* 初期化・接続 */
+
         // パラメータを ID 付きで登録し、そのまま返すヘルパー
         // 登録と代入を 1 行で書けるようにするためのもの
         protected Parameter RegisterModifiable(string aKey, Parameter aParameter)
@@ -56,14 +68,7 @@ namespace PPCore
             return aParameter;
         }
 
-        // ID からパラメータを取得する
-        public Parameter Get(string aKey)
-        {
-            return mParameters.TryGetValue(aKey, out var aParameter) ? aParameter : null;
-        }
-
-        // 登録済みパラメータの読み取り専用ビュー
-        public IReadOnlyDictionary<string, Parameter> Parameters => mParameters;
+        /* 操作 */
 
         // すべてのパラメータから、指定した付与元の修飾子を除去する
         // エフェクトが複数パラメータへバフを撒いている場合、解除時にこれ 1 回で剥がせる
@@ -73,6 +78,14 @@ namespace PPCore
             {
                 param.RemoveModifiersFromSource(aSource);
             }
+        }
+
+        /* 問い合わせ */
+
+        // ID からパラメータを取得する
+        public Parameter Get(string aKey)
+        {
+            return mParameters.TryGetValue(aKey, out var aParameter) ? aParameter : null;
         }
     }
 
@@ -90,6 +103,8 @@ namespace PPCore
     // 行動リソース（スキルゲージ・コインゲージ）はユニットごとに専有し、支払いは行動するユニット自身のゲージから行う
     public class PPParameterSet
     {
+        /* 定数 */
+
         // 通常攻撃コストのパラメータ ID
         public static readonly string ParameterIdAttackCost = "AttackCost";
         // 行動回数上限のパラメータ ID
@@ -100,26 +115,30 @@ namespace PPCore
         // バフ・デバフの対象（mParameters）には登録しない（上限をバフで増減させない仕様のため）
         public static readonly string ParameterIdSkillGaugeMax = "SkillGaugeMax";
 
+        /* 状態 */
+
         // 通常攻撃 1 回あたりの消費コインゲージ量。バフで増減しうる
         public Parameter AttackCost { get; }
-
         // 1 ティックあたりに行動できる回数。Parameter で持つため、パラメータ変動エフェクトで増減させられる
         // この値は PPBattleUnit.UnitTick が ActionBudget.Max へ同期する
         public Parameter ActionCount { get; }
-
         // きようさ。会心率(%) = 現在値 × 0.25 で求める（PPCriticalResolver 参照）
         // Parameter で持つことで、既存のパラメータ変動エフェクトから ID 指定でバフ・デバフを掛けられる
         public Parameter Dexterity { get; }
-
         // スキル発動に使うゲージ。HP と同じ ResourceParameter で残量と上限を表す
         public ResourceParameter SkillGauge { get; }
-
         // 通常攻撃に使うゲージ。プッシャー由来のコインが PPCoinResourceBridge 経由でここへ加算される
         public ResourceParameter CoinGauge { get; }
-
         // ID から引くための登録テーブル。値はプロパティ側と同じ実体を指す
         // ResourceParameter は Parameter を継承しないため、ゲージ 2 種はここに含まれない
         protected readonly Dictionary<string, Parameter> mParameters = new();
+
+        /* プロパティ */
+
+        // 登録済みパラメータの読み取り専用ビュー
+        public IReadOnlyDictionary<string, Parameter> Parameters => mParameters;
+
+        /* 生成 */
 
         public PPParameterSet(float aAttackCost, int aActionCount, float aSkillGaugeMax, float aCoinGaugeMax, float aDexterity)
         {
@@ -131,10 +150,6 @@ namespace PPCore
             CoinGauge = CreateEmptyGauge(aCoinGaugeMax);
         }
 
-        // 種別に対応するゲージを取得する
-        public ResourceParameter Gauge(PPGaugeKind aKind)
-            => aKind == PPGaugeKind.Skill ? SkillGauge : CoinGauge;
-
         // 残量 0 のゲージを生成する
         // ResourceParameter は上限で満タン初期化されるため、生成直後に上限分を削って 0 から始める
         protected static ResourceParameter CreateEmptyGauge(float aMax)
@@ -145,6 +160,8 @@ namespace PPCore
             return gauge;
         }
 
+        /* 初期化・接続 */
+
         // パラメータを ID 付きで登録し、そのまま返すヘルパー
         protected Parameter RegisterModifiable(string aKey, Parameter aParameter)
         {
@@ -152,14 +169,11 @@ namespace PPCore
             return aParameter;
         }
 
-        // ID からパラメータを取得する
-        public Parameter Get(string aKey)
-        {
-            return mParameters.TryGetValue(aKey, out Parameter aParameter) ? aParameter : null;
-        }
+        /* 操作 */
 
-        // 登録済みパラメータの読み取り専用ビュー
-        public IReadOnlyDictionary<string, Parameter> Parameters => mParameters;
+        // 種別に対応するゲージを取得する
+        public ResourceParameter Gauge(PPGaugeKind aKind)
+            => aKind == PPGaugeKind.Skill ? SkillGauge : CoinGauge;
 
         // すべての追加パラメータから、指定した付与元の修飾子を除去する
         // aSource : 付与元
@@ -169,6 +183,14 @@ namespace PPCore
             {
                 param.RemoveModifiersFromSource(aSource);
             }
+        }
+
+        /* 問い合わせ */
+
+        // ID からパラメータを取得する
+        public Parameter Get(string aKey)
+        {
+            return mParameters.TryGetValue(aKey, out Parameter aParameter) ? aParameter : null;
         }
     }
 }

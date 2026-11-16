@@ -33,6 +33,8 @@ namespace PPCore
     // ターゲット解決と命中判定の入口も兼ねる
     public class BattleContext
     {
+        /* 状態 */
+
         // プレイヤー側パーティ
         public BattleParty AllyParty { get; set; }
         // 敵側パーティ
@@ -43,23 +45,26 @@ namespace PPCore
         public BattleEnvironment Environment { get; set; } = new();
         // 命中・クリティカル・乱数・詠唱可否・ターゲットフィルタなどの差し替え可能なルール一式
         public BattleRules Rules { get; set; } = new BattleRules();
-
         // 逃走要求フラグ。DefaultBattleResultChecker がこれを見て逃走終了と判定する
         public bool EscapeRequested { get; set; }
-
         // 経過ターン数。BattleManager.AdvanceTick で加算される
         public int TurnCount { get; set; }
-
         // 実行中のコマンド。BattleManager がコマンドの効果を実行している間だけ設定し、それ以外は null
         // リアクション情報の引き継ぎや、発生元コマンドを辿る用途に使う
         public BattleCommandBase ExecutingCommand { get; protected internal set; }
 
+        /* イベント */
+
         // スキル発動に失敗したとき(発動ユニット, スキル, 失敗理由)
         public event Action<BattleUnit, BattleSkill, CastFailReason> OnCastFailed;
+
+        /* 操作 */
 
         // スキル発動失敗を購読側へ通知する。コスト不足やクールダウン中の検出元から呼ばれる
         protected internal virtual void NotifyCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)
             => OnCastFailed?.Invoke(aUnit, aSkill, aReason);
+
+        /* 問い合わせ */
 
         // 指定した陣営のパーティを取得する
         public BattleParty GetParty(BattleSide aSide) =>
@@ -114,6 +119,9 @@ namespace PPCore
     // 現状は種別のみを持つが、リザルト画面向けの情報を足す場合はここを拡張する
     public class BattleResult
     {
+        // 「継続中」を表す共有インスタンス。毎回の判定で新規生成しないためのもの
+        public static readonly BattleResult InProgress = new(BattleResultType.InProgress);
+
         // 決着の種類
         public BattleResultType Type { get; }
 
@@ -122,9 +130,6 @@ namespace PPCore
         {
             Type = type;
         }
-
-        // 「継続中」を表す共有インスタンス。毎回の判定で新規生成しないためのもの
-        public static readonly BattleResult InProgress = new(BattleResultType.InProgress);
     }
 
     // 勝敗を判定するチェッカー。BattleRules.ResultChecker に差し込む

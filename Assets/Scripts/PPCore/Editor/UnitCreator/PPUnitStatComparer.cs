@@ -17,11 +17,15 @@ namespace PPCore
     // 1レベル分の比較結果。配列は StatNames と同じ並び（0=HP〜4=きようさ）
     public sealed class PPUnitStatComparison
     {
+        /* 状態 */
+
         public int Level { get; }
         public float[] Draft { get; }
         public float[] Target { get; }
         // 下書き − 比較対象
         public float[] Diff { get; }
+
+        /* 生成 */
 
         public PPUnitStatComparison(int aLevel, float[] aDraft, float[] aTarget)
         {
@@ -35,10 +39,14 @@ namespace PPCore
     // ランキングの1行。下書きの行は Unit が保存前のインスタンスになる
     public sealed class PPUnitRankingEntry
     {
+        /* 状態 */
+
         public int Rank { get; }
         public PPUnitDefinition Unit { get; }
         public float Value { get; }
         public bool IsDraft { get; }
+
+        /* 生成 */
 
         public PPUnitRankingEntry(int aRank, PPUnitDefinition aUnit, float aValue, bool aIsDraft)
         {
@@ -51,30 +59,22 @@ namespace PPCore
 
     public static class PPUnitStatComparer
     {
-        public static int StatCount => PPUnitCreationDraft.StatNames.Length;
+        /* 定数 */
+
         // MCPで能力を指定するキー。StatNames と同じ並び
         public static readonly string[] StatKeys = { "hp", "strength", "guard", "agility", "dexterity" };
 
-        // 5能力の育成値。計算はランタイムと同じ評価式に任せる
-        public static float[] Evaluate(PPUnitDefinition aUnit, int aLevel)
-        {
-            var stats = aUnit.EvaluateStats(aLevel);
-            return new[] { stats.MaxHP, stats.Attack, stats.Defense, stats.Speed, aUnit.EvaluateDexterity(aLevel) };
-        }
+        /* プロパティ */
+
+        public static int StatCount => PPUnitCreationDraft.StatNames.Length;
+
+        /* 操作 */
 
         // 編集ビューの系列（初期・指定・最大）のレベルと表示名。MCP の levels 省略時の既定も同じ3点
         public static int[] SeriesLevels(PPUnitCreationDraft aDraft) => new[] { 1, aDraft.PreviewLevel, aDraft.MaxLevel };
 
         public static string[] LevelLabels(PPUnitCreationDraft aDraft) =>
             new[] { "初期 (Lv1)", "指定 (Lv" + aDraft.PreviewLevel + ")", "最大 (Lv" + aDraft.MaxLevel + ")" };
-
-        // 比較対象も下書きと同じレベルで評価する
-        public static PPUnitStatComparison Compare(PPUnitCreationDraft aDraft, PPUnitDefinition aTarget, int aLevel)
-            => new(aLevel, Evaluate(aDraft.Unit, aLevel), Evaluate(aTarget, aLevel));
-
-        // Assets配下の全ユニット定義。サブアセットの定義も含める
-        public static List<PPUnitDefinition> FindUnits() => AssetDatabase.FindAssets("t:" + nameof(PPUnitDefinition), new[] { "Assets" })
-            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<PPUnitDefinition>().ToList();
 
         // 値の降順に並べ、同値は同順位（1,2,2,4）にする。生成済み下書きの出力アセットと編集モードの元ユニットは、下書きの行と重複するため除く
         public static List<PPUnitRankingEntry> Rank(PPUnitCreationDraft aDraft, IEnumerable<PPUnitDefinition> aUnits, int aStat, int aLevel)
@@ -93,11 +93,34 @@ namespace PPCore
             }
             return result;
         }
+
+        /* 評価・判定 */
+
+        // 5能力の育成値。計算はランタイムと同じ評価式に任せる
+        public static float[] Evaluate(PPUnitDefinition aUnit, int aLevel)
+        {
+            var stats = aUnit.EvaluateStats(aLevel);
+            return new[] { stats.MaxHP, stats.Attack, stats.Defense, stats.Speed, aUnit.EvaluateDexterity(aLevel) };
+        }
+
+        // 比較対象も下書きと同じレベルで評価する
+        public static PPUnitStatComparison Compare(PPUnitCreationDraft aDraft, PPUnitDefinition aTarget, int aLevel)
+            => new(aLevel, Evaluate(aDraft.Unit, aLevel), Evaluate(aTarget, aLevel));
+
+        /* 問い合わせ */
+
+        // Assets配下の全ユニット定義。サブアセットの定義も含める
+        public static List<PPUnitDefinition> FindUnits() => AssetDatabase.FindAssets("t:" + nameof(PPUnitDefinition), new[] { "Assets" })
+            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<PPUnitDefinition>().ToList();
     }
 
     public static class PPUnitGrowthTemplate
     {
+        /* 定数 */
+
         public static readonly string[] Names = { "線形", "早熟", "晩成", "S字" };
+
+        /* 生成 */
 
         // 正規化したテンプレートを倍率曲線へ変換する
         public static AnimationCurve Create(int aKind, int aLevel, float aRatio)
@@ -114,6 +137,8 @@ namespace PPCore
             }
             return new AnimationCurve(keys);
         }
+
+        /* 操作 */
 
         // 接線とウェイトを含む曲線をアフィン変換する
         public static AnimationCurve Rescale(AnimationCurve aCurve, int aOldLevel, int aNewLevel, float aOldEnd, float aNewEnd)

@@ -16,22 +16,16 @@ namespace PPCore
     // ID の重複はキャッシュ構築時に Debug.LogError で検出する
     public abstract class PPCatalogAsset<T> : ScriptableObject where T : ScriptableObject
     {
+        /* インスペクタ設定 */
+
         [Label("リスト", true)] [SerializeField] private List<T> mItems = new();
+
+        /* 状態 */
+
         // ID から引くための辞書。初回アクセス時に構築される
         private Dictionary<string, T> mCache;
 
-        // アセットから ID を取り出す。派生側で対応するプロパティを返す
-        protected abstract string IdOf(T aItem);
-
-        // ID からアセットを解決する
-        public T Resolve(string aId)
-        {
-            mCache ??= BuildCache();
-            return mCache.GetValueOrDefault(aId);
-        }
-
-        // キャッシュを破棄する。実行中にリストを差し替えた場合、次回の解決で作り直される
-        public void Invalidate() => mCache = null;
+        /* 生成 */
 
         // リストから ID をキーとする辞書を構築する
         // null 要素と ID を持たない要素は読み飛ばし、ID が重複している場合はエラーログを出す
@@ -52,6 +46,23 @@ namespace PPCore
             }
 
             return dict;
+        }
+
+        /* 操作 */
+
+        // キャッシュを破棄する。実行中にリストを差し替えた場合、次回の解決で作り直される
+        public void Invalidate() => mCache = null;
+
+        // アセットから ID を取り出す。派生側で対応するプロパティを返す
+        protected abstract string IdOf(T aItem);
+
+        /* 問い合わせ */
+
+        // ID からアセットを解決する
+        public T Resolve(string aId)
+        {
+            mCache ??= BuildCache();
+            return mCache.GetValueOrDefault(aId);
         }
     }
 }

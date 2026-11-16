@@ -15,12 +15,12 @@ namespace PPCore
     // 記録するのはストラテジストだけで、ノードと条件は読むだけにする。バトルをまたいで持ち越さない
     public sealed class PPUnitAIBlackboard
     {
+        /* 定数 */
+
         // 記録がまだ無いことを表すターン数
         private const int NoTurn = -1;
 
-        // 発生元ごとの累積被ダメージ量。誰を最も脅威とみなすかの判断材料になる
-        // バトル通算の単純加算で、時間による減衰は行わない
-        private readonly Dictionary<PPBattleUnit, float> mThreatByUnit = new();
+        /* 状態 */
 
         // 直近に自分へダメージを与えたユニット
         // 反射ダメージのループを防ぐため発生元を持たないダメージがあり、その場合は更新しない
@@ -33,11 +33,15 @@ namespace PPCore
         public PPBattleUnit LastTarget { get; private set; }
         // 直近に味方が倒されたターン数。一度も倒れていなければ NoTurn
         public int LastAllyDefeatedTurn { get; private set; } = NoTurn;
-
         // 狙いを固定している対象。固定していなければ null
         public PPBattleUnit FocusTarget { get; private set; }
+        // 発生元ごとの累積被ダメージ量。誰を最も脅威とみなすかの判断材料になる
+        // バトル通算の単純加算で、時間による減衰は行わない
+        private readonly Dictionary<PPBattleUnit, float> mThreatByUnit = new();
         // 狙いの固定が切れるターン数。無期限の場合は NoTurn
         private int mFocusExpireTurn = NoTurn;
+
+        /* 操作 */
 
         // 自分がダメージを受けたことを記録する
         public void RecordDamaged(PPBattleUnit aSource, float aAmount, int aTurnCount)
@@ -61,18 +65,6 @@ namespace PPCore
         // 味方が倒されたことを記録する
         // 撃破通知には撃破者の情報が無いため、「誰に倒されたか」は残せない
         public void RecordAllyDefeated(int aTurnCount) => LastAllyDefeatedTurn = aTurnCount;
-
-        // 指定したターン数以内にダメージを受けたか
-        public bool IsDamagedWithin(int aTurnCount, int aWithinTicks)
-            => LastDamagedTurn != NoTurn && aTurnCount - LastDamagedTurn <= aWithinTicks;
-
-        // 指定したターン数以内に味方が倒されたか
-        public bool IsAllyDefeatedWithin(int aTurnCount, int aWithinTicks)
-            => LastAllyDefeatedTurn != NoTurn && aTurnCount - LastAllyDefeatedTurn <= aWithinTicks;
-
-        // そのユニットから受けた累積ダメージ量を引く
-        public float GetThreat(PPBattleUnit aUnit)
-            => aUnit != null && mThreatByUnit.TryGetValue(aUnit, out float total) ? total : 0f;
 
         // 最も多くのダメージを与えてきた相手を引く
         // 倒れた相手は狙う意味が無いため対象から外す
@@ -99,6 +91,27 @@ namespace PPCore
             mFocusExpireTurn = aHoldTicks > 0 ? aTurnCount + aHoldTicks : NoTurn;
         }
 
+        // 狙いの固定を解除する
+        public void ClearFocus()
+        {
+            FocusTarget = null;
+            mFocusExpireTurn = NoTurn;
+        }
+
+        /* 問い合わせ */
+
+        // 指定したターン数以内にダメージを受けたか
+        public bool IsDamagedWithin(int aTurnCount, int aWithinTicks)
+            => LastDamagedTurn != NoTurn && aTurnCount - LastDamagedTurn <= aWithinTicks;
+
+        // 指定したターン数以内に味方が倒されたか
+        public bool IsAllyDefeatedWithin(int aTurnCount, int aWithinTicks)
+            => LastAllyDefeatedTurn != NoTurn && aTurnCount - LastAllyDefeatedTurn <= aWithinTicks;
+
+        // そのユニットから受けた累積ダメージ量を引く
+        public float GetThreat(PPBattleUnit aUnit)
+            => aUnit != null && mThreatByUnit.TryGetValue(aUnit, out float total) ? total : 0f;
+
         // 今も有効な固定対象を引く
         // 対象が倒れた場合と保持ティック数が過ぎた場合に解除し、以後は null を返す
         public PPBattleUnit ResolveFocus(int aTurnCount)
@@ -111,22 +124,19 @@ namespace PPCore
 
             return FocusTarget;
         }
-
-        // 狙いの固定を解除する
-        public void ClearFocus()
-        {
-            FocusTarget = null;
-            mFocusExpireTurn = NoTurn;
-        }
     }
 
     // ユニット 1 体分の AI の記憶。行動が確定したノードとその時点のターン数を記録し、クールダウンや一度きりの判断に使う
     // 書き込むのは PPUnitAIStrategist だけで、ノードは読むだけにする。バトルをまたいで持ち越さない
     public sealed class PPUnitAIMemory
     {
+        /* 状態 */
+
         // ノードごとに、最後に行動が確定したときのターン数
         // クールダウン・一度きり・ラッチはいずれもこの 1 つの記録から判定できる
         private readonly Dictionary<string, int> mFiredTurns = new();
+
+        /* 操作 */
 
         // ノードで行動が確定したことを記録する
         public void MarkFired(string aNodeId, int aTurnCount)
@@ -135,6 +145,11 @@ namespace PPCore
 
             mFiredTurns[aNodeId] = aTurnCount;
         }
+
+        // 記憶を全て捨てる。バトルをまたいで持ち越さないために呼ぶ
+        public void Clear() => mFiredTurns.Clear();
+
+        /* 問い合わせ */
 
         // そのノードで一度でも行動が確定したことがあるか
         public bool HasFired(string aNodeId)
@@ -146,9 +161,6 @@ namespace PPCore
             aOutTurnCount = 0;
             return !string.IsNullOrEmpty(aNodeId) && mFiredTurns.TryGetValue(aNodeId, out aOutTurnCount);
         }
-
-        // 記憶を全て捨てる。バトルをまたいで持ち越さないために呼ぶ
-        public void Clear() => mFiredTurns.Clear();
     }
 
     // ユニットのゲージが数ティック先までにどこまで溜まるかを見積もるヘルパー

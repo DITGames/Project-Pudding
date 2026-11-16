@@ -36,10 +36,19 @@ namespace PPCore
     // スキル発動可否の判定結果。可否と、不可の場合の理由を持つ
     public readonly struct CastValidation
     {
+        /* 定数 */
+
+        // 発動可能を表す共有インスタンス
+        public static readonly CastValidation Ok = new(true);
+
+        /* 状態 */
+
         // 発動できるか
         public bool CanCast { get; }
         // 発動できない場合の理由
         public CastFailReason Reason { get; }
+
+        /* 生成 */
 
         // 判定結果を生成する
         public CastValidation(bool aCanCast, CastFailReason aReason = CastFailReason.None)
@@ -48,8 +57,8 @@ namespace PPCore
             Reason = aReason;
         }
 
-        // 発動可能を表す共有インスタンス
-        public static readonly CastValidation Ok = new(true);
+        /* 操作 */
+
         // 理由付きの発動不可を生成する
         // reason : 発動できない理由
         public static CastValidation Fail(CastFailReason reason) => new(false, reason);

@@ -33,18 +33,20 @@ namespace PPCore
         // 反応するトリガー種別
         ReactionTrigger Trigger { get; }
 
+        // 反応として積むコマンドを構築する
+        BattleCommandBase BuildReaction(BattleUnit aOwner, ReactionContext aReactContext, BattleContext aContext);
+
         // この状況で実際に反応すべきかを判定する
         // トリガー種別の一致は呼び出し側で済んでいるため、ここでは条件（残 HP・確率など）だけを見る
         bool ShouldReact(BattleUnit aOwner, ReactionContext aReactContext, BattleContext aContext);
-
-        // 反応として積むコマンドを構築する
-        BattleCommandBase BuildReaction(BattleUnit aOwner, ReactionContext aReactContext, BattleContext aContext);
     }
 
     // リアクション判定へ渡される、トリガー発生時の状況（何が起きたか・誰が起こしたか・誰に起きたか）
     // 反撃なら Instigator が反撃先になる
     public readonly struct ReactionContext
     {
+        /* 状態 */
+
         // 引き金となった出来事の種別
         public ReactionTrigger Trigger { get; }
         // トリガーを起こしたユニット。ターン系トリガーなど、主体が無い場合は null
@@ -55,9 +57,10 @@ namespace PPCore
         public DamageInfo Damage { get; }
         // トリガーの追加データ。ターン系では BattleContext が入る
         public object Payload { get; }
-
         // BattleManager.DispatchReactions が求めた引き金の深さ。未設定なら null
         private readonly int? mReactionDepth;
+
+        /* プロパティ */
 
         // 引き金になったダメージがリアクションによるものなら true。ダメージ以外のトリガーでは常に false
         // ダメージ以外のトリガーで連鎖を止めたい場合は ReactionDepth を見る
@@ -65,6 +68,8 @@ namespace PPCore
         // 引き金の出来事が起きたときのリアクションの連鎖の深さ（0 = 通常の行動やターン経過の中で起きた）
         // DispatchReactions が積むリアクションの深さはこの値 + 1 になる
         public int ReactionDepth => mReactionDepth ?? Damage?.Reaction?.Depth ?? 0;
+
+        /* 生成 */
 
         public ReactionContext(ReactionTrigger aTrigger, BattleUnit aInstigator, BattleUnit aSubject,
             DamageInfo aDamage = null, object aPayload = null)
@@ -77,10 +82,6 @@ namespace PPCore
             mReactionDepth = null;
         }
 
-        // 引き金の深さを設定した複製を作る。BattleManager.DispatchReactions がリアクションへ渡す前に使う
-        public ReactionContext WithReactionDepth(int aReactionDepth)
-            => new ReactionContext(this, aReactionDepth);
-
         // WithReactionDepth 用の複製コンストラクタ
         private ReactionContext(in ReactionContext aSource, int aReactionDepth)
         {
@@ -91,6 +92,12 @@ namespace PPCore
             Payload = aSource.Payload;
             mReactionDepth = aReactionDepth;
         }
+
+        /* 操作 */
+
+        // 引き金の深さを設定した複製を作る。BattleManager.DispatchReactions がリアクションへ渡す前に使う
+        public ReactionContext WithReactionDepth(int aReactionDepth)
+            => new ReactionContext(this, aReactionDepth);
     }
 
     // リアクションとして発生した行動・ダメージに付く情報。DispatchReactions がコマンドに設定し、ApplyDamage がダメージへ引き継ぐ

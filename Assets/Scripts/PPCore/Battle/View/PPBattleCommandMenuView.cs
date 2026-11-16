@@ -16,6 +16,8 @@ using UnityEngine.UI;
 // Show でリスナーを登録し Hide で全解除するため、必ず対で呼ぶこと
 public class PPBattleCommandMenuView : MonoBehaviour
 {
+    /* インスペクタ設定 */
+
     [Label("攻撃")]
     [SerializeField] private Button mAttackButton;
     // スキルボタン。スキルを持たないユニットでは無効化される
@@ -26,8 +28,12 @@ public class PPBattleCommandMenuView : MonoBehaviour
     [Label("戻る")]
     [SerializeField] private Button mBackButton;
 
+    /* イベント */
+
     // 各ボタンが押されたときに発火する（攻撃 / スキル / 詳細 / 戻る）
     public event Action OnAttack, OnSkill, OnDetail, OnBackRequested;
+
+    /* 初期化・接続 */
 
     // メニューを指定した位置へ移動させる。選択中ユニットの隣に出すために使う
     // aAnchor : 配置先の親となる RectTransform
@@ -37,6 +43,8 @@ public class PPBattleCommandMenuView : MonoBehaviour
         rt.SetParent(aAnchor);
         rt.anchoredPosition = Vector2.zero;
     }
+
+    /* 表示 */
 
     // メニューを表示し、各ボタンのリスナーを登録して攻撃ボタンにフォーカスを当てる
     // aCanSkill : スキルボタンを押せる状態にするか

@@ -19,28 +19,49 @@ namespace PPCore
     // フォーカスの出入りは、リストの自動スクロール用にイベントとして流す
     public class PPBattleSkillButton : MonoBehaviour, ISelectHandler, IDeselectHandler
     {
+        /* インスペクタ設定 */
+
         [Label("ボタン")] [SerializeField] private Button mButton;
         // スキルアイコン。設定が無い場合は非表示にする
         [Label("アイコン")] [SerializeField] private Image mIcon;
         [Label("スキル名")] [SerializeField] private TMP_Text mNameLabel;
         [Label("消費コイン")] [SerializeField] private TMP_Text mCostLabel;
 
+        /* 状態 */
+
         // このボタンが表すスキル
         private BattleSkill mSkill;
         // 表示情報の供給元
         private IPPSkillStatusSource mSource;
-        // 決定時に呼ぶコールバック
-        private Action<BattleSkill> mOnDecided;
+
+        /* プロパティ */
 
         // 初期フォーカスを当てる対象
         public GameObject FocusTarget => mButton.gameObject;
         // このボタンの RectTransform。スクロール位置の算出に使う
         public RectTransform Rect => (RectTransform)transform;
 
+        /* イベント */
+
         // フォーカスが乗ったときの通知(ゲームパッドのリストスクロールに使用)
         public event Action<PPBattleSkillButton> OnSelected;
         // フォーカスが外れたときの通知
         public event Action<PPBattleSkillButton> OnDeselected;
+        // 決定時に呼ぶコールバック
+        private Action<BattleSkill> mOnDecided;
+
+        /* Unity イベント */
+
+        // 破棄時に購読を解除する
+        // 供給元がゲージを購読している場合があるため、そちらの Dispose も通しておく
+        private void OnDestroy()
+        {
+            mButton.onClick.RemoveListener(HandleClick);
+            if(mSource != null) mSource.Changed -= Refresh;
+            (mSource as IDisposable)?.Dispose();
+        }
+
+        /* 初期化・接続 */
 
         // ボタンを初期化する。表示内容を流し込み、押下と変更通知を購読して初回描画を行う
         public void Setup(BattleSkill aSkill, IPPSkillStatusSource aSource, Sprite aIcon,
@@ -62,13 +83,7 @@ namespace PPCore
             Refresh();
         }
 
-        // 押下時にスキルを添えてコールバックを呼ぶ
-        private void HandleClick() => mOnDecided?.Invoke(mSkill);
-
-        // フォーカスを得たことを通知する
-        public void OnSelect(BaseEventData _) => OnSelected?.Invoke(this);
-        // フォーカスを失ったことを通知する
-        public void OnDeselect(BaseEventData _) => OnDeselected?.Invoke(this);
+        /* 表示 */
 
         // コスト表示と押下可否を現在の状態へ更新する
         private void Refresh()
@@ -77,13 +92,15 @@ namespace PPCore
             mButton.interactable = mSource.IsCastable;
         }
 
-        // 破棄時に購読を解除する
-        // 供給元がゲージを購読している場合があるため、そちらの Dispose も通しておく
-        private void OnDestroy()
-        {
-            mButton.onClick.RemoveListener(HandleClick);
-            if(mSource != null) mSource.Changed -= Refresh;
-            (mSource as IDisposable)?.Dispose();
-        }
+        /* イベントハンドラ */
+
+        // フォーカスを得たことを通知する
+        public void OnSelect(BaseEventData _) => OnSelected?.Invoke(this);
+
+        // フォーカスを失ったことを通知する
+        public void OnDeselect(BaseEventData _) => OnDeselected?.Invoke(this);
+
+        // 押下時にスキルを添えてコールバックを呼ぶ
+        private void HandleClick() => mOnDecided?.Invoke(mSkill);
     }
 }

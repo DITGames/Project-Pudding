@@ -17,6 +17,13 @@ namespace PPCore
     // 待機も確定扱いにするため、確定フラグとコマンドの有無は別で持つ
     public readonly struct PPUnitAINodeResult
     {
+        /* 定数 */
+
+        // 行動が決まらなかったことを表す結果。親は次の枝を評価する
+        public static readonly PPUnitAINodeResult Failed = new(false, null, null, null, 0, 0);
+
+        /* 状態 */
+
         // この枝で行動が確定したか。false なら親は次の枝へ進む
         public bool IsDecided { get; }
         // 実行するコマンド。待機が確定した場合は null
@@ -30,6 +37,8 @@ namespace PPCore
         // 確定した対象へ狙いを固定するティック数。0 なら固定しない
         public int FocusTicks { get; }
 
+        /* 生成 */
+
         private PPUnitAINodeResult(bool aIsDecided, BattleCommandBase aCommand, string aActionName,
             PPBattleUnit aTarget, int aCommitTicks, int aFocusTicks)
         {
@@ -41,8 +50,7 @@ namespace PPCore
             FocusTicks = aFocusTicks;
         }
 
-        // 行動が決まらなかったことを表す結果。親は次の枝を評価する
-        public static readonly PPUnitAINodeResult Failed = new(false, null, null, null, 0, 0);
+        /* 操作 */
 
         // 待機で確定したことを表す結果を作る
         // aActionName : 記録用の行動名
@@ -67,46 +75,48 @@ namespace PPCore
     // 評価中に辿った枝の位置（Path）も積み、待機コミットの記録と復元に使う
     public sealed class PPUnitAIEvalContext
     {
+        /* 状態 */
+
         // 思考対象のユニット
         public PPBattleUnit Unit { get; }
         // パーティ状況のスナップショット
         public PPPartyAIContext Snapshot { get; }
         // バトルコンテキスト。乱数・ルール・発動可否の検証に使う
         public BattleContext Battle { get; }
+        // 思考主体の記憶。ノードは読むだけで、書き込みはストラテジストが行う
+        public PPUnitAIMemory Memory { get; set; }
+        // この思考で既に採用された枝のキー。連携ノードが「もう採った子」を飛ばすために読む
+        // 寿命は 1 回の思考分で、仮押さえ台帳と同じくストラテジストが管理する
+        public HashSet<string> AdoptedKeys { get; set; }
+        // 評価中に辿っている枝の位置。優先度リストが子の添字を積んでいく
+        // 行動が確定した時点の中身が、そのままその行動へ至る道順になる
+        public List<int> Path { get; } = new();
+        // 評価中に通過したノードの ID
+        // 道順（Path）からは通過したノード列を再構成できないため、デバッグ表示用に別で持つ
+        public List<string> VisitedNodeIds { get; } = new();
+        // 前回の待機コミットで記録した道順。コミット中でなければ null
+        // 優先度リストはこれを見て「待ちを宣言した枝より下は見ない」を実現する
+        public IReadOnlyList<int> CommitPath { get; set; }
+        // 評価中の判断ツリーの入れ子。根が [0]、サブツリー参照で潜るたびに積まれる
+        // 循環参照の検出も、この並びに同じツリーが既に居るかで判定する
+        private readonly List<PPUnitBehaviourTree> mTreeStack = new();
+
+        /* プロパティ */
+
         // 評価中の判断ツリー。子ノードを ID から引くのに使う
         // サブツリー参照で評価先が切り替わるため、入れ子の最上段を「今のツリー」として扱う
         public PPUnitBehaviourTree Tree => mTreeStack[^1];
-        // 思考主体の記憶。ノードは読むだけで、書き込みはストラテジストが行う
-        public PPUnitAIMemory Memory { get; set; }
         // 思考主体のバトル中の見聞き。こちらもノードは読むだけ
         // 条件クラスはスナップショットしか受け取らないため、実体はそちらへ差し込まれている
         public PPUnitAIBlackboard Blackboard => Snapshot.GetBlackboard(Unit);
         // 実行待ちの行動の供給元。差し込まれていなければ null
         public IPPPendingActionSource PendingSource => Snapshot.PendingSource;
-
-        // この思考で既に採用された枝のキー。連携ノードが「もう採った子」を飛ばすために読む
-        // 寿命は 1 回の思考分で、仮押さえ台帳と同じくストラテジストが管理する
-        public HashSet<string> AdoptedKeys { get; set; }
         // 経過の判定に使う現在のターン数
         public int TurnCount => Battle.TurnCount;
         // 拡張ルール。差し込まれていない場合は null
         public PPBattleRules Rules => Battle.Rules as PPBattleRules;
 
-        // 評価中に辿っている枝の位置。優先度リストが子の添字を積んでいく
-        // 行動が確定した時点の中身が、そのままその行動へ至る道順になる
-        public List<int> Path { get; } = new();
-
-        // 評価中に通過したノードの ID
-        // 道順（Path）からは通過したノード列を再構成できないため、デバッグ表示用に別で持つ
-        public List<string> VisitedNodeIds { get; } = new();
-
-        // 評価中の判断ツリーの入れ子。根が [0]、サブツリー参照で潜るたびに積まれる
-        // 循環参照の検出も、この並びに同じツリーが既に居るかで判定する
-        private readonly List<PPUnitBehaviourTree> mTreeStack = new();
-
-        // 前回の待機コミットで記録した道順。コミット中でなければ null
-        // 優先度リストはこれを見て「待ちを宣言した枝より下は見ない」を実現する
-        public IReadOnlyList<int> CommitPath { get; set; }
+        /* 生成 */
 
         public PPUnitAIEvalContext(PPBattleUnit aUnit, PPPartyAIContext aSnapshot, BattleContext aBattle,
             PPUnitBehaviourTree aTree)
@@ -116,6 +126,8 @@ namespace PPCore
             Battle = aBattle;
             mTreeStack.Add(aTree);
         }
+
+        /* 操作 */
 
         // サブツリー参照で参照先のツリーへ潜る
         // 既に積まれているツリーは循環しているため、潜らずに false を返す
@@ -134,14 +146,6 @@ namespace PPCore
             if (mTreeStack.Count > 1) mTreeStack.RemoveAt(mTreeStack.Count - 1);
         }
 
-        // ID からノードを引く。評価から外されたノードは未接続と同じ扱いにするため null を返す
-        // PPUnitBehaviourTree.FindNode はエディタからも使うため、この判定を入れない
-        public PPUnitAINode ResolveNode(string aNodeId)
-        {
-            var node = Tree != null ? Tree.FindNode(aNodeId) : null;
-            return node is { IsMuted: false } ? node : null;
-        }
-
         // 評価状態を初期化する。コミットを解除して評価をやり直す際に使う
         // やり直しでは 1 回目の通過記録も捨てる。通らなかった経路が残ると経路表示が嘘になるため
         public void ResetPath()
@@ -157,10 +161,6 @@ namespace PPCore
             if (!string.IsNullOrEmpty(aNodeId)) VisitedNodeIds.Add(aNodeId);
         }
 
-        // その枝がこの思考で既に採用済みかを返す
-        public bool IsAdopted(string aKey)
-            => AdoptedKeys != null && !string.IsNullOrEmpty(aKey) && AdoptedKeys.Contains(aKey);
-
         // 通過記録を指定した長さまで切り詰める
         // 不成立で引き返した枝の記録を残さないため、道順を巻き戻すのと同じ位置で呼ぶ
         public void TrimVisited(int aCount)
@@ -170,6 +170,23 @@ namespace PPCore
                 VisitedNodeIds.RemoveRange(aCount, VisitedNodeIds.Count - aCount);
             }
         }
+
+        // コミットした道順が、その深さで何番目の子へ進んでいたかを返す
+        public int CommitChildIndex(int aDepth) => CommitPath[aDepth];
+
+        /* 問い合わせ */
+
+        // ID からノードを引く。評価から外されたノードは未接続と同じ扱いにするため null を返す
+        // PPUnitBehaviourTree.FindNode はエディタからも使うため、この判定を入れない
+        public PPUnitAINode ResolveNode(string aNodeId)
+        {
+            var node = Tree != null ? Tree.FindNode(aNodeId) : null;
+            return node is { IsMuted: false } ? node : null;
+        }
+
+        // その枝がこの思考で既に採用済みかを返す
+        public bool IsAdopted(string aKey)
+            => AdoptedKeys != null && !string.IsNullOrEmpty(aKey) && AdoptedKeys.Contains(aKey);
 
         // 指定の深さが、まだコミットした道順の上にいるかを判定する
         // 道順から外れた枝（＝割り込みや、より優先度の高い枝）では制約を掛けない
@@ -183,9 +200,6 @@ namespace PPCore
             }
             return true;
         }
-
-        // コミットした道順が、その深さで何番目の子へ進んでいたかを返す
-        public int CommitChildIndex(int aDepth) => CommitPath[aDepth];
     }
 
     // ユニット AI の判断ツリーを構成するノードの基底クラス。[SerializeReference] の通常クラスで、親子関係はノード ID の参照で表す
@@ -193,6 +207,8 @@ namespace PPCore
     [Serializable]
     public abstract class PPUnitAINode
     {
+        /* インスペクタ設定 */
+
         [Header("表示")]
         [Label("ノード名")]
         [SerializeField] protected string mNodeName = "";
@@ -220,16 +236,38 @@ namespace PPCore
         [HideInInspector]
         [SerializeField] protected Vector2 mGraphPosition;
 
+        /* プロパティ */
+
         // ノードエディタとインスペクタに出す表示名。未入力なら型ごとの既定名を使う
         public string NodeName => string.IsNullOrEmpty(mNodeName) ? DefaultNodeName : mNodeName;
-
         public bool IsInterrupt => mIsInterrupt;
         public bool IsMuted => mIsMuted;
         public string NodeId => mNodeId;
         public Vector2 GraphPosition => mGraphPosition;
-
+        // グラフ上のノードへ出す設定内容の要約（1〜2 行）
+        // 派生側で上書きする。空文字を返した場合は要約行を出さない
+        public virtual string Summary => "";
+        // 接続している子ノードの ID を、接続口ごとに列挙する
+        // ノードエディタが接続線を引くために使う。葉ノードは空を返す
+        public virtual IReadOnlyList<PPUnitAINodePort> Ports => Array.Empty<PPUnitAINodePort>();
         // 型ごとの既定表示名。派生側で上書きする
         protected virtual string DefaultNodeName => GetType().Name;
+
+        /* 初期化・接続 */
+
+        // 指定の接続口へ子ノードを繋ぐ
+        // ノードエディタからの操作専用。派生側で接続口ごとの保持先へ振り分ける
+        public virtual void ConnectChild(int aPortIndex, string aChildId)
+        {
+        }
+
+        // 指定の子ノードとの接続を外す
+        // ノードエディタからの操作専用
+        public virtual void DisconnectChild(int aPortIndex, string aChildId)
+        {
+        }
+
+        /* 操作 */
 
         // ID が未採番なら採番する。既に持っている場合は何もしない
         // 生成直後とアセット読み込み時にツリー側から呼ばれる
@@ -255,6 +293,12 @@ namespace PPCore
         {
         }
 
+        // 接続している子ノードを、指定された ID の並び順へ揃える
+        // 優先度リストのように並び順が意味を持つノードで、エディタ上の配置順を反映するために使う
+        public virtual void ReorderChildren(int aPortIndex, IReadOnlyList<string> aOrderedChildIds)
+        {
+        }
+
         // 対応表に従って接続先 1 つ分を置き換える
         protected static string RemapChildId(string aChildId, IReadOnlyDictionary<string, string> aMap)
         {
@@ -275,6 +319,8 @@ namespace PPCore
             }
         }
 
+        /* 評価・判定 */
+
         // このノードを評価する
         // 全ノード共通の判定（クールダウン・経路の記録）をここで済ませ、種別ごとの判断は EvaluateCore が担う
         public PPUnitAINodeResult Evaluate(PPUnitAIEvalContext aContext)
@@ -284,6 +330,12 @@ namespace PPCore
             aContext.PushVisited(mNodeId);
             return EvaluateCore(aContext);
         }
+
+        // 種別ごとの評価本体
+        // 派生クラスで実装する。バトルの状態を変えず、判断だけを行うこと
+        protected abstract PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext);
+
+        /* 問い合わせ */
 
         // クールダウン中かを判定する
         // 前回このノードで行動が確定してからの経過を、ターン数の差分で数える
@@ -295,13 +347,7 @@ namespace PPCore
             return aContext.TurnCount - firedTurn < mCooldownTicks;
         }
 
-        // 種別ごとの評価本体
-        // 派生クラスで実装する。バトルの状態を変えず、判断だけを行うこと
-        protected abstract PPUnitAINodeResult EvaluateCore(PPUnitAIEvalContext aContext);
-
-        // グラフ上のノードへ出す設定内容の要約（1〜2 行）
-        // 派生側で上書きする。空文字を返した場合は要約行を出さない
-        public virtual string Summary => "";
+        /* 説明文 */
 
         // このノードが持つ条件の説明文を組み立て直す
         // 条件を持つノードで上書きする。グラフ上のサマリ表示を設定内容へ追従させるために使う
@@ -356,40 +402,22 @@ namespace PPCore
                 condition?.RefreshDescription();
             }
         }
-
-        // 接続している子ノードの ID を、接続口ごとに列挙する
-        // ノードエディタが接続線を引くために使う。葉ノードは空を返す
-        public virtual IReadOnlyList<PPUnitAINodePort> Ports => Array.Empty<PPUnitAINodePort>();
-
-        // 指定の接続口へ子ノードを繋ぐ
-        // ノードエディタからの操作専用。派生側で接続口ごとの保持先へ振り分ける
-        public virtual void ConnectChild(int aPortIndex, string aChildId)
-        {
-        }
-
-        // 指定の子ノードとの接続を外す
-        // ノードエディタからの操作専用
-        public virtual void DisconnectChild(int aPortIndex, string aChildId)
-        {
-        }
-
-        // 接続している子ノードを、指定された ID の並び順へ揃える
-        // 優先度リストのように並び順が意味を持つノードで、エディタ上の配置順を反映するために使う
-        public virtual void ReorderChildren(int aPortIndex, IReadOnlyList<string> aOrderedChildIds)
-        {
-        }
     }
 
     // ノード 1 つが持つ接続口 1 つ分の情報
     // 「この口は何という名前で、今どの子が繋がっているか」をエディタへ伝える
     public readonly struct PPUnitAINodePort
     {
+        /* 状態 */
+
         // 接続口の表示名
         public string Name { get; }
         // 繋がっている子ノードの ID。並び順がそのまま優先度になる
         public IReadOnlyList<string> ChildIds { get; }
         // 複数の子を繋げる口か。false なら 1 つだけ
         public bool IsMultiple { get; }
+
+        /* 生成 */
 
         public PPUnitAINodePort(string aName, IReadOnlyList<string> aChildIds, bool aIsMultiple)
         {

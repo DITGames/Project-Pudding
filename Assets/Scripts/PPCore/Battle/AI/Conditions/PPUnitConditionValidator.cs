@@ -18,49 +18,28 @@ namespace PPCore
     [Serializable]
     public abstract class PPUnitConditionValidator
     {
+        /* インスペクタ設定 */
+
         [Header("表示")]
         // 説明文を設定内容から自動生成するか。外すと書いた文面がそのまま残る
         // 枝を置いた意図など、自動生成では表せない説明を残したい場合に外す
         [Label("説明を自動生成する")]
         [SerializeField] protected bool mIsAutoDescription = true;
+
         [Label("説明")]
         [TextArea]
         [SerializeField] protected string mDescription;
 
+        /* プロパティ */
+
         // 条件の説明文
         public string Description => mDescription;
+
+        /* 評価・判定 */
 
         // 指定ユニットが条件を満たすか判定する
         // 派生クラスで実装する。状態を変えず判定のみを行うこと
         public abstract bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot);
-
-        // 比較演算子を説明文用の日本語へ変換する
-        protected virtual string GetOpString(PPCompareOp aOp)
-            => aOp switch
-            {
-                PPCompareOp.Equal => "等しい",
-                PPCompareOp.NotEqual => "等しくない",
-                PPCompareOp.GreaterOrEqual => "以上",
-                PPCompareOp.LessOrEqual => "以下",
-                PPCompareOp.GreaterThan => "より多い",
-                PPCompareOp.LessThan => "未満",
-                _ => ""
-            };
-
-        // 設定内容から説明文を組み立て直す。ツリー編集のたびに呼び、サマリ表示と設定を一致させる
-        // 自動生成を外している場合は何もしない
-        public void RefreshDescription()
-        {
-            if (!mIsAutoDescription) return;
-
-            BuildDescription();
-        }
-
-        // 設定内容から mDescription を組み立てる
-        // 派生クラスでオーバーライドして、インスペクタ上で条件の意味が読めるようにする
-        protected virtual void BuildDescription()
-        {
-        }
 
         // 条件リストを AND で評価する
         // 空リストは「条件なし」とみなして true を返す。null 要素は読み飛ばす
@@ -77,6 +56,8 @@ namespace PPCore
             return true;
         }
 
+        /* 問い合わせ */
+
         // 条件リストが 1 件でも中身を持っているか
         // 「達成済み判定条件が空なら常に未達成」の判定に使う
         public static bool HasAny(IReadOnlyList<PPUnitConditionValidator> aConditions)
@@ -88,6 +69,36 @@ namespace PPCore
                 if (condition != null) return true;
             }
             return false;
+        }
+
+        /* 説明文 */
+
+        // 設定内容から説明文を組み立て直す。ツリー編集のたびに呼び、サマリ表示と設定を一致させる
+        // 自動生成を外している場合は何もしない
+        public void RefreshDescription()
+        {
+            if (!mIsAutoDescription) return;
+
+            BuildDescription();
+        }
+
+        // 比較演算子を説明文用の日本語へ変換する
+        protected virtual string GetOpString(PPCompareOp aOp)
+            => aOp switch
+            {
+                PPCompareOp.Equal => "等しい",
+                PPCompareOp.NotEqual => "等しくない",
+                PPCompareOp.GreaterOrEqual => "以上",
+                PPCompareOp.LessOrEqual => "以下",
+                PPCompareOp.GreaterThan => "より多い",
+                PPCompareOp.LessThan => "未満",
+                _ => ""
+            };
+
+        // 設定内容から mDescription を組み立てる
+        // 派生クラスでオーバーライドして、インスペクタ上で条件の意味が読めるようにする
+        protected virtual void BuildDescription()
+        {
         }
     }
 }

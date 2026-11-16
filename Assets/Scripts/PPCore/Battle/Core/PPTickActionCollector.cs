@@ -17,19 +17,27 @@ namespace PPCore
     // 予約の可否はユニットごとの仮押さえ台帳で判定する
     public sealed class PPTickActionCollector
     {
+        /* 状態 */
+
         // プレイヤーが予約した行動
         private readonly List<PPPendingAction> mReservations = new();
         // 予約したぶんのゲージと行動回数を仮押さえする台帳
         private readonly PPUnitActionLedger mLedger = new();
+
+        /* プロパティ */
 
         // 予約の判定に使う台帳。UI が発動可否の表示に使う
         public PPUnitActionLedger Ledger => mLedger;
         // 予約済みの行動
         public IReadOnlyList<PPPendingAction> Reservations => mReservations;
 
+        /* イベント */
+
         // 予約内容が変わったときに発火する
         // 発動可否の表示や予約一覧を出している側が、購読して描画を更新する
         public event Action OnReservationChanged;
+
+        /* 操作 */
 
         // 予約を全て捨てる。ティックの行動を流し終えたら呼ぶ
         public void Clear()
@@ -79,31 +87,6 @@ namespace PPCore
             return true;
         }
 
-        // 残っている予約から台帳を作り直す
-        // 取り消しのたびに差分を引くと戻し忘れが起きるため、常に残りから組み直す
-        private void RebuildLedger()
-        {
-            mLedger.Clear();
-            foreach (var reservation in mReservations)
-            {
-                ReserveToLedger(reservation.Unit, reservation.Command);
-            }
-        }
-
-        // その行動を予約できるかを判定する
-        // 行動回数の空きと、既に予約した分を差し引いたゲージ残量の両方を見る
-        public bool CanReserve(PPBattleUnit aUnit, BattleCommandBase aCommand)
-        {
-            if (aUnit == null || aCommand == null) return false;
-
-            return aCommand switch
-            {
-                PPSkillCommand skillCommand => mLedger.CanReserveSkill(aUnit, ResolveSkillCost(skillCommand)),
-                IPPBattleCommand attackCommand => mLedger.CanReserveCoin(aUnit, attackCommand.AttackCost),
-                _ => mLedger.HasActionLeft(aUnit),
-            };
-        }
-
         // 行動を予約する。予約できない場合は何も積まずに false を返す
         public bool TryReserve(PPBattleUnit aUnit, BattleCommandBase aCommand)
         {
@@ -118,25 +101,6 @@ namespace PPCore
             mReservations.Add(PPPendingAction.FromCommand(aUnit, aCommand));
             OnReservationChanged?.Invoke();
             return true;
-        }
-
-        // コマンドの種類に応じて台帳へ仮押さえする
-        // 予約の追加と台帳の作り直しの双方から使うため、振り分けはここへ集約している
-        private void ReserveToLedger(PPBattleUnit aUnit, BattleCommandBase aCommand)
-        {
-            switch (aCommand)
-            {
-                case PPSkillCommand skillCommand:
-                    mLedger.ReserveSkill(aUnit, ResolveSkillCost(skillCommand));
-                    break;
-                case IPPBattleCommand attackCommand:
-                    mLedger.ReserveCoin(aUnit, attackCommand.AttackCost);
-                    break;
-                default:
-                    // 消費を伴わない行動でも、行動回数だけは数えないと無限に積めてしまう
-                    mLedger.ReserveCoin(aUnit, 0f);
-                    break;
-            }
         }
 
         // 予約が無いユニットへ通常攻撃を積む
@@ -164,6 +128,52 @@ namespace PPCore
             }
         }
 
+        // 残っている予約から台帳を作り直す
+        // 取り消しのたびに差分を引くと戻し忘れが起きるため、常に残りから組み直す
+        private void RebuildLedger()
+        {
+            mLedger.Clear();
+            foreach (var reservation in mReservations)
+            {
+                ReserveToLedger(reservation.Unit, reservation.Command);
+            }
+        }
+
+        // コマンドの種類に応じて台帳へ仮押さえする
+        // 予約の追加と台帳の作り直しの双方から使うため、振り分けはここへ集約している
+        private void ReserveToLedger(PPBattleUnit aUnit, BattleCommandBase aCommand)
+        {
+            switch (aCommand)
+            {
+                case PPSkillCommand skillCommand:
+                    mLedger.ReserveSkill(aUnit, ResolveSkillCost(skillCommand));
+                    break;
+                case IPPBattleCommand attackCommand:
+                    mLedger.ReserveCoin(aUnit, attackCommand.AttackCost);
+                    break;
+                default:
+                    // 消費を伴わない行動でも、行動回数だけは数えないと無限に積めてしまう
+                    mLedger.ReserveCoin(aUnit, 0f);
+                    break;
+            }
+        }
+
+        /* 問い合わせ */
+
+        // その行動を予約できるかを判定する
+        // 行動回数の空きと、既に予約した分を差し引いたゲージ残量の両方を見る
+        public bool CanReserve(PPBattleUnit aUnit, BattleCommandBase aCommand)
+        {
+            if (aUnit == null || aCommand == null) return false;
+
+            return aCommand switch
+            {
+                PPSkillCommand skillCommand => mLedger.CanReserveSkill(aUnit, ResolveSkillCost(skillCommand)),
+                IPPBattleCommand attackCommand => mLedger.CanReserveCoin(aUnit, attackCommand.AttackCost),
+                _ => mLedger.HasActionLeft(aUnit),
+            };
+        }
+
         // 予約と AI の計画を 1 つにまとめ、実行順に並べ替える
         // 並べ替えは全ての行動が揃ってから行う。どこかで先に並べてしまうと順序が混ざる
         public List<PPPendingAction> CollectOrdered(BattleContext aContext, params PPPartyPlan[] aPlans)
@@ -185,6 +195,8 @@ namespace PPCore
                 ? rules.ActionOrderResolver.ResolveOrder(actions, aContext)
                 : actions;
         }
+
+        /* ヘルパー */
 
         // スキルの必要ゲージ量を引く。定義を解決できない場合は無コスト扱い
         private static float ResolveSkillCost(PPSkillCommand aCommand)
@@ -214,6 +226,8 @@ namespace PPCore
     // 実行前に複数の行動を積んでも、同じゲージを二重に当てにしないようにする
     public sealed class PPUnitActionLedger
     {
+        /* 内部型 */
+
         // ユニット 1 体分の仮押さえ内容
         private sealed class PPLedgerEntry
         {
@@ -225,11 +239,14 @@ namespace PPCore
             public int ActionCount;
         }
 
-        // ユニットごとの仮押さえ内容
-        private readonly Dictionary<PPBattleUnit, PPLedgerEntry> mEntries = new();
+        /* 状態 */
 
         // 積んだ行動の総数
         public int TotalActionCount { get; private set; }
+        // ユニットごとの仮押さえ内容
+        private readonly Dictionary<PPBattleUnit, PPLedgerEntry> mEntries = new();
+
+        /* 操作 */
 
         // 台帳を空にする。ティックが切り替わったタイミングで呼ぶ
         public void Clear()
@@ -242,11 +259,6 @@ namespace PPCore
         public int ReservedCount(PPBattleUnit aUnit)
             => mEntries.TryGetValue(aUnit, out var entry) ? entry.ActionCount : 0;
 
-        // そのユニットがまだ行動を積めるかを返す
-        // 1 ティックあたりの行動回数上限（バフ込み）と、積んだ数を突き合わせる
-        public bool HasActionLeft(PPBattleUnit aUnit)
-            => aUnit != null && ReservedCount(aUnit) < aUnit.ResolveActionCount();
-
         // 仮押さえ分を差し引いたスキルゲージの残量
         public float RemainingSkillGauge(PPBattleUnit aUnit)
             => aUnit.ExtraParameters.SkillGauge.Current - ResolveEntry(aUnit, false).SkillGauge;
@@ -254,15 +266,6 @@ namespace PPCore
         // 仮押さえ分を差し引いたコインゲージの残量
         public float RemainingCoinGauge(PPBattleUnit aUnit)
             => aUnit.ExtraParameters.CoinGauge.Current - ResolveEntry(aUnit, false).CoinGauge;
-
-        // スキルゲージを仮押さえできるかを判定する
-        // 行動回数の空きも併せて見るため、これ 1 つで「あと 1 手積めるか」が判る
-        public bool CanReserveSkill(PPBattleUnit aUnit, float aCost)
-            => HasActionLeft(aUnit) && RemainingSkillGauge(aUnit) + PPGaugeUtility.CompareEpsilon >= aCost;
-
-        // コインゲージを仮押さえできるかを判定する
-        public bool CanReserveCoin(PPBattleUnit aUnit, float aCost)
-            => HasActionLeft(aUnit) && RemainingCoinGauge(aUnit) + PPGaugeUtility.CompareEpsilon >= aCost;
 
         // スキル 1 回分を仮押さえする
         public void ReserveSkill(PPBattleUnit aUnit, float aCost)
@@ -281,6 +284,22 @@ namespace PPCore
             entry.ActionCount++;
             TotalActionCount++;
         }
+
+        /* 問い合わせ */
+
+        // そのユニットがまだ行動を積めるかを返す
+        // 1 ティックあたりの行動回数上限（バフ込み）と、積んだ数を突き合わせる
+        public bool HasActionLeft(PPBattleUnit aUnit)
+            => aUnit != null && ReservedCount(aUnit) < aUnit.ResolveActionCount();
+
+        // スキルゲージを仮押さえできるかを判定する
+        // 行動回数の空きも併せて見るため、これ 1 つで「あと 1 手積めるか」が判る
+        public bool CanReserveSkill(PPBattleUnit aUnit, float aCost)
+            => HasActionLeft(aUnit) && RemainingSkillGauge(aUnit) + PPGaugeUtility.CompareEpsilon >= aCost;
+
+        // コインゲージを仮押さえできるかを判定する
+        public bool CanReserveCoin(PPBattleUnit aUnit, float aCost)
+            => HasActionLeft(aUnit) && RemainingCoinGauge(aUnit) + PPGaugeUtility.CompareEpsilon >= aCost;
 
         // ユニットの仮押さえ内容を引く
         private PPLedgerEntry ResolveEntry(PPBattleUnit aUnit, bool aIsCreate)
