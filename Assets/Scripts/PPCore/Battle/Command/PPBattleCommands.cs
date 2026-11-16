@@ -60,7 +60,7 @@ namespace PPCore
     // ダメージ計算式は DamageFormula として差し替え可能な static デリゲートにしてある
     public class AttackCommand : BattleCommandBase
     {
-        /* 状態 */
+        /* static 変数 */
 
         // 通常攻撃のダメージ計算式（攻撃側, 防御側）。既定は「攻撃力 - 防御力 × 0.5」で最低 1 ダメージ
         // static なので差し替えるとゲーム全体に効く

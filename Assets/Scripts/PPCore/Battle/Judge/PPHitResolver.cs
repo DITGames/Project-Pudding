@@ -116,7 +116,7 @@ namespace PPCore
         // きようさ 1 あたりの会心率（%）
         public const float CriticalPercentPerDexterity = 0.25f;
 
-        /* 問い合わせ */
+        /* static 関数 */
 
         // 補正後きようさから判定用の会心確率を求める
         // 0.0025 は float で正確に表せないため、百分率（× 0.25）を経由する
@@ -126,6 +126,8 @@ namespace PPCore
         // 補正後きようさから表示用の会心率（%）を求める
         public static float ToCriticalPercent(float aDexterity)
             => Mathf.Clamp(aDexterity * CriticalPercentPerDexterity, 0f, 100f);
+
+        /* 問い合わせ */
 
         // 攻撃側のきようさから会心確率を求める
         // きようさを持たないユニットは基底の固定発生率を返す

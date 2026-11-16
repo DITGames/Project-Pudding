@@ -127,7 +127,7 @@ namespace PPCore
         // 読み込み後に編集元（ユニット・ビジュアル）のファイルが変わったか
         public bool IsSourceChanged => HashOf(mSource) != (mSourceHash ?? "") || HashOf(mSourceVisual) != (mSourceVisualHash ?? "");
 
-        /* 生成 */
+        /* static 関数 */
 
         // 初期アセットを作らず、編集専用インスタンスを組み立てる
         public static PPUnitCreationDraft Create()
@@ -192,6 +192,22 @@ namespace PPCore
             return draft;
         }
 
+        // 競合検出用のファイル内容のハッシュ。アセットがなければ空文字
+        public static string HashOf(UnityEngine.Object aAsset)
+        {
+            var path = aAsset == null ? "" : AssetDatabase.GetAssetPath(aAsset);
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return "";
+            using var sha = SHA256.Create();
+            return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
+        }
+
+        // ユニットIDが一致するビジュアル定義。サブアセットも対象にする
+        public static List<PPUnitVisualDefinition> FindVisuals(string aUnitId) => AssetDatabase.FindAssets("t:" + nameof(PPUnitVisualDefinition))
+            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<PPUnitVisualDefinition>()
+            .Where(aVisual => aVisual.UnitId == aUnitId).ToList();
+
+        /* 生成 */
+
         // 変更要求は独立したコピーへ適用し、全項目の解釈に成功してから置き換える
         public PPUnitCreationDraft CreateWorkingCopy()
         {
@@ -209,15 +225,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // 競合検出用のファイル内容のハッシュ。アセットがなければ空文字
-        public static string HashOf(UnityEngine.Object aAsset)
-        {
-            var path = aAsset == null ? "" : AssetDatabase.GetAssetPath(aAsset);
-            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return "";
-            using var sha = SHA256.Create();
-            return BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
-        }
 
         // 編集モードの保存後に、下書きを保存済みの状態へそろえる。新規スキル・新規ツリーは作成したアセットの参照に置き換え、
         // ハッシュを取り直して続けて編集・再保存できるようにする
@@ -325,11 +332,6 @@ namespace PPCore
         }
 
         /* 問い合わせ */
-
-        // ユニットIDが一致するビジュアル定義。サブアセットも対象にする
-        public static List<PPUnitVisualDefinition> FindVisuals(string aUnitId) => AssetDatabase.FindAssets("t:" + nameof(PPUnitVisualDefinition))
-            .Select(AssetDatabase.GUIDToAssetPath).Distinct().SelectMany(AssetDatabase.LoadAllAssetsAtPath).OfType<PPUnitVisualDefinition>()
-            .Where(aVisual => aVisual.UnitId == aUnitId).ToList();
 
         public AnimationCurve GetCurve(int aIndex) => new SerializedObject(Unit).FindProperty(CurveFields[aIndex]).animationCurveValue;
 

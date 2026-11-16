@@ -34,6 +34,19 @@ namespace PPCore
         // アセットが選ばれたときに呼ぶコールバック
         private readonly Action<UnityEngine.Object> mOnSelected;
 
+        /* static 関数 */
+
+        // プロジェクト内の指定型アセットを候補にしてポップアップを表示する
+        public static void ShowAssets<T>(Rect aActivatorRect, Func<T, (string FolderPath, string Label)> aEntryBuilder,
+            string aEmptyMessage, Action<T> aOnSelected, Vector2 aWindowSize = default)
+            where T : UnityEngine.Object
+        {
+            var entries = PPAssetTreePickerTreeView.Collect(aEntryBuilder);
+            var size = aWindowSize == default ? new Vector2(320f, 360f) : aWindowSize;
+            PopupWindow.Show(aActivatorRect,
+                new PPAssetTreePickerPopup(entries, aEmptyMessage, size, picked => aOnSelected?.Invoke(picked as T)));
+        }
+
         /* 生成 */
 
         private PPAssetTreePickerPopup(IReadOnlyList<PPAssetPickerEntry> aEntries, string aEmptyMessage,
@@ -49,19 +62,6 @@ namespace PPCore
 
         // ポップアップのサイズ
         public override Vector2 GetWindowSize() => mWindowSize;
-
-        /* 表示 */
-
-        // プロジェクト内の指定型アセットを候補にしてポップアップを表示する
-        public static void ShowAssets<T>(Rect aActivatorRect, Func<T, (string FolderPath, string Label)> aEntryBuilder,
-            string aEmptyMessage, Action<T> aOnSelected, Vector2 aWindowSize = default)
-            where T : UnityEngine.Object
-        {
-            var entries = PPAssetTreePickerTreeView.Collect(aEntryBuilder);
-            var size = aWindowSize == default ? new Vector2(320f, 360f) : aWindowSize;
-            PopupWindow.Show(aActivatorRect,
-                new PPAssetTreePickerPopup(entries, aEmptyMessage, size, picked => aOnSelected?.Invoke(picked as T)));
-        }
 
         /* 描画 */
 
@@ -130,6 +130,32 @@ namespace PPCore
         // アセットが選ばれたときのコールバック
         private readonly Action<UnityEngine.Object> mOnPickAsset;
 
+        /* static 関数 */
+
+        // プロジェクト内の指定型アセットを集めて候補リストを作る
+        // 並びが安定しないとツリーの見た目が開くたびに変わるため、フォルダ＋表示名で整列させる
+        public static List<PPAssetPickerEntry> Collect<T>(Func<T, (string FolderPath, string Label)> aEntryBuilder)
+            where T : UnityEngine.Object
+        {
+            var list = new List<PPAssetPickerEntry>();
+            foreach (var guid in AssetDatabase.FindAssets($"t:{typeof(T).Name}"))
+            {
+                var path = AssetDatabase.GUIDToAssetPath(guid);
+                var asset = AssetDatabase.LoadAssetAtPath<T>(path);
+                if (asset == null) continue;
+
+                var (folderPath, label) = aEntryBuilder(asset);
+                list.Add(new PPAssetPickerEntry(asset, folderPath, label));
+            }
+
+            list.Sort((a, b) =>
+            {
+                int folder = string.CompareOrdinal(a.FolderPath, b.FolderPath);
+                return folder != 0 ? folder : string.CompareOrdinal(a.Label, b.Label);
+            });
+            return list;
+        }
+
         /* 生成 */
 
         public PPAssetTreePickerTreeView(TreeViewState<int> aState, IReadOnlyList<PPAssetPickerEntry> aEntries,
@@ -196,32 +222,6 @@ namespace PPCore
         {
             if (mIdToAsset.TryGetValue(aId, out var asset))
                 mOnPickAsset?.Invoke(asset);
-        }
-
-        /* 問い合わせ */
-
-        // プロジェクト内の指定型アセットを集めて候補リストを作る
-        // 並びが安定しないとツリーの見た目が開くたびに変わるため、フォルダ＋表示名で整列させる
-        public static List<PPAssetPickerEntry> Collect<T>(Func<T, (string FolderPath, string Label)> aEntryBuilder)
-            where T : UnityEngine.Object
-        {
-            var list = new List<PPAssetPickerEntry>();
-            foreach (var guid in AssetDatabase.FindAssets($"t:{typeof(T).Name}"))
-            {
-                var path = AssetDatabase.GUIDToAssetPath(guid);
-                var asset = AssetDatabase.LoadAssetAtPath<T>(path);
-                if (asset == null) continue;
-
-                var (folderPath, label) = aEntryBuilder(asset);
-                list.Add(new PPAssetPickerEntry(asset, folderPath, label));
-            }
-
-            list.Sort((a, b) =>
-            {
-                int folder = string.CompareOrdinal(a.FolderPath, b.FolderPath);
-                return folder != 0 ? folder : string.CompareOrdinal(a.Label, b.Label);
-            });
-            return list;
         }
 
         /* ヘルパー */

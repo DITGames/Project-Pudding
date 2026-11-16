@@ -30,7 +30,7 @@ namespace PPCore
         private static readonly FieldInfo mBaseStatBlockField =
             typeof(UnitDefinition).GetField(BaseStatBlockPath, BindingFlags.Instance | BindingFlags.NonPublic);
 
-        /* 状態 */
+        /* static 変数 */
 
         // StatBlock のフィールド名 → 本作の能力名
         private static readonly Dictionary<string, string> mAbilityNames = new()

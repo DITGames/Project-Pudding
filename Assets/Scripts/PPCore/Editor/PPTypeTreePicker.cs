@@ -33,6 +33,20 @@ namespace PPCore
         // 型が選ばれたときに呼ぶコールバック
         private readonly Action<Type> mOnSelected;
 
+        /* static 関数 */
+
+        // ポップアップを表示する
+        public static void Show(Rect aActivatorRect, IReadOnlyList<Type> aCandidateTypes,
+            string aEmptyMessage, Action<Type> aOnSelected)
+            => PopupWindow.Show(aActivatorRect, new PPTypeTreePickerPopup(aCandidateTypes, aEmptyMessage, aOnSelected));
+
+        // 基底型の具象派生型をそのまま候補にしてポップアップを表示する
+        // 選ばれた型のインスタンスを生成してコールバックへ渡す、最も一般的な使い方の入口
+        public static void ShowDerived<T>(Rect aActivatorRect, string aEmptyMessage, Action<T> aOnCreated)
+            where T : class
+            => Show(aActivatorRect, PPTypeTreePickerTreeView.CollectDerived<T>(), aEmptyMessage,
+                type => aOnCreated?.Invoke((T)Activator.CreateInstance(type)));
+
         /* 生成 */
 
         private PPTypeTreePickerPopup(IReadOnlyList<Type> aCandidateTypes, string aEmptyMessage, Action<Type> aOnSelected)
@@ -46,20 +60,6 @@ namespace PPCore
 
         // ポップアップのサイズ
         public override Vector2 GetWindowSize() => new Vector2(320f, 360f);
-
-        /* 表示 */
-
-        // ポップアップを表示する
-        public static void Show(Rect aActivatorRect, IReadOnlyList<Type> aCandidateTypes,
-            string aEmptyMessage, Action<Type> aOnSelected)
-            => PopupWindow.Show(aActivatorRect, new PPTypeTreePickerPopup(aCandidateTypes, aEmptyMessage, aOnSelected));
-
-        // 基底型の具象派生型をそのまま候補にしてポップアップを表示する
-        // 選ばれた型のインスタンスを生成してコールバックへ渡す、最も一般的な使い方の入口
-        public static void ShowDerived<T>(Rect aActivatorRect, string aEmptyMessage, Action<T> aOnCreated)
-            where T : class
-            => Show(aActivatorRect, PPTypeTreePickerTreeView.CollectDerived<T>(), aEmptyMessage,
-                type => aOnCreated?.Invoke((T)Activator.CreateInstance(type)));
 
         /* 描画 */
 
@@ -105,6 +105,29 @@ namespace PPCore
 
         // 型が選ばれたときのコールバック
         private readonly Action<Type> mOnPickType;
+
+        /* static 関数 */
+
+        // 既存のリストへ基底型の具象派生型を追記する
+        // 異なる型階層を 1 本のツリーへまとめたい場合に複数回呼ぶ
+        public static void AppendDerived<T>(List<Type> aList, bool aIsSkipUnattributed = false)
+        {
+            foreach (var type in TypeCache.GetTypesDerivedFrom<T>())
+            {
+                if (type.IsAbstract) continue;
+                if (aIsSkipUnattributed && type.GetCustomAttribute<PPTypeMenuNameAttribute>() == null) continue;
+                aList.Add(type);
+            }
+        }
+
+        // 基底型の具象派生型を集める
+        // 属性の無い型は、引数に応じて除外するか「未分類/型名」として並べる
+        public static List<Type> CollectDerived<T>(bool aIsSkipUnattributed = false)
+        {
+            var list = new List<Type>();
+            AppendDerived<T>(list, aIsSkipUnattributed);
+            return list;
+        }
 
         /* 生成 */
 
@@ -167,35 +190,12 @@ namespace PPCore
 
         /* 操作 */
 
-        // 既存のリストへ基底型の具象派生型を追記する
-        // 異なる型階層を 1 本のツリーへまとめたい場合に複数回呼ぶ
-        public static void AppendDerived<T>(List<Type> aList, bool aIsSkipUnattributed = false)
-        {
-            foreach (var type in TypeCache.GetTypesDerivedFrom<T>())
-            {
-                if (type.IsAbstract) continue;
-                if (aIsSkipUnattributed && type.GetCustomAttribute<PPTypeMenuNameAttribute>() == null) continue;
-                aList.Add(type);
-            }
-        }
-
         // ダブルクリックで選択を確定する
         // aId : ダブルクリックされたノードの ID
         protected override void DoubleClickedItem(int aId)
         {
             if (mIdToType.TryGetValue(aId, out var type))
                 mOnPickType?.Invoke(type);
-        }
-
-        /* 問い合わせ */
-
-        // 基底型の具象派生型を集める
-        // 属性の無い型は、引数に応じて除外するか「未分類/型名」として並べる
-        public static List<Type> CollectDerived<T>(bool aIsSkipUnattributed = false)
-        {
-            var list = new List<Type>();
-            AppendDerived<T>(list, aIsSkipUnattributed);
-            return list;
         }
 
         /* ヘルパー */

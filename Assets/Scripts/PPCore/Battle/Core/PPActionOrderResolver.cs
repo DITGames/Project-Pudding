@@ -24,16 +24,7 @@ namespace PPCore
         // 並び替えに使う優先度
         public PPSkillActionPriority Priority { get; }
 
-        /* 生成 */
-
-        public PPPendingAction(PPBattleUnit aUnit, BattleCommandBase aCommand, PPSkillActionPriority aPriority)
-        {
-            Unit = aUnit;
-            Command = aCommand;
-            Priority = aPriority;
-        }
-
-        /* 操作 */
+        /* static 関数 */
 
         // コマンドから優先度を判定して 1 件分を組み立てる
         // スキルは定義側の設定に従い、通常攻撃など定義を持たない行動は「通常」として扱う
@@ -46,6 +37,15 @@ namespace PPCore
                 priority = definition.ActionPriority;
             }
             return new PPPendingAction(aUnit, aCommand, priority);
+        }
+
+        /* 生成 */
+
+        public PPPendingAction(PPBattleUnit aUnit, BattleCommandBase aCommand, PPSkillActionPriority aPriority)
+        {
+            Unit = aUnit;
+            Command = aCommand;
+            Priority = aPriority;
         }
     }
 

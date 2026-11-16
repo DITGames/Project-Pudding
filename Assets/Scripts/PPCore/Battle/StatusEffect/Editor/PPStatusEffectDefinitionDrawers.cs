@@ -76,7 +76,7 @@ namespace PPCore
         // 同じ行の子フィールドのラベルと入力欄のあいだに空ける余白
         private const float InlineLabelMargin = 6f;
 
-        /* 状態 */
+        /* static 変数 */
 
         // 候補となる具象派生型。ドメインの再読み込みまで変わらないため 1 度だけ集める
         private static List<Type> sCandidateTypes;

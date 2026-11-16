@@ -61,6 +61,37 @@ namespace PPCore
 
         public PPUnitBehaviourTree GlobalTree => mGlobalTree;
 
+        /* static 関数 */
+
+        // ユニットが使うツリーを 個別 → ロール既定 → 全体既定 の順で解決する
+        public static PPUnitBehaviourTree ResolveTree(PPUnitDefinition aUnit, PPUnitAIDefaultsDefinition aDefaults,
+            out PPUnitAITreeSource aSource)
+        {
+            if (aUnit != null && aUnit.BehaviourTree != null)
+            {
+                aSource = PPUnitAITreeSource.Individual;
+                return aUnit.BehaviourTree;
+            }
+
+            if (aDefaults != null)
+            {
+                var roleTree = aUnit != null ? aDefaults.FindRoleTree(aUnit.Role) : null;
+                if (roleTree != null)
+                {
+                    aSource = PPUnitAITreeSource.RoleDefault;
+                    return roleTree;
+                }
+                if (aDefaults.GlobalTree != null)
+                {
+                    aSource = PPUnitAITreeSource.GlobalDefault;
+                    return aDefaults.GlobalTree;
+                }
+            }
+
+            aSource = PPUnitAITreeSource.None;
+            return null;
+        }
+
         /* 生成 */
 
         // ロールから既定ツリーを引く索引を組み立て、設定の問題をログへ出す
@@ -133,35 +164,6 @@ namespace PPCore
 #endif
 
         /* 問い合わせ */
-
-        // ユニットが使うツリーを 個別 → ロール既定 → 全体既定 の順で解決する
-        public static PPUnitBehaviourTree ResolveTree(PPUnitDefinition aUnit, PPUnitAIDefaultsDefinition aDefaults,
-            out PPUnitAITreeSource aSource)
-        {
-            if (aUnit != null && aUnit.BehaviourTree != null)
-            {
-                aSource = PPUnitAITreeSource.Individual;
-                return aUnit.BehaviourTree;
-            }
-
-            if (aDefaults != null)
-            {
-                var roleTree = aUnit != null ? aDefaults.FindRoleTree(aUnit.Role) : null;
-                if (roleTree != null)
-                {
-                    aSource = PPUnitAITreeSource.RoleDefault;
-                    return roleTree;
-                }
-                if (aDefaults.GlobalTree != null)
-                {
-                    aSource = PPUnitAITreeSource.GlobalDefault;
-                    return aDefaults.GlobalTree;
-                }
-            }
-
-            aSource = PPUnitAITreeSource.None;
-            return null;
-        }
 
         // ロールの既定ツリーを引く
         public PPUnitBehaviourTree FindRoleTree(PPUnitRole aRole)

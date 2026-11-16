@@ -48,6 +48,12 @@ namespace PPCore
         // 発動できない場合の理由
         public CastFailReason Reason { get; }
 
+        /* static 関数 */
+
+        // 理由付きの発動不可を生成する
+        // reason : 発動できない理由
+        public static CastValidation Fail(CastFailReason reason) => new(false, reason);
+
         /* 生成 */
 
         // 判定結果を生成する
@@ -56,12 +62,6 @@ namespace PPCore
             CanCast = aCanCast;
             Reason = aReason;
         }
-
-        /* 操作 */
-
-        // 理由付きの発動不可を生成する
-        // reason : 発動できない理由
-        public static CastValidation Fail(CastFailReason reason) => new(false, reason);
     }
 
     // スキルを発動できるかを検証するバリデータ。BattleRules.CastValidator に差し込む

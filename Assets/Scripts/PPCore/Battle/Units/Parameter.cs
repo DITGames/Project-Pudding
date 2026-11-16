@@ -55,6 +55,12 @@ namespace PPCore
         // 現在値が再計算されたときに発火する
         public event Action<IReadableParameter> OnValueChanged;
 
+        /* static 関数 */
+
+        // 割合の合計値を倍率へ変換する（+20% と +30% の合計 0.5 → 1.5 倍）
+        // 倍率は 0 未満にならないよう丸める
+        public static float RatioSumToMultiplier(float aRatioSum) => Mathf.Max(0f, 1f + aRatioSum);
+
         /* 生成 */
 
         // aBaseValue : 初期の基礎値。現在値もこの値で初期化される
@@ -65,10 +71,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // 割合の合計値を倍率へ変換する（+20% と +30% の合計 0.5 → 1.5 倍）
-        // 倍率は 0 未満にならないよう丸める
-        public static float RatioSumToMultiplier(float aRatioSum) => Mathf.Max(0f, 1f + aRatioSum);
 
         // 基礎値を設定し、そのまま現在値を再計算して変化を通知する
         // BaseValue の setter は再計算しないため、設定と再計算を 1 回で済ませたい場合はこちらを使う

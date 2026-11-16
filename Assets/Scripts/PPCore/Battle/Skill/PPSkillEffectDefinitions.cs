@@ -262,6 +262,11 @@ namespace PPCore
     // スキル効果を実行せずに見積もった結果。AI が行動の価値を判断するために使う
     public readonly struct PPEffectEstimate
     {
+        /* static 変数 */
+
+        // 効果なしを表す見積もり。推定に対応していない効果はこれを返す
+        public static PPEffectEstimate None => default;
+
         /* 状態 */
 
         // 与ダメージの見込み量。命中率・クリティカル・属性相性は含めない
@@ -271,10 +276,16 @@ namespace PPCore
         // 付与する StatusEffect の識別子。重複付与の判定に使う。付与しないなら null
         public string StatusEffectId { get; }
 
-        /* プロパティ */
+        /* static 関数 */
 
-        // 効果なしを表す見積もり。推定に対応していない効果はこれを返す
-        public static PPEffectEstimate None => default;
+        // aDamage : 与ダメージの見込み量
+        public static PPEffectEstimate FromDamage(float aDamage) => new(aDamage, 0f, null);
+
+        // aHeal : 回復量の見込み
+        public static PPEffectEstimate FromHeal(float aHeal) => new(0f, aHeal, null);
+
+        // aStatusEffectId : 付与する StatusEffect の識別子
+        public static PPEffectEstimate FromStatus(string aStatusEffectId) => new(0f, 0f, aStatusEffectId);
 
         /* 生成 */
 
@@ -286,15 +297,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // aDamage : 与ダメージの見込み量
-        public static PPEffectEstimate FromDamage(float aDamage) => new(aDamage, 0f, null);
-
-        // aHeal : 回復量の見込み
-        public static PPEffectEstimate FromHeal(float aHeal) => new(0f, aHeal, null);
-
-        // aStatusEffectId : 付与する StatusEffect の識別子
-        public static PPEffectEstimate FromStatus(string aStatusEffectId) => new(0f, 0f, aStatusEffectId);
 
         // 別の見積もりと合算する（1 スキルが複数の効果を持つ場合に使う）
         // 識別子は先に設定されている方を優先する

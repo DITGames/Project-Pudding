@@ -121,6 +121,19 @@ namespace PPCore
         // 直近のマウスイベントが OnGUI に届いた時点の座標。操作ツールが送信座標と突き合わせてずれを実測する
         [NonSerialized] private Vector2? mLastMousePosition;
 
+        /* static 関数 */
+
+        [MenuItem("Window/Project-Pudding/ユニット作成")]
+        public static void Open() => GetWindow<PPUnitCreatorWindow>("ユニット作成");
+
+        public static void OpenDraft(string aId)
+        {
+            var window = GetWindow<PPUnitCreatorWindow>("ユニット作成");
+            window.mDraftId = aId;
+            window.mValidatedRevision = -1;
+            window.Repaint();
+        }
+
         /* Unity イベント */
 
         private void OnEnable()
@@ -219,17 +232,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        [MenuItem("Window/Project-Pudding/ユニット作成")]
-        public static void Open() => GetWindow<PPUnitCreatorWindow>("ユニット作成");
-
-        public static void OpenDraft(string aId)
-        {
-            var window = GetWindow<PPUnitCreatorWindow>("ユニット作成");
-            window.mDraftId = aId;
-            window.mValidatedRevision = -1;
-            window.Repaint();
-        }
 
         private void Invalidate() { mValidatedRevision = -1; mUnits = null; Repaint(); }
 

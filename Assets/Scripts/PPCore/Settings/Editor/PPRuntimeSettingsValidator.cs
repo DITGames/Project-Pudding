@@ -25,14 +25,7 @@ namespace PPCore
         // ビルド前処理の実行順。ほかの前処理との順序の指定は特にない
         public int callbackOrder => 0;
 
-        /* 生成 */
-
-        static PPRuntimeSettingsValidator()
-        {
-            EditorApplication.playModeStateChanged += OnPlayModeChanged;
-        }
-
-        /* 評価・判定 */
+        /* static 関数 */
 
         // アセットが正しい場所に 1 つだけあるかを検査する
         // 0 件、2 件以上、または PPRuntimeSettings.AssetPath 以外にある場合を問題とする
@@ -63,6 +56,13 @@ namespace PPCore
 
             aMessage = null;
             return true;
+        }
+
+        /* 生成 */
+
+        static PPRuntimeSettingsValidator()
+        {
+            EditorApplication.playModeStateChanged += OnPlayModeChanged;
         }
 
         /* イベントハンドラ */

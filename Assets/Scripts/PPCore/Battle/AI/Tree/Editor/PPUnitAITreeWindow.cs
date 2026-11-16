@@ -99,6 +99,33 @@ namespace PPCore
         // 実際に並べ替えとして動かしたか。false のまま離したらタブの切り替えとして扱う
         private bool mIsTabDragging;
 
+        /* static 関数 */
+
+        [MenuItem("Window/Unit AI Tree")]
+        public static void Open()
+        {
+            var window = GetWindow<PPUnitAITreeWindow>();
+            window.titleContent = new GUIContent("Unit AI Tree");
+            window.minSize = new Vector2(720, 420);
+            window.Show();
+        }
+
+        // Project ウィンドウで PPUnitBehaviourTree をダブルクリックした際にこのウィンドウで開く
+        [OnOpenAsset]
+        public static bool OnOpenAsset(int aInstanceId, int aLine)
+        {
+            if (EditorUtility.EntityIdToObject(aInstanceId) is not PPUnitBehaviourTree asset)
+            {
+                return false;
+            }
+
+            var window = GetWindow<PPUnitAITreeWindow>();
+            window.titleContent = new GUIContent("Unit AI Tree");
+            window.SetTarget(asset);
+            window.Show();
+            return true;
+        }
+
         /* 生成 */
 
         // 開いているツリーが無いときの表示を組み立てる
@@ -260,15 +287,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        [MenuItem("Window/Unit AI Tree")]
-        public static void Open()
-        {
-            var window = GetWindow<PPUnitAITreeWindow>();
-            window.titleContent = new GUIContent("Unit AI Tree");
-            window.minSize = new Vector2(720, 420);
-            window.Show();
-        }
 
         // 編集対象を差し替えてグラフを組み立て直す
         // aTarget : 編集する判断ツリー
@@ -949,22 +967,6 @@ namespace PPCore
         }
 
         /* イベントハンドラ */
-
-        // Project ウィンドウで PPUnitBehaviourTree をダブルクリックした際にこのウィンドウで開く
-        [OnOpenAsset]
-        public static bool OnOpenAsset(int aInstanceId, int aLine)
-        {
-            if (EditorUtility.EntityIdToObject(aInstanceId) is not PPUnitBehaviourTree asset)
-            {
-                return false;
-            }
-
-            var window = GetWindow<PPUnitAITreeWindow>();
-            window.titleContent = new GUIContent("Unit AI Tree");
-            window.SetTarget(asset);
-            window.Show();
-            return true;
-        }
 
         // デバッグウィンドウで選ばれた思考記録を受けて、経路の強調表示を更新する
         // aEntry : 選ばれた思考記録。解除時は null

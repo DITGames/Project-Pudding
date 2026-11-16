@@ -37,6 +37,16 @@ namespace PPCore
         // 確定した対象へ狙いを固定するティック数。0 なら固定しない
         public int FocusTicks { get; }
 
+        /* static 関数 */
+
+        // 待機で確定したことを表す結果を作る
+        // aActionName : 記録用の行動名
+        public static PPUnitAINodeResult Wait(string aActionName) => new(true, null, aActionName, null, 0, 0);
+
+        // コマンド実行で確定したことを表す結果を作る
+        public static PPUnitAINodeResult Execute(BattleCommandBase aCommand, string aActionName, PPBattleUnit aTarget)
+            => new(true, aCommand, aActionName, aTarget, 0, 0);
+
         /* 生成 */
 
         private PPUnitAINodeResult(bool aIsDecided, BattleCommandBase aCommand, string aActionName,
@@ -51,14 +61,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // 待機で確定したことを表す結果を作る
-        // aActionName : 記録用の行動名
-        public static PPUnitAINodeResult Wait(string aActionName) => new(true, null, aActionName, null, 0, 0);
-
-        // コマンド実行で確定したことを表す結果を作る
-        public static PPUnitAINodeResult Execute(BattleCommandBase aCommand, string aActionName, PPBattleUnit aTarget)
-            => new(true, aCommand, aActionName, aTarget, 0, 0);
 
         // 同じ内容のまま、維持するティック数だけを差し替えた結果を作る
         // 行動そのものはアクションが決め、どれだけ維持するかはノードが決めるため分けている

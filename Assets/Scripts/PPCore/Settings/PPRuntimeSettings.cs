@@ -26,25 +26,7 @@ namespace PPCore
         // ログのタグ
         public const string LogTag = "Settings";
 
-        /* インスペクタ設定 */
-
-        [Label("ユニットAIの既定")]
-        [SerializeField] private PPUnitAIDefaultsDefinition mUnitAIDefaults;
-
-        /* 状態 */
-
-        // アセットが見つからなかったときに作った代替インスタンスか
-        public bool IsFallback { get; private set; }
-        // Resources から読み込んだアセット。見つからなかった場合は代替インスタンス
-        private static PPRuntimeSettings sLoaded;
-        // SetOverride で差し替えられたアセット。null なら差し替えなし
-        private static PPRuntimeSettings sOverride;
-        // アセットが見つからないエラーを報告済みか。同じエラーを何度も出さないために持つ
-        private static bool sHasReportedMissing;
-
-        /* プロパティ */
-
-        public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
+        /* static 変数 */
 
         // 現在有効な設定。優先順は 差し替え → 読み込み済み → その場で読み込み（見つからなければ代替）
         // null は返さない
@@ -62,7 +44,28 @@ namespace PPCore
             }
         }
 
-        /* 操作 */
+        // Resources から読み込んだアセット。見つからなかった場合は代替インスタンス
+        private static PPRuntimeSettings sLoaded;
+        // SetOverride で差し替えられたアセット。null なら差し替えなし
+        private static PPRuntimeSettings sOverride;
+        // アセットが見つからないエラーを報告済みか。同じエラーを何度も出さないために持つ
+        private static bool sHasReportedMissing;
+
+        /* インスペクタ設定 */
+
+        [Label("ユニットAIの既定")]
+        [SerializeField] private PPUnitAIDefaultsDefinition mUnitAIDefaults;
+
+        /* 状態 */
+
+        // アセットが見つからなかったときに作った代替インスタンスか
+        public bool IsFallback { get; private set; }
+
+        /* プロパティ */
+
+        public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
+
+        /* static 関数 */
 
         // 現在の設定を差し替える。null を渡すと ClearOverride と同じ
         // aSettings : 差し替える設定

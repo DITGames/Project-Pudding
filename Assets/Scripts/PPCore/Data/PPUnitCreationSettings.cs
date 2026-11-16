@@ -29,16 +29,7 @@ namespace PPCore
         public int MaxLevel => mMaxLevel;
         public float[] Scales => mScales == null ? null : Complete(mScales);
 
-        /* 初期化・接続 */
-
-        // 作成設定を記録するだけで、ユニットの評価範囲は変更しない
-        public void Initialize(int aMaxLevel, float[] aScales)
-        {
-            mMaxLevel = aMaxLevel;
-            mScales = (float[])aScales.Clone();
-        }
-
-        /* 操作 */
+        /* static 関数 */
 
         // きようさの基準値を持たない旧データ（4要素）は、不足分を既定値で補ったコピーを返す
         public static float[] Complete(float[] aScales)
@@ -47,6 +38,15 @@ namespace PPCore
             Array.Copy(DefaultScales, scales, DefaultScales.Length);
             Array.Copy(aScales, scales, aScales.Length);
             return scales;
+        }
+
+        /* 初期化・接続 */
+
+        // 作成設定を記録するだけで、ユニットの評価範囲は変更しない
+        public void Initialize(int aMaxLevel, float[] aScales)
+        {
+            mMaxLevel = aMaxLevel;
+            mScales = (float[])aScales.Clone();
         }
     }
 }

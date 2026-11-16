@@ -55,6 +55,21 @@ namespace PPCore
         public PPUnitRole Role => mRole;
         public PPUnitBehaviourTree BehaviourTree => mBehaviourTree;
 
+        /* static 関数 */
+
+        // 育成値を整数へ丸める。0.5 は 0 から遠い側へ丸める（2.5 → 3、-2.5 → -3）
+        // Mathf.Round は偶数丸め（2.5 → 2）になるため使わない
+        public static float RoundGrowthValue(float aValue)
+            => (float)Math.Round((double)aValue, MidpointRounding.AwayFromZero);
+
+        // 基礎値へ成長倍率を掛けて育成値を求める。表示と生成で共通の計算式
+        // 倍率は最低 1 に丸め、曲線が未設定の場合は倍率 1 として扱う
+        public static float EvaluateGrowthValue(float aBase, AnimationCurve aCurve, int aLevel)
+        {
+            float rate = aCurve == null ? 1f : Mathf.Max(1f, aCurve.Evaluate(aLevel));
+            return RoundGrowthValue(aBase * rate);
+        }
+
         /* 生成 */
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口
@@ -96,13 +111,6 @@ namespace PPCore
             => new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
                 mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.CoinGaugeMax, EvaluateDexterity(aLevel));
 
-        /* 操作 */
-
-        // 育成値を整数へ丸める。0.5 は 0 から遠い側へ丸める（2.5 → 3、-2.5 → -3）
-        // Mathf.Round は偶数丸め（2.5 → 2）になるため使わない
-        public static float RoundGrowthValue(float aValue)
-            => (float)Math.Round((double)aValue, MidpointRounding.AwayFromZero);
-
         /* 評価・判定 */
 
         // スキルやランタイムユニットを生成せず、表示と生成で同じ成長値（育成値）を評価する
@@ -118,13 +126,5 @@ namespace PPCore
         // きようさの育成値を評価する。他の 4 能力と同じ丸め規則を使う
         public virtual float EvaluateDexterity(int aLevel)
             => EvaluateGrowthValue(mExpandStatBlock.Dexterity, mDexterityGrowth, aLevel);
-
-        // 基礎値へ成長倍率を掛けて育成値を求める。表示と生成で共通の計算式
-        // 倍率は最低 1 に丸め、曲線が未設定の場合は倍率 1 として扱う
-        public static float EvaluateGrowthValue(float aBase, AnimationCurve aCurve, int aLevel)
-        {
-            float rate = aCurve == null ? 1f : Mathf.Max(1f, aCurve.Evaluate(aLevel));
-            return RoundGrowthValue(aBase * rate);
-        }
     }
 }

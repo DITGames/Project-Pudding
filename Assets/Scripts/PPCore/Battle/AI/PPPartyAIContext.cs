@@ -61,7 +61,7 @@ namespace PPCore
         // 直接書き換えず RegisterConditionedUnit / ResetConditionedUnits を通すこと
         public IReadOnlyList<PPBattleUnit> ConditionedUnits => mConditionedUnits;
 
-        /* 生成 */
+        /* static 関数 */
 
         // 現在のパーティ状況を集計してスナップショットを生成する
         // 味方の HP 集計、敵の生存者・最低 HP・脅威度の探索、危機判定を 1 回で済ませる
@@ -154,6 +154,13 @@ namespace PPCore
             return snap;
         }
 
+        // ユニットの HP 割合を 0～1 で求める。最大 HP が 0 以下の場合は 0 を返す
+        public static float HpRatio(PPBattleUnit aUnit)
+        {
+            float max = aUnit.Parameters.Hp.Max.CurrentValue;
+            return max <= 0f ? 0f : aUnit.Parameters.Hp.CurrentValue / max;
+        }
+
         /* 初期化・接続 */
 
         // 仮押さえ台帳を結び付ける
@@ -180,13 +187,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // ユニットの HP 割合を 0～1 で求める。最大 HP が 0 以下の場合は 0 を返す
-        public static float HpRatio(PPBattleUnit aUnit)
-        {
-            float max = aUnit.Parameters.Hp.Max.CurrentValue;
-            return max <= 0f ? 0f : aUnit.Parameters.Hp.CurrentValue / max;
-        }
 
         // 登録済みの対象候補を全て捨てる
         // スナップショットは全ユニットで共有されるため、1 体分の思考を始める前に必ず呼ぶ

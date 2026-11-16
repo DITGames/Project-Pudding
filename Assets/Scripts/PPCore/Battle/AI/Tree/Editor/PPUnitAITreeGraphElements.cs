@@ -58,7 +58,7 @@ namespace PPCore
     // Port を直接継承して m_EdgeConnector へこのクラス自身を設定する
     internal class PPUnitAITreePort : Port, IEdgeConnectorListener
     {
-        /* 生成 */
+        /* static 関数 */
 
         public static PPUnitAITreePort Create(Orientation aOrientation, Direction aDirection, Capacity aCapacity)
         {
@@ -67,6 +67,8 @@ namespace PPCore
             port.AddManipulator(port.m_EdgeConnector);
             return port;
         }
+
+        /* 生成 */
 
         private PPUnitAITreePort(Orientation aOrientation, Direction aDirection, Capacity aCapacity, Type aType)
             : base(aOrientation, aDirection, aCapacity, aType)

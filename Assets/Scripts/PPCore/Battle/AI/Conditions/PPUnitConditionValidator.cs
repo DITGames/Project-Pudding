@@ -35,11 +35,7 @@ namespace PPCore
         // 条件の説明文
         public string Description => mDescription;
 
-        /* 評価・判定 */
-
-        // 指定ユニットが条件を満たすか判定する
-        // 派生クラスで実装する。状態を変えず判定のみを行うこと
-        public abstract bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot);
+        /* static 関数 */
 
         // 条件リストを AND で評価する
         // 空リストは「条件なし」とみなして true を返す。null 要素は読み飛ばす
@@ -56,8 +52,6 @@ namespace PPCore
             return true;
         }
 
-        /* 問い合わせ */
-
         // 条件リストが 1 件でも中身を持っているか
         // 「達成済み判定条件が空なら常に未達成」の判定に使う
         public static bool HasAny(IReadOnlyList<PPUnitConditionValidator> aConditions)
@@ -70,6 +64,12 @@ namespace PPCore
             }
             return false;
         }
+
+        /* 評価・判定 */
+
+        // 指定ユニットが条件を満たすか判定する
+        // 派生クラスで実装する。状態を変えず判定のみを行うこと
+        public abstract bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot);
 
         /* 説明文 */
 
