@@ -73,16 +73,15 @@ namespace PPCore
         /* 生成 */
 
         // レベル 1 でランタイムユニットを生成する。基底のシグネチャに合わせた入口
-        public override BattleUnit CreateRuntimeUnit(ICommandDecider aDecider = null)
-            => CreateRuntimeUnit(1, aDecider);
+        public override BattleUnit CreateRuntimeUnit()
+            => CreateRuntimeUnit(1);
 
         // レベルを指定してランタイムユニットを生成する
         // 成長後のパラメータと追加パラメータを組み立て、所持スキルもランタイム化して持たせる
-        public virtual BattleUnit CreateRuntimeUnit(int aLevel, ICommandDecider aDecider = null)
+        public virtual BattleUnit CreateRuntimeUnit(int aLevel)
         {
             var unit = new PPBattleUnit(mUnitId, DisplayName, CreateParameterSet(aLevel), CreatePPParameterSet(aLevel), mTypeAttribute)
             {
-                CommandDecider = aDecider ?? new PPRandomAICommandDecider(),
                 SourceDefinition = this,
             };
             foreach (var skill in mSkills)

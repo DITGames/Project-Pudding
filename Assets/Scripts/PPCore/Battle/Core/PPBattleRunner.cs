@@ -9,6 +9,7 @@
 using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using AttributeUtility;
 using CustomConsole;
 
@@ -25,6 +26,25 @@ namespace PPCore
         [Label("コインゲージブリッジ")]
         [SerializeField] private PPCoinResourceBridge mCoinResourceBridge;
 
+        // チャージ用アイテムを味方のスキルゲージへ橋渡しするブリッジ。未設定ならアイテムを扱わない
+        [Label("チャージアイテムブリッジ")]
+        [SerializeField] private PPChargeItemBridge mChargeItemBridge;
+
+        // 敵のプッシャーを物理で動かすか。無効なら、下の「敵ゲージ供給」で設定した量で代用する
+        [Header("敵のプッシャー")]
+        [Label("敵のプッシャーを使う")]
+        [SerializeField] private bool mIsUseEnemyPusher = false;
+        // 敵のプッシャー一式（本体・カメラ）の親。使わない設定のときは無効にする
+        [Label("敵のプッシャー本体")]
+        [SerializeField] private GameObject mEnemyPusherRoot;
+        // 敵のプッシャーを映すワイプ表示。使わない設定のときは無効にする
+        [Label("敵のプッシャーのワイプ表示")]
+        [SerializeField] private GameObject mEnemyPusherWipe;
+        [Label("敵コインゲージブリッジ")]
+        [SerializeField] private PPCoinResourceBridge mEnemyCoinResourceBridge;
+        [Label("敵チャージアイテムブリッジ")]
+        [SerializeField] private PPChargeItemBridge mEnemyChargeItemBridge;
+
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
         [Label("バトルビューバインダー")]
@@ -38,7 +58,8 @@ namespace PPCore
         // ゲージ供給(シミュレーション)の 1 回分の間隔（秒）
         [Header("バトル設定")]
         [Label("ゲージ供給の間隔(秒)")]
-        [SerializeField] private float mTurnTickInterval = 5f;
+        [FormerlySerializedAs("mTurnTickInterval")]
+        [SerializeField] private float mSupplyInterval = 5f;
 
         // 行動してから次の行動を積めるようになるまでの秒数。演出の長さの代わりに使う
         [Label("行動の演出時間")]
@@ -53,7 +74,7 @@ namespace PPCore
         [Label("オートバトル")]
         [SerializeField] private bool mIsAutoBattle = false;
 
-        // 敵が供給の間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
+        // 敵が供給の間隔ごとに得るゲージ量。敵のプッシャーを使わない設定のときに、代わりに直接補給する
         [Label("敵ゲージ供給")]
         [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
 
@@ -90,6 +111,13 @@ namespace PPCore
 
         /* Unity イベント */
 
+        // 敵のプッシャーを使わない設定なら、物理が動き出す前に一式を無効にする
+        void Awake()
+        {
+            if (mEnemyPusherRoot != null) mEnemyPusherRoot.SetActive(IsEnemyPusherAvailable);
+            if (mEnemyPusherWipe != null) mEnemyPusherWipe.SetActive(IsEnemyPusherAvailable);
+        }
+
         // バトルを組み立てて開始する。パーティ生成 → コンテキスト構築 → バトル開始 →
         // View・コインブリッジ・入力の接続 → AI の接続と最初の思考 → 行動の進行とゲージ供給の開始、の順に進む
         void Start()
@@ -124,15 +152,25 @@ namespace PPCore
             mEnemyAI.ThinkAll(context);
             if (mIsAutoBattle) mAllyAI.ThinkAll(context);
 
-            mEnemyResourceSimulation.Start((PPBattleParty)context.EnemyParty, context, mTurnTickInterval);
+            // 敵のコインは、プッシャーを使う設定ならプッシャーから、そうでなければ設定した量の供給から得る
+            if (IsEnemyPusherAvailable)
+            {
+                mEnemyCoinResourceBridge.Bind(mBattleManager, BattleSide.Enemy);
+                if (mEnemyChargeItemBridge != null) mEnemyChargeItemBridge.Bind(mBattleManager, BattleSide.Enemy);
+            }
+            else
+            {
+                mEnemyResourceSimulation.Start((PPBattleParty)context.EnemyParty, context, mSupplyInterval);
+            }
             // シミュレーション供給時はプッシャーのコイン獲得と二重に加算されないよう購読を行わない
             if (mIsSimulateAllyResource)
             {
-                mAllyResourceSimulation.Start((PPBattleParty)context.AllyParty, context, mTurnTickInterval);
+                mAllyResourceSimulation.Start((PPBattleParty)context.AllyParty, context, mSupplyInterval);
             }
             else
             {
                 mCoinResourceBridge.Bind(mBattleManager, BattleSide.Ally);
+                if (mChargeItemBridge != null) mChargeItemBridge.Bind(mBattleManager, BattleSide.Ally);
             }
         }
 
@@ -172,9 +210,17 @@ namespace PPCore
             mActionScheduler.Unbind();
             mEnemyAI.Unbind();
             mAllyAI.Unbind();
+            // 決着後に落ちたコインやアイテムでゲージが動かないよう、橋渡しも外す
+            if (mCoinResourceBridge != null) mCoinResourceBridge.Unbind();
+            if (mChargeItemBridge != null) mChargeItemBridge.Unbind();
+            if (mEnemyCoinResourceBridge != null) mEnemyCoinResourceBridge.Unbind();
+            if (mEnemyChargeItemBridge != null) mEnemyChargeItemBridge.Unbind();
         }
 
         /* 問い合わせ */
+
+        // 敵のプッシャーを使えるか。使う設定で、橋渡しが割り当てられているときだけ true
+        private bool IsEnemyPusherAvailable => mIsUseEnemyPusher && mEnemyCoinResourceBridge != null;
 
         // 今コマンド入力を始められるかを判定する。ターゲットの指定はいつでも行えるため、決着していなければ true
         private bool CanSelectAnyCommand()

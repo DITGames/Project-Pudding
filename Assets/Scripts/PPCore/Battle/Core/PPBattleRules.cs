@@ -27,8 +27,6 @@ namespace PPCore
         public List<ITargetFilter> TargetFilters { get; } = new();
         // 対象が死亡していた場合の代替ターゲット決定ポリシー
         public IDeadTargetPolicy DeadTargetPolicy { get; set; } = new FirstAliveFallback();
-        // ターンごとの行動順並び替えクラス。既定は素早さ順
-        public ITurnOrderResolver TurnOrderResolver { get; set; } = new SpeedTurnOrderResolver();
         // 勝敗判定クラス。差し替えることで引き分け条件などを追加できる
         public IBattleResultChecker ResultChecker { get; set; } = new DefaultBattleResultChecker();
         // 1 イベント当たりのリアクション上限

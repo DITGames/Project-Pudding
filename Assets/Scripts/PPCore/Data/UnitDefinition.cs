@@ -42,11 +42,10 @@ namespace PPCore
 
         // この定義からランタイムのユニットインスタンスを生成する
         // パラメータを組み立て、所持スキルもランタイム化して持たせる（null は読み飛ばす）
-        public virtual BattleUnit CreateRuntimeUnit(ICommandDecider aDecider = null)
+        public virtual BattleUnit CreateRuntimeUnit()
         {
             var unit = new BattleUnit(mUnitId, mDisplayName, CreateParameterSet())
             {
-                CommandDecider = aDecider ?? new RandomAICommandDecider(),
                 SourceDefinition = this,
             };
 

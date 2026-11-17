@@ -32,8 +32,6 @@ namespace PPCore
         public List<BattleSkill> Skills { get; } = new();
         // 反撃などのリアクション定義。トリガー発生時に BattleManager が走査する
         public List<IBattleReaction> Reactions { get; } = new();
-        // コマンド決定クラス。AI 制御ユニットに設定する
-        public ICommandDecider CommandDecider { get; set; }
         // 生成元の定義アセットへの参照
         // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }

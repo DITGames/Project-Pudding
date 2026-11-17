@@ -20,10 +20,6 @@ namespace PPCore
         OnUnitDefeated,
         // ステータスエフェクトが付与されたとき
         OnStatusAdded,
-        // ターンが開始したとき
-        OnTurnStarted,
-        // ターンが終了したとき
-        OnTurnEnded,
     }
 
     // 特定の出来事に反応して割り込み行動を発生させるリアクション（反撃など）。BattleUnit.Reactions に登録する
@@ -49,13 +45,13 @@ namespace PPCore
 
         // 引き金となった出来事の種別
         public ReactionTrigger Trigger { get; }
-        // トリガーを起こしたユニット。ターン系トリガーなど、主体が無い場合は null
+        // トリガーを起こしたユニット。主体が無い場合は null
         public BattleUnit Instigator { get; }
-        // トリガーの対象となったユニット。ターン系トリガーでは null
+        // トリガーの対象となったユニット。対象が無い場合は null
         public BattleUnit Subject { get; }
         // ダメージ系トリガーで使用されるダメージ情報。それ以外では null
         public DamageInfo Damage { get; }
-        // トリガーの追加データ。ターン系では BattleContext が入る
+        // トリガーの追加データ。無ければ null
         public object Payload { get; }
         // BattleManager.DispatchReactions が求めた引き金の深さ。未設定なら null
         private readonly int? mReactionDepth;
@@ -65,7 +61,7 @@ namespace PPCore
         // 引き金になったダメージがリアクションによるものなら true。ダメージ以外のトリガーでは常に false
         // ダメージ以外のトリガーで連鎖を止めたい場合は ReactionDepth を見る
         public bool IsReactionDamage => Damage?.IsReaction ?? false;
-        // 引き金の出来事が起きたときのリアクションの連鎖の深さ（0 = 通常の行動やターン経過の中で起きた）
+        // 引き金の出来事が起きたときのリアクションの連鎖の深さ（0 = 通常の行動や状態異常の発生の中で起きた）
         // DispatchReactions が積むリアクションの深さはこの値 + 1 になる
         public int ReactionDepth => mReactionDepth ?? Damage?.Reaction?.Depth ?? 0;
 

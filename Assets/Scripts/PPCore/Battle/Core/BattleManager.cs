@@ -12,13 +12,13 @@ using System.Linq;
 
 namespace PPCore
 {
-    // バトル 1 戦闘分の進行を統括するクラス。コマンドキューの実行とターン経過を管理する
+    // バトル 1 戦闘分の進行を統括するクラス。コマンドキューの実行とバトル専用の時計の進行を管理する
     // 判定ロジックは持たず、差し替え可能なインターフェースへ委譲する
     public class BattleManager
     {
         /* 進行状態 */
 
-        // 1 バトル当たりの状態（両パーティ・ルール・ターン数・報酬）を持つコンテキスト
+        // 1 バトル当たりの状態（両パーティ・ルール・時計・報酬）を持つコンテキスト
         public BattleContext Context { get; protected set; }
         // バトル進行ステート（BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd）の管理
         public BattleStateMachine StateMachine { get; } = new();
@@ -35,10 +35,6 @@ namespace PPCore
 
         // ステート変更時(バトル状態)
         public event Action<BattleState> OnStateChanged;
-        // ターン開始時など(ターン番号)
-        public event Action<int> OnTickStarted;
-        // ターン終了時など(ターン番号)
-        public event Action<int> OnTickEnded;
         // 行動が状態異常により失敗したとき(行動ユニット, 実行コマンド)
         public event Action<BattleUnit, BattleCommandBase> OnActionBlocked;
         // コマンド実行直前(行動ユニット, 実行コマンド)
@@ -174,7 +170,7 @@ namespace PPCore
             return true;
         }
 
-        // キューが空になるかバトルが終了するまで連続実行する。ターン制向けのユーティリティ
+        // キューが空になるかバトルが終了するまで連続実行する
         public void ExecuteAllCommands()
         {
             while (StateMachine.Current != BattleState.BattleEnd && ExecuteNextCommand())
@@ -241,26 +237,6 @@ namespace PPCore
             Context.Timers.AdvanceTo(Context.Clock.Now);
         }
 
-        /* ターン進行 */
-
-        // ターン経過処理。ターン終了通知 → ターン番号加算 → ターン開始通知の順に進む
-        // 状態異常とクールタイムはバトル専用の時計で進むため、ここでは扱わない
-        public void AdvanceTick()
-        {
-            OnTickEnded?.Invoke(Context.TurnCount);
-            DispatchReactions(new ReactionContext(
-                ReactionTrigger.OnTurnEnded, null, null, null, Context));
-
-            Context.TurnCount++;
-            OnTickStarted?.Invoke(Context.TurnCount);
-            DispatchReactions(new ReactionContext(
-                ReactionTrigger.OnTurnStarted, null, null, null, Context));
-        }
-
-        // 現在の行動順を取得する。並び替えロジックは Rules.TurnOrderResolver に委譲する
-        // return : 行動順に並んだユニットのリスト
-        public List<BattleUnit> GetTurnOrder() => Context.Rules.TurnOrderResolver.ResolveOrder(Context);
-
         /* リアクション */
 
         // リアクショントリガーを発火し、条件を満たしたユニットのコマンドをキュー先頭へ割り込ませる（上限は Rules.MaxReactionPerEvent）
@@ -268,7 +244,7 @@ namespace PPCore
         protected virtual void DispatchReactions(ReactionContext aContext)
         {
             // 引き金の深さ。ダメージが引き金ならその深さ、ダメージを伴わないトリガー（撃破など）なら実行中のコマンドの深さ
-            // コマンドの実行外（ターン経過など）で起きたトリガーは 0
+            // コマンドの実行外（状態異常の発生など）で起きたトリガーは 0
             int triggerDepth = aContext.Damage?.Reaction?.Depth ?? Context.ExecutingCommand?.ReactionDepth ?? 0;
             aContext = aContext.WithReactionDepth(triggerDepth);
 

@@ -28,4 +28,3 @@ MonoBehaviour:
     IsFixedSeed: 0
     Seed: 0
   BaseResourceConversionRate: 1
-  mThinkCountPerTick: 1

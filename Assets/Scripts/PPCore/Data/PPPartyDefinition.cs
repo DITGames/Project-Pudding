@@ -45,15 +45,6 @@ namespace PPCore
         [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
         [Label("コイン変換レート初期値")] public float BaseResourceConversionRate = 1f;
 
-        // 1 ティックの間に何回思考するか。思考間隔はティック間隔をこの値で割って決まる
-        // ドライバの駆動周期はパーティ単位のため、ユニットごとではなくここで持つ
-        [Header("AI")]
-        [Label("1ティックあたりの思考回数")] [SerializeField] private int mThinkCountPerTick = 1;
-
-        /* プロパティ */
-
-        public int ThinkCountPerTick => Mathf.Max(1, mThinkCountPerTick);
-
         /* 問い合わせ */
 
         // 指定した配置のメンバー枠を返す。ユニット定義が空なら、その配置にはユニットを置かない

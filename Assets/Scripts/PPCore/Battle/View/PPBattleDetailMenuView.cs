@@ -84,7 +84,7 @@ namespace PPCore
                 ? string.Join("\n", aUnit.Skills.Select(s => s.DisplayName))
                 : "-";
 
-            // 状態異常アイコン実装時にアイコンと残りターン数を出す形に変更する？
+            // 状態異常アイコン実装時にアイコンと残り時間を出す形に変更する？
             mStatusEffectListLabel.text = aUnit.ActiveStatusEffects.Count > 0
                 ? string.Join("\n", aUnit.ActiveStatusEffects.Select(s => s.DisplayName))
                 : "なし";
