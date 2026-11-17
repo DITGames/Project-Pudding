@@ -17,7 +17,7 @@ namespace PPCore
     // コインを投入する方法
     public enum PPCoinDispenserMode
     {
-        // プレイヤーが左右の矢印キーで投入する
+        // プレイヤーが左右の矢印キー、またはゲームパッドの L / R ボタンで投入する
         [InspectorName("プレイヤー操作")]
         Player = 0,
         // 一定間隔で、左右どちらかへ自動で投入する。敵のプッシャーに使う
@@ -116,9 +116,13 @@ namespace PPCore
             if (mMode == PPCoinDispenserMode.Player)
             {
                 // コマンド入力中は timeScale が 0 になる。選択の左右キーでコインを落とさないよう投入を止める
-                if (Keyboard.current == null || Time.timeScale <= 0f) return;
-                if (Keyboard.current.leftArrowKey.wasPressedThisFrame) TryDrop(mLeftPoint);
-                if (Keyboard.current.rightArrowKey.wasPressedThisFrame) TryDrop(mRightPoint);
+                if (Time.timeScale <= 0f) return;
+                var keyboard = Keyboard.current;
+                var gamepad = Gamepad.current;
+                if ((keyboard != null && keyboard.leftArrowKey.wasPressedThisFrame)
+                    || (gamepad != null && gamepad.leftShoulder.wasPressedThisFrame)) TryDrop(mLeftPoint);
+                if ((keyboard != null && keyboard.rightArrowKey.wasPressedThisFrame)
+                    || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame)) TryDrop(mRightPoint);
                 return;
             }
 
