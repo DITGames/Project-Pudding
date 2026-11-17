@@ -48,7 +48,7 @@ namespace PPCore
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
         [Label("バトルビューバインダー")]
-        [SerializeField] private PPBattleUnitViewBinder mBattleUnitViewBinder;
+        [SerializeField] private PPStageUnitViewBinder mBattleUnitViewBinder;
 
         // プレイヤーのコマンド入力を扱うコントローラー
         [Header("インプット")]

@@ -231,6 +231,7 @@ PPCore/
 - ブランチ名: `feat/<領域>/<機能名>_<連番>` / `fix/<領域>/<機能名>_<連番>`（例 `feat/Battle/PartyAI_03`, `fix/Utility/RecentAssetWindowFix_01`）
 - コミットメッセージ: `feat : <概要>` / `fix : <概要>`（コロンの前後にスペース）。概要は英語の機能名または日本語のどちらでもよい
 - AI エージェントは指定されたブランチ上で作業し、そのブランチへ push する
+- **`Assets/Fonts/NotoSansJP/NotoSansJP SDF.asset` の変更はコミットしない**。使う文字を実行時に追加する設定のため、Play するたびに表示した文字と文字の画像が書き込まれる。コミット前に差分にあれば `git checkout -- "Assets/Fonts/NotoSansJP/NotoSansJP SDF.asset"` で戻す（表示には影響しない）。フォント自体を意図して更新するときだけ例外とする
 
 ## 既知の課題・注意点
 
