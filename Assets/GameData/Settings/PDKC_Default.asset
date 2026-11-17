@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a893a92f8ea7984f866d8438d2a0238, type: 3}
+  m_Name: PDKC_Default
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPDefaultKeyConfigDefinition
+  mEntries:
+  - mActionName: Submit
+    mKeyboard1: <Keyboard>/space
+    mKeyboard2: <Keyboard>/enter
+    mGamepad1: <Gamepad>/buttonSouth
+    mGamepad2: 
+  - mActionName: Cancel
+    mKeyboard1: <Keyboard>/v
+    mKeyboard2: <Mouse>/rightButton
+    mGamepad1: <Gamepad>/buttonEast
+    mGamepad2: 
+  - mActionName: OpenCommand
+    mKeyboard1: <Keyboard>/c
+    mKeyboard2: 
+    mGamepad1: <Gamepad>/buttonNorth
+    mGamepad2: 
+  - mActionName: AutoBattle
+    mKeyboard1: <Keyboard>/t
+    mKeyboard2: 
+    mGamepad1: 
+    mGamepad2: 
+  - mActionName: DropLeft
+    mKeyboard1: <Keyboard>/leftArrow
+    mKeyboard2: 
+    mGamepad1: <Gamepad>/leftShoulder
+    mGamepad2: 
+  - mActionName: DropRight
+    mKeyboard1: <Keyboard>/rightArrow
+    mKeyboard2: 
+    mGamepad1: <Gamepad>/rightShoulder
+    mGamepad2: 

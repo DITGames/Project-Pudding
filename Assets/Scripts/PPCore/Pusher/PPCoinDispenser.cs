@@ -17,7 +17,7 @@ namespace PPCore
     // コインを投入する方法
     public enum PPCoinDispenserMode
     {
-        // プレイヤーが左右の矢印キー、またはゲームパッドの L / R ボタンで投入する
+        // プレイヤーが入力で左右へ投入する(既定は左右の矢印キーとゲームパッドの L / R ボタン)
         [InspectorName("プレイヤー操作")]
         Player = 0,
         // 一定間隔で、左右どちらかへ自動で投入する。敵のプッシャーに使う
@@ -58,6 +58,11 @@ namespace PPCore
         [SerializeField] private Transform mLeftPoint;
         [Label("投入位置(右)")]
         [SerializeField] private Transform mRightPoint;
+        // プレイヤー操作のときに左へ投入する入力。キー設定で変更できる
+        [Label("左へ投入する入力")]
+        [SerializeField] private InputActionReference mDropLeftAction;
+        [Label("右へ投入する入力")]
+        [SerializeField] private InputActionReference mDropRightAction;
         // 投入位置から左右へずらす幅。毎回この範囲でばらつかせる
         [Label("投入位置のばらつき")]
         [Min(0f)]
@@ -101,28 +106,29 @@ namespace PPCore
 
         /* Unity イベント */
 
-        // 落下の通知を購読し、台の上へコインを並べる
+        // 落下の通知を購読し、台の上へコインを並べる。プレイヤー操作なら投入の入力を有効にする
         private void Start()
         {
             if (mDropZone != null) mDropZone.OnCoinGained += HandleCoinDropped;
+            if (mMode == PPCoinDispenserMode.Player)
+            {
+                if (mDropLeftAction != null) mDropLeftAction.action.Enable();
+                if (mDropRightAction != null) mDropRightAction.action.Enable();
+            }
             SpawnInitialCoins();
             RefreshLabel();
             mAutoTimer = mAutoInterval;
         }
 
-        // 投入の方法に応じて、キー入力または経過時間でコインを投入する
+        // 投入の方法に応じて、入力または経過時間でコインを投入する
         private void Update()
         {
             if (mMode == PPCoinDispenserMode.Player)
             {
                 // コマンド入力中は timeScale が 0 になる。選択の左右キーでコインを落とさないよう投入を止める
                 if (Time.timeScale <= 0f) return;
-                var keyboard = Keyboard.current;
-                var gamepad = Gamepad.current;
-                if ((keyboard != null && keyboard.leftArrowKey.wasPressedThisFrame)
-                    || (gamepad != null && gamepad.leftShoulder.wasPressedThisFrame)) TryDrop(mLeftPoint);
-                if ((keyboard != null && keyboard.rightArrowKey.wasPressedThisFrame)
-                    || (gamepad != null && gamepad.rightShoulder.wasPressedThisFrame)) TryDrop(mRightPoint);
+                if (WasPressed(mDropLeftAction)) TryDrop(mLeftPoint);
+                if (WasPressed(mDropRightAction)) TryDrop(mRightPoint);
                 return;
             }
 
@@ -219,5 +225,9 @@ namespace PPCore
         {
             if (mIsRefundDropped) ChangeStock(aCount);
         }
+
+        /* ヘルパー */
+
+        private static bool WasPressed(InputActionReference aAction) => aAction != null && aAction.action.WasPressedThisFrame();
     }
 }
