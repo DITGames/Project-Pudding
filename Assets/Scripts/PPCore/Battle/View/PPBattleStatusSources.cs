@@ -178,8 +178,6 @@ namespace PPCore
         private readonly BattleUnit mOwner;
         // 発動可否の判定に使うバトルコンテキスト
         private readonly BattleContext mContext;
-        // このティックで既に予約した分を差し引くための台帳。未指定なら予約を考慮しない
-        private readonly PPUnitActionLedger mLedger;
         // ゲージ変化を購読する対象のゲージ。保持ユニットがゲージを持たない場合は null
         private readonly ResourceParameter mSkillGauge;
         // 購読解除済みかどうか。Dispose の多重呼び出しを無害にする
@@ -194,18 +192,8 @@ namespace PPCore
         // 残りクールタイム（秒）
         public float CooldownRemaining => mSkill.RemainingCooldown;
 
-        // 今このスキルを発動できるか
-        // バリデータの判定に加えて、同じティックに既に予約した行動で使う予定の分も差し引く
-        public bool IsCastable
-        {
-            get
-            {
-                if (!mContext.Rules.CastValidator.Validate(mOwner, mSkill, mContext).CanCast) return false;
-                if (mLedger == null || mOwner is not PPBattleUnit ppOwner) return true;
-
-                return mLedger.CanReserveSkill(ppOwner, SkillGaugeCost);
-            }
-        }
+        // 今このスキルを発動できるか。判定はバリデータへ委ねる
+        public bool IsCastable => mContext.Rules.CastValidator.Validate(mOwner, mSkill, mContext).CanCast;
 
         /* イベント */
 
@@ -214,13 +202,11 @@ namespace PPCore
 
         /* 生成 */
 
-        public PPBattleSkillStatusSource(BattleSkill aSkill, BattleUnit aOwner, BattleContext aContext,
-            PPUnitActionLedger aLedger = null)
+        public PPBattleSkillStatusSource(BattleSkill aSkill, BattleUnit aOwner, BattleContext aContext)
         {
             mSkill = aSkill;
             mOwner = aOwner;
             mContext = aContext;
-            mLedger = aLedger;
 
             mSkillGauge = (aOwner as PPBattleUnit)?.ExtraParameters.SkillGauge;
             if (mSkillGauge != null)

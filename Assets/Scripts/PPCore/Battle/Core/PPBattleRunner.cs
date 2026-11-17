@@ -10,11 +10,12 @@ using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AttributeUtility;
+using CustomConsole;
 
 namespace PPCore
 {
     // プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント（本番用）
-    // パーティ生成は PPPartyFactory を経由し、行動の進行は PPActionScheduler へ任せる
+    // パーティ生成は PPPartyFactory を経由し、行動の進行は PPActionScheduler、敵とオートバトルの判断は PPUnitAIStrategist へ任せる
     public class PPBattleRunner : MonoBehaviour
     {
         /* インスペクタ設定 */
@@ -48,6 +49,10 @@ namespace PPCore
         [Label("スキル使用可能時にゲージが溜まったらコマンド選択を開く")]
         [SerializeField] private bool mIsOpenCommandOnGaugeReady = false;
 
+        // 有効なとき、味方も AI が次の行動を決める。バトル中は T キーで切り替えられる
+        [Label("オートバトル")]
+        [SerializeField] private bool mIsAutoBattle = false;
+
         // 敵が供給の間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
         [Label("敵ゲージ供給")]
         [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
@@ -78,11 +83,15 @@ namespace PPCore
         private BattleManager mBattleManager = new();
         // コインゲージが溜まったユニットを行動させる進行役
         private readonly PPActionScheduler mActionScheduler = new();
+        // 敵の次の行動を決める AI
+        private readonly PPUnitAIStrategist mEnemyAI = new();
+        // オートバトル中に味方の次の行動を決める AI
+        private readonly PPUnitAIStrategist mAllyAI = new();
 
         /* Unity イベント */
 
         // バトルを組み立てて開始する。パーティ生成 → コンテキスト構築 → バトル開始 →
-        // View・コインブリッジ・入力の接続 → 行動の進行とゲージ供給の開始、の順に進む
+        // View・コインブリッジ・入力の接続 → AI の接続と最初の思考 → 行動の進行とゲージ供給の開始、の順に進む
         void Start()
         {
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
@@ -96,7 +105,7 @@ namespace PPCore
             // スキルゲージ残量を検証するバリデータへ差し替える
             context.Rules.CastValidator = new PPBattleCastValidator();
 
-            mBattleManager.OnBattleEnded += r => mActionScheduler.Unbind();
+            mBattleManager.OnBattleEnded += r => UnbindBattle();
             PPBattleLogBinder.Bind(mBattleManager, context);
             mBattleManager.StartBattle(context);
             mBattleUnitViewBinder.Bind(mBattleManager);
@@ -106,7 +115,14 @@ namespace PPCore
             mController.OnInputClosed += mActionScheduler.ResumeAfterSelection;
 
             mActionScheduler.SelectionRequester = HandleSelectionRequested;
+            mActionScheduler.OnActionFinished += HandleActionFinished;
             mActionScheduler.Bind(mBattleManager, mActionPresentationSeconds);
+
+            // AI は行動が終わるたびに次の行動を決める。最初の 1 回だけは開始時にまとめて決めておく
+            mEnemyAI.BindBattle(mBattleManager, BattleSide.Enemy);
+            mAllyAI.BindBattle(mBattleManager, BattleSide.Ally);
+            mEnemyAI.ThinkAll(context);
+            if (mIsAutoBattle) mAllyAI.ThinkAll(context);
 
             mEnemyResourceSimulation.Start((PPBattleParty)context.EnemyParty, context, mTurnTickInterval);
             // シミュレーション供給時はプッシャーのコイン獲得と二重に加算されないよう購読を行わない
@@ -120,10 +136,15 @@ namespace PPCore
             }
         }
 
-        // バトル専用の時計を進め、コマンド選択ボタンの押下でコマンド入力を開始する
+        // バトル専用の時計を進め、コマンド選択ボタンの押下でコマンド入力を、T キーでオートバトルの切り替えを行う
         void Update()
         {
             mBattleManager.AdvanceTime(Time.deltaTime);
+
+            if (IsAutoBattleTogglePressed() && CanSelectAnyCommand())
+            {
+                SetAutoBattle(!mIsAutoBattle);
+            }
 
             if (IsCommandInputPressed() && CanSelectAnyCommand())
             {
@@ -131,8 +152,27 @@ namespace PPCore
             }
         }
 
-        // バトルが決着しないまま破棄された場合にも、進行役の購読を外す
-        void OnDestroy() => mActionScheduler.Unbind();
+        // バトルが決着しないまま破棄された場合にも、進行役と AI の購読を外す
+        void OnDestroy() => UnbindBattle();
+
+        /* 操作 */
+
+        // オートバトルを切り替える。有効にした時点で、味方全員の次の行動を AI に決めさせる
+        // 無効にしても、AI が決めたスキルの選択と狙う相手はそのまま残る（コマンド入力で変えられる）
+        public void SetAutoBattle(bool aIsEnabled)
+        {
+            mIsAutoBattle = aIsEnabled;
+            CustomConsoleLog.Log("Battle", $"オートバトル: {(mIsAutoBattle ? "ON" : "OFF")}");
+            if (mIsAutoBattle && CanSelectAnyCommand()) mAllyAI.ThinkAll(mBattleManager.Context);
+        }
+
+        // 進行役と AI をバトルから切り離す
+        private void UnbindBattle()
+        {
+            mActionScheduler.Unbind();
+            mEnemyAI.Unbind();
+            mAllyAI.Unbind();
+        }
 
         /* 問い合わせ */
 
@@ -148,7 +188,18 @@ namespace PPCore
                 || (Gamepad.current != null && Gamepad.current.triangleButton.wasPressedThisFrame);
         }
 
+        // オートバトルの切り替え操作（キーボードの T）が行われたかを判定する
+        private bool IsAutoBattleTogglePressed()
+            => Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame;
+
         /* イベントハンドラ */
+
+        // ユニットの行動が終わったとき、AI が担当するユニットなら次の行動を決めさせる
+        private void HandleActionFinished(PPBattleUnit aUnit)
+        {
+            if (aUnit.Side == BattleSide.Enemy) mEnemyAI.Think(aUnit, mBattleManager.Context);
+            else if (mIsAutoBattle) mAllyAI.Think(aUnit, mBattleManager.Context);
+        }
 
         // プレイヤーが確定したコマンドを、そのユニットのスキルの選択へ反映する
         // その場では実行せず、コインゲージが溜まったときに進行役が積む
@@ -156,9 +207,10 @@ namespace PPCore
             => mActionScheduler.ApplyPlayerCommand(aUnit, aCommand, mController.Context.Target);
 
         // 行動を積む直前のコマンド選択を開くかを決める。設定が有効で、味方に発動可能なスキルがあるときだけ開く
+        // オートバトル中は AI が決めるため開かない
         private bool HandleSelectionRequested(PPBattleUnit aUnit)
         {
-            if (!mIsOpenCommandOnGaugeReady || aUnit.Side != BattleSide.Ally) return false;
+            if (!mIsOpenCommandOnGaugeReady || mIsAutoBattle || aUnit.Side != BattleSide.Ally) return false;
             if (!aUnit.CanValidateSkill(mBattleManager.Context)) return false;
 
             return mController.BeginSkillSelect(aUnit);

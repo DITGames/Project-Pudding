@@ -31,7 +31,7 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 33a047bf68c041239ed20882ebb1aed0
         mGraphPosition: {x: 0, y: 0}
         mChildIds:
@@ -44,20 +44,20 @@ MonoBehaviour:
         mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 3
+        mCooldownActions: 3
         mNodeId: e048c7a8abff4a04913115c11d986be5
         mGraphPosition: {x: 320, y: 0}
         mAction:
           rid: 2919751056307257454
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2919751056307257451
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u4E3B\u30B9\u30AD\u30EB\u5206\u3092\u6B8B\u305B\u308B\u304B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 04a72430f4324e8aaffb4b46af8d3b41
         mGraphPosition: {x: 320, y: 160}
         mUnitConditions:
@@ -72,26 +72,26 @@ MonoBehaviour:
         mNodeName: "\u653B\u6483\u30B9\u30AD\u30EB"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 02e96912be07483f8ebf10ca6a8315f8
         mGraphPosition: {x: 640, y: 160}
         mAction:
           rid: 2919751056307257456
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2919751056307257453
       type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u901A\u5E38\u653B\u6483"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 7cac9019994d4b11a88be6cdd62d9cb2
         mGraphPosition: {x: 320, y: 320}
         mAction:
           rid: 2919751056307257457
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2919751056307257454
       type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
       data:

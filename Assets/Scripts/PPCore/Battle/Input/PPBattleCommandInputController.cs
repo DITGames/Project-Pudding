@@ -97,9 +97,6 @@ namespace PPCore
 
         /* 状態 */
 
-        // このティックの行動を仮押さえしている台帳。予約分を差し引いた残量でスキルの発動可否を出すために使う
-        // 未設定なら実際のゲージ残量だけで判定される
-        public PPUnitActionLedger ActionLedger { get; set; }
         // コマンドの投入先。Bind で受け取る
         private BattleManager mManager;
         // 入力ステートのスタック。先頭が現在アクティブなステート

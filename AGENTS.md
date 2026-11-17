@@ -86,23 +86,22 @@ Packages/, ProjectSettings/
 - `PPBattleResourcePool` が属性ごとの `ResourceParameter` を保持。スキルの `PPResourceCost` を `CanPay` / `TryPay` で消費
 - プッシャー → バトルの接続は `PPCoinResourceBridge`：`IPPCoinGainNotifier`（実装例 `CoinDropCounter`）の `OnCoinGained` を購読し、`IPPCoinResourceConverter` と `PPBattleParty.CoinConversionRate` を経由してリソースプールへ加算する。**物理側とバトル側を直接結合させず、必ずこのブリッジを挟む**
 
-### パーティ AI
+### ユニット AI
 
-`PPPartyAIStrategistBase`（`IPPPartyCommandStrategist`）がパーティ単位で行動計画（`PPPartyPlan`）を立て、`PPEnemyAIDriver` が `ThinkInterval` 秒ごとにコルーチンで駆動する。
+`PPUnitAIStrategist`（`IPPPartyCommandStrategist`）が、ユニットごとの判断ツリー `PPUnitBehaviourTree` を評価して次の行動を決める。一定間隔では思考しない。
 
 処理の流れ：
-1. `PPPartyAIContext.Capture()` でパーティ状況をスナップショット
-2. `PPIncomTrendTracker` でリソース増加トレンドをサンプリング
-3. `PPPartyAISituationRule` の条件（`PPPartyConditionValidator` 派生の ScriptableObject 群）を評価して状況スコアを解決
-4. ユニットごとに行動候補 `PPActionCandidate` を生成し、ロール別重み × 状況スコア × コスト効率でスコアリング
-5. `Intelligence` に応じたノイズを載せて選択（知能が低いほど最適解を外す）
-6. 「待って溜めた方が良いか」を `EvaluateWaitForUnit()` で判定
-7. `PPResourceBudget` で実リソースを優先度順に確保し `MaxActionsPerTick` まで採用
+1. バトル開始時に `ThinkAll()`、以後はユニットの行動（演出）が終わるたびに `PPActionScheduler.OnActionFinished` から `Think(unit)` が呼ばれる
+2. `PPPartyAIContext.Capture()` でパーティ状況をスナップショットし、ツリーを評価する（個別 → ロール既定 → 全体既定の順で引く）
+3. 結果をその場で実行せず、ユニットの「選択中のスキル」（`SelectedSkill`）と「狙う相手」（`DesignatedTarget`）として予約する。待機と通常攻撃はスキルの選択を外す
+4. コインゲージが溜まると、プレイヤー操作のユニットと同じく `PPActionScheduler` が予約どおりに行動を積む
 
-AI のチューニングは基本的に **コードではなく `PPPartyAIProfileDefinition` アセット**（`Assets/GameData/AI/PartyAIProfile/`）で行う。条件アセットは `Assets/GameData/AI/Conditions/` 配下に、`PPConditionMenuAttribute(path, folderPath)` が指すツリー位置に沿って `PPConditionAssetFactory` が自動生成する。新しい条件クラスを足すときは `PPPartyConditionValidator` を継承し、`PPConditionMenuAttribute` と `CreateAssetMenu` を必ず付ける。
+- 時間の経過は「そのユニットが何回行動したか」（`PPUnitAIBlackboard.ActionCount`）で数える。判断の維持・狙いの固定・ノードの間隔・「直近の出来事」は行動回数で設定する
+- 上位のスキルまでの距離は「あと何回通常攻撃すれば届くか」（`PPUnitGaugeForecast.EstimateAttacksToReach`）で測る。クールタイムなど秒で決まるものと比べるときだけ、直近の 1 回の行動に掛かった秒数（`SecondsPerAction`）で換算する
+- オートバトル（`PPBattleRunner` の設定、T キーで切り替え）は、味方にも同じ AI を当てる
+- AI のチューニングは基本的にコードではなくツリーのアセット（`Assets/GameData/AI/UnitBehaviourTree/`）で行う。ノードと条件は `[SerializeReference]` の通常クラスで、`Window` のツリーエディタから編集する
 
-乱数は必ず `aContext.Rules.RandomProvider`（`NextInt` / `NextFloat`）を経由する。AI ロジック内で `UnityEngine.Random` を直接使わない。
-
+乱数は必ず `aContext.Rules.RandomProvider`、またはユニット自身の `ResolveRandom()` を経由する。AI ロジック内で `UnityEngine.Random` を直接使わない。
 ### UI・入力
 
 `PPBattleCommandInputController` がスタックベースのステートマシンで入力を管理する。

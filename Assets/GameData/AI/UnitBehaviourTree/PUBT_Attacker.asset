@@ -41,7 +41,7 @@ MonoBehaviour:
         mNodeName: "\u884C\u52D5\u512A\u5148\u5EA6"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1000
         mGraphPosition: {x: 0, y: 0}
         mChildIds:
@@ -56,7 +56,7 @@ MonoBehaviour:
         mNodeName: "\u653B\u6483\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B\uFF1F"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1003
         mGraphPosition: {x: 320, y: 150}
         mUnitConditions:
@@ -71,7 +71,7 @@ MonoBehaviour:
         mNodeName: "\u653B\u6483\u30B9\u30AD\u30EB\u306E\u4F7F\u3044\u65B9"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1004
         mGraphPosition: {x: 640, y: 150}
         mChildIds:
@@ -84,7 +84,7 @@ MonoBehaviour:
         mNodeName: "\u4E00\u756A\u5F37\u3044\u653B\u6483\u30B9\u30AD\u30EB\u304C\u6483\u3066\u308B\uFF1F"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1005
         mGraphPosition: {x: 960, y: 150}
         mUnitConditions:
@@ -99,20 +99,20 @@ MonoBehaviour:
         mNodeName: "\u4E00\u756A\u5F37\u3044\u30B9\u30AD\u30EB\u3092\u6483\u3064"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1006
         mGraphPosition: {x: 1280, y: 150}
         mAction:
           rid: 3006
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1007
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u5F85\u3066\u3070\u3082\u3063\u3068\u5F37\u3044\u30B9\u30AD\u30EB\u304C\u4F7F\u3048\u308B\uFF1F"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1007
         mGraphPosition: {x: 960, y: 300}
         mUnitConditions:
@@ -127,33 +127,33 @@ MonoBehaviour:
         mNodeName: "\u901A\u5E38\u653B\u6483\u3067\u6E9C\u3081\u308B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1008
         mGraphPosition: {x: 1280, y: 300}
         mAction:
           rid: 3008
-        mCommitTicks: 3
-        mFocusTicks: 0
+        mCommitActions: 3
+        mFocusActions: 0
     - rid: 1009
       type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u4ECA\u6483\u3066\u308B\u30B9\u30AD\u30EB\u3092\u6483\u3064"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1009
         mGraphPosition: {x: 960, y: 450}
         mAction:
           rid: 3009
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1010
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B\uFF1F"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1010
         mGraphPosition: {x: 320, y: 300}
         mUnitConditions:
@@ -168,20 +168,20 @@ MonoBehaviour:
         mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB\u3092\u6483\u3064"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1011
         mGraphPosition: {x: 640, y: 300}
         mAction:
           rid: 3011
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1012
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u56DE\u5FA9\u30B9\u30AD\u30EB\u3092\u6301\u3063\u3066\u3044\u308B\uFF1F"
         mIsInterrupt: 1
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1012
         mGraphPosition: {x: 320, y: 450}
         mUnitConditions:
@@ -196,7 +196,7 @@ MonoBehaviour:
         mNodeName: "HP\u304C\u6E1B\u3063\u305F\u5473\u65B9\u304C\u3044\u308B\uFF1F"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1013
         mGraphPosition: {x: 640, y: 450}
         mUnitConditions: []
@@ -211,13 +211,13 @@ MonoBehaviour:
         mNodeName: "\u56DE\u5FA9\u30B9\u30AD\u30EB\u3092\u4F7F\u3046"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: n1014
         mGraphPosition: {x: 960, y: 600}
         mAction:
           rid: 3014
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2002
       type: {class: PPUnitHasSkillCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -247,14 +247,15 @@ MonoBehaviour:
       type: {class: PPUnitStrongerSkillReachableCondition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mIsAutoDescription: 1
-        mDescription: "3\u30C6\u30A3\u30C3\u30AF\u5F85\u3066\u3070 \u653B\u6483 \u306E\u5F37\u3044\u30B9\u30AD\u30EB\u304C\u6483\u3066\u308B"
+        mDescription: "\u901A\u5E38\u653B\u6483\u30923\u56DE\u7D9A\u3051\u308C\u3070
+          \u653B\u6483 \u306E\u5F37\u3044\u30B9\u30AD\u30EB\u304C\u6483\u3066\u308B"
         mFilter:
           mMode: 0
           mSkillDefinition: {fileID: 0}
           mIsFilterByGroup: 1
           mGroup: 0
           mTags: []
-        mAllowedWaitTicks: 3
+        mAllowedAttacks: 3
         mRequiredScoreGain: 0.01
         mIsInvert: 0
     - rid: 2005
@@ -351,7 +352,7 @@ MonoBehaviour:
         mNodeName: "\u901A\u5E38\u653B\u6483\u3067\u5012\u305B\u308B\u6575\u306B\u653B\u6483"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 1747d790583d4129b8946cd50c2be68a
         mGraphPosition: {x: 320, y: 0}
         mSubTree: {fileID: 11400000, guid: d2fcc4aef0ca8c34f907a8aebb6fcde8, type: 2}
@@ -361,7 +362,7 @@ MonoBehaviour:
         mNodeName: "\u901A\u5E38\u653B\u6483\u62BD\u9078"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 2f5687768ae3474fa94824ce335879dd
         mGraphPosition: {x: 320, y: 600}
         mSubTree: {fileID: 11400000, guid: 71297fa7f3abd284ca0541204833113d, type: 2}

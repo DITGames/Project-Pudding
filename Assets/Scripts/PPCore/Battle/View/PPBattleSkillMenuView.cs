@@ -78,7 +78,7 @@ namespace PPCore
 
         // ユニットの所持スキル分のボタンを生成して表示する
         // 各ボタンへステータスソースを渡すため、リソース不足のスキルは押せない状態になる
-        public void Show(BattleUnit aUnit, BattleContext aContext, PPUnitActionLedger aLedger = null)
+        public void Show(BattleUnit aUnit, BattleContext aContext)
         {
             if (mContent == null)
             {
@@ -93,7 +93,7 @@ namespace PPCore
             foreach (var skill in aUnit.Skills)
             {
                 var btn = Instantiate(mButtonPrefab, mContent);
-                var src = new PPBattleSkillStatusSource(skill, aUnit, aContext, aLedger);
+                var src = new PPBattleSkillStatusSource(skill, aUnit, aContext);
                 // カタログ未設定、または該当アイコン未登録のどちらもアイコンなしとして扱う
                 var icon = mIconCatalog != null
                     ? mIconCatalog.Resolve(skill.SkillId)?.SkillIcon

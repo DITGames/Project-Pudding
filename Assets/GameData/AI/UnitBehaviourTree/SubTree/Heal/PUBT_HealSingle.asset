@@ -27,13 +27,13 @@ MonoBehaviour:
         mNodeName: "\u5BFE\u8C61\u3092\u56DE\u5FA9"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 586ca1f5b244408a9ca631d7b108cd70
         mGraphPosition: {x: -1.3333334, y: -0.6666641}
         mAction:
           rid: 1269812297483681900
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812297483681900
       type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
       data:

@@ -32,7 +32,7 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: f4c64cd3e7ee48559cd8e1120efb3926
         mGraphPosition: {x: 0, y: 0}
         mEntries:
@@ -53,13 +53,13 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: ad5b803a8d044e9986779c460c23848b
         mGraphPosition: {x: 320, y: 0}
         mAction:
           rid: 1269812376412356612
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812376412356612
       type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -72,13 +72,13 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: e71adf1cceaf4151b11c399449cd73ae
         mGraphPosition: {x: 320, y: 150}
         mAction:
           rid: 1269812376412356616
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812376412356616
       type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -91,13 +91,13 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 30b868ab32a043de8307a5e84a654daa
         mGraphPosition: {x: 320, y: 300}
         mAction:
           rid: 1269812376412356618
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812376412356618
       type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -110,13 +110,13 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 8f339d40ba544856a7999e79edd0126f
         mGraphPosition: {x: 320, y: 450}
         mAction:
           rid: 1269812376412356620
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812376412356620
       type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
       data:
@@ -129,13 +129,13 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 338bfb63089547d690e1bcb1ba4e9d5c
         mGraphPosition: {x: 320, y: 600}
         mAction:
           rid: 1269812376412356622
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812376412356622
       type: {class: PPUnitAIAttackAction, ns: PPCore, asm: Assembly-CSharp}
       data:

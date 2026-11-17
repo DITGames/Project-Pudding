@@ -8,6 +8,7 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
@@ -87,9 +88,10 @@ namespace PPCore
     {
         /* インスペクタ設定 */
 
-        // 直近の被弾をさかのぼって見るティック数。0 なら経過を問わない
-        [Label("さかのぼるティック数")]
-        [SerializeField] private int mWithinTicks = 1;
+        // 直近の被弾をさかのぼって見る、自分の行動回数。0 なら経過を問わない
+        [Label("さかのぼる行動回数")]
+        [FormerlySerializedAs("mWithinTicks")]
+        [SerializeField] private int mWithinActions = 1;
         // 反転すると「不利属性の敵に狙われていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
@@ -115,7 +117,7 @@ namespace PPCore
             if (attacker == null || !attacker.IsAlive) return false;
 
             // 期間指定がある場合は、その範囲内の被弾だけを見る
-            if (mWithinTicks > 0 && !blackboard.IsDamagedWithin(aSnapShot.Context.TurnCount, mWithinTicks))
+            if (mWithinActions > 0 && !blackboard.IsDamagedWithin(mWithinActions))
                 return false;
 
             return PPAttributeAffinity.Resolve(attacker.TypeAttribute, aUnit.TypeAttribute) == PPAffinityResult.Weak;
@@ -127,7 +129,7 @@ namespace PPCore
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
         {
-            string range = mWithinTicks > 0 ? $"直近{mWithinTicks}ティック以内に" : "";
+            string range = mWithinActions > 0 ? $"直近{mWithinActions}回の行動のあいだに" : "";
             string body = $"{range}不利属性の敵に狙われている";
             mDescription = mIsInvert ? body.Replace("狙われている", "狙われていない") : body;
         }
@@ -165,21 +167,21 @@ namespace PPCore
             => mDescription = mIsInvert ? "通常攻撃で倒せる敵がいない" : "通常攻撃で倒せる敵がいる";
     }
 
-    // ユニット条件: 実行待ちの行動に、指定条件に合う敵の行動が積まれているか
-    // IPPPendingActionSource が無い場合は不成立。敵の思考が後に走ると読めないため、読めたときだけ反応する条件として使う
+    // ユニット条件: 敵が次の行動として、指定条件に合うスキルを選んでいるか
+    // 敵の「選択中のスキル」（予約）を読む。選んでいても、発動可能になるまでは通常攻撃になる点に注意
     [Serializable]
     [PPTypeMenuName("戦況/敵の次の行動")]
     public sealed class PPUnitEnemyPendingActionCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
     {
         /* インスペクタ設定 */
 
-        // スキルで絞り込むか。false なら「何らかの行動が積まれているか」の判定になる
+        // スキルで絞り込むか。false なら「何らかのスキルを選んでいるか」の判定になる
         [Label("スキルで絞り込む")]
         [SerializeField] private bool mIsFilterBySkill = true;
         [Label("対象スキル")]
         [EditCondition(nameof(mIsFilterBySkill), true, false)]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
-        // 反転すると「そういう行動が積まれていない」の判定になる
+        // 反転すると「そういうスキルを選んでいない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
@@ -191,7 +193,7 @@ namespace PPCore
 
         /* 評価・判定 */
 
-        // 相手陣営の実行待ちの行動に、条件へ合うものがあるかを判定する
+        // 相手陣営の選択中のスキルに、条件へ合うものがあるかを判定する
         public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
             if (aUnit == null) return false;
@@ -202,20 +204,15 @@ namespace PPCore
 
         /* 問い合わせ */
 
-        // 相手陣営の実行待ちの行動を走査する
+        // 相手陣営の生存ユニットが選んでいるスキルを走査する
         private bool HasMatchedPending(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
         {
-            var source = aSnapShot.PendingSource;
-            if (source == null) return false;
-
-            var opponent = aUnit.Side == BattleSide.Ally ? BattleSide.Enemy : BattleSide.Ally;
-            foreach (var pending in source.EnumeratePending(opponent))
+            foreach (var enemy in aSnapShot.AliveEnemies)
             {
-                if (!mIsFilterBySkill) return true;
-
-                // 通常攻撃のようにスキル定義を持たない行動は、スキルでの絞り込みには掛からない
-                var definition = (pending.Command as SkillCommand)?.Skill?.SourceDefinition as PPSkillDefinition;
-                if (mFilter.IsMatch(definition)) return true;
+                // スキルを選んでいないユニットは通常攻撃を続けるため、対象にしない
+                var definition = enemy.SelectedSkill?.SourceDefinition as PPSkillDefinition;
+                if (definition == null) continue;
+                if (!mIsFilterBySkill || mFilter.IsMatch(definition)) return true;
             }
             return false;
         }
@@ -228,7 +225,7 @@ namespace PPCore
         {
             string body = mIsFilterBySkill
                 ? $"敵が {mFilter.ToDisplayString()} のスキルを撃とうとしている"
-                : "敵が行動を積んでいる";
+                : "敵がスキルを選んでいる";
             mDescription = mIsInvert ? $"{body} 状態ではない" : body;
         }
     }
@@ -254,9 +251,10 @@ namespace PPCore
 
         [Label("出来事")]
         [SerializeField] private PPUnitRecentEventKind mKind = PPUnitRecentEventKind.Damaged;
-        // さかのぼって見るティック数。0 を指定すると「バトル中に一度でも起きたか」になる
-        [Label("さかのぼるティック数")]
-        [SerializeField] private int mWithinTicks = 1;
+        // さかのぼって見る、自分の行動回数。0 を指定すると「バトル中に一度でも起きたか」になる
+        [Label("さかのぼる行動回数")]
+        [FormerlySerializedAs("mWithinTicks")]
+        [SerializeField] private int mWithinActions = 1;
         // 反転すると「起きていない」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
@@ -272,12 +270,11 @@ namespace PPCore
             if (blackboard == null) return mIsInvert;
 
             // 期間指定が無い場合は、経過を問わず一度でも起きていれば成立させる
-            int turnCount = aSnapShot.Context.TurnCount;
-            int within = mWithinTicks > 0 ? mWithinTicks : int.MaxValue;
+            int within = mWithinActions > 0 ? mWithinActions : int.MaxValue;
             bool isHappened = mKind switch
             {
-                PPUnitRecentEventKind.Damaged => blackboard.IsDamagedWithin(turnCount, within),
-                PPUnitRecentEventKind.AllyDefeated => blackboard.IsAllyDefeatedWithin(turnCount, within),
+                PPUnitRecentEventKind.Damaged => blackboard.IsDamagedWithin(within),
+                PPUnitRecentEventKind.AllyDefeated => blackboard.IsAllyDefeatedWithin(within),
                 _ => false,
             };
             return isHappened != mIsInvert;
@@ -290,7 +287,7 @@ namespace PPCore
         protected override void BuildDescription()
         {
             string kind = mKind == PPUnitRecentEventKind.Damaged ? "攻撃を受けた" : "味方が倒された";
-            string range = mWithinTicks > 0 ? $"直近{mWithinTicks}ティック以内に" : "バトル中に一度でも";
+            string range = mWithinActions > 0 ? $"直近{mWithinActions}回の行動のあいだに" : "バトル中に一度でも";
             mDescription = mIsInvert ? $"{range}{kind}ことがない" : $"{range}{kind}";
         }
     }

@@ -126,7 +126,7 @@ namespace PPCore
         };
 
         // 整数を比較する。実数版へ委譲するため判定の挙動は共通
-        // 生存数やターン数のように厳密一致が要るケースで使うため、許容誤差は既定 0
+        // 生存数のように厳密一致が要るケースで使うため、許容誤差は既定 0
         public static bool Compare(int aValue, PPCompareOp aOp, int aThreshold, int aTolerance = 0)
          => Compare((float)aValue, aOp, (float)aThreshold, (float)aTolerance);
     }

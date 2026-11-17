@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using AttributeUtility;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace PPCore
 {
@@ -32,10 +33,10 @@ namespace PPCore
         public string ActionName { get; }
         // 確定した行動の対象。対象なしなら null
         public PPBattleUnit Target { get; }
-        // この判断を維持するティック数。0 ならその思考限りで、次のティックは自由に選び直す
-        public int CommitTicks { get; }
-        // 確定した対象へ狙いを固定するティック数。0 なら固定しない
-        public int FocusTicks { get; }
+        // この判断を維持する行動回数。0 ならその思考限りで、次の行動は自由に選び直す
+        public int CommitActions { get; }
+        // 確定した対象へ狙いを固定する行動回数。0 なら固定しない
+        public int FocusActions { get; }
 
         /* static 関数 */
 
@@ -50,27 +51,27 @@ namespace PPCore
         /* 生成 */
 
         private PPUnitAINodeResult(bool aIsDecided, BattleCommandBase aCommand, string aActionName,
-            PPBattleUnit aTarget, int aCommitTicks, int aFocusTicks)
+            PPBattleUnit aTarget, int aCommitActions, int aFocusActions)
         {
             IsDecided = aIsDecided;
             Command = aCommand;
             ActionName = aActionName;
             Target = aTarget;
-            CommitTicks = aCommitTicks;
-            FocusTicks = aFocusTicks;
+            CommitActions = aCommitActions;
+            FocusActions = aFocusActions;
         }
 
         /* 操作 */
 
-        // 同じ内容のまま、維持するティック数だけを差し替えた結果を作る
+        // 同じ内容のまま、維持する行動回数だけを差し替えた結果を作る
         // 行動そのものはアクションが決め、どれだけ維持するかはノードが決めるため分けている
-        public PPUnitAINodeResult WithCommit(int aCommitTicks)
-            => new(IsDecided, Command, ActionName, Target, aCommitTicks, FocusTicks);
+        public PPUnitAINodeResult WithCommit(int aCommitActions)
+            => new(IsDecided, Command, ActionName, Target, aCommitActions, FocusActions);
 
-        // 同じ内容のまま、狙いを固定するティック数だけを差し替えた結果を作る
-        // 維持ティック数と同じく、対象を決めるのはアクション、どれだけ固定するかはノードの役割
-        public PPUnitAINodeResult WithFocus(int aFocusTicks)
-            => new(IsDecided, Command, ActionName, Target, CommitTicks, aFocusTicks);
+        // 同じ内容のまま、狙いを固定する行動回数だけを差し替えた結果を作る
+        // 維持する行動回数と同じく、対象を決めるのはアクション、どれだけ固定するかはノードの役割
+        public PPUnitAINodeResult WithFocus(int aFocusActions)
+            => new(IsDecided, Command, ActionName, Target, CommitActions, aFocusActions);
     }
 
     // ツリー評価 1 回分の入力をまとめたもの。ノード・条件・アクションが共通で参照する
@@ -87,8 +88,8 @@ namespace PPCore
         public BattleContext Battle { get; }
         // 思考主体の記憶。ノードは読むだけで、書き込みはストラテジストが行う
         public PPUnitAIMemory Memory { get; set; }
-        // この思考で既に採用された枝のキー。連携ノードが「もう採った子」を飛ばすために読む
-        // 寿命は 1 回の思考分で、仮押さえ台帳と同じくストラテジストが管理する
+        // 連携ノードで既に採用された枝のキー。連携ノードが「もう採った子」を飛ばすために読む
+        // 行動をまたいで持ち越し、ストラテジストが管理する
         public HashSet<string> AdoptedKeys { get; set; }
         // 評価中に辿っている枝の位置。優先度リストが子の添字を積んでいく
         // 行動が確定した時点の中身が、そのままその行動へ至る道順になる
@@ -111,10 +112,8 @@ namespace PPCore
         // 思考主体のバトル中の見聞き。こちらもノードは読むだけ
         // 条件クラスはスナップショットしか受け取らないため、実体はそちらへ差し込まれている
         public PPUnitAIBlackboard Blackboard => Snapshot.GetBlackboard(Unit);
-        // 実行待ちの行動の供給元。差し込まれていなければ null
-        public IPPPendingActionSource PendingSource => Snapshot.PendingSource;
-        // 経過の判定に使う現在のターン数
-        public int TurnCount => Battle.TurnCount;
+        // 経過の判定に使う、思考主体の行動回数。ストラテジストが思考のたびに設定する
+        public int ActionCount { get; set; }
         // 拡張ルール。差し込まれていない場合は null
         public PPBattleRules Rules => Battle.Rules as PPBattleRules;
 
@@ -186,7 +185,7 @@ namespace PPCore
             return node is { IsMuted: false } ? node : null;
         }
 
-        // その枝がこの思考で既に採用済みかを返す
+        // その枝が連携の中で既に採用済みかを返す
         public bool IsAdopted(string aKey)
             => AdoptedKeys != null && !string.IsNullOrEmpty(aKey) && AdoptedKeys.Contains(aKey);
 
@@ -224,10 +223,11 @@ namespace PPCore
         [Label("評価から外す")]
         [SerializeField] protected bool mIsMuted = false;
 
-        // このノードで行動が確定してから、次に成立させるまで空けるティック数
-        // 0 なら間を空けない。待機コミット（判断を維持するティック数）とは別の軸で、両方を同時に設定できる
-        [Label("間を空けるティック数")]
-        [SerializeField] protected int mCooldownTicks = 0;
+        // このノードで行動が確定してから、次に成立させるまで空ける行動回数
+        // 0 なら間を空けない。待機コミット（判断を維持する行動回数）とは別の軸で、両方を同時に設定できる
+        [Label("間を空ける行動回数")]
+        [FormerlySerializedAs("mCooldownTicks")]
+        [SerializeField] protected int mCooldownActions = 0;
 
         // ノードを一意に指す ID。親子の接続はこの値で表す
         // ノードエディタが自動採番するため、手で編集しない
@@ -340,13 +340,13 @@ namespace PPCore
         /* 問い合わせ */
 
         // クールダウン中かを判定する
-        // 前回このノードで行動が確定してからの経過を、ターン数の差分で数える
+        // 前回このノードで行動が確定してからの経過を、思考主体の行動回数の差分で数える
         protected bool IsOnCooldown(PPUnitAIEvalContext aContext)
         {
-            if (mCooldownTicks <= 0 || aContext.Memory == null) return false;
-            if (!aContext.Memory.TryGetFiredTurn(mNodeId, out int firedTurn)) return false;
+            if (mCooldownActions <= 0 || aContext.Memory == null) return false;
+            if (!aContext.Memory.TryGetFiredAction(mNodeId, out int firedAction)) return false;
 
-            return aContext.TurnCount - firedTurn < mCooldownTicks;
+            return aContext.ActionCount - firedAction < mCooldownActions;
         }
 
         /* 説明文 */

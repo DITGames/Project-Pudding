@@ -66,6 +66,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
     private BattleManager mBattleManager = new();
     // コインゲージが溜まったユニットを行動させる進行役
     private readonly PPActionScheduler mActionScheduler = new();
+    // 敵の次の行動を決める AI
+    private readonly PPUnitAIStrategist mEnemyAI = new();
 
     /* Unity イベント */
 
@@ -87,7 +89,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
         // スキルゲージ残量を検証するバリデータへ差し替える
         context.Rules.CastValidator = new PPBattleCastValidator();
 
-        mBattleManager.OnBattleEnded += r => mActionScheduler.Unbind();
+        mBattleManager.OnBattleEnded += r => UnbindBattle();
         PPBattleLogBinder.Bind(mBattleManager, context);
         mBattleManager.StartBattle(context);
         mBattleUnitViewBinder.Bind(mBattleManager);
@@ -96,7 +98,11 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mController.Bind(mBattleManager);
         mController.OnCommandConfirmed += HandleCommandConfirmed;
 
+        mActionScheduler.OnActionFinished += HandleActionFinished;
         mActionScheduler.Bind(mBattleManager, mActionPresentationSeconds);
+        // 敵は行動が終わるたびに次の行動を決める。最初の 1 回だけは開始時に決めておく
+        mEnemyAI.BindBattle(mBattleManager, BattleSide.Enemy);
+        mEnemyAI.ThinkAll(context);
         mEnemyResourceSimulation.Start((PPBattleParty)context.EnemyParty, context, mTurnTickInterval);
     }
 
@@ -111,8 +117,17 @@ public class SamplePusherBattleRunner : MonoBehaviour
         }
     }
 
-    // バトルが決着しないまま破棄された場合にも、進行役の購読を外す
-    void OnDestroy() => mActionScheduler.Unbind();
+    // バトルが決着しないまま破棄された場合にも、進行役と AI の購読を外す
+    void OnDestroy() => UnbindBattle();
+
+    /* 操作 */
+
+    // 進行役と AI をバトルから切り離す
+    private void UnbindBattle()
+    {
+        mActionScheduler.Unbind();
+        mEnemyAI.Unbind();
+    }
 
     /* 問い合わせ */
 
@@ -129,6 +144,12 @@ public class SamplePusherBattleRunner : MonoBehaviour
     }
 
     /* イベントハンドラ */
+
+    // 敵の行動が終わったとき、次の行動を決めさせる
+    private void HandleActionFinished(PPBattleUnit aUnit)
+    {
+        if (aUnit.Side == BattleSide.Enemy) mEnemyAI.Think(aUnit, mBattleManager.Context);
+    }
 
     // プレイヤーが確定したコマンドを、そのユニットのスキルの選択へ反映する
     // その場では実行せず、コインゲージが溜まったときに進行役が積む

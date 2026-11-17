@@ -3,7 +3,7 @@
  * @file PPUnitGaugeConditions.cs
  * @author hqrse
  * @date 2026/08/24
- * @brief ユニット条件（ゲージ・行動回数）
+ * @brief ユニット条件（ゲージ）
  * =====================================*/
 
 using System;
@@ -164,10 +164,7 @@ namespace PPCore
             float spendCost = ResolveSpendCost(aUnit, aSnapShot);
             if (spendCost < 0f) return false;
 
-            // 同じティックで既に積んだ行動の分は、台帳から差し引いた残量で見る
-            float remaining = aSnapShot.Ledger != null
-                ? aSnapShot.Ledger.RemainingSkillGauge(aUnit)
-                : aUnit.ExtraParameters.SkillGauge.Current;
+            float remaining = aUnit.ExtraParameters.SkillGauge.Current;
             // 浮動小数の誤差でちょうど残る場合を落とさないよう、発動可否の判定と同じ許容誤差を足す
             bool isReserved = remaining - spendCost + PPGaugeUtility.CompareEpsilon >= ResolveReserveCost(aUnit);
             return isReserved != mIsInvert;
@@ -182,12 +179,12 @@ namespace PPCore
             if (mSpendRule != PPUnitAISkillSelectRule.Random)
             {
                 var (_, definition) = PPUnitAISkillQuery.SelectCastable(aUnit, mSpendFilter, mSpendRule,
-                    aSnapShot.Context, aSnapShot.Ledger);
+                    aSnapShot.Context);
                 return definition != null ? definition.SkillGaugeCost : -1f;
             }
 
             var (_, highest) = PPUnitAISkillQuery.SelectCastable(aUnit, mSpendFilter,
-                PPUnitAISkillSelectRule.HighestGaugeCost, aSnapShot.Context, aSnapShot.Ledger);
+                PPUnitAISkillSelectRule.HighestGaugeCost, aSnapShot.Context);
             return highest != null ? highest.SkillGaugeCost : -1f;
         }
 
@@ -217,39 +214,5 @@ namespace PPCore
                 ? $"{spend} のスキルを撃つと {reserve} のスキル分が残らない"
                 : $"{spend} のスキルを撃っても {reserve} のスキル分が残る";
         }
-    }
-
-    // ユニット条件: このティックで残っている行動回数（仮押さえ台帳を差し引いた値）
-    // 台帳が無い場合は行動回数の上限をそのまま残り回数として扱う
-    [Serializable]
-    [PPTypeMenuName("行動/残り行動回数")]
-    public sealed class PPUnitRemainingActionCondition : PPUnitConditionValidator
-    {
-        /* インスペクタ設定 */
-
-        [Label("比較")]
-        [SerializeField] private PPCompareOp mOp = PPCompareOp.GreaterOrEqual;
-        [Label("行動回数")]
-        [SerializeField] private int mThreshold = 1;
-
-        /* 評価・判定 */
-
-        // 残り行動回数を閾値と比較する
-        public override bool Evaluate(PPBattleUnit aUnit, PPPartyAIContext aSnapShot)
-        {
-            if (aUnit == null) return false;
-
-            // 積める行動は 1 ユニットにつき 1 つまで
-            int total = 1;
-            int reserved = aSnapShot.Ledger?.ReservedCount(aUnit) ?? 0;
-            return PPConditionMath.Compare(Mathf.Max(0, total - reserved), mOp, mThreshold);
-        }
-
-        /* 説明文 */
-
-        // 設定内容から説明文を組み立てる
-        [ContextMenu("説明文を生成")]
-        protected override void BuildDescription()
-            => mDescription = $"残り行動回数が{mThreshold}回{GetOpString(mOp)}";
     }
 }

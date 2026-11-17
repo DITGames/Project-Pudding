@@ -112,7 +112,7 @@ namespace PPCore
                 PPUnitAITargetPolicy.HighestHpEnemy => snap.HighestHpEnemy,
                 PPUnitAITargetPolicy.HighestThreatEnemy => snap.HighestThreatEnemy,
                 PPUnitAITargetPolicy.RandomEnemy => PickRandom(snap.AliveEnemies, aContext),
-                PPUnitAITargetPolicy.FocusedEnemy => aContext.Blackboard?.ResolveFocus(aContext.TurnCount),
+                PPUnitAITargetPolicy.FocusedEnemy => aContext.Blackboard?.ResolveFocus(),
                 PPUnitAITargetPolicy.HateTopEnemy => aContext.Blackboard?.MostThreateningUnit(),
                 PPUnitAITargetPolicy.LowestHpRatioAlly => snap.LowestHpRatioAlly,
                 PPUnitAITargetPolicy.HighestHpRatioAlly => snap.HighestHpRatioAlly,

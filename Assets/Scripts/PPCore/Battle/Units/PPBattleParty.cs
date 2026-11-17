@@ -98,7 +98,7 @@ namespace PPCore
         Left,
     }
 
-    // コイン変換係数と、パーティ単位で行動を組み立てる AI ストラテジストを持つバトルパーティ
+    // コイン変換係数を持ち、コインをメンバーへ順番に配るバトルパーティ
     // 行動リソースはユニットが専有するため、パーティ側は保持しない
     public class PPBattleParty : BattleParty
     {
@@ -106,8 +106,6 @@ namespace PPCore
 
         // コイン 1 枚あたりのゲージ変換係数。PPCoinResourceBridge が参照する
         public Parameter CoinConversionRate { get; }
-        // このパーティの行動計画を立てる AI。プレイヤー操作パーティなら null のまま
-        public IPPPartyCommandStrategist Strategist { get; set; }
         // コインを配る順に並べたアクティブメンバー。配るたびに組み直して使い回す
         private readonly List<PPBattleUnit> mCoinOrder = new();
         // 直前にコインを受け取ったユニット。次のコインはこの次の順番から配る。null なら先頭から

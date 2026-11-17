@@ -18,6 +18,8 @@ namespace PPCore
     {
         /* 状態 */
 
+        // ユニットの行動（演出）が終わったとき。AI はここで次の行動を決めて予約する
+        public event Action<PPBattleUnit> OnActionFinished;
         // 行動を積む直前に、そのユニットのコマンド選択を開くかを尋ねる関数。開いた場合は true を返す
         // 開いた側は、選択が閉じたときに ResumeAfterSelection を呼ぶこと。未設定なら尋ねずに行動する
         public Func<PPBattleUnit, bool> SelectionRequester { get; set; }
@@ -172,6 +174,8 @@ namespace PPCore
         protected virtual void FinishPresentation(PPBattleUnit aUnit)
         {
             mActingUnits.Remove(aUnit);
+            // 次に積む行動へ反映されるよう、調べ直す前に知らせる
+            if (aUnit.IsAlive) OnActionFinished?.Invoke(aUnit);
             Evaluate();
         }
 

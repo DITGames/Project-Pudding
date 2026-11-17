@@ -278,7 +278,7 @@ namespace PPCore
             {
                 mOwner.SkillMenu.AttachTo(aAnchor);
             }
-            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context, mOwner.ActionLedger);
+            mOwner.SkillMenu.Show(aUnit, mOwner.Manager.Context);
         }
 
         // スキルメニューを閉じる
