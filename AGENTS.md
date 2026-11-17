@@ -11,7 +11,7 @@
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
 - 入力: **新 Input System のみ**（`activeInputHandler: 1`。`UnityEngine.Input` の旧 API は使用不可）
-- 主要シーン: `Assets/Scenes/Prototype/Prototype_#1.unity`（ビルド対象。実際にプッシャーを操作して遊ぶ）、`Assets/Scenes/Check/S_BattleCheck.unity`（CLI 検証用。味方のコインは設定した量を自動で供給する）、`BattleSceneSample.unity`
+- 主要シーン: `Assets/Scenes/Check/S_BattleCheck.unity`（新しいプッシャーとバトルを組み込んだシーン。CLI 検証もこのシーンで行う）、`Assets/Scenes/Prototype/` 配下（`Prototype_#1.unity` はビルド対象。旧プッシャーの構成のまま変更しない）
 
 ## ビルド・実行
 
@@ -31,7 +31,7 @@ Assets/
 │   ├── PPCore/              # Project-Pudding 固有の拡張レイヤ
 │   ├── CustomConsole/       # タグ付きログ + 専用コンソールウィンドウ
 │   ├── RecentAssetsWindow/  # 最近開いたアセットのエディタ拡張
-│   └── ConsoleCanvasManager.cs
+│   └── *.cs                 # 旧プッシャーの初期プロトタイプ（Coin*, PusherTableController 等）。Prototype のシーン専用
 ├── GameData/                # ScriptableObject 実データ（AI 条件・エフェクト・カタログ・パーティ）
 ├── Content/Sample/          # サンプルユニット / スキル定義アセット
 ├── Prefab/, Scenes/, Texture/, Settings/, PysicsMaterials/
@@ -66,7 +66,7 @@ Packages/, ProjectSettings/
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
 - 挙動を観測する側は `BattleManager` の C# `event`（`OnDamageTaken`, `OnUnitDefeated`, `OnBattleEnded`, `OnStatsEffectAdded` …）を購読する。View / ブリッジ層はここに繋ぐ
 
-エントリポイントの実例は `PPCore/Battle/Sample/SamplePusherBattleRunner.cs`。バトルの組み立て方（パーティ生成 → Rules 設定 → Strategist 注入 → View / 入力 / コイン橋渡しの Bind → AI ドライバとティックのコルーチン起動）はこのファイルを参照するのが最短。
+エントリポイントは `PPCore/Battle/Core/PPBattleRunner.cs`。バトルの組み立て方（パーティ生成 → Rules 設定 → View / 入力の Bind → 進行役と AI の接続 → コインとチャージ用アイテムの橋渡しの Bind）はこのファイルを参照するのが最短。
 
 ### データ定義（ScriptableObject）
 
@@ -165,7 +165,7 @@ Packages/, ProjectSettings/
 
 ## ログ運用
 
-バトル/AI のトレースなど詳細なログを出す場合は `CustomConsoleLog`（`Assets/Scripts/CustomConsole/CustomConsoleLog.cs`）経由で出力し、`Window > Custom Console` でのタグ・レベルによる絞り込みを効かせる。**本節のルールは新規に書くログ出力コードに適用する。既存の `Debug.Log` / `Debug.LogError` 呼び出しの置き換えは対象外**とし、「既知の課題・注意点」の運用方針（触る必要が生じたときに対処する）に準ずる。
+バトル/AI のトレースなど詳細なログを出す場合は `CustomConsoleLog`（`Assets/Scripts/CustomConsole/CustomConsoleLog.cs`）経由で出力し、`Window > Custom Console` でのタグ・レベルによる絞り込みを効かせる。**本節のルールは新規に書くログ出力コードに適用する。既存の `Debug.Log` / `Debug.LogError` 呼び出し（プッシャー系プロトタイプ含む）の置き換えは対象外**とし、「既知の課題・注意点」の運用方針（触る必要が生じたときに対処する）に準ずる。
 
 - タグには機能領域を表す**大分類のみ**を指定する（サブタグ・階層構造は用いない）。バトル進行・パーティ AI・UI・入力など、本ファイルのアーキテクチャ節に登場する機能領域に対応する名前を付ける。大分類の正式な一覧は定めない
 - 検証・デバッグ用の一時的なログは、大分類タグの末尾にアンダースコア区切りで `_Verify` を付けて区別する（例: `CustomConsoleLog.Verbose("Battle_Verify", $"...")`）
@@ -193,6 +193,7 @@ Packages/, ProjectSettings/
 
 - **ランタイムスクリプトに `UnityEditor` の未使用 using が混入している**（`PPCore/UI/SlotListComponent.cs`, `PPCore/Battle/StatusEffect/PPEffectDefinition.cs`, `PPCore/Battle/AI/PPPartyAIProfileDefinition.cs`, `CommandBattleCore/Commands/ActionQueue.cs`）。エディタ上では通るがプレイヤービルドで壊れる。該当ファイルを編集する際は削除する
 - **初期プロトタイプのプッシャー系スクリプトが Shift-JIS 保存**（`CoinSpawner.cs`, `CoinGenerator.cs` 等）。UTF-8 前提のツールで開くと `[Header]` の日本語が文字化けする。編集時は UTF-8 に変換してから文字列を直す
+- `Assets/Scenes/Prototype/` 配下のシーンと、それが使う `Assets/Scripts/*.cs` 直下の旧プッシャー・`SamplePusherBattleRunner` は変更しない。旧コードは命名規約・ヘッダコメント規約の対象外で、namespace も持たない
 - 物理は一定間隔（FixedUpdate、0.02 秒）で進める設定にしている。描画ごとに進める設定へ戻すと、処理が一瞬止まったときにプッシャーのコインが弾け飛ぶ
 - `PPCore/Battle/AI/Conditions/NewMonoBehaviourScript.cs` はデバッグ用の残骸
 - `PPSkillDefinition.BuildEffectWithEntries()` が定義されているが `CreateRuntimeSkill()` から呼ばれておらず、`mEffectEntries` のエフェクト付与が実際には走っていない

@@ -11,7 +11,7 @@
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
 - 入力: **新 Input System のみ**（`activeInputHandler: 1`。`UnityEngine.Input` の旧 API は使用不可）
-- 主要シーン: `Assets/Scenes/Prototype/Prototype_#1.unity`（ビルド対象。実際にプッシャーを操作して遊ぶ）、`Assets/Scenes/Check/S_BattleCheck.unity`（CLI 検証用。味方のコインは設定した量を自動で供給する）、`BattleSceneSample.unity`
+- 主要シーン: `Assets/Scenes/Check/S_BattleCheck.unity`（新しいプッシャーとバトルを組み込んだシーン。CLI 検証もこのシーンで行う）、`Assets/Scenes/Prototype/` 配下（`Prototype_#1.unity` はビルド対象。旧プッシャーの構成のまま変更しない）
 
 ## ビルド・実行
 
@@ -31,7 +31,7 @@ Assets/
 │   ├── AttributeUtility/    # Label / EditCondition などインスペクタ用属性
 │   ├── CustomConsole/       # タグ付きログ + 専用コンソールウィンドウ
 │   ├── RecentAssetsWindow/  # 最近開いたアセットのエディタ拡張
-│   └── ConsoleCanvasManager.cs
+│   └── *.cs                 # 旧プッシャーの初期プロトタイプ（Coin*, PusherTableController 等）。Prototype のシーン専用
 ├── GameData/                # ScriptableObject 実データ（AI 条件・エフェクト・カタログ・パーティ）
 ├── Content/Sample/          # サンプルユニット / スキル定義アセット
 ├── Prefab/, Scenes/, Texture/, Settings/, PysicsMaterials/
@@ -59,7 +59,8 @@ PPCore/
 │   ├── Integration/   # プッシャー → バトルの橋渡し（コイン・チャージ用アイテム）
 │   ├── AI/            # ユニット AI の思考ルーチン・ビヘイビアツリー（Tree/）・条件（Conditions/）
 │   ├── Input/         # コマンド入力のコントローラと各ステート
-│   └── View/          # バトル UI の View とステータスソース
+│   ├── View/          # バトル UI の View とステータスソース
+│   └── Sample/        # Prototype のシーン用の旧ランナー（SamplePusherBattleRunner）
 ├── Pusher/            # プッシャー（押し出し板・落下検出・コイン投入・チャージ用アイテム）
 ├── Catalog/           # ID → アセットの解決
 ├── Settings/          # ランタイム設定
@@ -209,7 +210,7 @@ PPCore/
 
 ## ログ運用
 
-バトル/AI のトレースなど詳細なログを出す場合は `CustomConsoleLog`（`Assets/Scripts/CustomConsole/CustomConsoleLog.cs`）経由で出力し、`Window > Custom Console` でのタグ・レベルによる絞り込みを効かせる。**本節のルールは新規に書くログ出力コードに適用する。既存の `Debug.Log` / `Debug.LogError` 呼び出しの置き換えは対象外**とし、「既知の課題・注意点」の運用方針（触る必要が生じたときに対処する）に準ずる。
+バトル/AI のトレースなど詳細なログを出す場合は `CustomConsoleLog`（`Assets/Scripts/CustomConsole/CustomConsoleLog.cs`）経由で出力し、`Window > Custom Console` でのタグ・レベルによる絞り込みを効かせる。**本節のルールは新規に書くログ出力コードに適用する。既存の `Debug.Log` / `Debug.LogError` 呼び出し（プッシャー系プロトタイプ含む）の置き換えは対象外**とし、「既知の課題・注意点」の運用方針（触る必要が生じたときに対処する）に準ずる。
 
 - タグには機能領域を表す**大分類のみ**を指定する（サブタグ・階層構造は用いない）。バトル進行・パーティ AI・UI・入力など、本ファイルのアーキテクチャ節に登場する機能領域に対応する名前を付ける。大分類の正式な一覧は定めない
 - 検証・デバッグ用の一時的なログは、大分類タグの末尾にアンダースコア区切りで `_Verify` を付けて区別する（例: `CustomConsoleLog.Verbose("Battle_Verify", $"...")`）
@@ -235,6 +236,7 @@ PPCore/
 
 作業中に遭遇し得る、既存の未整理箇所。**ついでに直すのではなく、触る必要が生じたときに対処する。**
 
+- `Assets/Scenes/Prototype/` 配下のシーンと、それが使う `Assets/Scripts/*.cs` 直下の旧プッシャー・`SamplePusherBattleRunner` は変更しない。旧コードは命名規約・ヘッダコメント規約の対象外で、namespace も持たない
 - 物理は一定間隔（FixedUpdate、0.02 秒）で進める設定にしている。描画ごとに進める設定へ戻すと、処理が一瞬止まったときにプッシャーのコインが弾け飛ぶ
 - `PP` プレフィックスを持たない型の改名と、基底・派生ペアの 1 クラス化は未着手（「PPCore の構成」節を参照）
 - 本ファイルの「データ定義」「属性とリソース」「エディタ拡張」節には、現在のコードと合わない記述が残っている。該当領域を触るときはコードを正とする
