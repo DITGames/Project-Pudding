@@ -12,6 +12,7 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
 using UnityEngine.UI;
 using AttributeUtility;
@@ -53,6 +54,9 @@ namespace PPCore
         [SerializeField] private Color mSelectedTabColor = new Color(1f, 0.82f, 0.1f);
         [Label("選択していないタブの色")]
         [SerializeField] private Color mUnselectedTabColor = new Color(0.92f, 0.92f, 0.92f);
+        // タブを切り替える入力。負の値で左(ステータス)、正の値で右(状態)のタブへ移る
+        [Label("タブ切り替えの入力")]
+        [SerializeField] private InputActionReference mTabSwitchAction;
 
         [Header("ステータス")]
         // HP ラベル（現在値/最大値）
@@ -139,9 +143,15 @@ namespace PPCore
             mBackButton.onClick.AddListener(RaiseBack);
             if (mStatusTabButton != null) mStatusTabButton.onClick.AddListener(HandleStatusTab);
             if (mStateTabButton != null) mStateTabButton.onClick.AddListener(HandleStateTab);
+            if (mTabSwitchAction != null)
+            {
+                mTabSwitchAction.action.performed += HandleTabSwitch;
+                mTabSwitchAction.action.Enable();
+            }
 
             SelectTab(true);
-            EventSystem.current.SetSelectedGameObject(mStatusTabButton != null ? mStatusTabButton.gameObject : mBackButton.gameObject);
+            // タブは左右の入力で切り替えるため、UI の選択は外しておく
+            EventSystem.current.SetSelectedGameObject(null);
         }
 
         // ビューを閉じ、ボタンのリスナーを解除する
@@ -150,6 +160,7 @@ namespace PPCore
             mBackButton.onClick.RemoveListener(RaiseBack);
             if (mStatusTabButton != null) mStatusTabButton.onClick.RemoveListener(HandleStatusTab);
             if (mStateTabButton != null) mStateTabButton.onClick.RemoveListener(HandleStateTab);
+            if (mTabSwitchAction != null) mTabSwitchAction.action.performed -= HandleTabSwitch;
             gameObject.SetActive(false);
         }
 
@@ -249,6 +260,13 @@ namespace PPCore
 
         // 状態タブが押されたとき
         private void HandleStateTab() => SelectTab(false);
+
+        // 左の入力でステータス、右の入力で状態のタブへ切り替える
+        private void HandleTabSwitch(InputAction.CallbackContext aContext)
+        {
+            float value = aContext.ReadValue<float>();
+            if (Mathf.Abs(value) > 0.5f) SelectTab(value < 0f);
+        }
 
         /* ヘルパー */
 

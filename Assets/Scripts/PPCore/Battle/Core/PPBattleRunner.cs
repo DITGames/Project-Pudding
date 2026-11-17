@@ -54,6 +54,16 @@ namespace PPCore
         [Header("インプット")]
         [Label("コマンド入力コントローラ")]
         [SerializeField] private PPBattleCommandInputController mController;
+        [Label("コマンドを開く入力")]
+        [SerializeField] private InputActionReference mOpenCommandAction;
+        [Label("オートバトルを切り替える入力")]
+        [SerializeField] private InputActionReference mAutoBattleAction;
+        // キー設定を開閉する入力。キー設定では変更できない
+        [Label("キー設定を開く入力")]
+        [SerializeField] private InputActionReference mOpenConfigAction;
+        // 未設定ならキー設定は開けない
+        [Label("キー設定")]
+        [SerializeField] private PPInputConfigMenuView mConfigMenu;
 
         // ゲージ供給(シミュレーション)の 1 回分の間隔（秒）
         [Header("バトル設定")]
@@ -70,7 +80,7 @@ namespace PPCore
         [Label("スキル使用可能時にゲージが溜まったらコマンド選択を開く")]
         [SerializeField] private bool mIsOpenCommandOnGaugeReady = false;
 
-        // 有効なとき、味方も AI が次の行動を決める。バトル中は T キーで切り替えられる
+        // 有効なとき、味方も AI が次の行動を決める。バトル中は入力で切り替えられる(既定は T キー)
         [Label("オートバトル")]
         [SerializeField] private bool mIsAutoBattle = false;
 
@@ -123,6 +133,10 @@ namespace PPCore
         void Start()
         {
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
+            foreach (var action in new[] { mOpenCommandAction, mAutoBattleAction, mOpenConfigAction })
+            {
+                if (action != null) action.action.Enable();
+            }
 
             var context = new BattleContext()
             {
@@ -174,10 +188,17 @@ namespace PPCore
             }
         }
 
-        // バトル専用の時計を進め、コマンド選択ボタンの押下でコマンド入力を、T キーでオートバトルの切り替えを行う
+        // バトル専用の時計を進め、入力に応じてキー設定の開閉・オートバトルの切り替え・コマンド入力の開始を行う
+        // キー設定を開いている間は、ほかの入力を受け付けない
         void Update()
         {
             mBattleManager.AdvanceTime(Time.deltaTime);
+
+            if (mConfigMenu != null && WasPressed(mOpenConfigAction) && !mController.IsInputOpen && CanSelectAnyCommand())
+            {
+                mConfigMenu.Toggle(mBattleManager);
+            }
+            if (mConfigMenu != null && mConfigMenu.IsOpen) return;
 
             if (IsAutoBattleTogglePressed() && CanSelectAnyCommand())
             {
@@ -226,17 +247,13 @@ namespace PPCore
         private bool CanSelectAnyCommand()
             => mBattleManager.Context != null && mBattleManager.StateMachine.Current != BattleState.BattleEnd;
 
-        // コマンド入力の開始操作（キーボードの C、またはゲームパッドの△）が行われたかを判定する
-        bool IsCommandInputPressed()
-        {
-            return
-                (Keyboard.current != null && Keyboard.current.cKey.wasPressedThisFrame)
-                || (Gamepad.current != null && Gamepad.current.triangleButton.wasPressedThisFrame);
-        }
+        // コマンド入力の開始操作が行われたかを判定する(既定はキーボードの C、ゲームパッドの Y / △)
+        private bool IsCommandInputPressed() => WasPressed(mOpenCommandAction);
 
-        // オートバトルの切り替え操作（キーボードの T）が行われたかを判定する
-        private bool IsAutoBattleTogglePressed()
-            => Keyboard.current != null && Keyboard.current.tKey.wasPressedThisFrame;
+        // オートバトルの切り替え操作が行われたかを判定する(既定はキーボードの T)
+        private bool IsAutoBattleTogglePressed() => WasPressed(mAutoBattleAction);
+
+        private static bool WasPressed(InputActionReference aAction) => aAction != null && aAction.action.WasPressedThisFrame();
 
         /* イベントハンドラ */
 
