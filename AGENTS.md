@@ -5,13 +5,13 @@
 ## プロジェクト概要
 
 **Project-Pudding**（WabisabiAndons）は Unity 6 製のゲームプロジェクト。
-**コインプッシャー（物理）** と **コマンドバトル（ターン/ティック制）** を接続したハイブリッド構成が中核。
-プッシャー台から落ちたコインがバトルの行動リソースへ変換され、そのリソースを消費してスキルを撃つ。
+**コインプッシャー（物理）** と **コマンドバトル（リアルタイム進行）** を接続したハイブリッド構成が中核。
+プッシャー台から落ちたコインが各ユニットのコインゲージへ 1 枚ずつ配られ、行動コスト分溜まったユニットから行動する。ターンやティックの概念は持たない。
 
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
 - 入力: **新 Input System のみ**（`activeInputHandler: 1`。`UnityEngine.Input` の旧 API は使用不可）
-- 主要シーン: `Assets/Scenes/Prototype/Prototype_#1.unity`（ビルド対象）、`BattleSample.unity` / `BattleSceneSample.unity`（バトル検証用）
+- 主要シーン: `Assets/Scenes/Check/S_BattleCheck.unity`（新しいプッシャーとバトルを組み込んだシーン。CLI 検証もこのシーンで行う）、`Assets/Scenes/Prototype/` 配下（`Prototype_#1.unity` はビルド対象。旧プッシャーの構成のまま変更しない）
 
 ## ビルド・実行
 
@@ -31,7 +31,7 @@ Assets/
 │   ├── PPCore/              # Project-Pudding 固有の拡張レイヤ
 │   ├── CustomConsole/       # タグ付きログ + 専用コンソールウィンドウ
 │   ├── RecentAssetsWindow/  # 最近開いたアセットのエディタ拡張
-│   └── *.cs                 # プッシャー側の初期プロトタイプ（Coin*, PusherTableController 等）
+│   └── *.cs                 # 旧プッシャーの初期プロトタイプ（Coin*, PusherTableController 等）。Prototype のシーン専用
 ├── GameData/                # ScriptableObject 実データ（AI 条件・エフェクト・カタログ・パーティ）
 ├── Content/Sample/          # サンプルユニット / スキル定義アセット
 ├── Prefab/, Scenes/, Texture/, Settings/, PysicsMaterials/
@@ -56,17 +56,17 @@ Packages/, ProjectSettings/
 
 `BattleManager`（`CommandBattleCore/Core/BattleManager.cs`）がすべての中心。
 
-- `BattleContext` が 1 バトル分の状態を保持（`AllyParty` / `EnemyParty` / `Rules` / `TurnCount` / `Reward` / `Environment`）
+- `BattleContext` が 1 バトル分の状態を保持（`AllyParty` / `EnemyParty` / `Rules` / `Clock` / `Timers` / `Reward` / `Environment`）
 - `BattleStateMachine` の `BattleState`: `BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd`
 - コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()` で実行（演出は待たない）
 - `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）とスキルのクールタイムはこの時計で進む
-- `AdvanceTick()` は `TurnCount` を進めて `OnTickEnded` / `OnTickStarted` を通知するだけで、状態異常は進めない
+- 行動は `PPActionScheduler` が積む。コインが配られたときと行動の演出が終わったときに、コインゲージが行動コスト分溜まったユニットを調べ、「選択中のスキルが発動可能ならそのスキル、そうでなければ通常攻撃」を 1 ユニット 1 行動ずつ実行する
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
-  `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ICastValidator`, `ITargetFilter`, `IDeadTargetPolicy`, `ITurnOrderResolver`, `IBattleResultChecker`, `IBattleLogger`
+  `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ICastValidator`, `ITargetFilter`, `IDeadTargetPolicy`, `IPPActionOrderResolver`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
 - 挙動を観測する側は `BattleManager` の C# `event`（`OnDamageTaken`, `OnUnitDefeated`, `OnBattleEnded`, `OnStatsEffectAdded` …）を購読する。View / ブリッジ層はここに繋ぐ
 
-エントリポイントの実例は `PPCore/Battle/Sample/SamplePusherBattleRunner.cs`。バトルの組み立て方（パーティ生成 → Rules 設定 → Strategist 注入 → View / 入力 / コイン橋渡しの Bind → AI ドライバとティックのコルーチン起動）はこのファイルを参照するのが最短。
+エントリポイントは `PPCore/Battle/Core/PPBattleRunner.cs`。バトルの組み立て方（パーティ生成 → Rules 設定 → View / 入力の Bind → 進行役と AI の接続 → コインとチャージ用アイテムの橋渡しの Bind）はこのファイルを参照するのが最短。
 
 ### データ定義（ScriptableObject）
 
@@ -84,8 +84,17 @@ Packages/, ProjectSettings/
 
 - `PPTypeAttribute`: `Normal / Fire / Water / Earth / Shine / Dark`（`TypeCount = 6`、`Normal` が基準リソース = `BaseIndex`）
 - `PPBattleResourcePool` が属性ごとの `ResourceParameter` を保持。スキルの `PPResourceCost` を `CanPay` / `TryPay` で消費
-- プッシャー → バトルの接続は `PPCoinResourceBridge`：`IPPCoinGainNotifier`（実装例 `CoinDropCounter`）の `OnCoinGained` を購読し、`IPPCoinResourceConverter` と `PPBattleParty.CoinConversionRate` を経由してリソースプールへ加算する。**物理側とバトル側を直接結合させず、必ずこのブリッジを挟む**
+- プッシャー → バトルの接続は `PPCoinResourceBridge`：`IPPCoinGainNotifier`（実装は `PPPusherDropZone`）の `OnCoinGained` を購読し、`IPPCoinResourceConverter` と `PPBattleParty.CoinConversionRate` を経由して、生存ユニットのコインゲージへ 1 枚ずつ順番に配る。**物理側とバトル側を直接結合させず、必ずこのブリッジを挟む**
 
+### プッシャー
+
+`Assets/Prefab/Pusher/PR_PusherField.prefab` が一式（本体 `PR_CoinPusher`・落下検出・コイン投入・チャージ用アイテムの出現）。味方用と敵用を 1 つずつシーンに置く。
+
+- `PPPusherPlate` … 押し出し板。奥の台の下から手前へ出入りして、床のコインを押し出す
+- `PPPusherDropZone` … 落下検出。床の端を越えたコインとチャージ用アイテムを拾って通知する。通知しない設定のものは、台の外へ出たものを消すだけ
+- `PPCoinDispenser` … コインの投入。味方は左右の矢印キー、敵は一定間隔の自動投入。落ちたコインは所持コインへ戻る
+- `PPChargeItemSpawner` / `PPPusherChargeItem` … チャージ用アイテム。中身（誰のスキルゲージへ入るか）は出現時に `PPChargeItemBridge` が決め、落ちたときに同じブリッジがスキルゲージを溜める
+- 敵のプッシャーは離れた場所に置き、専用のカメラで RenderTexture へ映してワイプ表示する。`PPBattleRunner` の「敵のプッシャーを使う」を切ると一式を無効にし、「敵ゲージ供給」で設定した量で代用する
 ### ユニット AI
 
 `PPUnitAIStrategist`（`IPPPartyCommandStrategist`）が、ユニットごとの判断ツリー `PPUnitBehaviourTree` を評価して次の行動を決める。一定間隔では思考しない。
@@ -184,6 +193,7 @@ Packages/, ProjectSettings/
 
 - **ランタイムスクリプトに `UnityEditor` の未使用 using が混入している**（`PPCore/UI/SlotListComponent.cs`, `PPCore/Battle/StatusEffect/PPEffectDefinition.cs`, `PPCore/Battle/AI/PPPartyAIProfileDefinition.cs`, `CommandBattleCore/Commands/ActionQueue.cs`）。エディタ上では通るがプレイヤービルドで壊れる。該当ファイルを編集する際は削除する
 - **初期プロトタイプのプッシャー系スクリプトが Shift-JIS 保存**（`CoinSpawner.cs`, `CoinGenerator.cs` 等）。UTF-8 前提のツールで開くと `[Header]` の日本語が文字化けする。編集時は UTF-8 に変換してから文字列を直す
-- `Assets/Scripts/*.cs` 直下のプッシャー系スクリプト群は命名規約・ヘッダコメント規約の対象外の旧コード。namespace も持たない
+- `Assets/Scenes/Prototype/` 配下のシーンと、それが使う `Assets/Scripts/*.cs` 直下の旧プッシャー・`SamplePusherBattleRunner` は変更しない。旧コードは命名規約・ヘッダコメント規約の対象外で、namespace も持たない
+- 物理は一定間隔（FixedUpdate、0.02 秒）で進める設定にしている。描画ごとに進める設定へ戻すと、処理が一瞬止まったときにプッシャーのコインが弾け飛ぶ
 - `PPCore/Battle/AI/Conditions/NewMonoBehaviourScript.cs` はデバッグ用の残骸
 - `PPSkillDefinition.BuildEffectWithEntries()` が定義されているが `CreateRuntimeSkill()` から呼ばれておらず、`mEffectEntries` のエフェクト付与が実際には走っていない

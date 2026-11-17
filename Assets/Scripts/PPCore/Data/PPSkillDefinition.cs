@@ -28,7 +28,7 @@ namespace PPCore
         // 同種グループ。AI は同じグループ内で「今撃つか、上位を待つか」を比較する
         [Label("同種グループ")]
         [SerializeField] protected PPSkillGroup mGroup = PPSkillGroup.Attack;
-        // 1 ティック内で行動を並べるときの優先度。同じ優先度どうしは速度で順序が決まる
+        // 同時に行動できるユニットを並べるときの優先度。同じ優先度どうしは速度で順序が決まる
         [Label("行動優先度")]
         [SerializeField] protected PPSkillActionPriority mActionPriority = PPSkillActionPriority.Normal;
         // 発動に必要なスキルゲージ量。発動者自身のスキルゲージから支払う

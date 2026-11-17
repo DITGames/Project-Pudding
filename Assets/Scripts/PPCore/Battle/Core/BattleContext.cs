@@ -29,7 +29,7 @@ namespace PPCore
 
     }
 
-    // 1 バトル分の状態（両パーティ・ルール・ターン数・報酬・環境）を保持するコンテキスト
+    // 1 バトル分の状態（両パーティ・ルール・時計・報酬・環境）を保持するコンテキスト
     // ターゲット解決と命中判定の入口も兼ねる
     public class BattleContext
     {
@@ -47,8 +47,6 @@ namespace PPCore
         public BattleRules Rules { get; set; } = new BattleRules();
         // 逃走要求フラグ。DefaultBattleResultChecker がこれを見て逃走終了と判定する
         public bool EscapeRequested { get; set; }
-        // 経過ターン数。BattleManager.AdvanceTick で加算される
-        public int TurnCount { get; set; }
         // バトル専用の時計。BattleManager.AdvanceTime で進み、停止中は進まない
         public PPBattleClock Clock { get; } = new();
         // バトル専用の時計で発火するタイマー。クールタイムや状態異常など秒で決まる処理を予約する
@@ -137,10 +135,10 @@ namespace PPCore
     }
 
     // 勝敗を判定するチェッカー。BattleRules.ResultChecker に差し込む
-    // 「ボスだけ倒せば勝ち」「規定ターン生存で勝ち」といった条件を差し替えられるようにしてある
+    // 「ボスだけ倒せば勝ち」「規定時間の生存で勝ち」といった条件を差し替えられるようにしてある
     public interface IBattleResultChecker
     {
-        // 現在の状況から決着を判定する。ユニット撃破時やターン経過時など、頻繁に呼ばれる
+        // 現在の状況から決着を判定する。ユニット撃破時やコマンド実行後など、頻繁に呼ばれる
         BattleResult CheckResult(BattleContext aContext);
     }
 

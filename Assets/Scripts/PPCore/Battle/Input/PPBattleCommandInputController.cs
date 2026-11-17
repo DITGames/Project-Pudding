@@ -14,6 +14,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using AttributeUtility;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -184,8 +185,9 @@ namespace PPCore
         {
             if (mManager == null || mManager.StateMachine.Current == BattleState.BattleEnd)
                 return;
+            // 入力中に開き直した場合は、古い画面を閉じてから選択内容を消す。先に消すと、閉じる処理が選択中のユニットを参照できない
+            if (mIsInputOpen) Abort();
             mContext.Clear();
-            ClearStack();
             if (mInputStateBorder != null)
             {
                 mInputStateBorder.gameObject.SetActive(true);
@@ -236,7 +238,18 @@ namespace PPCore
         {
             if(mStateStack.Count > 0) mStateStack.Peek().Suspend();
             mStateStack.Push(aNext);
-            aNext.Enter();
+            try
+            {
+                aNext.Enter();
+            }
+            catch (Exception e)
+            {
+                // 開けなかったステートは積まずに、ひとつ前の画面へ戻す
+                CustomConsoleLog.Error("Input", $"{aNext.GetType().Name} を開けなかったため、前の画面へ戻します。{e}", this);
+                mStateStack.Pop();
+                if (mStateStack.Count > 0) mStateStack.Peek().Resume();
+                else Abort();
+            }
         }
 
         // ひとつ前のステートへ戻る。現在のステートを Exit して捨て、下のステートを Resume する
@@ -284,9 +297,19 @@ namespace PPCore
             bool wasOpen = mIsInputOpen;
             mIsInputOpen = false;
 
+            // 閉じる途中でエラーが起きても、残りのステートと時計の再開まで必ず進める
+            // 時計を戻し損ねると、バトル専用の時計が止まったままになりバトル全体が動かなくなる
             while (mStateStack.Count > 0)
             {
-                mStateStack.Pop().Exit();
+                var state = mStateStack.Pop();
+                try
+                {
+                    state.Exit();
+                }
+                catch (Exception e)
+                {
+                    CustomConsoleLog.Error("Input", $"{state.GetType().Name} を閉じる途中でエラーが起きました。{e}", this);
+                }
             }
 
             if (mInputStateBorder != null)

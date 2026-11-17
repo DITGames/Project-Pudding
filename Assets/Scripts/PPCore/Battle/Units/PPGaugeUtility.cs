@@ -71,14 +71,6 @@ namespace PPCore
             return aGauge != null && aGauge.Current + CompareEpsilon >= aAmount;
         }
 
-        // 不足量を 1 ティックあたりの増加量で割り、埋まるまでのティック数を見積もる
-        // 増加が見込めない場合は無限大を返し、呼び出し側で「待っても撃てない」と判断させる
-        public static float EstimateWaitTicks(float aShortfall, float aGainPerTick)
-        {
-            if (aShortfall <= 0f) return 0f;
-            return aGainPerTick > 0f ? aShortfall / aGainPerTick : Mathf.Infinity;
-        }
-
         /* 説明文 */
 
         // ゲージ種別を日本語表記へ変換する

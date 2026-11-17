@@ -348,8 +348,11 @@ namespace PPCore
         }
 
         // 相手陣営の生存アクティブメンバーを候補として返す
+        // ユニットが決まっていない場合は候補を出さない
         protected override IEnumerable<BattleUnit> Candidates()
-            => mOwner.Manager.Context.GetOpponentParty(mOwner.Context.Unit.Side).GetAliveActiveMembers();
+            => mOwner.Context.Unit == null
+                ? System.Array.Empty<BattleUnit>()
+                : mOwner.Manager.Context.GetOpponentParty(mOwner.Context.Unit.Side).GetAliveActiveMembers();
 
         // 選択された相手を狙う相手として指定し、入力を閉じる
         // aView : 決定されたユニットのビュー
@@ -380,15 +383,8 @@ namespace PPCore
 
         /* 表示 */
 
-        // 選択中ユニットの隣に詳細ビューを出す
-        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
-        {
-            if (aAnchor != null)
-            {
-                mOwner.DetailMenu.AttachTo(aAnchor);
-            }
-            mOwner.DetailMenu.Show(aUnit);
-        }
+        // 詳細ビューを画面いっぱいに出す。ユニットの隣には寄せない
+        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor) => mOwner.DetailMenu.Show(aUnit);
 
         // 詳細ビューを閉じる
         protected override void HideView() => mOwner.DetailMenu.Hide();
