@@ -28,6 +28,11 @@ namespace PPCore
         [SerializeField] private Transform[] mEnemyStandPoints = new Transform[0];
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
+        // 画面端に味方の HP・ゲージ・選択中のスキル・狙う相手をまとめて出す。未設定なら出さない
+        [Label("味方の状態パネル")]
+        [SerializeField] private PPPartyStatusPanel mAllyStatusPanel;
+        [Label("敵の状態パネル")]
+        [SerializeField] private PPPartyStatusPanel mEnemyStatusPanel;
 
         /* 状態 */
 
@@ -35,11 +40,13 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // 両パーティの表示を立ち位置に並べ、バトルイベントを購読して動きへ振り分ける
+        // 両パーティの表示を立ち位置に並べて状態パネルを作り、バトルイベントを購読して動きへ振り分ける
         public void Bind(BattleManager aManager)
         {
             SpawnViews(aManager.Context.AllyParty, mAllyStandPoints, BattleSide.Ally);
             SpawnViews(aManager.Context.EnemyParty, mEnemyStandPoints, BattleSide.Enemy);
+            if (mAllyStatusPanel != null) mAllyStatusPanel.Bind(aManager.Context.AllyParty, GetIcon);
+            if (mEnemyStatusPanel != null) mEnemyStatusPanel.Bind(aManager.Context.EnemyParty, GetIcon);
 
             aManager.OnDamageResolved += (d) =>
             {
@@ -66,7 +73,7 @@ namespace PPCore
                     continue;
                 }
                 var view = Instantiate(mUnitViewPrefab, aStandPoints[index].position, Quaternion.identity, aStandPoints[index]);
-                view.Initialize(unit, ResolveVisual(unit), aSide, GetIcon);
+                view.Initialize(unit, ResolveVisual(unit), aSide);
                 mViews.Add(unit, view);
                 index++;
             }

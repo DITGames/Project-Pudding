@@ -6,15 +6,13 @@
  * @brief プッシャーのステージ上に立つユニット 1 体分の表示
  * =====================================*/
 
-using System;
 using AttributeUtility;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace PPCore
 {
-    // ステージ上に立つユニット 1 体分の表示。板状の絵と頭上・足元のステータス、攻撃や被弾の簡単な動きを持つ
-    // 絵とステータスは常にカメラの方を向く
+    // ステージ上に立つユニット 1 体分の表示。板状の絵と、攻撃や被弾の簡単な動きを持つ
+    // 絵は常にカメラの方を向く。HP やゲージは画面端の PPPartyStatusPanel が出す
     public class PPStageUnitView : MonoBehaviour
     {
         /* インスペクタ設定 */
@@ -27,28 +25,6 @@ namespace PPCore
         [SerializeField] private float mSpriteHeight = 4f;
         [Label("選ばれていないときの色")]
         [SerializeField] private Color mDimColor = new(0.35f, 0.35f, 0.35f, 1f);
-
-        [Header("ステータス")]
-        [Label("ステータスウィジェット")]
-        [SerializeField] private PPUnitStatusWidget mStatusWidget;
-        // ステータスのキャンバス。ユニットの直下に置く
-        [Label("ステータスの表示")]
-        [SerializeField] private Transform mStatusRoot;
-        // 足元の表示が台に隠れないよう、見た目の位置を変えずにカメラ側へ寄せる距離(ワールド単位)
-        [Label("ステータスを手前に出す距離")]
-        [Min(0f)]
-        [SerializeField] private float mStatusPull = 4f;
-        // 絵より上に置く部分(選択中のスキル・HP)
-        [Label("頭上の表示")]
-        [SerializeField] private RectTransform mTopBlock;
-        // 絵より下に置く部分(コインゲージ・スキルゲージ)
-        [Label("足元の表示")]
-        [SerializeField] private RectTransform mBottomBlock;
-        [Label("狙う相手のアイコン")]
-        [SerializeField] private Image mTargetIcon;
-        // 絵とステータスの間を空ける幅(ワールド単位)
-        [Label("ステータスの間隔")]
-        [SerializeField] private float mStatusMargin = 0.2f;
 
         [Header("動き")]
         [Label("待機の揺れ幅")]
@@ -76,10 +52,6 @@ namespace PPCore
         /* 状態 */
 
         private BattleUnit mBattleUnit;
-        // ステータスウィジェットへ渡した表示ソース。破棄時に購読を解除するため保持する
-        private PPBattleUnitStatusSource mStatusSource;
-        // 狙う相手のアイコンを引く関数。バインダーが渡す
-        private Func<BattleUnit, Sprite> mIconResolver;
         // 向いている向き。右向きなら 1、左向きなら -1
         private float mFacing = 1f;
         // 絵の足元を立ち位置に合わせるための絵の位置
@@ -92,8 +64,6 @@ namespace PPCore
         private float mDamageElapsed = -1f;
         private float mHealElapsed = -1f;
         private float mDefeatElapsed = -1f;
-        // 手前へ寄せる前のステータスの縮尺
-        private Vector3 mStatusBaseScale = Vector3.one;
 
         /* プロパティ */
 
@@ -101,20 +71,11 @@ namespace PPCore
 
         /* Unity イベント */
 
-        // 絵とステータスをカメラへ向け、ステータスをカメラとの間へ寄せる
-        // 寄せた分だけ縮めるので、画面上の位置と大きさはユニットの位置に置いたときと変わらない
+        // 絵をカメラへ向ける
         private void LateUpdate()
         {
             var cam = Camera.main;
-            if (cam == null) return;
-            transform.rotation = cam.transform.rotation;
-
-            var toCamera = cam.transform.position - transform.position;
-            float distance = toCamera.magnitude;
-            if (distance <= 0f) return;
-            float pull = Mathf.Min(mStatusPull, distance * 0.5f);
-            mStatusRoot.position = transform.position + toCamera / distance * pull;
-            mStatusRoot.localScale = mStatusBaseScale * ((distance - pull) / distance);
+            if (cam != null) transform.rotation = cam.transform.rotation;
         }
 
         // 各動きを進めて、絵の位置と色へ反映する。timeScale に従うので、コマンド入力中は止まる
@@ -159,26 +120,12 @@ namespace PPCore
             mSpriteRenderer.color = color;
         }
 
-        // 破棄時にステータス表示の購読を解除する
-        private void OnDestroy()
-        {
-            if (mStatusWidget != null) mStatusWidget.Unbind();
-            if (mStatusSource != null)
-            {
-                mStatusSource.Changed -= RefreshTargetIcon;
-                mStatusSource.Dispose();
-                mStatusSource = null;
-            }
-        }
-
         /* 初期化・接続 */
 
         // 表示するユニットと絵を設定する。味方は右向き、敵は左向きにし、足元を立ち位置に合わせる
-        public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisual, BattleSide aSide,
-            Func<BattleUnit, Sprite> aIconResolver)
+        public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisual, BattleSide aSide)
         {
             mBattleUnit = aUnit;
-            mIconResolver = aIconResolver;
             mFacing = aSide == BattleSide.Ally ? 1f : -1f;
             mIdlePhase = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
 
@@ -191,7 +138,6 @@ namespace PPCore
             // 元の絵は左向きのため、右を向く味方だけ反転する
             mSpriteRenderer.flipX = aSide == BattleSide.Ally;
 
-            float spriteHeight = mSpriteHeight;
             if (sprite != null)
             {
                 // 画像の余白を除いた、絵が描かれている範囲の高さで大きさを決める
@@ -203,27 +149,6 @@ namespace PPCore
             }
             if (aVisual != null) mSpriteBasePosition += aVisual.SpawnOffset;
             mSpriteRenderer.transform.localPosition = mSpriteBasePosition;
-
-            PlaceStatus(aVisual != null ? aVisual.SpawnOffset.y : 0f, spriteHeight);
-
-            if (mStatusSource != null)
-            {
-                mStatusSource.Changed -= RefreshTargetIcon;
-                mStatusSource.Dispose();
-            }
-            mStatusSource = new PPBattleUnitStatusSource(aUnit);
-            mStatusWidget.Bind(mStatusSource);
-            mStatusSource.Changed += RefreshTargetIcon;
-            RefreshTargetIcon();
-        }
-
-        // 頭上の表示を絵の上に、足元の表示を絵の下に置く。ステータスのキャンバスの縮尺でワールド単位から換算する
-        private void PlaceStatus(float aFeetY, float aSpriteHeight)
-        {
-            mStatusBaseScale = mStatusRoot.localScale;
-            float toCanvas = 1f / Mathf.Max(0.0001f, mStatusBaseScale.y);
-            mTopBlock.anchoredPosition = new Vector2(0f, (aFeetY + aSpriteHeight + mStatusMargin) * toCanvas);
-            mBottomBlock.anchoredPosition = new Vector2(0f, (aFeetY - mStatusMargin) * toCanvas);
         }
 
         /* 操作 */
@@ -255,23 +180,8 @@ namespace PPCore
         // 回復の色を一瞬乗せる
         public void PlayHeal(float aAmt) => mHealElapsed = 0f;
 
-        // 撃破の動き(沈みながら消える)を再生し、ステータスを隠す
-        public void PlayDefeat()
-        {
-            mDefeatElapsed = 0f;
-            mTopBlock.gameObject.SetActive(false);
-            mBottomBlock.gameObject.SetActive(false);
-        }
-
-        // 狙う相手のアイコンを今の指定に合わせる。指定がなければ隠す
-        private void RefreshTargetIcon()
-        {
-            if (mTargetIcon == null) return;
-            var target = (mBattleUnit as PPBattleUnit)?.DesignatedTarget;
-            var icon = target != null ? mIconResolver?.Invoke(target) : null;
-            mTargetIcon.sprite = icon;
-            mTargetIcon.gameObject.SetActive(icon != null);
-        }
+        // 撃破の動き(沈みながら消える)を再生する
+        public void PlayDefeat() => mDefeatElapsed = 0f;
 
         /* ヘルパー */
 
