@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 using AttributeUtility;
 using CustomConsole;
@@ -81,20 +80,23 @@ namespace PPCore
     {
         /* インスペクタ設定 */
 
-        [Label("ユニットビューバインダー")]
-        [SerializeField] private PPBattleUnitViewBinder mViewBinder;
-        [Label("コマンドメニュー")]
-        [SerializeField] private PPBattleCommandMenuView mCommandMenu;
-        [Label("スキルメニュー")]
-        [SerializeField] private PPBattleSkillMenuView mSKillMenu;
+        [Label("ユニット表示バインダー")]
+        [SerializeField] private PPStageUnitViewBinder mViewBinder;
+        [Label("コインメニュー")]
+        [SerializeField] private PPCoinMenuView mCoinMenu;
         [Label("詳細ビュー")]
         [SerializeField] private PPBattleDetailMenuView mDetailMenu;
-        [Label("戻る")]
-        [SerializeField] private Button mBackButton;
-        [Label("UI入力モジュール")]
-        [SerializeField] private InputSystemUIInputModule mUIInputModule;
+        [Label("スキルカタログ")]
+        [SerializeField] private PPSkillVisualCatalog mSkillVisualCatalog;
         [Label("入力ステートボーダー")]
         [SerializeField] private Image mInputStateBorder;
+        // 左右の選択。負の値で左、正の値で右へ動かす
+        [Label("選択の入力")]
+        [SerializeField] private InputActionReference mNavigateAction;
+        [Label("決定の入力")]
+        [SerializeField] private InputActionReference mSubmitAction;
+        [Label("キャンセルの入力")]
+        [SerializeField] private InputActionReference mCancelAction;
 
         /* 状態 */
 
@@ -106,6 +108,8 @@ namespace PPCore
         private readonly PPBattleSelectionContext mContext = new();
         // 入力を開いているか。閉じた通知を 1 回の入力につき 1 回だけ出すために持つ
         private bool mIsInputOpen;
+        // 直前の選択入力の向き(-1 / 0 / 1)。スティックを倒し続けても 1 回だけ動かすために持つ
+        private int mLastNavigateDirection;
 
         /* プロパティ */
 
@@ -114,14 +118,14 @@ namespace PPCore
 
         // バインドされているバトルマネージャ
         public BattleManager Manager => mManager;
-        // ユニットとビューの対応付け。各ステートが対象選択に使う
-        public PPBattleUnitViewBinder ViewBinder => mViewBinder;
-        // コマンドメニューのビュー
-        public PPBattleCommandMenuView CommandMenu => mCommandMenu;
-        // スキルメニューのビュー
-        public PPBattleSkillMenuView SkillMenu => mSKillMenu;
+        // ユニットと表示の対応付け。各ステートが候補のアイコンと選択中の強調に使う
+        public PPStageUnitViewBinder ViewBinder => mViewBinder;
+        // コマンド・スキル・ユニットの選択に使うコイン型メニュー
+        public PPCoinMenuView CoinMenu => mCoinMenu;
         // ユニット詳細のビュー
         public PPBattleDetailMenuView DetailMenu => mDetailMenu;
+        // スキルのアイコンを引くカタログ。未設定ならアイコンなし
+        public PPSkillVisualCatalog SkillVisualCatalog => mSkillVisualCatalog;
         // 選択途中の状態を保持するコンテキスト
         public PPBattleSelectionContext Context => mContext;
 
@@ -150,31 +154,41 @@ namespace PPCore
 
         /* Unity イベント */
 
-        // 破棄時にキャンセル入力の購読を解除する
+        // 破棄時に選択・決定・キャンセルの入力の購読を解除する
         private void OnDestroy()
         {
-            if (mUIInputModule != null)
+            if (mNavigateAction != null)
             {
-                mUIInputModule.cancel.action.performed -= HandleCancelPerformed;
+                mNavigateAction.action.performed -= HandleNavigate;
+                mNavigateAction.action.canceled -= HandleNavigate;
             }
+            if (mSubmitAction != null) mSubmitAction.action.performed -= HandleSubmitPerformed;
+            if (mCancelAction != null) mCancelAction.action.performed -= HandleCancelPerformed;
         }
 
         /* 初期化・接続 */
 
-        // バトルマネージャを紐づけ、戻るボタンとキャンセル入力を購読する
-        // aManager : 確定したコマンドの投入先
+        // バトルマネージャを紐づけ、選択・決定・キャンセルの入力を有効にして購読する
         public void Bind(BattleManager aManager)
         {
             mManager = aManager;
-            if (mBackButton != null)
+            if (mNavigateAction != null)
             {
-                mBackButton.onClick.AddListener(Back);
+                mNavigateAction.action.performed += HandleNavigate;
+                mNavigateAction.action.canceled += HandleNavigate;
+                mNavigateAction.action.Enable();
             }
-
-            if (mUIInputModule != null)
+            if (mSubmitAction != null)
             {
-                mUIInputModule.cancel.action.performed += HandleCancelPerformed;
+                mSubmitAction.action.performed += HandleSubmitPerformed;
+                mSubmitAction.action.Enable();
             }
+            if (mCancelAction != null)
+            {
+                mCancelAction.action.performed += HandleCancelPerformed;
+                mCancelAction.action.Enable();
+            }
+            if (mCoinMenu != null) mCoinMenu.Hide();
         }
 
         /* 操作 */
@@ -325,11 +339,25 @@ namespace PPCore
 
         /* イベントハンドラ */
 
-        // キャンセル入力を受けて 1 段戻る。入力中でなければ何もしない
-        // ctx : Input System のコールバックコンテキスト
-        private void HandleCancelPerformed(InputAction.CallbackContext ctx)
+        // 左右の入力でコインメニューのカーソルを動かす。倒した向きが変わったときだけ 1 つ動かす
+        private void HandleNavigate(InputAction.CallbackContext aContext)
         {
-            if (mStateStack.Count > 0)
+            float value = aContext.canceled ? 0f : aContext.ReadValue<float>();
+            int direction = value > 0.5f ? 1 : value < -0.5f ? -1 : 0;
+            if (direction != 0 && direction != mLastNavigateDirection && mIsInputOpen) mCoinMenu.Move(direction);
+            mLastNavigateDirection = direction;
+        }
+
+        // 決定の入力をコインメニューへ渡す。入力中でなければ何もしない
+        private void HandleSubmitPerformed(InputAction.CallbackContext aContext)
+        {
+            if (mIsInputOpen) mCoinMenu.Submit();
+        }
+
+        // キャンセルの入力を受けて 1 段戻る。入力中でないときと、決定の動きの最中は何もしない
+        private void HandleCancelPerformed(InputAction.CallbackContext aContext)
+        {
+            if (mStateStack.Count > 0 && !mCoinMenu.IsDeciding)
             {
                 Back();
             }

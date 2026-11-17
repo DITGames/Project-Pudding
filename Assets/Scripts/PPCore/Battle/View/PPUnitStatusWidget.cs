@@ -33,6 +33,7 @@ namespace PPCore
         // スキルゲージバーの塗り部分。上限に対する溜まり具合を表す。未設定なら表示しない
         [Label("スキルゲージバー")]
         [SerializeField] private Image mSkillFill;
+        // 未設定なら表示しない
         [Label("名前ラベル")]
         [SerializeField] private TMP_Text mNameLabel;
         // 選択中のスキル名を出すラベル。未選択のときは隠す。未設定なら表示しない
@@ -71,7 +72,7 @@ namespace PPCore
         // 表示元の現在値で名前・各バー・選択中のスキル名・狙う相手の名前を更新する。最大 HP が 0 なら空表示にする
         private void Refresh()
         {
-            mNameLabel.text = mSource.DisplayName;
+            if (mNameLabel != null) mNameLabel.text = mSource.DisplayName;
             mHpFill.fillAmount = mSource.MaxHP > 0 ? mSource.CurrentHP / mSource.MaxHP : 0;
             if (mCoinFill != null) mCoinFill.fillAmount = mSource.CoinGaugeRate;
             if (mSkillFill != null) mSkillFill.fillAmount = mSource.SkillGaugeRate;

@@ -115,7 +115,8 @@ namespace PPCore
         {
             if (mMode == PPCoinDispenserMode.Player)
             {
-                if (Keyboard.current == null) return;
+                // コマンド入力中は timeScale が 0 になる。選択の左右キーでコインを落とさないよう投入を止める
+                if (Keyboard.current == null || Time.timeScale <= 0f) return;
                 if (Keyboard.current.leftArrowKey.wasPressedThisFrame) TryDrop(mLeftPoint);
                 if (Keyboard.current.rightArrowKey.wasPressedThisFrame) TryDrop(mRightPoint);
                 return;
