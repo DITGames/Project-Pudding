@@ -297,7 +297,6 @@ MonoBehaviour:
   mCoinPrefab: {fileID: 5262317414528861405, guid: 5215dbf89bbcfa9488493a9155d20331, type: 3}
   mStock: 30
   mIsRefundDropped: 1
-  mIsInfiniteStock: 0
   mDropZone: {fileID: 4387805739627420975}
   mMode: 0
   mLeftPoint: {fileID: 6322332972969603556}

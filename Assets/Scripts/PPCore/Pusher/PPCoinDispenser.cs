@@ -26,6 +26,7 @@ namespace PPCore
     }
 
     // プッシャーへコインを投入する役。所持コインを消費して左右どちらかから落とし、落下したコインは所持コインへ戻す
+    // 味方と敵で仕組みは同じで、違うのは投入のきっかけ（キー入力か一定間隔か）だけ
     // 開始時には、台の上へコインを並べておく
     public class PPCoinDispenser : MonoBehaviour
     {
@@ -47,9 +48,6 @@ namespace PPCore
         // 落ちたコインを所持コインへ戻すか。戻すと、落とした分だけまた投入できる
         [Label("落ちたコインを所持コインへ戻す")]
         [SerializeField] private bool mIsRefundDropped = true;
-        // 所持コインを減らさずに投入し続けるか。敵のプッシャーのように、投入が止まると困る場合に使う
-        [Label("所持コインを消費しない")]
-        [SerializeField] private bool mIsInfiniteStock = false;
         [Label("落下検出")]
         [SerializeField] private PPPusherDropZone mDropZone;
 
@@ -139,15 +137,14 @@ namespace PPCore
 
         /* 操作 */
 
-        // 指定した投入位置からコインを 1 枚落とす。所持コインが無ければ何もせず false を返す（消費しない設定なら常に落とす）
+        // 指定した投入位置からコインを 1 枚落とす。所持コインが無ければ何もせず false を返す
         public bool TryDrop(Transform aPoint)
         {
-            if (aPoint == null || mCoinPrefab == null) return false;
-            if (!mIsInfiniteStock && mStock <= 0) return false;
+            if (mStock <= 0 || aPoint == null || mCoinPrefab == null) return false;
 
             var position = aPoint.position + aPoint.right * UnityEngine.Random.Range(-mSpread, mSpread);
             SpawnCoin(position);
-            if (!mIsInfiniteStock) ChangeStock(-1);
+            ChangeStock(-1);
             return true;
         }
 

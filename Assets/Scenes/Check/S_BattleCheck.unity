@@ -859,14 +859,6 @@ PrefabInstance:
       propertyPath: mMode
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 440332914096124815, guid: 21647d539eb6a6a4aa83d791e3e51abf, type: 3}
-      propertyPath: mAutoInterval
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 440332914096124815, guid: 21647d539eb6a6a4aa83d791e3e51abf, type: 3}
-      propertyPath: mIsInfiniteStock
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 1021595930660822909, guid: 21647d539eb6a6a4aa83d791e3e51abf, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
