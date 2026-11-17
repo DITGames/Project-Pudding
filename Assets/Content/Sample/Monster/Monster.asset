@@ -22,7 +22,6 @@ MonoBehaviour:
   mSkills: []
   mExpandStatBlock:
     AttackCost: 5
-    ActionCount: 1
     SkillGaugeMax: 100
     CarryOverActions: 10
     Dexterity: 20

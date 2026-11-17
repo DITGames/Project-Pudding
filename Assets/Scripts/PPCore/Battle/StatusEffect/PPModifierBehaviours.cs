@@ -8,11 +8,12 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
 {
-    // 掛かっている間、対象へ行動制限を課す振る舞い。失敗確率は経過ターン数で変化させられる
+    // 掛かっている間、対象へ行動制限を課す振る舞い。失敗確率は効果の発生回数で変化させられる
     // ActionFailChance が上書きし合うため、制限は 1 エフェクトにつき 1 つを想定している
     public sealed class ActionRestrictionBehaviour : StatusEffectBehaviour
     {
@@ -22,25 +23,25 @@ namespace PPCore
         private readonly ActionRestriction mRestriction;
         // true なら確率抽選せず必ず行動を阻害する（睡眠など）
         private readonly bool mIsAlwaysBlock;
-        // 経過ターン 0 の時点での行動阻害確率（0～1）
+        // 発生回数 0 の時点での行動阻害確率（0～1）
         private readonly float mBaseChance;
-        // 経過ターン 1 つあたりの確率の増分。負の値なら経つほど動けるようになる
-        private readonly float mChancePerElapsedTurn;
+        // 発生 1 回あたりの確率の増分。負の値なら経つほど動けるようになる
+        private readonly float mChancePerElapsedTick;
 
         /* 生成 */
 
         public ActionRestrictionBehaviour(ActionRestriction aRestriction, bool aIsAlwaysBlock = true,
-            float aBaseChance = 1f, float aChancePerElapsedTurn = 0f)
+            float aBaseChance = 1f, float aChancePerElapsedTick = 0f)
         {
             mRestriction = aRestriction;
             mIsAlwaysBlock = aIsAlwaysBlock;
             mBaseChance = aBaseChance;
-            mChancePerElapsedTurn = aChancePerElapsedTurn;
+            mChancePerElapsedTick = aChancePerElapsedTick;
         }
 
         /* 操作 */
 
-        // 現在の経過ターン数から確率を求め、エフェクトへ行動制限を設定する
+        // 現在の発生回数から確率を求め、エフェクトへ行動制限を設定する
         // aContext : 振る舞いの実行コンテキスト
         private void ApplyRestriction(StatusEffectContext aContext)
         {
@@ -50,7 +51,7 @@ namespace PPCore
             // 確定阻害は ActionFailChance に null を入れる（RollActionBlocked が無条件で阻害と判定する）
             float? chance = mIsAlwaysBlock
                 ? null
-                : Mathf.Clamp01(mBaseChance + mChancePerElapsedTurn * effect.ElapsedTurns);
+                : Mathf.Clamp01(mBaseChance + mChancePerElapsedTick * effect.ElapsedTicks);
 
             // 他の振る舞いが積んだ制限を消さないよう、既存のフラグへ足す形で設定する
             effect.WithRestriction(effect.Restriction | mRestriction, chance);
@@ -61,7 +62,7 @@ namespace PPCore
         // 付与された時点で有効にする。行動判定は付与直後から走るため OnTick 任せにはしない
         public override void OnApply(StatusEffectContext aContext) => ApplyRestriction(aContext);
 
-        // 経過ターン数で確率が変わるため、更新のたびに設定し直す
+        // 発生回数で確率が変わるため、効果の発生のたびに設定し直す
         public override void OnTick(StatusEffectContext aContext) => ApplyRestriction(aContext);
     }
 
@@ -79,12 +80,13 @@ namespace PPCore
         // false にすると下の確率で抽選する
         [Label("必ず阻害する")]
         [SerializeField]protected bool mIsAlwaysBlock = true;
-        // 付与直後（経過ターン 0）の阻害確率
+        // 付与直後（発生回数 0）の阻害確率
         [Label("基本確率")][Range(0f, 1f)]
         [SerializeField]protected float mBaseChance = 0.5f;
-        // 経過ターン 1 つあたりの確率の増分。負の値にすると経つほど動けるようになる
-        [Label("1ターンあたりの増分")][Range(-1f, 1f)]
-        [SerializeField]protected float mChancePerElapsedTurn = 0f;
+        // 発生 1 回あたりの確率の増分。負の値にすると経つほど動けるようになる
+        [Label("発生1回あたりの増分")][Range(-1f, 1f)]
+        [FormerlySerializedAs("mChancePerElapsedTurn")]
+        [SerializeField]protected float mChancePerElapsedTick = 0f;
 
         /* プロパティ */
 
@@ -96,7 +98,7 @@ namespace PPCore
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
             aEffect.AddBehaviour(new ActionRestrictionBehaviour(
-                mRestriction, mIsAlwaysBlock, BaseChance, mChancePerElapsedTurn));
+                mRestriction, mIsAlwaysBlock, BaseChance, mChancePerElapsedTick));
         }
 
         /* 説明文 */
@@ -104,9 +106,9 @@ namespace PPCore
         public override string BuildString()
         {
             string rate = mIsAlwaysBlock ? "確定" : $"{BaseChance:P0}";
-            string curve = mIsAlwaysBlock || Mathf.Approximately(mChancePerElapsedTurn, 0f)
+            string curve = mIsAlwaysBlock || Mathf.Approximately(mChancePerElapsedTick, 0f)
                 ? string.Empty
-                : $" 毎ターン{mChancePerElapsedTurn:+0.##%;-0.##%}";
+                : $" 発生ごとに{mChancePerElapsedTick:+0.##%;-0.##%}";
             return $"{ToDisplayName(mRestriction)}：{rate}{curve}";
         }
 
@@ -256,23 +258,20 @@ namespace PPCore
     public enum PPModifierTargetParam
     {
         [InspectorName(PPParameterEffectCategoryDefinition.NameAttack)]
-        Attack,
+        Attack = 0,
         [InspectorName(PPParameterEffectCategoryDefinition.NameDefense)]
-        Defense,
+        Defense = 1,
         [InspectorName(PPParameterEffectCategoryDefinition.NameSpeed)]
-        Speed,
+        Speed = 2,
         [InspectorName(PPParameterEffectCategoryDefinition.NameHp)]
-        Hp,
-        // 通常攻撃コスト。追加パラメータ側にある
+        Hp = 3,
+        // 行動コスト。追加パラメータ側にある
         [InspectorName(PPParameterEffectCategoryDefinition.NameCost)]
-        Cost,
-        // 1 ティックあたりの行動回数上限。追加パラメータ側にある
-        [InspectorName(PPParameterEffectCategoryDefinition.NameActionCount)]
-        ActionCount,
-        // きようさ（会心率の元）。追加パラメータ側にある
-        // シリアライズ済みの整数値を保つため、要素の追加は末尾に行う
+        Cost = 4,
+        // きようさ（会心率の元）。追加パラメータ側にある。5 は廃止した行動回数上限が使っていた値で、欠番にしている
+        // シリアライズ済みの整数値を保つため、値は変えず、要素の追加は末尾に行う
         [InspectorName(PPParameterEffectCategoryDefinition.NameDexterity)]
-        Dexterity,
+        Dexterity = 6,
     }
 
     // パラメータを増減させるバフ・デバフの振る舞い定義。対象パラメータ・方式・変動量を組み合わせる
@@ -301,7 +300,7 @@ namespace PPCore
         public float Amount => mAmount;
 
         // 対象パラメータに対応するパラメータ ID
-        // コスト・行動回数上限・きようさは追加パラメータ側の ID を返す点に注意
+        // コスト・きようさは追加パラメータ側の ID を返す点に注意
         protected string ParamId
             => mTargetParam switch
             {
@@ -310,7 +309,6 @@ namespace PPCore
                 PPModifierTargetParam.Speed => ParameterSet.ParamIdSpeed,
                 PPModifierTargetParam.Hp => ParameterSet.ParamIdMaxHp,
                 PPModifierTargetParam.Cost => PPParameterSet.ParameterIdAttackCost,
-                PPModifierTargetParam.ActionCount => PPParameterSet.ParameterIdActionCount,
                 PPModifierTargetParam.Dexterity => PPParameterSet.ParameterIdDexterity,
                 _ => string.Empty,
             };

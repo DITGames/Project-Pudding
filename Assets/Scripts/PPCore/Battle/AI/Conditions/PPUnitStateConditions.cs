@@ -96,8 +96,6 @@ namespace PPCore
         Speed,
         [InspectorName("通常攻撃コスト")]
         AttackCost,
-        [InspectorName("行動回数上限")]
-        ActionCount,
     }
 
     // ユニット条件: パラメータの現在値を判定する
@@ -157,7 +155,6 @@ namespace PPCore
                 PPUnitParameterKind.Defense => ParameterSet.ParamIdDefense,
                 PPUnitParameterKind.Speed => ParameterSet.ParamIdSpeed,
                 PPUnitParameterKind.AttackCost => PPParameterSet.ParameterIdAttackCost,
-                PPUnitParameterKind.ActionCount => PPParameterSet.ParameterIdActionCount,
                 _ => "",
             };
 
@@ -171,7 +168,6 @@ namespace PPCore
                 PPUnitParameterKind.Defense => "防御力",
                 PPUnitParameterKind.Speed => "素早さ",
                 PPUnitParameterKind.AttackCost => "通常攻撃コスト",
-                PPUnitParameterKind.ActionCount => "行動回数上限",
                 _ => "",
             };
     }

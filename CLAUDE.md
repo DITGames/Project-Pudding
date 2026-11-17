@@ -86,7 +86,8 @@ PPCore/
 - `BattleContext` が 1 バトル分の状態を保持（`AllyParty` / `EnemyParty` / `Rules` / `TurnCount` / `Reward` / `Environment`）
 - `BattleStateMachine` の `BattleState`: `BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd`
 - コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()` で実行（演出は待たない）
-- `AdvanceTick()` がターン経過。`OnTickEnded` → パーティ Tick → 勝敗判定 → `TurnCount++` → `OnTickStarted`
+- `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）とスキルのクールタイムはこの時計で進む
+- `AdvanceTick()` は `TurnCount` を進めて `OnTickEnded` / `OnTickStarted` を通知するだけで、状態異常は進めない
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ICastValidator`, `ITargetFilter`, `IDeadTargetPolicy`, `ITurnOrderResolver`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止

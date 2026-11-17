@@ -30,9 +30,10 @@ MonoBehaviour:
     - rid: -2
       type: {class: , ns: , asm: }
     - rid: 7300000000000001000
-      type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
+      type: {class: PPIntervalDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDuration: 3
+        mInterval: 5
+        mCount: 3
     - rid: 7300000000000001001
       type: {class: PPDamageScaleBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:

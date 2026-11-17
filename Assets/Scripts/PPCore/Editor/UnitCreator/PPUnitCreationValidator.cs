@@ -122,7 +122,6 @@ namespace PPCore
                 result.Errors.Add("レベルの範囲が不正です（最大レベル1〜100000）。");
             for (var i = 0; i < PPUnitCreationDraft.StatNames.Length; i++) ValidateCurve(aDraft, i, result);
             var expand = unit.ExpandStatBlock;
-            if (expand.ActionCount < 1) result.Errors.Add("行動回数は1以上です。");
             if (new[] { expand.AttackCost, expand.SkillGaugeMax }.Any(aValue => !IsFinite(aValue) || aValue < 0))
                 result.Errors.Add("コスト・ゲージ上限は有限の0以上の値が必要です。");
             if (expand.CarryOverActions < 1) result.Errors.Add("持ち越し上限は1以上です。");

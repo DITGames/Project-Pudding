@@ -31,7 +31,7 @@ namespace PPCore
         // [Label] を付けると種類のプルダウンを出せなくなるため、表示名は [PPFieldLabel] で与える
         [PPFieldLabel("持続条件")]
         [SerializeReference]
-        [SerializeField]protected PPDurationConditionDefinition mDurationCondition = new PPTurnDurationConditionDefinition();
+        [SerializeField]protected PPDurationConditionDefinition mDurationCondition = new PPIntervalDurationConditionDefinition();
 
         [Label("スタックポリシー")]
         [SerializeField]protected StatusEffectStackPolicy mStackPolicy = StatusEffectStackPolicy.Refresh;
@@ -73,7 +73,7 @@ namespace PPCore
         // 共通部分を組み立てたのち、mBehaviours の各要素へ効き目の組み立てを委ねる
         public StatusEffect CreateRuntimeStatusEffect(BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            // 持続条件は付与のたびに作り直す（残りターン数のような状態を持つため使い回さない）
+            // 持続条件は付与のたびに作り直す（残りの発生回数のような状態を持つため使い回さない）
             // 未設定なら null を渡し、StatusEffect 側の既定である PermanentDurationCondition に委ねる
             var effect = new StatusEffect(mEffectId, mDisplayName, mDurationCondition?.CreateDurationCondition())
                 .WithSource(aSource)

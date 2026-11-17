@@ -243,19 +243,13 @@ namespace PPCore
 
         /* ターン進行 */
 
-        // ターン経過処理。ターン終了通知 → 両パーティの Tick → 勝敗判定 → ターン番号加算 → ターン開始通知の順に進む
+        // ターン経過処理。ターン終了通知 → ターン番号加算 → ターン開始通知の順に進む
+        // 状態異常とクールタイムはバトル専用の時計で進むため、ここでは扱わない
         public void AdvanceTick()
         {
             OnTickEnded?.Invoke(Context.TurnCount);
             DispatchReactions(new ReactionContext(
                 ReactionTrigger.OnTurnEnded, null, null, null, Context));
-
-            Context.AllyParty.PartyTick(Context);
-            Context.EnemyParty.PartyTick(Context);
-
-            // 毒などの継続ダメージで決着する場合があるためここで判定する
-            CheckBattleResult();
-            if (StateMachine.Current == BattleState.BattleEnd) return;
 
             Context.TurnCount++;
             OnTickStarted?.Invoke(Context.TurnCount);

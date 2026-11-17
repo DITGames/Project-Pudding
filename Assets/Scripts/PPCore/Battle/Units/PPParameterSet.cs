@@ -107,8 +107,6 @@ namespace PPCore
 
         // 通常攻撃コストのパラメータ ID
         public static readonly string ParameterIdAttackCost = "AttackCost";
-        // 行動回数上限のパラメータ ID
-        public static readonly string ParameterIdActionCount = "ActionCount";
         // きようさのパラメータ ID。会心率の算出に使う
         public static readonly string ParameterIdDexterity = "Dexterity";
         // スキルゲージ上限の ID。PPBaseParameterTable でスキル効果値を集計する際のキーにだけ使い、
@@ -119,8 +117,6 @@ namespace PPCore
 
         // 行動 1 回あたりの消費コインゲージ量（行動コスト）。バフで増減しうる
         public Parameter AttackCost { get; }
-        // 行動回数。進行では使っておらず、行動回数アップの状態異常と一緒に削除する予定
-        public Parameter ActionCount { get; }
         // きようさ。会心率(%) = 現在値 × 0.25 で求める（PPCriticalResolver 参照）
         // Parameter で持つことで、既存のパラメータ変動エフェクトから ID 指定でバフ・デバフを掛けられる
         public Parameter Dexterity { get; }
@@ -139,10 +135,9 @@ namespace PPCore
 
         /* 生成 */
 
-        public PPParameterSet(float aAttackCost, int aActionCount, float aSkillGaugeMax, float aCoinGaugeMax, float aDexterity)
+        public PPParameterSet(float aAttackCost, float aSkillGaugeMax, float aCoinGaugeMax, float aDexterity)
         {
             AttackCost = RegisterModifiable(ParameterIdAttackCost, new Parameter(aAttackCost));
-            ActionCount = RegisterModifiable(ParameterIdActionCount, new Parameter(Mathf.Max(1, aActionCount)));
             Dexterity = RegisterModifiable(ParameterIdDexterity, new Parameter(aDexterity));
 
             SkillGauge = CreateEmptyGauge(aSkillGaugeMax);

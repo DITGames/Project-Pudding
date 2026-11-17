@@ -36,9 +36,9 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Label("コマンド入力コントローラ")]
     [SerializeField] private PPBattleCommandInputController mController;
 
-    // 敵ゲージ供給の 1 回分と、状態異常・クールダウンの更新の間隔（秒）
+    // 敵ゲージ供給の 1 回分の間隔（秒）
     [Header("バトル設定")]
-    [Label("更新間隔(ゲージ供給・状態異常)")]
+    [Label("ゲージ供給の間隔(秒)")]
     [SerializeField] private float mTurnTickInterval = 5f;
 
     // 行動してから次の行動を積めるようになるまでの秒数。演出の長さの代わりに使う
@@ -56,7 +56,7 @@ public class SamplePusherBattleRunner : MonoBehaviour
     [Label("ユニット")]
     [SerializeField] private UnitDefinition mEnemyUnit;
 
-    // 敵が更新間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
+    // 敵が供給の間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
     [Label("敵ゲージ供給")]
     [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
 
@@ -97,7 +97,6 @@ public class SamplePusherBattleRunner : MonoBehaviour
         mController.OnCommandConfirmed += HandleCommandConfirmed;
 
         mActionScheduler.Bind(mBattleManager, mActionPresentationSeconds);
-        mActionScheduler.StartStatusTick(mTurnTickInterval);
         mEnemyResourceSimulation.Start((PPBattleParty)context.EnemyParty, context, mTurnTickInterval);
     }
 
