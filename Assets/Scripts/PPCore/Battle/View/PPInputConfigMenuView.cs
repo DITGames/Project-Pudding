@@ -15,13 +15,13 @@ using UnityEngine.InputSystem;
 
 namespace PPCore
 {
-    // 変更できる操作ごとに、キーボード 2 枠・ゲームパッド 2 枠のコインを並べるキー設定画面
+    // 変更できる操作ごとに、キーボード 2 枠・ゲームパッド 2 枠の札を並べるキー設定画面
     // 開いている間はバトルの時計と物理を止める。動きは timeScale に関係なく unscaled の時間で進める
     public class PPInputConfigMenuView : MonoBehaviour
     {
         /* 内部型 */
 
-        // 並べたコイン 1 枚分の役割と動きの状態
+        // 並べた札 1 枚分の役割と動きの状態
         private class SlotEntry
         {
             public PPInputConfigSlot Slot;
@@ -66,7 +66,7 @@ namespace PPCore
         // 開いている間だけ表示する部分
         [Label("画面")]
         [SerializeField] private GameObject mPanel;
-        [Label("コインのプレハブ")]
+        [Label("札のプレハブ")]
         [SerializeField] private PPInputConfigSlot mSlotPrefab;
         // 行の名前に使う文字のひな形。複製して使う
         [Label("行の名前のひな形")]
@@ -75,7 +75,7 @@ namespace PPCore
         [SerializeField] private RectTransform mGrid;
         [Label("行の名前の位置(横)")]
         [SerializeField] private float mLabelX = -230f;
-        // 各列のコインの横の位置。左からキーボード 1・2、ゲームパッド 1・2
+        // 各列の札の横の位置。左からキーボード 1・2、ゲームパッド 1・2
         [Label("列の位置(横)", true)]
         [SerializeField] private float[] mColumnX = { -40f, 60f, 170f, 270f };
         [Label("最初の行の位置(縦)")]
@@ -139,7 +139,7 @@ namespace PPCore
 
         /* Unity イベント */
 
-        // 保存されている割り当てを読み込み、コインを並べておく
+        // 保存されている割り当てを読み込み、札を並べておく
         private void Awake()
         {
             if (mActions != null) PPInputBindingStore.Load(mActions);
@@ -180,7 +180,7 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // 変更できる操作ごとに行の名前と 4 枠のコインを並べ、一番下に「既定に戻す」「閉じる」を置く
+        // 変更できる操作ごとに行の名前と 4 枠の札を並べ、一番下に「既定に戻す」「閉じる」を置く
         private void BuildGrid()
         {
             if (mActions == null) return;
@@ -214,7 +214,7 @@ namespace PPCore
             foreach (var entry in mFooter) entry.Slot.transform.localScale = Vector3.one * mFooterScale;
         }
 
-        // コインを 1 枚置く。落ちてくる順番は左上から斜めに並ぶ
+        // 札を 1 枚置く。落ちてくる順番は左上から斜めに並ぶ
         private SlotEntry CreateEntry(Vector2 aPosition, int aOrder)
         {
             var slot = Instantiate(mSlotPrefab, mGrid);
