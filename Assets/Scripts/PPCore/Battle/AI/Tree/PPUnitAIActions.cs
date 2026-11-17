@@ -8,12 +8,13 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
 {
     // 行動を 1 つ実行する葉ノード。アクションを組み立てられた場合のみ確定とし、できなければ親の次の候補へ渡す
-    // 維持ティック数を設定すると、この行動を選んだあとしばらく判断が固定される
+    // 維持する行動回数を設定すると、この行動を選んだあとしばらく判断が固定される
     [Serializable]
     [PPTypeMenuName("行動/実行")]
     public sealed class PPUnitAIActionNode : PPUnitAINode
@@ -25,15 +26,17 @@ namespace PPCore
         [SerializeReference]
         [SerializeField] private PPUnitAIActionBase mAction;
 
-        // この行動を選んだあと、判断を維持するティック数
-        // 0 なら維持せず、次のティックはツリーの先頭から自由に選び直す
-        [Label("判断を維持するティック数")]
-        [SerializeField] private int mCommitTicks = 0;
+        // この行動を選んだあと、判断を維持する行動回数
+        // 0 なら維持せず、次の行動はツリーの先頭から自由に選び直す
+        [Label("判断を維持する行動回数")]
+        [FormerlySerializedAs("mCommitTicks")]
+        [SerializeField] private int mCommitActions = 0;
 
-        // この行動で狙った対象へ、狙いを固定するティック数。0 なら固定しない
-        // 固定は対象が倒れるか指定ティック数が過ぎるまで続き、対象の選び方が「固定した敵」の行動が拾う
-        [Label("狙いを固定するティック数")]
-        [SerializeField] private int mFocusTicks = 0;
+        // この行動で狙った対象へ、狙いを固定する行動回数。0 なら固定しない
+        // 固定は対象が倒れるか指定の回数だけ行動するまで続き、対象の選び方が「固定した敵」の行動が拾う
+        [Label("狙いを固定する行動回数")]
+        [FormerlySerializedAs("mFocusTicks")]
+        [SerializeField] private int mFocusActions = 0;
 
         /* プロパティ */
 
@@ -50,8 +53,8 @@ namespace PPCore
                 if (mAction == null) return "行動が未設定";
 
                 string body = mAction.Summary;
-                if (mCommitTicks > 0) body += $"\n維持 {mCommitTicks}T";
-                if (mFocusTicks > 0) body += $" ／ 狙い固定 {mFocusTicks}T";
+                if (mCommitActions > 0) body += $"\n維持 {mCommitActions}回";
+                if (mFocusActions > 0) body += $" ／ 狙い固定 {mFocusActions}回";
                 return body;
             }
         }
@@ -74,8 +77,8 @@ namespace PPCore
             var result = mAction.Build(aContext);
             if (!result.IsDecided) return result;
 
-            if (mCommitTicks > 0) result = result.WithCommit(mCommitTicks);
-            if (mFocusTicks > 0) result = result.WithFocus(mFocusTicks);
+            if (mCommitActions > 0) result = result.WithCommit(mCommitActions);
+            if (mFocusActions > 0) result = result.WithFocus(mFocusActions);
             return result;
         }
     }
@@ -111,8 +114,8 @@ namespace PPCore
         public abstract PPUnitAINodeResult Build(PPUnitAIEvalContext aContext);
     }
 
-    // コインゲージを消費して通常攻撃を行う行動。設定は対象の選び方だけ
-    // コインゲージが足りない、または対象が居ない場合は組み立てに失敗する
+    // 次の行動を通常攻撃にする行動。設定は対象の選び方だけ
+    // 行動はコインゲージが溜まったときに行われるため、ゲージの残量は見ない。対象が居ない場合は組み立てに失敗する
     [Serializable]
     [PPTypeMenuName("通常攻撃")]
     public sealed class PPUnitAIAttackAction : PPUnitAIActionBase
@@ -139,19 +142,10 @@ namespace PPCore
 
         /* 生成 */
 
-        // コインゲージの残量と対象を確認し、足りていれば通常攻撃コマンドを組み立てる
+        // 対象を決めて通常攻撃コマンドを組み立てる
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
         {
             var unit = aContext.Unit;
-
-            // 生成時点のコストで支払えるかを先に見る。実際の消費はコマンド実行時に行われる
-            // 台帳がある場合は、同じティックで既に積んだ行動が使う予定の分も差し引いて判定する
-            float attackCost = unit.ExtraParameters.Get(PPParameterSet.ParameterIdAttackCost)?.CurrentValue ?? 0f;
-            var ledger = aContext.Snapshot.Ledger;
-            bool canPay = ledger != null
-                ? ledger.CanReserveCoin(unit, attackCost)
-                : PPGaugeUtility.CanPay(unit.ExtraParameters.CoinGauge, attackCost);
-            if (!canPay) return PPUnitAINodeResult.Failed;
 
             var target = PPUnitAITargeting.Resolve(mTargetPolicy, aContext);
             if (target == null && mIsFallbackAnyEnemy)
@@ -210,7 +204,7 @@ namespace PPCore
         public override PPUnitAINodeResult Build(PPUnitAIEvalContext aContext)
         {
             var (skill, definition) = PPUnitAISkillQuery.SelectCastable(
-                aContext.Unit, mFilter, mSelectRule, aContext.Battle, aContext.Snapshot.Ledger);
+                aContext.Unit, mFilter, mSelectRule, aContext.Battle);
             if (skill == null) return PPUnitAINodeResult.Failed;
 
             var target = PPUnitAITargeting.Resolve(mTargetPolicy, aContext);
@@ -237,7 +231,7 @@ namespace PPCore
                 : aContext.Snapshot.LowestHpRatioEnemy;
     }
 
-    // 何もせずそのティックを見送る行動
+    // スキルを選ばず、通常攻撃を続けてスキルゲージを溜める行動
     // 常に確定するため、これより下の候補は評価されない
     [Serializable]
     [PPTypeMenuName("待機")]

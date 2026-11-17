@@ -32,7 +32,7 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 48b7d819212f415fa0e8b214444974ea
         mGraphPosition: {x: 0, y: 0}
         mChildIds:
@@ -45,7 +45,7 @@ MonoBehaviour:
         mNodeName: "\u56DE\u5FA9\u304C\u5FC5\u8981\u304B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 39a2e99ca6344d9797353b3e6e137ea5
         mGraphPosition: {x: 320, y: 0}
         mUnitConditions: []
@@ -60,20 +60,20 @@ MonoBehaviour:
         mNodeName: "\u56DE\u5FA9\u30B9\u30AD\u30EB"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 33f0bc94e143475599348e804446dcce
         mGraphPosition: {x: 640, y: 0}
         mAction:
           rid: 2919751056307257465
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2919751056307257461
       type: {class: PPUnitAIConditionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u4E3B\u30B9\u30AD\u30EB\u5206\u3092\u6B8B\u305B\u308B\u304B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 6981906c0995477bbfa020edbd725d60
         mGraphPosition: {x: 320, y: 160}
         mUnitConditions:
@@ -88,26 +88,26 @@ MonoBehaviour:
         mNodeName: "\u653B\u6483\u30B9\u30AD\u30EB"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 5323923b71c64759abadc70e27031832
         mGraphPosition: {x: 640, y: 160}
         mAction:
           rid: 2919751056307257467
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2919751056307257463
       type: {class: PPUnitAIActionNode, ns: PPCore, asm: Assembly-CSharp}
       data:
         mNodeName: "\u901A\u5E38\u653B\u6483"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 109f9ba2ba484b208cf2881246a1894d
         mGraphPosition: {x: 320, y: 320}
         mAction:
           rid: 2919751056307257468
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 2919751056307257464
       type: {class: PPAliveMemberHealthRatio, ns: PPCore, asm: Assembly-CSharp}
       data:

@@ -8,6 +8,8 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
@@ -261,73 +263,60 @@ namespace PPCore
         }
     }
 
-    // パーティ状況条件: バトル開始からの経過ターン数。進行度で切り替わる戦術に使う
-    // ターン数は整数のため厳密に比較する
+    // パーティ状況条件: バトル開始からの経過時間（秒）。進行度で切り替わる戦術に使う
+    // バトル専用の時計で測るため、コマンド入力中の時間は含まない
     [Serializable]
-    [PPTypeMenuName("進行/経過ターン数")]
-    public sealed class PPTurnCountCondition : PPPartyConditionValidator
+    [PPTypeMenuName("進行/経過時間")]
+    [MovedFrom(false, null, null, "PPTurnCountCondition")]
+    public sealed class PPElapsedTimeCondition : PPPartyConditionValidator
     {
         /* インスペクタ設定 */
 
-        [Label("比較")] public PPCompareOp Op = PPCompareOp.Equal;
-        [Label("ターン数")] public int Threshold = 3;
+        [Label("比較")] public PPCompareOp Op = PPCompareOp.GreaterOrEqual;
+        [Label("経過時間(秒)")] public float Threshold = 15f;
 
         /* 評価・判定 */
 
-        // 経過ターン数を閾値と比較する
+        // 経過時間を閾値と比較する
         public override bool Evaluate(PPPartyAIContext aSnapShot)
-         => PPConditionMath.Compare(aSnapShot.Context.TurnCount, Op, Threshold);
+         => PPConditionMath.Compare(aSnapShot.Context.Clock.Now, Op, Threshold);
 
         /* 説明文 */
 
         // 設定内容から説明文を組み立てる
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
-        {
-            var prefix = $"経過ターン数が{Threshold}ターン";
-            var op = GetOpString(Op);
-            mDescription = prefix + op;
-        }
-
-        // 説明文の語尾を自然な日本語にするため、等値系のみ表記を差し替える
-        // aOp : 比較演算子
-        protected override string GetOpString(PPCompareOp aOp)
-            => aOp switch
-            {
-                PPCompareOp.Equal => "と等しい",
-                PPCompareOp.NotEqual => "と等しくない",
-                _ => base.GetOpString(aOp)
-            };
+            => mDescription = $"経過時間が{Threshold}秒{GetOpString(Op)}";
     }
 
-    // パーティ状況条件: 経過ターン数が指定周期にあたるか（「3 ターンごとに全体攻撃」など）
-    // 開始からの絶対ターン数で判定するため、撃てなかったターンがあっても周期がずれない
+    // パーティ状況条件: 経過時間が指定周期の中の指定範囲にあたるか（「15 秒ごとに 5 秒間だけ全体攻撃を狙う」など）
+    // 開始からの絶対時間で判定するため、撃てなかった周期があっても周期がずれない
     [Serializable]
-    [PPTypeMenuName("進行/経過ターン数の周期")]
-    public sealed class PPTurnCycleCondition : PPPartyConditionValidator
+    [PPTypeMenuName("進行/経過時間の周期")]
+    [MovedFrom(false, null, null, "PPTurnCycleCondition")]
+    public sealed class PPElapsedTimeCycleCondition : PPPartyConditionValidator
     {
         /* インスペクタ設定 */
 
-        // 何ターンごとに成立させるか。1 以下なら毎ターン成立する
-        [Label("周期(ターン)")]
-        [SerializeField] private int mCycle = 3;
-        // 周期の中のどの位置で成立させるか。0 なら周期の頭で成立する
-        [Label("周期内の位置")]
-        [SerializeField] private int mOffset = 0;
-        // 反転すると「周期にあたらないターン」の判定になる
+        // 何秒ごとに成立させるか。0 以下なら常に成立する
+        [Label("周期(秒)")]
+        [FormerlySerializedAs("mCycle")]
+        [SerializeField] private float mCycleSeconds = 15f;
+        // 周期の頭から何秒間成立させるか。周期以上なら常に成立する
+        [Label("成立させる長さ(秒)")]
+        [SerializeField] private float mWindowSeconds = 5f;
+        // 反転すると「範囲にあたらない時間」の判定になる
         [Label("条件を反転する")]
         [SerializeField] private bool mIsInvert = false;
 
         /* 評価・判定 */
 
-        // 経過ターン数が周期にあたるかを判定する
+        // 経過時間が周期の中の範囲にあたるかを判定する
         public override bool Evaluate(PPPartyAIContext aSnapShot)
         {
-            if (mCycle <= 1) return !mIsInvert;
+            if (mCycleSeconds <= 0f || mWindowSeconds >= mCycleSeconds) return !mIsInvert;
 
-            // 位置が周期をはみ出していても意味のある値へ丸めておく
-            int offset = ((mOffset % mCycle) + mCycle) % mCycle;
-            bool isOnCycle = aSnapShot.Context.TurnCount % mCycle == offset;
+            bool isOnCycle = aSnapShot.Context.Clock.Now % mCycleSeconds < mWindowSeconds;
             return isOnCycle != mIsInvert;
         }
 
@@ -337,7 +326,7 @@ namespace PPCore
         [ContextMenu("説明文を生成")]
         protected override void BuildDescription()
         {
-            string body = mCycle <= 1 ? "毎ターン" : $"{mCycle}ターンごと(位置{mOffset})";
+            string body = mCycleSeconds <= 0f ? "常に" : $"{mCycleSeconds}秒ごとに{mWindowSeconds}秒間";
             mDescription = mIsInvert ? $"{body}ではない" : body;
         }
     }

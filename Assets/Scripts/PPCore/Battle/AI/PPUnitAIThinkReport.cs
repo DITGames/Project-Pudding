@@ -34,11 +34,9 @@ namespace PPCore
         None,
         // 使えるツリーが無い（個別・ロール既定・全体既定のどれも未設定）
         NoTree,
-        // このティックの行動回数を使い切っている
-        NoActionBudget,
         // ツリーのどの枝も成立しなかった（末尾に無条件の行動を置けば埋められる）
         NoMatchedNode,
-        // ツリーが待機を選んだ（溜めるための意図的な待機）
+        // ツリーが待機を選んだ（スキルを選ばず、通常攻撃でスキルゲージを溜める）
         DecidedToWait,
     }
 
@@ -91,11 +89,10 @@ namespace PPCore
         public float CoinGauge;
         // コインゲージの上限
         public float CoinGaugeMax;
-        // 待機コミットの残りティック数。コミットしていなければ 0
-        public int CommitRemainingTicks;
-        // そのユニットのこのティック何手目か。0 から始まる
-        // 行動回数が複数のユニットは、同じティックに複数件の記録が並ぶ
-        public int ActionIndex;
+        // 待機コミットの残りの行動回数。コミットしていなければ 0
+        public int CommitRemainingActions;
+        // そのユニットの何回目の思考か。行動が終わるたびに 1 回思考するため、行動回数と同じ意味になる
+        public int ActionCount;
         // 評価した判断ツリー。ツリーウィンドウで開いているものと同じかを見分けるのに使う
         public PPUnitBehaviourTree Tree;
         // 評価した判断ツリーの出どころ
@@ -107,17 +104,13 @@ namespace PPCore
     }
 
     // ユニット AI の思考 1 回分の記録
-    // 1 パーティ分のユニット判断をまとめて 1 件として扱う
+    // 思考はユニットの行動が終わるたびに 1 体ずつ行うため、通常は 1 体分の判断だけが入る
     public sealed class PPUnitAIThinkReport
     {
         // 思考した陣営
         public BattleSide Side;
-        // 思考時点のターン数
-        public int TurnCount;
-        // 思考時点の経過時間（秒）
+        // 思考時点の経過時間（バトル専用の時計の秒）
         public float Timestamp;
-        // 採用された行動の総数
-        public int AdoptedCount;
         // ユニットごとの判断結果
         public List<PPUnitAIThinkEntry> Units { get; } = new();
     }

@@ -38,7 +38,7 @@ MonoBehaviour:
         mNodeName: "\u30EB\u30FC\u30C8"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: e120d51460124300b6ef912d453fa27b
         mGraphPosition: {x: 0, y: 0}
         mChildIds:
@@ -52,7 +52,7 @@ MonoBehaviour:
         mNodeName: "\u652F\u63F4\u30B9\u30AD\u30EB\u304C\u4F7F\u7528\u53EF\u80FD?"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 80dd3488012c4fc489b631ab724ecee4
         mGraphPosition: {x: 320, y: 150}
         mUnitConditions:
@@ -80,7 +80,7 @@ MonoBehaviour:
         mNodeName: "\u652F\u63F4\u512A\u5148\u5EA6"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 743bacec641a43e4a73bd476cb21a459
         mGraphPosition: {x: 640, y: 150}
         mChildIds:
@@ -92,7 +92,7 @@ MonoBehaviour:
         mNodeName: "\u901A\u5E38\u653B\u6483\u3067\u5012\u305B\u308B\u6575\u3092\u653B\u6483"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: a44c7c7b36704de69be006dadf716129
         mGraphPosition: {x: 320, y: 0}
         mSubTree: {fileID: 11400000, guid: d2fcc4aef0ca8c34f907a8aebb6fcde8, type: 2}
@@ -115,7 +115,7 @@ MonoBehaviour:
         mNodeName: "\u653B\u6483\u30D0\u30D5\u3092\u4F7F\u7528\u3059\u308B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: d54211a7cc264d76b07cbbcc6be53df7
         mGraphPosition: {x: 1280, y: 150}
         mSubTree: {fileID: 11400000, guid: b392a4e6ea912f24c898732f230a38f6, type: 2}
@@ -125,7 +125,7 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 63df00efc767432ab940dfafa932af1c
         mGraphPosition: {x: 960, y: 150}
         mProbability: 0.85
@@ -136,7 +136,7 @@ MonoBehaviour:
         mNodeName: 
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 49ca54b5dacd47d5a706162f6d43f978
         mGraphPosition: {x: 960, y: 300}
         mProbability: 0.75
@@ -147,7 +147,7 @@ MonoBehaviour:
         mNodeName: "\u9632\u5FA1\u30D0\u30D5\u3092\u4F7F\u7528\u3059\u308B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 7a37dcfb1c1340e4b815044dd9f31492
         mGraphPosition: {x: 1280, y: 300}
         mSubTree: {fileID: 11400000, guid: 7dbacba46696cdb46adfc126e6f68dc7, type: 2}
@@ -157,7 +157,7 @@ MonoBehaviour:
         mNodeName: "\u56DE\u5FA9\u30B9\u30AD\u30EB\u304C\u4F7F\u7528\u53EF\u80FD?"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 4f841082909841e7866ad81ef4f53e0c
         mGraphPosition: {x: 320, y: 300}
         mUnitConditions:
@@ -211,7 +211,7 @@ MonoBehaviour:
         mNodeName: "HP\u304C50%\u4EE5\u4E0B\u306E\u5473\u65B9\u3092\u63A2\u7D22"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: b3f5dd9423ee4d4fb3e07637cd7a5707
         mGraphPosition: {x: 640, y: 300}
         mScope: 0
@@ -235,7 +235,7 @@ MonoBehaviour:
         mNodeName: "HP50%\u4EE5\u4E0B\u306E\u5473\u65B9\u3092\u56DE\u5FA9"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 09ac23d4b28d433ea8a8993f5d77604e
         mGraphPosition: {x: 960, y: 450}
         mSubTree: {fileID: 11400000, guid: af05137b16a249bcbe1aa348f5e6ae44, type: 2}
@@ -245,7 +245,7 @@ MonoBehaviour:
         mNodeName: "\u901A\u5E38\u653B\u6483\u62BD\u9078"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 2deba3cd75014d11a224b7bd82a4ecac
         mGraphPosition: {x: 320, y: 450}
         mSubTree: {fileID: 11400000, guid: 71297fa7f3abd284ca0541204833113d, type: 2}

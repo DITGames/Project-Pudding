@@ -235,7 +235,8 @@ namespace PPCore
                     if (!IsVisibleSide(report.Side)) continue;
 
                     bool isSelected = i == ResolveSelectedIndex(aReports);
-                    string label = $"[{report.TurnCount}T {report.Timestamp:F1}s] {SideLabel(report.Side)} 採用{report.AdoptedCount}件";
+                    string unitName = report.Units.Count > 0 ? report.Units[0].UnitName : "-";
+                    string label = $"[{report.Timestamp:F1}s] {SideLabel(report.Side)} {unitName}";
                     if (GUILayout.Toggle(isSelected, label, EditorStyles.miniButton) && !isSelected)
                     {
                         mSelectedIndex = i;
@@ -262,8 +263,7 @@ namespace PPCore
 
                 EditorGUILayout.LabelField("思考", EditorStyles.boldLabel);
                 EditorGUILayout.LabelField("陣営", SideLabel(aReport.Side));
-                EditorGUILayout.LabelField("経過ターン", aReport.TurnCount.ToString());
-                EditorGUILayout.LabelField("採用行動数", aReport.AdoptedCount.ToString());
+                EditorGUILayout.LabelField("経過時間", $"{aReport.Timestamp:F1} 秒");
 
                 EditorGUILayout.Space();
                 EditorGUILayout.LabelField("ユニット（編成順）", EditorStyles.boldLabel);
@@ -287,10 +287,8 @@ namespace PPCore
                 using (new EditorGUILayout.HorizontalScope())
                 {
                     bool isSelected = ReferenceEquals(PPUnitAITreeHighlightHub.Selected, aEntry);
-                    // 行動回数が複数のユニットは何手目かを添えて区別する
-                    string unitLabel = aEntry.ActionIndex > 0
-                        ? $"{aEntry.UnitName}（{aEntry.ActionIndex + 1}手目）"
-                        : aEntry.UnitName;
+                    // 何回目の思考かを添えて区別する
+                    string unitLabel = $"{aEntry.UnitName}（{aEntry.ActionCount}回目）";
                     if (GUILayout.Toggle(isSelected, unitLabel, EditorStyles.miniButton, GUILayout.Width(160f))
                         && !isSelected)
                     {
@@ -309,9 +307,9 @@ namespace PPCore
                 EditorGUILayout.LabelField("コインゲージ", $"{aEntry.CoinGauge:F1} / {aEntry.CoinGaugeMax:F1}");
 
                 // 維持中は「今の判断がいつまで固定されるか」がわからないと待ちの是非を判断できない
-                if (aEntry.CommitRemainingTicks > 0)
+                if (aEntry.CommitRemainingActions > 0)
                 {
-                    EditorGUILayout.LabelField("判断の維持", $"あと {aEntry.CommitRemainingTicks} ティック");
+                    EditorGUILayout.LabelField("判断の維持", $"あと {aEntry.CommitRemainingActions} 回の行動");
                 }
             }
         }
@@ -351,9 +349,8 @@ namespace PPCore
             => aReason switch
             {
                 PPUnitAIRejectReason.NoTree => "使えるツリーなし",
-                PPUnitAIRejectReason.NoActionBudget => "行動回数なし",
                 PPUnitAIRejectReason.NoMatchedNode => "成立した枝なし",
-                PPUnitAIRejectReason.DecidedToWait => "意図的な待機",
+                PPUnitAIRejectReason.DecidedToWait => "通常攻撃で溜める",
                 _ => "-",
             };
     }

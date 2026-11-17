@@ -35,7 +35,7 @@ namespace PPCore
         SubTreeSupport = 4,
     }
 
-    // ユニット 1 体分の判断ツリーを持つ ScriptableObject。条件と行動をつないだ木で、毎ティックの行動を決める
+    // ユニット 1 体分の判断ツリーを持つ ScriptableObject。条件と行動をつないだ木で、次の行動を決める
     // ノードはフラットなリストで保持し、親子関係はノード ID の参照で表す
     [CreateAssetMenu(fileName = "PPUnitBehaviourTree", menuName = "Project-Pudding/AI/PPUnitBehaviourTree")]
     public class PPUnitBehaviourTree : ScriptableObject
@@ -128,7 +128,7 @@ namespace PPCore
 
         /* 評価・判定 */
 
-        // ルートから木を評価して、このティックの行動を決める
+        // ルートから木を評価して、次の行動を決める
         public virtual PPUnitAINodeResult Evaluate(PPUnitAIEvalContext aContext)
         {
             var root = Root;

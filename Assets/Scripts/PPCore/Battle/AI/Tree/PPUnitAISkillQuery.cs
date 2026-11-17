@@ -149,16 +149,12 @@ namespace PPCore
         // 絞り込みに合致するスキルのうち、今すぐ発動できるものから 1 つ選ぶ
         // クールダウン・使用回数・スキルゲージ残量の判定はバリデータへ委ねる
         public static (PPBattleSkill Skill, PPSkillDefinition Definition) SelectCastable(
-            PPBattleUnit aUnit, PPUnitAISkillFilter aFilter, PPUnitAISkillSelectRule aRule, BattleContext aContext,
-            PPUnitActionLedger aLedger = null)
+            PPBattleUnit aUnit, PPUnitAISkillFilter aFilter, PPUnitAISkillSelectRule aRule, BattleContext aContext)
         {
             var candidates = new List<(PPBattleSkill Skill, PPSkillDefinition Definition)>();
             foreach (var candidate in Enumerate(aUnit, aFilter))
             {
                 if (!aContext.Rules.CastValidator.Validate(aUnit, candidate.Skill, aContext).CanCast) continue;
-                // 台帳がある場合は、同じティックで既に積んだ分を差し引いても払えるものだけ残す
-                if (aLedger != null && !aLedger.CanReserveSkill(aUnit, candidate.Definition.SkillGaugeCost)) continue;
-
                 candidates.Add(candidate);
             }
             return Select(candidates, aRule, aUnit, aContext);

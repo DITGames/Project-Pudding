@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
@@ -112,7 +113,7 @@ namespace PPCore
             bool isCastable = mIsStrongestOnly
                 ? IsStrongestCastable(aUnit, aSnapShot)
                 : PPUnitAISkillQuery.SelectCastable(aUnit, mFilter,
-                    PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context, aSnapShot.Ledger).Skill != null;
+                    PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context).Skill != null;
 
             return isCastable != mIsInvert;
         }
@@ -127,7 +128,7 @@ namespace PPCore
             if (strongest == null) return false;
 
             var (_, castable) = PPUnitAISkillQuery.SelectCastable(aUnit, mFilter,
-                PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context, aSnapShot.Ledger);
+                PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context);
             return ReferenceEquals(castable, strongest);
         }
 
@@ -174,8 +175,8 @@ namespace PPCore
         }
     }
 
-    // ユニット条件: 指定ティック数だけ待てば、今撃てるものより強いスキルへ手が届くか
-    // 見積もりは PPUnitGaugeForecast に委ねる。今撃てるスキルが無くても、上位スキルへ届くなら成立する
+    // ユニット条件: 通常攻撃を指定回数まで続ければ、今撃てるものより強いスキルへ手が届くか
+    // 距離は「あと何回通常攻撃すれば届くか」で測る。今撃てるスキルが無くても、上位スキルへ届くなら成立する
     [Serializable]
     [PPTypeMenuName("スキル/待てば強いスキルが撃てる")]
     public sealed class PPUnitStrongerSkillReachableCondition : PPUnitConditionValidator, IPPUnitAISkillFilterOwner
@@ -184,8 +185,10 @@ namespace PPCore
 
         [Label("対象スキル")]
         [SerializeField] private PPUnitAISkillFilter mFilter = new();
-        [Label("待てるティック数")]
-        [SerializeField] private int mAllowedWaitTicks = 3;
+        // 上位のスキルのために続けてよい通常攻撃の回数
+        [Label("待てる通常攻撃の回数")]
+        [FormerlySerializedAs("mAllowedWaitTicks")]
+        [SerializeField] private int mAllowedAttacks = 3;
 
         // この差より AI スコアが上でなければ「強い」とみなさない
         // わずかな差のために手を止めるのを防ぐ
@@ -220,23 +223,39 @@ namespace PPCore
 
             // 今撃てる中で最も強いものを基準にする。1 つも撃てないなら基準スコアは持たない
             var (_, current) = PPUnitAISkillQuery.SelectCastable(aUnit, mFilter,
-                PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context, aSnapShot.Ledger);
+                PPUnitAISkillSelectRule.HighestAIScore, aSnapShot.Context);
             float currentScore = current?.AIScore ?? float.NegativeInfinity;
 
             foreach (var (skill, definition) in PPUnitAISkillQuery.Enumerate(aUnit, mFilter))
             {
-                // 今のゲージで足りているものは「待つ対象」ではない
-                if (PPGaugeUtility.CanPay(aUnit.ExtraParameters.SkillGauge, definition.SkillGaugeCost)) continue;
-                // クールダウンや使用回数で撃てないものは、ゲージが溜まっても撃てないので除く
-                if (!skill.IsReady) continue;
+                // 使用回数を使い切ったものは、待っても撃てないので除く
+                if (skill.MaxUsesPerBattle > 0 && skill.UsesRemaining <= 0) continue;
+                // 今すぐ撃てるものは「待つ対象」ではない
+                bool isGaugeEnough = PPGaugeUtility.CanPay(aUnit.ExtraParameters.SkillGauge, definition.SkillGaugeCost);
+                if (isGaugeEnough && !skill.IsCooldown) continue;
                 // 待つ価値があるだけ強くなければ見送る
                 if (definition.AIScore - currentScore < mRequiredScoreGain) continue;
 
-                int ticks = PPUnitGaugeForecast.EstimateTicksToReach(aUnit, rules, definition.SkillGaugeCost,
-                    Mathf.Max(1, mAllowedWaitTicks));
-                if (ticks >= 0) return true;
+                int allowed = Mathf.Max(1, mAllowedAttacks);
+                int attacks = PPUnitGaugeForecast.EstimateAttacksToReach(aUnit, rules, definition.SkillGaugeCost);
+                if (attacks < 0 || attacks > allowed) continue;
+                // クールタイムは秒で決まるため、このときだけ行動回数を秒へ換算して比べる
+                if (skill.IsCooldown && !IsCooldownOverWithin(aUnit, aSnapShot, skill, allowed)) continue;
+
+                return true;
             }
             return false;
+        }
+
+        // 指定回数の行動のあいだにクールタイムが明けるかを見積もる
+        // 1 回の行動に掛かる秒数は直近の実測を使い、まだ測れていなければ明けないものとして扱う
+        private static bool IsCooldownOverWithin(PPBattleUnit aUnit, PPPartyAIContext aSnapShot, BattleSkill aSkill,
+            int aActions)
+        {
+            float secondsPerAction = aSnapShot.GetBlackboard(aUnit)?.SecondsPerAction ?? 0f;
+            if (secondsPerAction <= 0f) return false;
+
+            return aSkill.RemainingCooldown <= secondsPerAction * aActions;
         }
 
         /* 説明文 */
@@ -247,8 +266,8 @@ namespace PPCore
         {
             string filter = mFilter.ToDisplayString();
             mDescription = mIsInvert
-                ? $"{mAllowedWaitTicks}ティック待っても {filter} の強いスキルに届かない"
-                : $"{mAllowedWaitTicks}ティック待てば {filter} の強いスキルが撃てる";
+                ? $"通常攻撃を{mAllowedAttacks}回続けても {filter} の強いスキルに届かない"
+                : $"通常攻撃を{mAllowedAttacks}回続ければ {filter} の強いスキルが撃てる";
         }
     }
 }

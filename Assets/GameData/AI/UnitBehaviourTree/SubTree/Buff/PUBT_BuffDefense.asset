@@ -29,7 +29,7 @@ MonoBehaviour:
         mNodeName: "\u9632\u5FA1\u30D0\u30D5\u3092\u4ED8\u4E0E\u3059\u308B\u304B"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 22dbde3c3b604b8486d9eb0f755b2332
         mGraphPosition: {x: 0, y: 0}
         mUnitConditions:
@@ -72,7 +72,7 @@ MonoBehaviour:
         mNodeName: "\u9632\u5FA1\u30D0\u30D5\u304C\u4ED8\u4E0E\u3055\u308C\u3066\u3044\u306A\u3044\u5473\u65B9\u3092\u63A2\u7D22"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 799c8d991f5c4c34a709d50ef7502f9d
         mGraphPosition: {x: 320, y: 0}
         mScope: 0
@@ -97,13 +97,13 @@ MonoBehaviour:
         mNodeName: "\u9632\u5FA1\u30D0\u30D5\u3092\u4ED8\u4E0E"
         mIsInterrupt: 0
         mIsMuted: 0
-        mCooldownTicks: 0
+        mCooldownActions: 0
         mNodeId: 983a9d46388d40b89a1e0a8072ae0c66
         mGraphPosition: {x: 640, y: 0}
         mAction:
           rid: 1269812297483681898
-        mCommitTicks: 0
-        mFocusTicks: 0
+        mCommitActions: 0
+        mFocusActions: 0
     - rid: 1269812297483681898
       type: {class: PPUnitAISkillAction, ns: PPCore, asm: Assembly-CSharp}
       data:

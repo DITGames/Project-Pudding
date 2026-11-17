@@ -97,8 +97,8 @@ namespace PPCore
         }
     }
 
-    // 同じティックの中で、子を上から順に 1 手ずつ消化していくノード（「1 手目バフ → 2 手目攻撃」など）
-    // 採用済みの記録はストラテジストが 1 回の思考分だけ持ち、子を使い切ると不成立になる
+    // 行動のたびに、子を上から順に 1 つずつ消化していくノード（「1 回目バフ → 2 回目攻撃」など）
+    // 採用済みの記録はストラテジストが行動をまたいで持ち、子を使い切ると不成立になる（次に成立したとき最初へ戻る）
     [Serializable]
     [PPTypeMenuName("制御/連携")]
     public sealed class PPUnitAISequenceNode : PPUnitAINode
@@ -122,7 +122,7 @@ namespace PPCore
         public override IReadOnlyList<PPUnitAINodePort> Ports
             => new[] { new PPUnitAINodePort("子ノード", mChildIds, true) };
         // 何手ぶんの連携かを示す
-        public override string Summary => $"{mChildIds.Count} 件を同じティック内で順に消化";
+        public override string Summary => $"{mChildIds.Count} 件を行動のたびに順に消化";
         protected override string DefaultNodeName => "連携";
 
         /* 初期化・接続 */
@@ -169,7 +169,7 @@ namespace PPCore
 
             for (int i = 0; i < mChildIds.Count; i++)
             {
-                // この思考で既に採った枝は飛ばす。これが「連携」の本体になる
+                // 前の行動までに採った枝は飛ばす。これが「連携」の本体になる
                 if (aContext.IsAdopted(AdoptedKey(i))) continue;
 
                 var child = aContext.ResolveNode(mChildIds[i]);
@@ -179,7 +179,7 @@ namespace PPCore
                 var result = child.Evaluate(aContext);
                 if (result.IsDecided)
                 {
-                    // 確定した枝だけを採用済みとして積む。次の手ではここが飛ばされる
+                    // 確定した枝だけを採用済みとして積む。次の行動ではここが飛ばされる
                     aContext.PushVisited(AdoptedKey(i));
                     return result;
                 }

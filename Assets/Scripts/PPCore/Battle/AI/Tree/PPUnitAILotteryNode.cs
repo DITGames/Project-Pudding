@@ -207,7 +207,7 @@ namespace PPCore
             int depth = aContext.Path.Count;
 
             // 待機コミット中はくじを引き直さず、前回選ばれた枝をそのまま辿る
-            // 引き直すと維持するはずの判断が毎ティック変わってしまう
+            // 引き直すと維持するはずの判断が行動のたびに変わってしまう
             if (aContext.IsOnCommitPath(depth))
             {
                 var interrupted = EvaluateInterruptChildren(aContext, depth);
