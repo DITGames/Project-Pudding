@@ -6,6 +6,7 @@
  * @brief ステータスエフェクト（本体・文脈・振る舞いの基底）
  * =====================================*/
 
+using System;
 using System.Collections.Generic;
 
 namespace PPCore
@@ -55,6 +56,19 @@ namespace PPCore
         /* プロパティ */
 
         public IReadOnlyList<StatusEffectBehaviour> Behaviours => mBehaviours;
+
+        // 解除されるまでの残り秒数（バトル専用の時計）。自然には切れないものは -1
+        // 次の発生までの残りに、その後の発生の分（間隔 × 残り回数）を足して求める
+        public float RemainingSeconds
+        {
+            get
+            {
+                if (DurationCondition is not IntervalDurationCondition interval) return -1f;
+
+                float untilNext = mTickScheduler != null ? mTickScheduler.GetRemaining(mTickTimer) : interval.Interval;
+                return untilNext + Math.Max(0, interval.RemainingCount - 1) * interval.Interval;
+            }
+        }
 
         /* 生成 */
 
