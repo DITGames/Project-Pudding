@@ -107,7 +107,8 @@ AI のチューニングは基本的に **コードではなく `PPPartyAIProfil
 
 `PPBattleCommandInputController` がスタックベースのステートマシンで入力を管理する。
 
-- `IPPBattleInputState` 実装：`PPUnitSelectState` → `PPCommandSelectState` → `PPSkillSelectState` → `PPTargetSelectState`（`PPUnitDetailViewState` も同列）
+- `IPPBattleInputState` 実装：`PPCommandSelectState`（ターゲット / スキル / 解除 / 詳細）→ `PPUnitSelectState` → `PPDesignateTargetState`（狙う敵の指定）または `PPSkillSelectState` → `PPTargetSelectState`（味方が対象のスキルだけ）。`PPUnitDetailViewState` はユニット選択の次
+- 入力中はバトル専用の時計（`BattleContext.Clock`）を止める。確定した内容はその場で実行せず、ユニットの「選択中のスキル」「狙う相手」として持ち、コインゲージが溜まったときに `PPActionScheduler` が使う
 - `Enter / Resume / Suspend / Exit` のライフサイクル。メニュー系は `PPBattleMenuStateBase`、ユニット選択系は `PPBattleUnitPickerStateBase` を継承する
 - 選択途中の状態は `PPBattleSelectionContext` が保持
 - View 側は `PPBattleUnitViewBinder` が `BattleUnit` ↔ `PPBattleUnitView` を対応付ける。表示データは `IPPUnitStatusSource` / `IPPSkillStatusSource` / `IPPItemStatusSource` 経由で供給する

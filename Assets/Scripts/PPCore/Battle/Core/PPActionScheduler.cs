@@ -47,6 +47,7 @@ namespace PPCore
 
             if (mManager.Context.AllyParty is PPBattleParty ally) ally.OnCoinsDistributed += Evaluate;
             if (mManager.Context.EnemyParty is PPBattleParty enemy) enemy.OnCoinsDistributed += Evaluate;
+            mManager.OnUnitDefeated += HandleUnitDefeated;
         }
 
         // バトルとの接続を切る。バトル終了時や破棄時に呼ぶ
@@ -57,6 +58,7 @@ namespace PPCore
                 if (mManager.Context.AllyParty is PPBattleParty ally) ally.OnCoinsDistributed -= Evaluate;
                 if (mManager.Context.EnemyParty is PPBattleParty enemy) enemy.OnCoinsDistributed -= Evaluate;
             }
+            if (mManager != null) mManager.OnUnitDefeated -= HandleUnitDefeated;
 
             mManager = null;
             mSelectingUnit = null;
@@ -203,7 +205,7 @@ namespace PPCore
             var skillCommand = BuildSelectedSkillCommand(aUnit, aContext);
             if (skillCommand != null) return skillCommand;
 
-            var target = ResolveDefaultTarget(aUnit, aContext);
+            var target = ResolveEnemyTarget(aUnit, aContext);
             return target == null ? null : new PPAttackCommand(aUnit, new SingleEnemyResolver(target));
         }
 
@@ -216,10 +218,7 @@ namespace PPCore
             switch (skill.DefaultTargetResolver)
             {
                 case SingleEnemyResolver:
-                    // 選んだ相手が倒れていれば、指定が無いときの規則で選び直す
-                    var enemy = aUnit.SelectedSkillTarget is { IsAlive: true } selected && selected.Side != aUnit.Side
-                        ? selected
-                        : ResolveDefaultTarget(aUnit, aContext);
+                    var enemy = ResolveEnemyTarget(aUnit, aContext);
                     return enemy == null ? null : new PPSkillCommand(aUnit, skill, new SingleEnemyResolver(enemy));
                 case SingleAllyResolver:
                     return new PPSkillCommand(aUnit, skill, new SingleAllyResolver(aUnit.SelectedSkillTarget));
@@ -240,6 +239,15 @@ namespace PPCore
             return aSkill.IsReady && PPGaugeUtility.CanPay(aUnit.ExtraParameters.SkillGauge, cost);
         }
 
+        // 狙う敵を決める。指定した相手が生きていればその相手、指定が無ければ指定なしの規則で選ぶ
+        // 通常攻撃と敵単体が対象のスキルの両方に使う
+        protected virtual PPBattleUnit ResolveEnemyTarget(PPBattleUnit aUnit, BattleContext aContext)
+        {
+            if (aUnit.DesignatedTarget is PPBattleUnit { IsAlive: true } designated) return designated;
+
+            return ResolveDefaultTarget(aUnit, aContext);
+        }
+
         // 指定が無いときの対象を決める。正面の敵が生きていれば正面、倒れていれば残りの敵からランダムに選ぶ
         protected virtual PPBattleUnit ResolveDefaultTarget(PPBattleUnit aUnit, BattleContext aContext)
         {
@@ -254,6 +262,19 @@ namespace PPCore
 
             // 自分の対象選びなので、自分の乱数列から引く
             return enemies[aUnit.ResolveRandom(aContext).NextInt(enemies.Count)] as PPBattleUnit;
+        }
+
+        /* イベントハンドラ */
+
+        // ユニットが倒れたとき、そのユニットを狙う相手に指定していた指定を解除する
+        private void HandleUnitDefeated(BattleUnit aDefeated)
+        {
+            if (mManager?.Context == null || aDefeated == null) return;
+
+            foreach (var member in mManager.Context.GetOpponentParty(aDefeated.Side).ActiveMembers)
+            {
+                if (member is PPBattleUnit unit && unit.DesignatedTarget == aDefeated) unit.ClearDesignatedTarget();
+            }
         }
 
         /* ヘルパー */

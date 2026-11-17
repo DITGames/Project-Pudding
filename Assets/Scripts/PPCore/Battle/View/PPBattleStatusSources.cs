@@ -29,6 +29,8 @@ namespace PPCore
         float SkillGaugeRate { get; }
         // 選択中のスキルの表示名。未選択なら空文字
         string SelectedSkillName { get; }
+        // 狙う相手に指定したユニットの表示名。未指定なら空文字
+        string DesignatedTargetName { get; }
 
         /* イベント */
 
@@ -102,6 +104,10 @@ namespace PPCore
         public string SelectedSkillName
             => (mBattleUnit as PPBattleUnit)?.SelectedSkill?.DisplayName ?? string.Empty;
 
+        // 狙う相手に指定したユニットの表示名。未指定なら空文字
+        public string DesignatedTargetName
+            => (mBattleUnit as PPBattleUnit)?.DesignatedTarget?.DisplayName ?? string.Empty;
+
         /* イベント */
 
         // 表示内容が変化したときに発火する
@@ -124,6 +130,7 @@ namespace PPCore
                 unit.ExtraParameters.SkillGauge.OnValueChanged += HandleChanged;
                 unit.ExtraParameters.SkillGauge.Max.OnValueChanged += HandleChanged;
                 unit.OnSkillSelectionChanged += HandleSkillSelectionChanged;
+                unit.OnDesignatedTargetChanged += HandleSkillSelectionChanged;
             }
         }
 
@@ -145,6 +152,7 @@ namespace PPCore
                 unit.ExtraParameters.SkillGauge.OnValueChanged -= HandleChanged;
                 unit.ExtraParameters.SkillGauge.Max.OnValueChanged -= HandleChanged;
                 unit.OnSkillSelectionChanged -= HandleSkillSelectionChanged;
+                unit.OnDesignatedTargetChanged -= HandleSkillSelectionChanged;
             }
         }
 
@@ -154,7 +162,7 @@ namespace PPCore
         // 解除できるようラムダではなく名前付きメソッドにしてある
         private void HandleChanged(IReadableParameter _) => Changed?.Invoke();
 
-        // スキルの選択の変化を自身のイベントとして中継する
+        // スキルの選択と狙う相手の指定の変化を自身のイベントとして中継する
         private void HandleSkillSelectionChanged(PPBattleUnit _) => Changed?.Invoke();
     }
 
