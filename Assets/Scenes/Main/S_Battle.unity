@@ -179,20 +179,21 @@ MonoBehaviour:
   mGrid: {fileID: 998511077}
   mLabelX: -230
   mColumnX:
-  - -40
-  - 60
-  - 170
-  - 270
+  - -30
+  - 75
+  - 205
+  - 310
   mFirstRowY: 120
   mRowSpacing: 56
   mFooterX:
-  - -90
-  - 90
+  - -100
+  - 100
   mFooterY: -235
+  mFooterScale: 1.3
   mDropHeight: 300
   mDropDuration: 0.4
   mDropStagger: 0.04
-  mFocusScale: 1.15
+  mFocusScale: 1.08
   mFocusLift: 6
   mFocusFollowSpeed: 16
 --- !u!1 &78607436
@@ -833,7 +834,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 8, y: 148}
+  m_AnchoredPosition: {x: 18, y: 148}
   m_SizeDelta: {x: 200, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &767342357
@@ -2856,7 +2857,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 176, y: 148}
+  m_AnchoredPosition: {x: 206, y: 148}
   m_SizeDelta: {x: 200, y: 30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1949257751
