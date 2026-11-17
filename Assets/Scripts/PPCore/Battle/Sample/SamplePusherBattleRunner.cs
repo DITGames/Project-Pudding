@@ -116,21 +116,9 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     /* 問い合わせ */
 
-    // 今コマンド入力を始める意味があるかを判定する
-    // 味方の中に発動可能なスキルを持つユニットが 1 体でも居れば true
+    // 今コマンド入力を始められるかを判定する。ターゲットの指定はいつでも行えるため、決着していなければ true
     private bool CanSelectAnyCommand()
-    {
-        if (mBattleManager.Context == null || mBattleManager.StateMachine.Current == BattleState.BattleEnd)
-            return false;
-
-        var allyParty = mBattleManager.Context.GetParty(BattleSide.Ally);
-        foreach (var unit in allyParty.ActiveMembers)
-        {
-            if (unit is PPBattleUnit ppUnit && ppUnit.CanValidateSkill(mBattleManager.Context))
-                return true;
-        }
-        return false;
-    }
+        => mBattleManager.Context != null && mBattleManager.StateMachine.Current != BattleState.BattleEnd;
 
     // コマンド入力の開始操作（キーボードの C、またはゲームパッドの△）が行われたかを判定する
     bool IsCommandInputPressed()

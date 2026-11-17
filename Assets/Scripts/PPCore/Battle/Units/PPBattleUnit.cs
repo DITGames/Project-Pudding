@@ -387,8 +387,11 @@ namespace PPCore
         // 選択中のスキル。行動を積むときに発動可能ならこのスキルを使い、そうでなければ通常攻撃になる。未選択なら null
         // 使用後や失敗後も解除されず、取り消すまで残る
         public BattleSkill SelectedSkill { get; private set; }
-        // 選択中のスキルの対象として選んだユニット。単体が対象のスキルで使う。未指定なら null
+        // 選択中のスキルの対象として選んだ味方。味方単体が対象のスキルで使う。未指定なら null
         public BattleUnit SelectedSkillTarget { get; private set; }
+        // 狙う相手として指定した敵。通常攻撃と敵単体が対象のスキルに使う。未指定なら正面の敵を狙う
+        // 指定した相手が倒れると解除される
+        public BattleUnit DesignatedTarget { get; private set; }
 
         /* プロパティ */
 
@@ -399,6 +402,8 @@ namespace PPCore
 
         // スキルの選択が変わったとき（選択・変更・取り消し）
         public event Action<PPBattleUnit> OnSkillSelectionChanged;
+        // 狙う相手の指定が変わったとき（指定・変更・解除）
+        public event Action<PPBattleUnit> OnDesignatedTargetChanged;
 
         /* 生成 */
 
@@ -446,6 +451,26 @@ namespace PPCore
             SelectedSkill = null;
             SelectedSkillTarget = null;
             OnSkillSelectionChanged?.Invoke(this);
+        }
+
+        // 狙う相手を指定する。自分と同じ陣営のユニットは指定できない
+        public bool DesignateTarget(BattleUnit aTarget)
+        {
+            if (aTarget == null || aTarget.Side == Side) return false;
+            if (DesignatedTarget == aTarget) return true;
+
+            DesignatedTarget = aTarget;
+            OnDesignatedTargetChanged?.Invoke(this);
+            return true;
+        }
+
+        // 狙う相手の指定を解除し、正面の敵を狙う状態へ戻す
+        public void ClearDesignatedTarget()
+        {
+            if (DesignatedTarget == null) return;
+
+            DesignatedTarget = null;
+            OnDesignatedTargetChanged?.Invoke(this);
         }
 
         /* 問い合わせ */

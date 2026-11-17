@@ -3,7 +3,7 @@
  * @file PPBattleInputStates.cs
  * @author hqrse
  * @date 2026/07/09
- * @brief コマンド入力の各ステート（基底・ユニット選択・コマンド選択・スキル選択・対象選択・詳細表示）
+ * @brief コマンド入力の各ステート（基底・コマンド選択・ユニット選択・スキル選択・対象選択・ターゲット指定・詳細表示）
  * =====================================*/
 
 using System.Collections.Generic;
@@ -44,10 +44,11 @@ namespace PPCore
         /* 操作 */
 
         // 選択中ユニットのビューからアンカーを引いてメニューを表示し、入力を購読する
+        // ユニットをまだ選んでいない段階（コマンドの選択）では、ユニットもアンカーも null で渡る
         public void Enter()
         {
             var unit = mOwner.Context.Unit;
-            var view = mOwner.ViewBinder.GetView(unit);
+            var view = unit != null ? mOwner.ViewBinder.GetView(unit) : null;
             ShowView(unit, view?.MenuAnchor);
             Subscribe();
         }
@@ -145,30 +146,35 @@ namespace PPCore
         protected abstract void HandleDecided(PPBattleUnitView aView);
     }
 
-    // 「誰が行動するか」を選ぶ入力ステート。コマンド入力の起点になる
-    // 味方の生存アクティブメンバーを候補にし、決定するとコマンド選択へ進む
+    // 「どのユニットについて操作するか」を選ぶ入力ステート。コマンドの選択のあとに挟まる
+    // 味方の生存アクティブメンバーを候補にし、決定するとユニットを記録して、生成時に渡された続きを実行する
     public class PPUnitSelectState : PPBattleUnitPickerStateBase
     {
+        // ユニットが決まったあとに行う処理。次のステートを積むか、その場で入力を閉じる
+        private readonly System.Action mOnDecided;
+
         // aOwner : このステートを保持する入力コントローラー
-        public PPUnitSelectState(PPBattleCommandInputController aOwner) : base(aOwner)
+        // aOnDecided : ユニットが決まったあとに行う処理
+        public PPUnitSelectState(PPBattleCommandInputController aOwner, System.Action aOnDecided) : base(aOwner)
         {
+            mOnDecided = aOnDecided;
         }
 
         // 味方陣営の生存アクティブメンバーを候補として返す
         protected override IEnumerable<BattleUnit> Candidates()
             => mOwner.Manager.Context.GetParty(BattleSide.Ally).GetAliveActiveMembers();
 
-        // 選択されたユニットを記録し、コマンド選択ステートへ進む
+        // 選択されたユニットを記録し、続きの処理を行う
         // aView : 決定されたユニットのビュー
         protected override void HandleDecided(PPBattleUnitView aView)
         {
             mOwner.Context.Unit = aView.BattleUnit;
-            mOwner.Push(new PPCommandSelectState(mOwner));
+            mOnDecided?.Invoke();
         }
     }
 
-    // 選択したユニットに「何をさせるか」（攻撃・スキル・詳細確認）を選ばせる入力ステート
-    // 攻撃はその場で対象選択へ、スキルと詳細はそれぞれ専用のステートへ進む
+    // 「何をするか」（ターゲットの指定・スキルの選択・解除・詳細確認）を選ばせる入力ステート。コマンド入力の起点になる
+    // どれを選んでも、続けて対象のユニットを選ばせる
     public class PPCommandSelectState : PPBattleMenuStateBase
     {
         /* 生成 */
@@ -183,8 +189,9 @@ namespace PPCore
         // 各コマンドの決定と戻る操作を購読する
         protected override void Subscribe()
         {
-            mOwner.CommandMenu.OnAttack += HandleAttack;
+            mOwner.CommandMenu.OnTarget += HandleTarget;
             mOwner.CommandMenu.OnSkill += HandleSkill;
+            mOwner.CommandMenu.OnClear += HandleClear;
             mOwner.CommandMenu.OnDetail += HandleDetail;
             mOwner.CommandMenu.OnBackRequested += mOwner.Back;
         }
@@ -192,50 +199,50 @@ namespace PPCore
         // 購読を解除する
         protected override void Unsubscribe()
         {
-            mOwner.CommandMenu.OnAttack -= HandleAttack;
+            mOwner.CommandMenu.OnTarget -= HandleTarget;
             mOwner.CommandMenu.OnSkill -= HandleSkill;
+            mOwner.CommandMenu.OnClear -= HandleClear;
             mOwner.CommandMenu.OnDetail -= HandleDetail;
             mOwner.CommandMenu.OnBackRequested -= mOwner.Back;
         }
 
         /* 表示 */
 
-        // 選択中ユニットの隣にコマンドメニューを出す
-        // スキルを 1 つも持たないユニットではスキル項目を出さない
-        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor)
-        {
-            if (aAnchor != null)
-            {
-                mOwner.CommandMenu.AttachTo(aAnchor);
-            }
-            mOwner.CommandMenu.Show(aUnit.Skills.Count > 0);
-        }
+        // コマンドメニューを出す。ユニットを選ぶ前なので、ユニットの隣ではなく元の位置に出す
+        protected override void ShowView(BattleUnit aUnit, RectTransform aAnchor) => mOwner.CommandMenu.Show();
 
         // コマンドメニューを閉じる
         protected override void HideView() => mOwner.CommandMenu.Hide();
 
         /* イベントハンドラ */
 
-        // 通常攻撃を選んだときの処理
-        // 対象範囲を敵単体に固定し、コマンドビルダーを仕込んでから対象選択へ進む
-        private void HandleAttack()
-        {
-            var unit = (PPBattleUnit)mOwner.Context.Unit;
-            mOwner.Context.TargetScope = TargetScope.SingleEnemy;
-            mOwner.Context.CommandBuilder = tgt =>
-                new PPAttackCommand(unit, mOwner.BuildResolver(new SingleEnemyResolver(), tgt));
-            mOwner.Push(new PPTargetSelectState(mOwner));
-        }
+        // ターゲットを選んだときの処理。ユニットを選ばせ、続けて狙う敵を選ばせる
+        private void HandleTarget()
+            => mOwner.Push(new PPUnitSelectState(mOwner, () => mOwner.Push(new PPDesignateTargetState(mOwner))));
 
-        // スキルを選んだときの処理。スキル選択ステートへ進む
-        private void HandleSkill() => mOwner.Push(new PPSkillSelectState(mOwner));
+        // スキルを選んだときの処理。ユニットを選ばせ、続けてスキルを選ばせる
+        private void HandleSkill()
+            => mOwner.Push(new PPUnitSelectState(mOwner, () => mOwner.Push(new PPSkillSelectState(mOwner))));
 
-        // 詳細を選んだときの処理。ユニット詳細ステートへ進む
-        private void HandleDetail() => mOwner.Push(new PPUnitDetailViewState(mOwner));
+        // 解除を選んだときの処理。選んだユニットのスキルの選択と狙う相手の指定を取り消して入力を閉じる
+        private void HandleClear()
+            => mOwner.Push(new PPUnitSelectState(mOwner, () =>
+            {
+                if (mOwner.Context.Unit is PPBattleUnit unit)
+                {
+                    unit.ClearSkillSelection();
+                    unit.ClearDesignatedTarget();
+                }
+                mOwner.Abort();
+            }));
+
+        // 詳細を選んだときの処理。ユニットを選ばせ、続けて詳細を表示する
+        private void HandleDetail()
+            => mOwner.Push(new PPUnitSelectState(mOwner, () => mOwner.Push(new PPUnitDetailViewState(mOwner))));
     }
 
     // 使用するスキルを選ばせる入力ステート
-    // 選んだスキルのターゲット範囲に応じて、対象選択へ進むかその場で確定するかが分かれる
+    // 味方単体が対象のスキルだけ対象選択へ進み、それ以外はその場で確定する
     public class PPSkillSelectState : PPBattleMenuStateBase
     {
         /* 生成 */
@@ -280,7 +287,7 @@ namespace PPCore
         /* イベントハンドラ */
 
         // スキルが選ばれたときの処理。ターゲット範囲を記録し、コマンドビルダーを仕込む
-        // 単体対象なら対象選択へ進み、全体・自己対象ならそのまま確定させる
+        // 敵単体が対象のスキルは「狙う相手」の指定を使うため、ここでは対象を選ばせない
         private void HandleSkillSelected(BattleSkill aSkill)
         {
             var unit = mOwner.Context.Unit;
@@ -290,18 +297,18 @@ namespace PPCore
             mOwner.Context.CommandBuilder = tgt =>
                 new PPSkillCommand(unit, aSkill, mOwner.BuildResolver(aSkill.DefaultTargetResolver, tgt));
 
-            // スキルの効果対象によってターゲット選択と行動決定を分岐
-            if(PPTargeting.NeedsManualTarget(scope))
+            // 味方単体が対象のスキルだけ、選択の時点で対象を選ばせる
+            if (scope == TargetScope.SingleAlly)
                 mOwner.Push(new PPTargetSelectState(mOwner));
             else
                 mOwner.Confirm();
         }
 
-        // 戻る操作。1 段ポップしてコマンド選択へ戻る
-        private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
+        // 戻る操作。1 段ポップして前の選択へ戻る
+        private void HandleBack() => mOwner.Back();
     }
 
-    // 「誰を狙うか」を選ぶ入力ステート。コマンド入力の最終段階で、
+    // スキルの対象にする味方を選ぶ入力ステート。スキル選択の最終段階で、
     // 決定すると PPBattleCommandInputController.Confirm によりコマンドが確定する
     public class PPTargetSelectState : PPBattleUnitPickerStateBase
     {
@@ -331,6 +338,27 @@ namespace PPCore
         }
     }
 
+    // 選んだユニットが「狙う相手」を選ぶ入力ステート。ターゲット指定の最終段階
+    // 決定すると指定を書き換えて入力を閉じる。指定は通常攻撃と敵単体が対象のスキルに使われる
+    public class PPDesignateTargetState : PPBattleUnitPickerStateBase
+    {
+        // aOwner : このステートを保持する入力コントローラー
+        public PPDesignateTargetState(PPBattleCommandInputController aOwner) : base(aOwner)
+        {
+        }
+
+        // 相手陣営の生存アクティブメンバーを候補として返す
+        protected override IEnumerable<BattleUnit> Candidates()
+            => mOwner.Manager.Context.GetOpponentParty(mOwner.Context.Unit.Side).GetAliveActiveMembers();
+
+        // 選択された相手を狙う相手として指定し、入力を閉じる
+        // aView : 決定されたユニットのビュー
+        protected override void HandleDecided(PPBattleUnitView aView)
+        {
+            (mOwner.Context.Unit as PPBattleUnit)?.DesignateTarget(aView.BattleUnit);
+            mOwner.Abort();
+        }
+    }
     // 選択中ユニットのステータス詳細を表示するだけの入力ステート
     // コマンドを確定させないため、戻る以外の遷移を持たない点が他のメニューステートと異なる
     public class PPUnitDetailViewState : PPBattleMenuStateBase
@@ -367,7 +395,7 @@ namespace PPCore
 
         /* イベントハンドラ */
 
-        // 戻る操作。1 段ポップしてコマンド選択へ戻る
-        private void HandleBack() => mOwner.Back(); // コマンド選択へ戻る
+        // 戻る操作。1 段ポップしてユニット選択へ戻る
+        private void HandleBack() => mOwner.Back();
     }
 }

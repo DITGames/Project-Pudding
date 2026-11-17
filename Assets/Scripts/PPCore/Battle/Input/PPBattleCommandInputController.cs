@@ -75,7 +75,7 @@ namespace PPCore
     }
 
     // プレイヤーのコマンド入力を、スタックベースのステートマシンで管理するコントローラー
-    // キャンセルはスタックを 1 段ポップし、空になれば入力を中断する。選択途中の状態は PPBattleSelectionContext に集約する
+    // コマンド → ユニット → 対象の順に選ばせる。キャンセルはスタックを 1 段ポップし、空になれば入力を中断する。選択途中の状態は PPBattleSelectionContext に集約する
     public class PPBattleCommandInputController : MonoBehaviour
     {
         /* インスペクタ設定 */
@@ -181,8 +181,8 @@ namespace PPCore
 
         /* 操作 */
 
-        // コマンド入力を開始する。選択内容とステートスタックを初期化し、ユニット選択から始める
-        // 入力中はプッシャー側の物理を止めるため timeScale を 0 にする
+        // コマンド入力を開始する。選択内容とステートスタックを初期化し、コマンドの選択から始める
+        // 入力中はバトル専用の時計を止め、プッシャー側の物理も止めるため timeScale を 0 にする
         public void BeginCommandInput()
         {
             if (mManager == null || mManager.StateMachine.Current == BattleState.BattleEnd)
@@ -193,9 +193,8 @@ namespace PPCore
             {
                 mInputStateBorder.gameObject.SetActive(true);
             }
-            mIsInputOpen = true;
-            Push(new PPUnitSelectState(this));
-            Time.timeScale = 0;
+            OpenInput();
+            Push(new PPCommandSelectState(this));
         }
 
         // 指定したユニットのスキル選択から入力を開始する。行動を積む直前に選び直させるときに使う
@@ -211,13 +210,20 @@ namespace PPCore
             {
                 mInputStateBorder.gameObject.SetActive(true);
             }
-            mIsInputOpen = true;
+            OpenInput();
             Push(new PPSkillSelectState(this));
-            Time.timeScale = 0;
             return true;
         }
 
-        // 入力を中断する（バトル終了・対象の消滅・キャンセルなど）
+        // 入力を開いた状態にし、バトル専用の時計とプッシャー側の物理を止める
+        private void OpenInput()
+        {
+            mIsInputOpen = true;
+            mManager.Context?.Clock.Pause();
+            Time.timeScale = 0;
+        }
+
+        // 入力を中断する（バトル終了・対象の消滅・キャンセルなど）。コマンドを確定せずに入力を閉じるときにも使う
         // スタックを空にし、UI の選択状態も解除する
         public void Abort()
         {
@@ -274,7 +280,7 @@ namespace PPCore
             if (wasOpen) OnInputClosed?.Invoke();
         }
 
-        // ステートスタックを空にし、入力中表示を消して timeScale を戻す。入力を開いていたかを返す
+        // ステートスタックを空にし、入力中表示を消して、止めていた時計と timeScale を戻す。入力を開いていたかを返す
         // 積まれている全ステートに Exit を通すのでリソースは解放される
         private bool ClearStack()
         {
@@ -291,6 +297,8 @@ namespace PPCore
                 mInputStateBorder.gameObject.SetActive(false);
             }
 
+            // 時計の停止は回数で数えられているため、開いたときに止めた分だけ戻す
+            if (wasOpen) mManager?.Context?.Clock.Resume();
             Time.timeScale = 1;
             return wasOpen;
         }
