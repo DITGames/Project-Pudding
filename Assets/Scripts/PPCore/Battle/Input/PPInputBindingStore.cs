@@ -31,10 +31,29 @@ namespace PPCore
         }
     }
 
-    // キー割り当ての窓口。各操作はキーボード 2 枠・ゲームパッド 2 枠を持ち、変更は PlayerPrefs に保存する
+    // キー割り当ての窓口。各操作はキーボード 2 枠・ゲームパッド 2 枠を持ち、既定は PPRuntimeSettings、変更は PlayerPrefs に置く
     // 左右・上下の操作とキー設定を開く操作は変更できない
     public static class PPInputBindingStore
     {
+        /* 内部型 */
+
+        // 保存する枠 1 つ分
+        [Serializable]
+        private class SavedBinding
+        {
+            public string Action;
+            public bool IsGamepad;
+            public int Slot;
+            public string Path;
+        }
+
+        // 保存する枠の一覧。JsonUtility は配列を直接扱えないため包む
+        [Serializable]
+        private class SavedBindings
+        {
+            public List<SavedBinding> Items = new();
+        }
+
         /* 定数 */
 
         public const string LogTag = "Input";
@@ -46,7 +65,7 @@ namespace PPCore
         // 未割り当ての枠に出す文字
         public const string EmptyDisplayName = "なし";
 
-        private const string PrefsKey = "PP.InputBindingOverrides";
+        private const string PrefsKey = "PP.InputBindings";
 
         /* static 変数 */
 
@@ -89,35 +108,60 @@ namespace PPCore
 
         /* 保存・読み込み */
 
-        // 保存されている割り当ての変更を読み込む。保存が無ければ既定のまま
+        // 既定の割り当てを当ててから、保存されている変更を読み込む。保存が無ければ既定のまま
         public static void Load(InputActionAsset aAsset)
         {
+            ApplyDefaults(aAsset);
             string json = PlayerPrefs.GetString(PrefsKey, string.Empty);
             if (string.IsNullOrEmpty(json)) return;
             try
             {
-                aAsset.LoadBindingOverridesFromJson(json);
+                var saved = JsonUtility.FromJson<SavedBindings>(json);
+                foreach (var item in saved.Items)
+                {
+                    var action = FindAction(aAsset, item.Action);
+                    int index = action != null ? GetBindingIndex(action, item.IsGamepad, item.Slot) : -1;
+                    if (index >= 0) action.ApplyBindingOverride(index, item.Path ?? string.Empty);
+                }
             }
             catch (Exception e)
             {
                 // 壊れた保存データで起動できなくならないよう、既定の割り当てに戻して続ける
                 CustomConsoleLog.Warning(LogTag, $"キー設定の読み込みに失敗したため、既定の割り当てに戻します。{e.Message}");
-                aAsset.RemoveAllBindingOverrides();
+                ApplyDefaults(aAsset);
             }
         }
 
-        // 今の割り当ての変更を保存する
+        // 既定と違う枠だけを保存する。既定を変えたとき、プレイヤーが変えていない枠には新しい既定が効くようにするため
         public static void Save(InputActionAsset aAsset)
         {
-            PlayerPrefs.SetString(PrefsKey, aAsset.SaveBindingOverridesAsJson());
+            var saved = new SavedBindings();
+            ForEachSlot(aAsset, (aAction, aIsGamepad, aSlot, aIndex) =>
+            {
+                string path = aAction.bindings[aIndex].effectivePath ?? string.Empty;
+                if (SamePath(path, GetDefaultPath(aAction, aIsGamepad, aSlot))) return;
+                saved.Items.Add(new SavedBinding { Action = aAction.name, IsGamepad = aIsGamepad, Slot = aSlot, Path = path });
+            });
+            PlayerPrefs.SetString(PrefsKey, JsonUtility.ToJson(saved));
             PlayerPrefs.Save();
         }
 
         // 変更できる操作を既定の割り当てに戻して保存する
         public static void ResetToDefault(InputActionAsset aAsset)
         {
-            foreach (var rebindable in RebindableActions) FindAction(aAsset, rebindable.ActionName)?.RemoveAllBindingOverrides();
+            ApplyDefaults(aAsset);
             Save(aAsset);
+        }
+
+        // 変更できる操作の変更を消し、PPRuntimeSettings の既定の割り当てを当てる
+        private static void ApplyDefaults(InputActionAsset aAsset)
+        {
+            foreach (var rebindable in RebindableActions) FindAction(aAsset, rebindable.ActionName)?.RemoveAllBindingOverrides();
+            ForEachSlot(aAsset, (aAction, aIsGamepad, aSlot, aIndex) =>
+            {
+                string path = GetDefaultPath(aAction, aIsGamepad, aSlot);
+                if (!SamePath(path, aAction.bindings[aIndex].path)) aAction.ApplyBindingOverride(aIndex, path);
+            });
         }
 
         /* 問い合わせ */
@@ -210,13 +254,44 @@ namespace PPCore
                 {
                     int index = GetBindingIndex(other, aIsGamepad, slot);
                     if (index < 0 || (other == aAction && index == aBindingIndex)) continue;
-                    if (!string.Equals(other.bindings[index].effectivePath, newPath, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!SamePath(other.bindings[index].effectivePath, newPath)) continue;
                     other.ApplyBindingOverride(index, aOldPath ?? string.Empty);
                 }
             }
         }
 
         /* ヘルパー */
+
+        // 枠の既定の場所を返す。PPRuntimeSettings の既定に載っていなければ、入力アクションのアセットに書かれた場所
+        private static string GetDefaultPath(InputAction aAction, bool aIsGamepad, int aSlot)
+        {
+            var config = PPRuntimeSettings.Current.DefaultKeyConfig;
+            if (config != null && config.TryGetPath(aAction.name, aIsGamepad, aSlot, out var path)) return path;
+            int index = GetBindingIndex(aAction, aIsGamepad, aSlot);
+            return index >= 0 ? aAction.bindings[index].path ?? string.Empty : string.Empty;
+        }
+
+        // 変更できる操作のすべての枠について処理する(操作, パッドか, 何枠目か, 割り当ての番号)
+        private static void ForEachSlot(InputActionAsset aAsset, Action<InputAction, bool, int, int> aVisitor)
+        {
+            foreach (var rebindable in RebindableActions)
+            {
+                var action = FindAction(aAsset, rebindable.ActionName);
+                if (action == null) continue;
+                for (int device = 0; device < 2; device++)
+                {
+                    for (int slot = 0; slot < SlotCount; slot++)
+                    {
+                        int index = GetBindingIndex(action, device == 1, slot);
+                        if (index >= 0) aVisitor(action, device == 1, slot, index);
+                    }
+                }
+            }
+        }
+
+        // 場所の文字列が同じか。未割り当ての null と空文字は同じとみなす
+        private static bool SamePath(string aLeft, string aRight)
+            => string.Equals(aLeft ?? string.Empty, aRight ?? string.Empty, StringComparison.OrdinalIgnoreCase);
 
         private static bool HasGroup(InputBinding aBinding, string aGroup)
         {

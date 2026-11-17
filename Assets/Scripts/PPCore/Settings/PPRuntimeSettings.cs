@@ -55,6 +55,9 @@ namespace PPCore
 
         [Label("ユニットAIの既定")]
         [SerializeField] private PPUnitAIDefaultsDefinition mUnitAIDefaults;
+        // 未設定なら、入力アクションのアセットに書かれた割り当てを既定にする
+        [Label("キー設定の既定")]
+        [SerializeField] private PPDefaultKeyConfigDefinition mDefaultKeyConfig;
 
         /* 状態 */
 
@@ -64,6 +67,7 @@ namespace PPCore
         /* プロパティ */
 
         public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
+        public PPDefaultKeyConfigDefinition DefaultKeyConfig => mDefaultKeyConfig;
 
         /* static 関数 */
 
