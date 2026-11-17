@@ -34,9 +34,9 @@ namespace PPCore
         [Label("コマンド入力コントローラ")]
         [SerializeField] private PPBattleCommandInputController mController;
 
-        // ゲージ供給(シミュレーション)の 1 回分と、状態異常・クールダウンの更新の間隔（秒）
+        // ゲージ供給(シミュレーション)の 1 回分の間隔（秒）
         [Header("バトル設定")]
-        [Label("更新間隔(ゲージ供給・状態異常)")]
+        [Label("ゲージ供給の間隔(秒)")]
         [SerializeField] private float mTurnTickInterval = 5f;
 
         // 行動してから次の行動を積めるようになるまでの秒数。演出の長さの代わりに使う
@@ -48,7 +48,7 @@ namespace PPCore
         [Label("スキル使用可能時にゲージが溜まったらコマンド選択を開く")]
         [SerializeField] private bool mIsOpenCommandOnGaugeReady = false;
 
-        // 敵が更新間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
+        // 敵が供給の間隔ごとに得るゲージ量。敵のプッシャーができるまでの代わりに直接補給する
         [Label("敵ゲージ供給")]
         [SerializeField] private PPResourceSimulation mEnemyResourceSimulation = new ();
 
@@ -61,13 +61,13 @@ namespace PPCore
         [Label("敵パーティ定義")]
         [SerializeField] private PPPartyDefinition mEnemyPartyDefinition;
 
-        // trueの場合、プッシャーのコイン獲得の代わりに更新間隔ごとのゲージ加算で味方を進行させる
+        // trueの場合、プッシャーのコイン獲得の代わりに供給の間隔ごとのゲージ加算で味方を進行させる
         // 実機のコインプッシャーが無いシミュレーション環境向け
         [Header("デバッグ")]
         [Label("味方ゲージをシミュレーション供給")]
         [SerializeField] private bool mIsSimulateAllyResource = false;
 
-        // 味方が更新間隔ごとに得るゲージ量。mIsSimulateAllyResourceがtrueのときのみ使用
+        // 味方が供給の間隔ごとに得るゲージ量。mIsSimulateAllyResourceがtrueのときのみ使用
         [Label("味方ゲージ供給(シミュレーション)")]
         [EditCondition(nameof(mIsSimulateAllyResource), true, false)]
         [SerializeField] private PPResourceSimulation mAllyResourceSimulation = new ();
@@ -107,7 +107,6 @@ namespace PPCore
 
             mActionScheduler.SelectionRequester = HandleSelectionRequested;
             mActionScheduler.Bind(mBattleManager, mActionPresentationSeconds);
-            mActionScheduler.StartStatusTick(mTurnTickInterval);
 
             mEnemyResourceSimulation.Start((PPBattleParty)context.EnemyParty, context, mTurnTickInterval);
             // シミュレーション供給時はプッシャーのコイン獲得と二重に加算されないよう購読を行わない

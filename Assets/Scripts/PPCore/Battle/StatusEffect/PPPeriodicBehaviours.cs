@@ -8,11 +8,12 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
 {
-    // 毒・火傷など。更新のたびに固定量のダメージを与える
+    // 毒・火傷など。効果の発生のたびに固定量のダメージを与える
     public class PeriodicDamageBehaviour : StatusEffectBehaviour
     {
         /* 状態 */
@@ -37,7 +38,7 @@ namespace PPCore
         }
     }
 
-    // リジェネなど。更新のたびに固定量を回復する
+    // リジェネなど。効果の発生のたびに固定量を回復する
     public sealed class PeriodicHealBehaviour : StatusEffectBehaviour
     {
         private readonly float mAmountPerStack;
@@ -63,7 +64,7 @@ namespace PPCore
                 new StatusEffectDamageReason(aContext.Effect));
     }
 
-    // 対象の最大 HP に対する割合で毎ターンダメージを与える振る舞い
+    // 対象の最大 HP に対する割合で、効果の発生のたびにダメージを与える振る舞い
     // 基準は現在 HP ではなく最大 HP（現在 HP 基準だと減るほど威力が落ちて倒し切れないため）
     public sealed class PPHpRatePeriodicDamageBehaviour : StatusEffectBehaviour
     {
@@ -104,7 +105,7 @@ namespace PPCore
         }
     }
 
-    // 毎ターン一定量のダメージを与える振る舞いの定義
+    // 効果の発生のたびに一定量のダメージを与える振る舞いの定義。発生の間隔は持続条件で決める
     // ダメージ量が対象に依存しないため、雑魚敵にもボスにも同じだけ効く
     [Serializable]
     [PPTypeMenuName("継続ダメージ/固定")]
@@ -113,8 +114,9 @@ namespace PPCore
         /* インスペクタ設定 */
 
         [Header("固定継続ダメージ")]
-        [Label("毎ターンダメージ量")][Min(0)]
-        [SerializeField]protected float mDamagePerTurn = 5f;
+        [Label("1回あたりのダメージ量")][Min(0)]
+        [FormerlySerializedAs("mDamagePerTurn")]
+        [SerializeField]protected float mDamagePerTick = 5f;
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
 
@@ -122,16 +124,16 @@ namespace PPCore
 
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            aEffect.AddBehaviour(new PPPeriodicDamageBehaviour(mDamagePerTurn, mAttribute));
+            aEffect.AddBehaviour(new PPPeriodicDamageBehaviour(mDamagePerTick, mAttribute));
         }
 
         /* 説明文 */
 
         public override string BuildString()
-            => $"継続ダメージ：{mDamagePerTurn}/ターン（{mAttribute}）";
+            => $"継続ダメージ：{mDamagePerTick}/回（{mAttribute}）";
     }
 
-    // 対象の最大HPに対する割合で毎ターンダメージを与える振る舞いの定義
+    // 対象の最大HPに対する割合で、効果の発生のたびにダメージを与える振る舞いの定義
     // 最大HPが高い相手ほど効くため、HPの多いボスにも通る毒として使える
     [Serializable]
     [PPTypeMenuName("継続ダメージ/HP割合")]
@@ -141,8 +143,9 @@ namespace PPCore
 
         [Header("HP割合継続ダメージ")]
         // 対象の最大HPに対する割合。0.05 で最大HPの 5% になる
-        [Label("毎ターン割合")][Range(0f, 1f)]
-        [SerializeField]protected float mHpRatePerTurn = 0.05f;
+        [Label("1回あたりの割合")][Range(0f, 1f)]
+        [FormerlySerializedAs("mHpRatePerTurn")]
+        [SerializeField]protected float mHpRatePerTick = 0.05f;
 
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mAttribute = PPTypeAttribute.Normal;
@@ -150,36 +153,37 @@ namespace PPCore
         /* プロパティ */
 
         // 表示と実行で扱いを揃えるため、常に 0～1 へ丸めた値を使う
-        protected float HpRatePerTurn => Mathf.Clamp01(mHpRatePerTurn);
+        protected float HpRatePerTick => Mathf.Clamp01(mHpRatePerTick);
 
         /* 初期化・接続 */
 
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            aEffect.AddBehaviour(new PPHpRatePeriodicDamageBehaviour(HpRatePerTurn, mAttribute));
+            aEffect.AddBehaviour(new PPHpRatePeriodicDamageBehaviour(HpRatePerTick, mAttribute));
         }
 
         /* 説明文 */
 
         public override string BuildString()
-            => $"継続ダメージ：最大HPの{HpRatePerTurn:P0}/ターン（{mAttribute}）";
+            => $"継続ダメージ：最大HPの{HpRatePerTick:P0}/回（{mAttribute}）";
     }
 
-    // 毎ターン一定量を回復させる振る舞いの定義（リジェネなど）
+    // 効果の発生のたびに一定量を回復させる振る舞いの定義（リジェネなど）
     [Serializable]
     [PPTypeMenuName("継続回復")]
     public class PPPeriodicHealBehaviourDefinition : PPStatusEffectBehaviourDefinition
     {
         [Header("継続回復")]
-        [Label("毎ターン回復量")]
-        [SerializeField]protected float mHealPerTurn = 5f;
+        [Label("1回あたりの回復量")]
+        [FormerlySerializedAs("mHealPerTurn")]
+        [SerializeField]protected float mHealPerTick = 5f;
 
         public override void ConfigureBehaviour(StatusEffect aEffect, BattleUnit aSource, BattleUnit aTarget, BattleContext aContext)
         {
-            aEffect.AddBehaviour(new PeriodicHealBehaviour(mHealPerTurn));
+            aEffect.AddBehaviour(new PeriodicHealBehaviour(mHealPerTick));
         }
 
         public override string BuildString()
-            => $"継続回復：{mHealPerTurn}/ターン";
+            => $"継続回復：{mHealPerTick}/回";
     }
 }

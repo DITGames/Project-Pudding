@@ -30,13 +30,14 @@ MonoBehaviour:
     - rid: -2
       type: {class: , ns: , asm: }
     - rid: 7300000000000001000
-      type: {class: PPTurnDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
+      type: {class: PPIntervalDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mDuration: 5
+        mInterval: 5
+        mCount: 5
     - rid: 7300000000000001001
       type: {class: PPActionRestrictionBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
         mRestriction: 1
         mIsAlwaysBlock: 0
         mBaseChance: 0.3
-        mChancePerElapsedTurn: 0
+        mChancePerElapsedTick: 0

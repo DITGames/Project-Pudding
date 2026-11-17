@@ -31,9 +31,10 @@ MonoBehaviour:
       type: {class: , ns: , asm: }
     - rid: 6803203126385967203
       type: {class: PPPermanentDurationConditionDefinition, ns: PPCore, asm: Assembly-CSharp}
-      data: 
+      data:
+        mInterval: 5
     - rid: 7300000000000001001
       type: {class: PPHpRatePeriodicDamageBehaviourDefinition, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mHpRatePerTurn: 0.05
+        mHpRatePerTick: 0.05
         mAttribute: 0

@@ -224,7 +224,7 @@ namespace PPCore
                     case StatusEffectStackPolicy.Ignore:
                         return;
                     case StatusEffectStackPolicy.Refresh:
-                        (existing.DurationCondition as IRefreshableDuration)?.Refresh();
+                        RefreshDuration(existing, aContext);
                         OnStatusEffectStacked?.Invoke(this, existing);
                         return;
                     case StatusEffectStackPolicy.StackCount:
@@ -235,7 +235,7 @@ namespace PPCore
                         return;
                     case StatusEffectStackPolicy.StackCountAndRefresh:
                         existing.TryAddStack(this, aContext);
-                        (existing.DurationCondition as IRefreshableDuration)?.Refresh();
+                        RefreshDuration(existing, aContext);
                         OnStatusEffectStacked?.Invoke(this, existing);
                         return;
                     case StatusEffectStackPolicy.Replace:
@@ -251,6 +251,7 @@ namespace PPCore
             // 新規付与。効果を適用してから通知する
             ActiveStatusEffects.Add(aStatusEffect);
             aStatusEffect.AttachTo(this, aContext);
+            ScheduleStatusEffectTick(aStatusEffect, aContext);
             OnStatusEffectAdded?.Invoke(this, aStatusEffect);
         }
 
@@ -258,6 +259,7 @@ namespace PPCore
         public void RemoveStatusEffect(StatusEffect aStatusEffect, BattleContext aContext)
         {
             if (!ActiveStatusEffects.Remove(aStatusEffect)) return;
+            aStatusEffect.CancelTickTimer();
             aStatusEffect.DetachFrom(this, aContext);
             OnStatusEffectRemoved?.Invoke(this, aStatusEffect);
         }
@@ -277,31 +279,54 @@ namespace PPCore
             return removedCount;
         }
 
-        // 状況更新の度に呼び出す。各エフェクトの Tick を実行し、持続条件が切れたものを除去する
-        // 除去中にリストが縮むため、末尾から逆順に走査する
-        public void TickStatusEffects(BattleContext aContext)
+        // エフェクトの次の発生を、持続条件の発生間隔（秒）後に予約する。バトル専用の時計で進むため、時計の停止中は進まない
+        // バトルコンテキストが無い経路と、発生間隔が 0 以下の持続条件では予約しない
+        private void ScheduleStatusEffectTick(StatusEffect aEffect, BattleContext aContext)
         {
-            for (int i = ActiveStatusEffects.Count - 1; i >= 0; i--)
+            float interval = aEffect.DurationCondition?.Interval ?? 0f;
+            if (aContext?.Timers == null || interval <= 0f) return;
+
+            var timer = aContext.Timers.Schedule(interval, () => HandleStatusEffectTick(aEffect, aContext));
+            aEffect.SetTickTimer(aContext.Timers, timer);
+        }
+
+        // エフェクト 1 つ分の発生を処理する。効果を発生させ、持続条件が切れたら除去し、続くなら次の発生を予約する
+        private void HandleStatusEffectTick(StatusEffect aEffect, BattleContext aContext)
+        {
+            aEffect.SetTickTimer(null, null);
+            if (!ActiveStatusEffects.Contains(aEffect)) return;
+
+            aEffect.Tick(this, aContext);
+
+            // 自身の Tick の中で除去された（毒で撃破されて全解除された等）エフェクトは、
+            // 持続の消化やスタック消費を行わない。除去済みのエフェクトへ効果を掛け直さないため
+            if (!ActiveStatusEffects.Contains(aEffect)) return;
+
+            if (!aEffect.DurationCondition.Tick())
             {
-                // 毒などで撃破され、撃破時の全解除でリストが空になっている場合がある
-                if (i >= ActiveStatusEffects.Count) continue;
-
-                var effect = ActiveStatusEffects[i];
-                effect.Tick(this, aContext);
-
-                // 自身の Tick の中で除去された（毒で撃破されて全解除された等）エフェクトは、
-                // 持続の消化やスタック消費を行わない。除去済みのエフェクトへ効果を掛け直さないため
-                if (!ActiveStatusEffects.Contains(effect)) continue;
-
-                if (!effect.DurationCondition.Tick())
-                {
-                    RemoveStatusEffect(effect, aContext);
-                    continue;
-                }
-
-                // 寿命が残っていても、ターン経過をきっかけにしたスタック消費で切れることがある
-                ApplyConsumeRule(effect, StatusEffectConsumeTrigger.TurnEnded, aContext, null);
+                RemoveStatusEffect(aEffect, aContext);
+                return;
             }
+
+            // 寿命が残っていても、効果の発生をきっかけにしたスタック消費で切れることがある
+            ApplyConsumeRule(aEffect, StatusEffectConsumeTrigger.Ticked, aContext, null);
+            if (!ActiveStatusEffects.Contains(aEffect)) return;
+
+            ScheduleStatusEffectTick(aEffect, aContext);
+        }
+
+        // 掛け直しで持続を初期値へ戻す。残り回数を戻し、次の発生までの時間も数え直す
+        // 延長し直せない持続条件（永続など）は、発生の周期を変えないよう何もしない
+        private void RefreshDuration(StatusEffect aEffect, BattleContext aContext)
+        {
+            if (aEffect.DurationCondition is not IRefreshableDuration refreshable) return;
+
+            refreshable.Refresh();
+            // 予約し直せない経路（バトルコンテキスト無し）では、待っているタイマーをそのまま使う
+            if (aContext?.Timers == null) return;
+
+            aEffect.CancelTickTimer();
+            ScheduleStatusEffectTick(aEffect, aContext);
         }
 
         // スタック消費のきっかけが起きたことを全エフェクトへ知らせ、使い切ったエフェクトを除去する
@@ -331,15 +356,6 @@ namespace PPCore
             {
                 RemoveStatusEffect(aEffect, aContext);
             }
-        }
-
-        /* 更新 */
-
-        // 1 回分の更新処理。ステータスエフェクトを更新する
-        // スキルのクールタイムはバトル専用の時計で進むため、ここでは扱わない
-        public virtual void UnitTick(BattleContext aContext)
-        {
-            TickStatusEffects(aContext);
         }
 
         /* 問い合わせ */

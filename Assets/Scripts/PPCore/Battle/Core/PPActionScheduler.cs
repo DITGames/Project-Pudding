@@ -27,8 +27,6 @@ namespace PPCore
         protected BattleManager mManager;
         // 行動の演出に掛かる時間（秒）。この間、そのユニットは次の行動を積まない
         protected float mPresentationSeconds;
-        // 状態異常とクールダウンを 1 回分進める間隔（秒）
-        protected float mStatusTickInterval;
         // 行動を積んでから演出が終わるまでのユニット
         private readonly HashSet<PPBattleUnit> mActingUnits = new();
         // 今回の評価で行動できるユニット。評価のたびに使い回す
@@ -66,15 +64,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // 状態異常とクールダウンを一定間隔で進める。秒数で管理する形へ置き換えるまでの暫定の仕組み
-        public void StartStatusTick(float aInterval)
-        {
-            if (mManager?.Context == null) return;
-
-            mStatusTickInterval = Mathf.Max(0.1f, aInterval);
-            mManager.Context.Timers.Schedule(mStatusTickInterval, HandleStatusTick);
-        }
 
         // 行動できるユニットを調べ、素早さの順に 1 体ずつ行動させる。コインゲージが変化したあとに呼ぶ
         public void Evaluate()
@@ -265,19 +254,6 @@ namespace PPCore
 
             // 自分の対象選びなので、自分の乱数列から引く
             return enemies[aUnit.ResolveRandom(aContext).NextInt(enemies.Count)] as PPBattleUnit;
-        }
-
-        /* イベントハンドラ */
-
-        // 状態異常とクールダウンを 1 回分進め、決着していなければ次の回を予約する
-        private void HandleStatusTick()
-        {
-            if (mManager?.Context == null) return;
-
-            mManager.AdvanceTick();
-            if (mManager.StateMachine.Current == BattleState.BattleEnd) return;
-
-            mManager.Context.Timers.Schedule(mStatusTickInterval, HandleStatusTick);
         }
 
         /* ヘルパー */

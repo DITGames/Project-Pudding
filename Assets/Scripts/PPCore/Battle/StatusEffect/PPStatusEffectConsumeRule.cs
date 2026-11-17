@@ -8,6 +8,8 @@
 
 using System;
 using UnityEngine;
+using UnityEngine.Scripting.APIUpdating;
+using UnityEngine.Serialization;
 using AttributeUtility;
 
 namespace PPCore
@@ -16,9 +18,9 @@ namespace PPCore
     // 持続条件（寿命）とは別の軸で、「何をしたら減るか」を表す
     public enum StatusEffectConsumeTrigger
     {
-        // ターンが経過したとき。毎ターン少しずつ弱まる効果など
-        [InspectorName("ターン経過")]
-        TurnEnded,
+        // 効果が発生したとき（持続条件の発生間隔ごと）。発生のたびに少しずつ弱まる効果など
+        [InspectorName("効果の発生時")]
+        Ticked,
         // 行動したとき。溜め状態を行動で使い切る表現など
         [InspectorName("行動時")]
         Acted,
@@ -97,25 +99,25 @@ namespace PPCore
     }
 
     // 指定したきっかけが起きたときに確率で消費するルール
-    // 確率は付与からの経過ターン数に応じて増減させられる（時間が経つほど解けやすい状態異常など）
+    // 確率は付与からの発生回数に応じて増減させられる（時間が経つほど解けやすい状態異常など）
     public sealed class ChanceTriggerConsumeRule : TriggerConsumeRule
     {
         /* 状態 */
 
-        // 経過ターン数 0 の時点での消費確率（0～1）
+        // 発生回数 0 の時点での消費確率（0～1）
         private readonly float mBaseChance;
-        // 経過ターン 1 つあたりの確率の増分。負の値なら経つほど解けにくくなる
-        private readonly float mChancePerElapsedTurn;
+        // 発生 1 回あたりの確率の増分。負の値なら経つほど解けにくくなる
+        private readonly float mChancePerElapsedTick;
 
         /* 生成 */
 
         public ChanceTriggerConsumeRule(StatusEffectConsumeTrigger aTrigger, float aBaseChance,
-            float aChancePerElapsedTurn = 0f, int aStacks = 1, bool aIsConsumeAll = false,
+            float aChancePerElapsedTick = 0f, int aStacks = 1, bool aIsConsumeAll = false,
             DamageReasonKind? aDamageReasonFilter = null, bool aIsIncludeReactionDamage = false)
             : base(aTrigger, aStacks, aIsConsumeAll, aDamageReasonFilter, aIsIncludeReactionDamage)
         {
             mBaseChance = aBaseChance;
-            mChancePerElapsedTurn = aChancePerElapsedTurn;
+            mChancePerElapsedTick = aChancePerElapsedTick;
         }
 
         /* 問い合わせ */
@@ -131,7 +133,7 @@ namespace PPCore
             var random = aContext.Battle?.Rules?.RandomProvider;
             if (random == null) return 0;
 
-            float chance = Mathf.Clamp01(mBaseChance + mChancePerElapsedTurn * aContext.Effect.ElapsedTurns);
+            float chance = Mathf.Clamp01(mBaseChance + mChancePerElapsedTick * aContext.Effect.ElapsedTicks);
             if (random.NextFloat() >= chance) return 0;
 
             return mIsConsumeAll ? aContext.Stacks : mStacks;
@@ -167,7 +169,7 @@ namespace PPCore
         protected static string ToDisplayName(StatusEffectConsumeTrigger aTrigger)
             => aTrigger switch
             {
-                StatusEffectConsumeTrigger.TurnEnded => "ターン経過",
+                StatusEffectConsumeTrigger.Ticked => "効果の発生",
                 StatusEffectConsumeTrigger.Acted => "行動",
                 StatusEffectConsumeTrigger.Attacked => "攻撃",
                 StatusEffectConsumeTrigger.Damaged => "被ダメージ",
@@ -187,12 +189,13 @@ namespace PPCore
         // 全て消費する場合は参照されない
         [Label("消費スタック数")][Min(1)]
         [SerializeField]protected int mConsumeStacks = 1;
-        // 付与直後（経過ターン 0）の消費確率（0～1）。1 なら必ず消費する
+        // 付与直後（発生回数 0）の消費確率（0～1）。1 なら必ず消費する
         [Label("消費確率")][Range(0f, 1f)]
         [SerializeField]protected float mBaseChance = 1f;
-        // 経過ターン 1 つあたりの確率の増分。負の値にすると経つほど解けにくくなる
-        [Label("1ターンあたりの増分")][Range(-1f, 1f)]
-        [SerializeField]protected float mChancePerElapsedTurn = 0f;
+        // 発生 1 回あたりの確率の増分。負の値にすると経つほど解けにくくなる
+        [Label("発生1回あたりの増分")][Range(-1f, 1f)]
+        [FormerlySerializedAs("mChancePerElapsedTurn")]
+        [SerializeField]protected float mChancePerElapsedTick = 0f;
 
         /* 状態 */
 
@@ -206,8 +209,8 @@ namespace PPCore
         // 種類を限定する場合に、リアクション（反撃など）のダメージも対象にするか。被ダメージ時のきっかけだけが上書きする
         protected virtual bool IsIncludeReactionDamage => false;
         // 確率が常に 1 以上になり、乱数を引く必要が無いか
-        // 増分が負だと経過ターンで 1 を下回るため、確定扱いにしない
-        protected bool IsCertain => Mathf.Clamp01(mBaseChance) >= 1f && mChancePerElapsedTurn >= 0f;
+        // 増分が負だと発生を重ねるうちに 1 を下回るため、確定扱いにしない
+        protected bool IsCertain => Mathf.Clamp01(mBaseChance) >= 1f && mChancePerElapsedTick >= 0f;
 
         /* 生成 */
 
@@ -221,13 +224,13 @@ namespace PPCore
                 return new TriggerConsumeRule(Trigger, stacks, mIsConsumeAll, DamageReasonFilter, IsIncludeReactionDamage);
             }
 
-            return new ChanceTriggerConsumeRule(Trigger, Mathf.Clamp01(mBaseChance), mChancePerElapsedTurn,
+            return new ChanceTriggerConsumeRule(Trigger, Mathf.Clamp01(mBaseChance), mChancePerElapsedTick,
                 stacks, mIsConsumeAll, DamageReasonFilter, IsIncludeReactionDamage);
         }
 
         /* 説明文 */
 
-        // ラベルに出す要約を組み立てる。例: 「攻撃時に全消費」「行動時に33%で全消費 毎ターン+10%」
+        // ラベルに出す要約を組み立てる。例: 「攻撃時に全消費」「行動時に33%で全消費 発生ごとに+10%」
         // 確定の場合は確率と増分を省く
         public override string BuildString()
         {
@@ -237,9 +240,9 @@ namespace PPCore
                 return $"{BuildTriggerString()}時に{amount}";
             }
 
-            string curve = Mathf.Approximately(mChancePerElapsedTurn, 0f)
+            string curve = Mathf.Approximately(mChancePerElapsedTick, 0f)
                 ? string.Empty
-                : $" 毎ターン{mChancePerElapsedTurn:+0.##%;-0.##%}";
+                : $" 発生ごとに{mChancePerElapsedTick:+0.##%;-0.##%}";
             return $"{BuildTriggerString()}時に{Mathf.Clamp01(mBaseChance):P0}で{amount}{curve}";
         }
 
@@ -248,13 +251,14 @@ namespace PPCore
         protected virtual string BuildTriggerString() => ToDisplayName(Trigger);
     }
 
-    // ターンが経過したときにスタックを消費するルールの定義
-    // 「毎ターン少しずつ弱まる」効果に使う
+    // 効果が発生したとき（持続条件の発生間隔ごと）にスタックを消費するルールの定義
+    // 「発生のたびに少しずつ弱まる」効果に使う
     [Serializable]
-    [PPTypeMenuName("ターン経過時")]
-    public class PPTurnEndedConsumeRuleDefinition : PPTriggerConsumeRuleDefinitionBase
+    [PPTypeMenuName("効果の発生時")]
+    [MovedFrom(false, null, null, "PPTurnEndedConsumeRuleDefinition")]
+    public class PPTickedConsumeRuleDefinition : PPTriggerConsumeRuleDefinitionBase
     {
-        protected override StatusEffectConsumeTrigger Trigger => StatusEffectConsumeTrigger.TurnEnded;
+        protected override StatusEffectConsumeTrigger Trigger => StatusEffectConsumeTrigger.Ticked;
     }
 
     // 行動したときにスタックを消費するルールの定義

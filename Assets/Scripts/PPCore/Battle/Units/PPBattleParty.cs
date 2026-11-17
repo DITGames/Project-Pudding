@@ -85,18 +85,6 @@ namespace PPCore
         // 全滅判定。アクティブメンバー全員が戦闘不能なら全滅とみなす（控えは数に入れない）
         // return : 全滅していれば true
         public virtual bool IsWiped() => ActiveMembers.All(u => !u.IsAlive);
-
-        /* 更新 */
-
-        // パーティ単位の 1 ターン更新。アクティブメンバー全員の UnitTick を回す
-        // パーティ共有リソースの更新を足す場合はここをオーバーライドする
-        public virtual void PartyTick(BattleContext aContext)
-        {
-            foreach (var unit in ActiveMembers)
-            {
-                unit.UnitTick(aContext);
-            }
-        }
     }
 
     // パーティ内の配置。定義順（Center → Right → Left）がコインを配る順番になる

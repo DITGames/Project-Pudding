@@ -24,7 +24,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1c423067ca5d95a044493abeebd18229, type: 2}
   mExpandStatBlock:
     AttackCost: 7
-    ActionCount: 1
     SkillGaugeMax: 100
     CarryOverActions: 10
     Dexterity: 20

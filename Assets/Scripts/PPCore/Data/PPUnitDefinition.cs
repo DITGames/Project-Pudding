@@ -112,8 +112,8 @@ namespace PPCore
             int carryOver = mExpandStatBlock.CarryOverActions > 0
                 ? mExpandStatBlock.CarryOverActions
                 : PPStatBlock.DefaultCarryOverActions;
-            return new(mExpandStatBlock.AttackCost, Mathf.Max(1, mExpandStatBlock.ActionCount),
-                mExpandStatBlock.SkillGaugeMax, mExpandStatBlock.AttackCost * carryOver, EvaluateDexterity(aLevel));
+            return new(mExpandStatBlock.AttackCost, mExpandStatBlock.SkillGaugeMax,
+                mExpandStatBlock.AttackCost * carryOver, EvaluateDexterity(aLevel));
         }
 
         /* 評価・判定 */

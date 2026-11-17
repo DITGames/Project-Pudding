@@ -102,16 +102,15 @@ namespace PPCore
         MaxHpDebuff = 1 << 23,
         CostBuff = 1 << 24,
         CostDebuff = 1 << 25,
-        ActionCountBuff = 1 << 26,
-        ActionCountDebuff = 1 << 27,
+        // bit 26・27 は廃止した行動回数上限の増減が使っていた値で、欠番にしている
         // きようさ（会心率の元）の増減。会心率アップ・ダウンはこの分類を使う
         DexterityBuff = 1 << 28,
         DexterityDebuff = 1 << 29,
 
         /* ---- まとめ(解除スキルのマスクとしてそのまま使う) ---- */
         AllAilment = Poison | Burn | Paralyze | Vulnerable | Confused | Silenced,
-        AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | CostBuff | ActionCountBuff | DexterityBuff,
-        AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | CostDebuff | ActionCountDebuff | DexterityDebuff,
+        AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | CostBuff | DexterityBuff,
+        AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | CostDebuff | DexterityDebuff,
     }
 
     // パラメータ種別の日本語表示名を集約した定数群
@@ -123,7 +122,6 @@ namespace PPCore
         public const string NameSpeed = "素早さ";
         public const string NameHp = "HP";
         public const string NameCost = "コスト";
-        public const string NameActionCount = "行動回数上限";
         public const string NameDexterity = "きようさ";
     }
 }

@@ -28,8 +28,8 @@ namespace PPCore
         public IDurationCondition DurationCondition { get; set; }
         // スタックを消費するきっかけと量を決めるルール。未指定ならスタックは自然には減らない
         public IStatusEffectConsumeRule ConsumeRule { get; private set; }
-        // 付与されてから経過したターン数。確率消費のカーブなどで参照する
-        public int ElapsedTurns { get; private set; }
+        // 付与されてから効果が発生した回数。確率消費のカーブなどで参照する
+        public int ElapsedTicks { get; private set; }
         // 同一 ID が重ねて付与されたときの挙動
         public StatusEffectStackPolicy StackPolicy { get; private set; } = StatusEffectStackPolicy.Refresh;
         // スタック数の上限
@@ -48,6 +48,9 @@ namespace PPCore
         public object SourceDefinition { get; private set; }
         // このエフェクトが持つ振る舞いの一覧。Orderの昇順で並ぶ
         private readonly List<StatusEffectBehaviour> mBehaviours = new();
+        // 次の発生を待っているタイマーと、その予約先。待っていなければ null
+        private PPBattleTimer mTickTimer;
+        private PPBattleTimerScheduler mTickScheduler;
 
         /* プロパティ */
 
@@ -106,7 +109,7 @@ namespace PPCore
         {
             Owner = aOwner;
             CurrentStacks = 1;
-            ElapsedTurns = 0;
+            ElapsedTicks = 0;
             var ctx = new StatusEffectContext(this, aOwner, aContext);
             foreach (var b in mBehaviours) b.OnApply(ctx);
         }
@@ -119,10 +122,25 @@ namespace PPCore
             Owner = null;
         }
 
-        // 更新のたびに呼ばれる。全Behaviourへ通知する
+        // 次の発生を待つタイマーを覚える。除去や掛け直しのときに取り消せるようにする
+        internal void SetTickTimer(PPBattleTimerScheduler aScheduler, PPBattleTimer aTimer)
+        {
+            mTickScheduler = aScheduler;
+            mTickTimer = aTimer;
+        }
+
+        // 次の発生を待つタイマーを取り消す。待っていなければ何もしない
+        internal void CancelTickTimer()
+        {
+            mTickScheduler?.Cancel(mTickTimer);
+            mTickScheduler = null;
+            mTickTimer = null;
+        }
+
+        // 効果が発生するたびに呼ばれる。全Behaviourへ通知する
         internal void Tick(BattleUnit aOwner, BattleContext aContext)
         {
-            ElapsedTurns++;
+            ElapsedTicks++;
             var ctx = new StatusEffectContext(this, aOwner, aContext);
             foreach (var b in mBehaviours)
             {
@@ -227,7 +245,7 @@ namespace PPCore
         // 除去された瞬間
         public virtual void OnRemove(StatusEffectContext aContext) { }
 
-        // 更新のたび(ターン経過など)
+        // 効果が発生するたび（持続条件の発生間隔ごと）
         public virtual void OnTick(StatusEffectContext aContext) { }
 
         // スタック数が変化したとき
