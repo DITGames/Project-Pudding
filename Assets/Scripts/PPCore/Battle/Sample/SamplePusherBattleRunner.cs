@@ -10,7 +10,6 @@ using PPCore;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AttributeUtility;
-using CustomConsole;
 
 // プッシャーとバトルを繋いだ一連のフローを組み立てるエントリポイント（参照実装）
 // ユニット定義を 1 体ずつ直接指定して戦わせる。行動の進行は PPActionScheduler へ任せる
@@ -144,10 +143,8 @@ public class SamplePusherBattleRunner : MonoBehaviour
 
     /* イベントハンドラ */
 
-    // プレイヤーが確定したコマンドを受け取る。現在の進行は通常攻撃だけを行うため、確定した内容は使わない
+    // プレイヤーが確定したコマンドを、そのユニットのスキルの選択へ反映する
+    // その場では実行せず、コインゲージが溜まったときに進行役が積む
     private void HandleCommandConfirmed(BattleUnit aUnit, BattleCommandBase aCommand)
-    {
-        CustomConsoleLog.Warning("Battle",
-            $"{aUnit?.DisplayName} のコマンド選択は、スキルの選択が未実装のため反映されません。");
-    }
+        => mActionScheduler.ApplyPlayerCommand(aUnit, aCommand, mController.Context.Target);
 }

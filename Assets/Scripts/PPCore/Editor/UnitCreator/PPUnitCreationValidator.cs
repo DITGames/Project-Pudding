@@ -168,7 +168,7 @@ namespace PPCore
                 else ValidateReference(skill, "スキル", result);
                 var so = new SerializedObject(skill);
                 ValidateMissingReferences(so, result);
-                if (so.FindProperty("mMaxCooldown").intValue < 0 || so.FindProperty("mMaxUsesPerBattle").intValue < 0)
+                if (so.FindProperty("mMaxCooldown").floatValue < 0f || so.FindProperty("mMaxUsesPerBattle").intValue < 0)
                     result.Errors.Add("スキルのクールタイム・最大使用回数は0以上です: " + skill.DisplayName);
                 if (skill is PPSkillDefinition ppSkill)
                 {

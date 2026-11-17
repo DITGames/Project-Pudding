@@ -142,7 +142,7 @@ namespace PPCore
 
             // スキル実行
             Skill.Execute(Source, targets, aContext);
-            Skill.NotifyUsed();
+            Skill.NotifyUsed(aContext);
         }
     }
 
@@ -266,16 +266,18 @@ namespace PPCore
             RecoverSkillGauge(ppSource, aContext);
         }
 
-        // 通常攻撃の成立に伴うスキルゲージ回復を行う
+        // 通常攻撃の成立に伴うスキルゲージ回復を行う。回復量は素早さに応じてルール側が決める
         // 回復量は拡張ルール側にしか無いため、差し込まれている場合のみ回復する
         protected virtual void RecoverSkillGauge(PPBattleUnit aSource, BattleContext aContext)
         {
             if (aContext.Rules is not PPBattleRules rules) return;
-            if (rules.NormalAttackSkillGaugeRecover <= 0f) return;
 
-            aSource.ExtraParameters.SkillGauge.Recover(rules.NormalAttackSkillGaugeRecover);
+            float amount = rules.ResolveNormalAttackSkillGauge(aSource);
+            if (amount <= 0f) return;
+
+            aSource.ExtraParameters.SkillGauge.Recover(amount);
             CustomConsoleLog.Verbose("Resource",
-                $"{aSource.DisplayName}のスキルゲージが通常攻撃で{rules.NormalAttackSkillGaugeRecover:0.##}回復しました（残量{aSource.ExtraParameters.SkillGauge.Current:0.##}）。");
+                $"{aSource.DisplayName}のスキルゲージが通常攻撃で{amount:0.##}回復しました（残量{aSource.ExtraParameters.SkillGauge.Current:0.##}）。");
         }
     }
 
@@ -324,7 +326,7 @@ namespace PPCore
             }
 
             Skill.Execute(Source, targets, aContext);
-            Skill.NotifyUsed();
+            Skill.NotifyUsed(aContext);
             CustomConsoleLog.Log("Battle", $"{Source.DisplayName}が{Skill.DisplayName}を発動しました。");
         }
     }

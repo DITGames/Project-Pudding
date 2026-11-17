@@ -25,6 +25,10 @@ namespace PPCore
         float MaxHP { get; }
         // 次の行動までのコインゲージの溜まり具合（0〜1）。行動コスト分溜まると 1
         float CoinGaugeRate { get; }
+        // スキルゲージの溜まり具合（0〜1）。上限まで溜まると 1
+        float SkillGaugeRate { get; }
+        // 選択中のスキルの表示名。未選択なら空文字
+        string SelectedSkillName { get; }
 
         /* イベント */
 
@@ -44,8 +48,8 @@ namespace PPCore
         float SkillGaugeCost { get; }
         // 今このスキルを発動できるか。ボタンの有効・無効に使う
         bool IsCastable { get; }
-        // 残りクールダウンターン数
-        int CooldownRemaining { get; }
+        // 残りクールタイム（秒）
+        float CooldownRemaining { get; }
 
         /* イベント */
 
@@ -53,7 +57,7 @@ namespace PPCore
         event Action Changed;
     }
 
-    // BattleUnit を UI 向けの表示情報として見せるアダプタ。HP・最大 HP・コインゲージの変化を購読して Changed へ中継する
+    // BattleUnit を UI 向けの表示情報として見せるアダプタ。HP・各ゲージ・スキルの選択の変化を購読して Changed へ中継する
     // UI を破棄する際は必ず Dispose を呼ぶこと
     public class PPBattleUnitStatusSource : IPPUnitStatusSource, IDisposable
     {
@@ -83,6 +87,21 @@ namespace PPCore
             }
         }
 
+        // スキルゲージの溜まり具合（0〜1）。スキルゲージを持たないユニットは 0
+        public float SkillGaugeRate
+        {
+            get
+            {
+                if (mBattleUnit is not PPBattleUnit unit) return 0f;
+                float max = unit.ExtraParameters.SkillGauge.Max.CurrentValue;
+                return max > 0f ? Mathf.Clamp01(unit.ExtraParameters.SkillGauge.Current / max) : 0f;
+            }
+        }
+
+        // 選択中のスキルの表示名。未選択なら空文字
+        public string SelectedSkillName
+            => (mBattleUnit as PPBattleUnit)?.SelectedSkill?.DisplayName ?? string.Empty;
+
         /* イベント */
 
         // 表示内容が変化したときに発火する
@@ -102,6 +121,9 @@ namespace PPCore
             {
                 unit.ExtraParameters.CoinGauge.OnValueChanged += HandleChanged;
                 unit.ExtraParameters.AttackCost.OnValueChanged += HandleChanged;
+                unit.ExtraParameters.SkillGauge.OnValueChanged += HandleChanged;
+                unit.ExtraParameters.SkillGauge.Max.OnValueChanged += HandleChanged;
+                unit.OnSkillSelectionChanged += HandleSkillSelectionChanged;
             }
         }
 
@@ -120,6 +142,9 @@ namespace PPCore
             {
                 unit.ExtraParameters.CoinGauge.OnValueChanged -= HandleChanged;
                 unit.ExtraParameters.AttackCost.OnValueChanged -= HandleChanged;
+                unit.ExtraParameters.SkillGauge.OnValueChanged -= HandleChanged;
+                unit.ExtraParameters.SkillGauge.Max.OnValueChanged -= HandleChanged;
+                unit.OnSkillSelectionChanged -= HandleSkillSelectionChanged;
             }
         }
 
@@ -128,6 +153,9 @@ namespace PPCore
         // パラメータの変化を自身のイベントとして中継する
         // 解除できるようラムダではなく名前付きメソッドにしてある
         private void HandleChanged(IReadableParameter _) => Changed?.Invoke();
+
+        // スキルの選択の変化を自身のイベントとして中継する
+        private void HandleSkillSelectionChanged(PPBattleUnit _) => Changed?.Invoke();
     }
 
     // BattleSkill を UI 向けの表示情報として見せるアダプタ。発動可否は ICastValidator へ委ねる
@@ -155,8 +183,8 @@ namespace PPCore
         public string DisplayName => mSkill.DisplayName;
         // 発動に必要なスキルゲージ量。定義を引けない場合は無コスト扱い
         public float SkillGaugeCost => (mSkill.SourceDefinition as PPSkillDefinition)?.SkillGaugeCost ?? 0f;
-        // 残りクールダウンターン数
-        public int CooldownRemaining => mSkill.RemainingCooldown;
+        // 残りクールタイム（秒）
+        public float CooldownRemaining => mSkill.RemainingCooldown;
 
         // 今このスキルを発動できるか
         // バリデータの判定に加えて、同じティックに既に予約した行動で使う予定の分も差し引く

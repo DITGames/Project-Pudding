@@ -33,8 +33,10 @@ namespace PPCore
         [Label("ターゲット選択")]
         [SerializeField] protected TargetScope mTargetScope = TargetScope.SingleEnemy;
 
-        [Label("クールタイム")]
-        [SerializeField] protected int mMaxCooldown = 0;
+        // 使用してから再び使えるようになるまでの秒数。バトル専用の時計で進む
+        [Label("クールタイム(秒)")]
+        [Min(0f)]
+        [SerializeField] protected float mMaxCooldown = 0f;
         [Label("最大使用回数")]
         [SerializeField] protected int mMaxUsesPerBattle = 0;
 
