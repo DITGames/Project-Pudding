@@ -11,7 +11,7 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // プッシャーの押し出し板。奥の台の下から手前へ一定の周期で出入りし、床のコインを押し出す
+    // プッシャーの押し出し板。開始の合図の後、奥の台の下から手前へ一定の周期で出入りし、床のコインを押し出す
     // 物理で動くコインを運べるよう、キネマティックな Rigidbody を FixedUpdate で動かす
     [RequireComponent(typeof(Rigidbody))]
     public class PPPusherPlate : MonoBehaviour
@@ -38,6 +38,8 @@ namespace PPCore
         private Vector3 mRestPosition;
         // 出入りの経過時間（秒）。timeScale で止まるよう FixedUpdate で積む
         private float mElapsed;
+        // 動き始めたか。Begin が呼ばれるまでは引っ込んだ位置で止めておく
+        private bool mIsRunning;
 
         /* Unity イベント */
 
@@ -50,12 +52,19 @@ namespace PPCore
             transform.position = ResolvePosition(0f);
         }
 
-        // 周期に沿って板を動かす。コインを摩擦で運べるよう MovePosition を使う
+        // 開始後、周期に沿って板を動かす。コインを摩擦で運べるよう MovePosition を使う
         private void FixedUpdate()
         {
+            if (!mIsRunning) return;
+
             mElapsed += Time.fixedDeltaTime;
             mRigidbody.MovePosition(ResolvePosition(mElapsed));
         }
+
+        /* 操作 */
+
+        // 引っ込んだ位置から出入りを始める
+        public void Begin() => mIsRunning = true;
 
         /* ヘルパー */
 

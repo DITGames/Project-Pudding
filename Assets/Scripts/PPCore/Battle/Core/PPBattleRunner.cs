@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.Serialization;
@@ -44,6 +45,9 @@ namespace PPCore
         [SerializeField] private PPCoinResourceBridge mEnemyCoinResourceBridge;
         [Label("敵チャージアイテムブリッジ")]
         [SerializeField] private PPChargeItemBridge mEnemyChargeItemBridge;
+        // ロード画面を出してプッシャーを準備する役。設定するとバトルの開始を読み込みの後まで待つ。未設定なら待たない
+        [Label("プッシャーの読み込み")]
+        [SerializeField] private PPPusherLoader mPusherLoader;
 
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
@@ -128,9 +132,17 @@ namespace PPCore
             if (mEnemyPusherWipe != null) mEnemyPusherWipe.SetActive(IsEnemyPusherAvailable);
         }
 
+        // プッシャーの読み込みを待ってからバトルを組み立てて開始し、最後にプッシャーを動かし始める
+        IEnumerator Start()
+        {
+            if (mPusherLoader != null) yield return mPusherLoader.Load();
+            StartBattle();
+            if (mPusherLoader != null) mPusherLoader.Begin();
+        }
+
         // バトルを組み立てて開始する。パーティ生成 → コンテキスト構築 → バトル開始 →
         // View・コインブリッジ・入力の接続 → AI の接続と最初の思考 → 行動の進行とゲージ供給の開始、の順に進む
-        void Start()
+        private void StartBattle()
         {
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
             foreach (var action in new[] { mOpenCommandAction, mAutoBattleAction, mOpenConfigAction })
@@ -192,6 +204,9 @@ namespace PPCore
         // キー設定を開いている間は、ほかの入力を受け付けない
         void Update()
         {
+            // プッシャーの読み込み中は、まだバトルを組み立てていない
+            if (mBattleManager.Context == null) return;
+
             mBattleManager.AdvanceTime(Time.deltaTime);
 
             if (mConfigMenu != null && WasPressed(mOpenConfigAction) && !mController.IsInputOpen && CanSelectAnyCommand())
