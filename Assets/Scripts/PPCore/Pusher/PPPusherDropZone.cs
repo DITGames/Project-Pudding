@@ -13,7 +13,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // プッシャーから落ちたコインとチャージ用アイテムを検出する領域。トリガーの Collider を付けて使う
-    // 落ちたものは通知してから消す。バトル側へはブリッジ（PPCoinResourceBridge / PPChargeItemBridge）経由で伝わる
+    // 落ちたものは通知して消す（コインは置き場へ戻す）。バトル側へはブリッジ（PPCoinResourceBridge / PPChargeItemBridge）経由で伝わる
     [RequireComponent(typeof(Collider))]
     public class PPPusherDropZone : MonoBehaviour, IPPCoinGainNotifier, IPPChargeItemNotifier
     {
@@ -68,8 +68,14 @@ namespace PPCore
             // 消える前の同じステップでもう一度入ってきた場合に、二重に数えない
             if (!target.activeSelf) return;
 
-            target.SetActive(false);
-            Destroy(target);
+            // 置き場から出したコインは置き場へ戻して使い回す
+            var pool = target.GetComponentInParent<PPCoinPool>();
+            if (pool != null) pool.Release(target);
+            else
+            {
+                target.SetActive(false);
+                Destroy(target);
+            }
             DroppedCoinCount++;
             if (!mIsNotify) return;
 
