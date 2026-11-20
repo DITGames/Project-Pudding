@@ -1,5 +1,5 @@
 /* =====================================
- * Copyright DITGames. All rights reserved.
+ * Copyright WabisabiAndons. All rights reserved.
  * @file PPBattleUnitSelectMenuView.cs
  * @author DITGames
  * @date 2026/09/07
