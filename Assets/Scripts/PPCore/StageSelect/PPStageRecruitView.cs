@@ -8,16 +8,25 @@
 
 using System;
 using System.Collections.Generic;
+using UnityEngine;
+using AttributeUtility;
 
 namespace PPCore
 {
-    // 候補のユニットを並べ、決定した 1 体を返す。必ず 1 体選ぶため、キャンセルでは閉じない
+    // 候補のユニットを札で横に並べ、決定した 1 体を返す。必ず 1 体選ぶため、キャンセルでは閉じない
     public class PPStageRecruitView : PPStageListMenuBase
     {
+        /* インスペクタ設定 */
+
+        [Header("項目")]
+        [Label("候補の札のプレハブ")]
+        [SerializeField] private PPStageUnitCard mCardPrefab;
+
         /* 状態 */
 
         private readonly List<PPUnitDefinition> mCandidates = new();
         private Action<PPUnitDefinition> mOnPicked;
+        private int mLevel;
 
         /* 操作 */
 
@@ -26,11 +35,16 @@ namespace PPCore
             mCandidates.Clear();
             mCandidates.AddRange(aCandidates);
             mOnPicked = aOnPicked;
+            mLevel = aLevel;
 
-            var texts = new List<string>(mCandidates.Count);
-            foreach (var unit in mCandidates) texts.Add(FormatUnit(unit, aLevel));
             OpenPanel();
-            SetColumn(0, texts);
+            var cards = PrepareItems(0, mCardPrefab, mCandidates.Count);
+            for (int i = 0; i < cards.Count; i++)
+            {
+                var unit = mCandidates[i];
+                string sub = $"<color={PPStageUnitDisplay.AttributeColorCode(unit.TypeAttribute)}>{PPStageUnitDisplay.AttributeName(unit.TypeAttribute)}属性</color>\n{PPStageUnitDisplay.RoleName(unit)}";
+                cards[i].SetUnit(PPStageUnitDisplay.ResolveIcon(UnitVisualCatalog, unit), PPStageUnitDisplay.NameAndLevel(unit, aLevel), sub);
+            }
             Focus(0, 0);
         }
 
@@ -45,8 +59,14 @@ namespace PPCore
             onPicked?.Invoke(mCandidates[aIndex]);
         }
 
-        protected override void OnSubmit(int aColumn, int aRow) => Pick(aRow);
+        protected override void OnSubmit(int aGroup, int aIndex) => Pick(aIndex);
 
         protected override void OnCancel() { }
+
+        protected override PPUnitDefinition GetFocusedUnit(out int aLevel)
+        {
+            aLevel = mLevel;
+            return FocusIndex < mCandidates.Count ? mCandidates[FocusIndex] : null;
+        }
     }
 }

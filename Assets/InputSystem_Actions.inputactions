@@ -1075,6 +1075,15 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true
+                },
+                {
+                    "name": "Detail",
+                    "type": "Button",
+                    "id": "0f29916e-1be2-403a-a4d2-9009dadd5343",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -1438,6 +1447,28 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "OpenConfig",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "e9135274-6c25-445b-b337-e76ecc511085",
+                    "path": "<Keyboard>/x",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "Detail",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "200f261d-1aae-490b-8808-4685cd5c4926",
+                    "path": "<Gamepad>/buttonWest",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "Detail",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

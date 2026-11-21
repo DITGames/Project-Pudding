@@ -15,7 +15,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // マップのマスと線を並べ、進行状態に合わせて色と選択中のマスを表示する
-    // マスの種類ごとの色と短い名前はインスペクタで決める
+    // マスの種類ごとの名前・アイコン・色はインスペクタで決める
     public class PPStageMapView : MonoBehaviour
     {
         /* 内部型 */
@@ -26,6 +26,7 @@ namespace PPCore
         {
             [Label("種類")] public PPStageNodeType Type;
             [Label("名前")] public string Label;
+            [Label("アイコン")] public Sprite Icon;
             [Label("色")] public Color Color = Color.white;
         }
 
@@ -94,7 +95,7 @@ namespace PPCore
                 var view = Instantiate(mNodePrefab, mContent);
                 SetBottomCenterAnchor((RectTransform)view.transform);
                 var style = FindStyle(node.Type);
-                view.Setup(node, GetPosition(node), style?.Label ?? node.Type.ToString(), style?.Color ?? Color.white,
+                view.Setup(node, GetPosition(node), style?.Icon, style?.Color ?? Color.white,
                     aView => OnNodeClicked?.Invoke(aView.Node));
                 mNodeViews[node] = view;
             }
@@ -152,6 +153,9 @@ namespace PPCore
         /* 問い合わせ */
 
         public PPStageMapNodeView GetNodeView(PPStageMapNode aNode) => mNodeViews.TryGetValue(aNode, out var view) ? view : null;
+
+        // マスの種類の表示名。見た目の設定が無ければ列挙の名前を返す
+        public string GetTypeName(PPStageNodeType aType) => FindStyle(aType)?.Label ?? aType.ToString();
 
         // 下端の中央を原点にしたマスの位置。ボスはゆらがせず中央に置く
         private Vector2 GetPosition(PPStageMapNode aNode)

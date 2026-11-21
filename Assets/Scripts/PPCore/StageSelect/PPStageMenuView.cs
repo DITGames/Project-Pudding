@@ -7,6 +7,8 @@
  * =====================================*/
 
 using System;
+using UnityEngine;
+using AttributeUtility;
 
 namespace PPCore
 {
@@ -17,6 +19,12 @@ namespace PPCore
 
         private const int FormationRow = 0;
         private static readonly string[] Texts = { "編成", "閉じる" };
+
+        /* インスペクタ設定 */
+
+        [Header("項目")]
+        [Label("行のプレハブ")]
+        [SerializeField] private PPStageListItem mItemPrefab;
 
         /* 状態 */
 
@@ -29,15 +37,16 @@ namespace PPCore
         {
             mOnFormation = aOnFormation;
             OpenPanel();
-            SetColumn(0, Texts);
+            var items = PrepareItems(0, mItemPrefab, Texts.Length);
+            for (int i = 0; i < items.Count; i++) items[i].SetText(Texts[i]);
             Focus(0, 0);
         }
 
-        protected override void OnSubmit(int aColumn, int aRow)
+        protected override void OnSubmit(int aGroup, int aIndex)
         {
             var onFormation = mOnFormation;
             Close();
-            if (aRow == FormationRow) onFormation?.Invoke();
+            if (aIndex == FormationRow) onFormation?.Invoke();
         }
     }
 }

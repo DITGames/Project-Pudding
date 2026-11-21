@@ -7,7 +7,6 @@
  * =====================================*/
 
 using System;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -26,7 +25,7 @@ namespace PPCore
         Current,
     }
 
-    // マップ上の 1 マス。種類の色と短い名前を出し、選べるマスはクリックで選べる
+    // マップ上の 1 マス。種類の色とアイコンを出し、選べるマスはクリックで選べる
     // 選べるマスはゆっくり脈打ち、キーボードやゲームパッドで選んでいるマスは大きく表示する
     [RequireComponent(typeof(RectTransform))]
     public class PPStageMapNodeView : MonoBehaviour, IPointerClickHandler
@@ -37,8 +36,9 @@ namespace PPCore
         // クリックの判定にも使う
         [Label("背景")]
         [SerializeField] private Image mBackground;
-        [Label("名前")]
-        [SerializeField] private TMP_Text mLabel;
+        // 種類のアイコン。背景の上に重ねる
+        [Label("アイコン")]
+        [SerializeField] private Image mIcon;
         // 選んでいるマスにだけ出す枠。未設定なら出さない
         [Label("選択中の枠")]
         [SerializeField] private Image mRing;
@@ -90,7 +90,7 @@ namespace PPCore
 
         /* 表示 */
 
-        public void Setup(PPStageMapNode aNode, Vector2 aPosition, string aLabel, Color aColor, Action<PPStageMapNodeView> aOnClick)
+        public void Setup(PPStageMapNode aNode, Vector2 aPosition, Sprite aIcon, Color aColor, Action<PPStageMapNodeView> aOnClick)
         {
             mRect = (RectTransform)transform;
             Node = aNode;
@@ -99,7 +99,11 @@ namespace PPCore
 
             name = $"Node_{aNode.Floor}_{aNode.Column}_{aNode.Type}";
             mRect.anchoredPosition = aPosition;
-            if (mLabel != null) mLabel.text = aLabel;
+            if (mIcon != null)
+            {
+                mIcon.sprite = aIcon;
+                mIcon.enabled = aIcon != null;
+            }
             SetState(PPStageNodeState.Locked, false);
         }
 
@@ -118,6 +122,8 @@ namespace PPCore
             {
                 mBackground.color = new Color(mTypeColor.r * brightness, mTypeColor.g * brightness, mTypeColor.b * brightness, 1f);
             }
+            // アイコンは背景と同じだけ暗くすると見えにくいため、まだ行けないマスだけ薄くする
+            if (mIcon != null) mIcon.color = new Color(1f, 1f, 1f, aState == PPStageNodeState.Locked ? 0.5f : 1f);
             if (mRing != null) mRing.enabled = aIsFocused || aState == PPStageNodeState.Current;
             if (aState != PPStageNodeState.Selectable) mRect.localScale = Vector3.one * (aIsFocused ? mFocusScale : 1f);
         }

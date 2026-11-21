@@ -7,31 +7,56 @@
  * =====================================*/
 
 using System;
-using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UI;
+using AttributeUtility;
 
 namespace PPCore
 {
-    // 左の列に 3 つの配置、右の列に所持ユニットを並べ、配置へのユニットの出し入れ・入れ替えを行う
-    // 配置を決定してから右の列でユニットを選ぶ。ほかの配置にいるユニットを選ぶと、2 つの配置を入れ替える
+    // 上に 3 つの配置、下に所持ユニットの札を並べ、配置へのユニットの出し入れ・入れ替えを行う
+    // 配置とユニットのどちらを先に決定してもよく、もう片方を決定するとその配置へ反映する
     public class PPStageFormationView : PPStageListMenuBase
     {
         /* 定数 */
 
-        private const int SlotColumn = 0;
-        private const int UnitColumn = 1;
+        private const int SlotGroup = 0;
+        private const int UnitGroup = 1;
         private const string EmptyText = "（空き）";
         private const string RemoveText = "外す";
+        private const string RemoveSubText = "配置を空にする";
         private const string BenchText = "控え";
-        // 左の列の並び
+        // 上の配置の並び
         private static readonly PPPartyPosition[] Positions =
             { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
+
+        /* インスペクタ設定 */
+
+        [Header("項目")]
+        [Label("配置の札のプレハブ")]
+        [SerializeField] private PPStageUnitCard mSlotCardPrefab;
+        [Label("所持ユニットの札のプレハブ")]
+        [SerializeField] private PPStageUnitCard mUnitCardPrefab;
+
+        // 選んでいるユニットの要約。未設定の項目は出さない
+        [Header("選択中のユニット")]
+        [Label("アイコン")]
+        [SerializeField] private Image mSummaryIcon;
+        [Label("名前")]
+        [SerializeField] private TMP_Text mSummaryName;
+        // 属性とロール
+        [Label("情報")]
+        [SerializeField] private TMP_Text mSummaryInfo;
+        [Label("ステータス")]
+        [SerializeField] private TMP_Text mSummaryStats;
 
         /* 状態 */
 
         private PPStageProgress mProgress;
         private Action mOnClosed;
-        // ユニットを選んでいる最中の配置の行。選んでいなければ -1
-        private int mPickingRow = -1;
+        // 先に決定して押さえている札のまとまりと番号。押さえていなければ番号は -1
+        private int mPickGroup;
+        private int mPickIndex = -1;
 
         /* 操作 */
 
@@ -40,10 +65,10 @@ namespace PPCore
         {
             mProgress = aProgress;
             mOnClosed = aOnClosed;
-            mPickingRow = -1;
+            mPickIndex = -1;
             OpenPanel();
             Rebuild();
-            Focus(SlotColumn, 0);
+            Focus(SlotGroup, 0);
         }
 
         public override void Close()
@@ -55,28 +80,37 @@ namespace PPCore
             onClosed?.Invoke();
         }
 
-        // 配置を決定すると右の列へ移り、右の列で決定するとその配置へ反映して左の列へ戻る
-        protected override void OnSubmit(int aColumn, int aRow)
+        // 1 つ目の決定で札を押さえ、もう片方のまとまりの札を決定したら配置へ反映する
+        // 同じまとまりの札を決定したときは、押さえる札を替える(同じ札なら押さえるのをやめる)
+        protected override void OnSubmit(int aGroup, int aIndex)
         {
-            if (aColumn == SlotColumn)
+            if (mPickIndex < 0)
             {
-                mPickingRow = aRow;
-                SetMarked(SlotColumn, aRow, true);
-                Focus(UnitColumn, 0);
+                Pick(aGroup, aIndex);
+                Focus(aGroup == SlotGroup ? UnitGroup : SlotGroup, 0);
+                return;
+            }
+            if (aGroup == mPickGroup)
+            {
+                bool isSame = aIndex == mPickIndex;
+                EndPicking();
+                if (!isSame) Pick(aGroup, aIndex);
                 return;
             }
 
-            var position = Positions[mPickingRow];
-            // 右の列の先頭は「外す」
-            mProgress.SetMember(position, aRow == 0 ? null : mProgress.OwnedUnits[aRow - 1]);
+            int slot = aGroup == SlotGroup ? aIndex : mPickIndex;
+            int unit = aGroup == UnitGroup ? aIndex : mPickIndex;
+            // 所持ユニットの札の先頭は「外す」
+            mProgress.SetMember(Positions[slot], unit == 0 ? null : mProgress.OwnedUnits[unit - 1]);
             EndPicking();
             Rebuild();
+            Focus(SlotGroup, slot);
         }
 
-        // 右の列にいる間は選ぶのをやめて左の列へ戻り、左の列なら画面を閉じる
+        // 押さえている札があれば押さえるのをやめ、無ければ画面を閉じる
         protected override void OnCancel()
         {
-            if (mPickingRow < 0)
+            if (mPickIndex < 0)
             {
                 Close();
                 return;
@@ -84,38 +118,79 @@ namespace PPCore
             EndPicking();
         }
 
-        // 配置を選んでいる間だけ右の列へ入れる
-        protected override bool CanFocusColumn(int aColumn) => aColumn == SlotColumn || mPickingRow >= 0;
+        protected override void OnFocusChanged() => ShowSummary(GetFocusedUnit(out int level), level);
+
+        protected override PPUnitDefinition GetFocusedUnit(out int aLevel)
+        {
+            var owned = FocusedOwnedUnit();
+            aLevel = owned?.Level ?? 0;
+            return owned?.Unit;
+        }
+
+        private void Pick(int aGroup, int aIndex)
+        {
+            mPickGroup = aGroup;
+            mPickIndex = aIndex;
+            SetMarked(aGroup, aIndex, true);
+        }
 
         private void EndPicking()
         {
-            int row = mPickingRow;
-            SetMarked(SlotColumn, row, false);
-            mPickingRow = -1;
-            Focus(SlotColumn, row);
+            if (mPickIndex >= 0) SetMarked(mPickGroup, mPickIndex, false);
+            mPickIndex = -1;
+        }
+
+        /* 問い合わせ */
+
+        // 選んでいる札のユニット。空きの配置や「外す」なら null
+        private PPStageOwnedUnit FocusedOwnedUnit()
+        {
+            if (mProgress == null) return null;
+            if (FocusGroup == SlotGroup) return FocusIndex < Positions.Length ? mProgress.GetMember(Positions[FocusIndex]) : null;
+            return FocusIndex > 0 && FocusIndex - 1 < mProgress.OwnedUnits.Count ? mProgress.OwnedUnits[FocusIndex - 1] : null;
         }
 
         /* 表示 */
 
-        // 配置と所持ユニットの一覧を、今の編成で書き直す
+        // 配置と所持ユニットの札を、今の編成で書き直す
         private void Rebuild()
         {
-            var slots = new List<string>(Positions.Length);
-            foreach (var position in Positions)
+            var slots = PrepareItems(SlotGroup, mSlotCardPrefab, Positions.Length);
+            for (int i = 0; i < Positions.Length; i++)
             {
-                var owned = mProgress.GetMember(position);
-                slots.Add($"{ToPositionName(position)}  {(owned == null ? EmptyText : FormatUnit(owned.Unit, owned.Level))}");
+                var owned = mProgress.GetMember(Positions[i]);
+                slots[i].SetHeader(ToPositionName(Positions[i]));
+                if (owned == null) slots[i].SetUnit(null, EmptyText, null);
+                else slots[i].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}属性");
             }
-            SetColumn(SlotColumn, slots);
 
-            var units = new List<string>(mProgress.OwnedUnits.Count + 1) { RemoveText };
-            foreach (var owned in mProgress.OwnedUnits)
+            var cards = PrepareItems(UnitGroup, mUnitCardPrefab, mProgress.OwnedUnits.Count + 1);
+            cards[0].SetUnit(null, RemoveText, RemoveSubText);
+            for (int i = 0; i < mProgress.OwnedUnits.Count; i++)
             {
+                var owned = mProgress.OwnedUnits[i];
                 var position = mProgress.FindPosition(owned);
-                units.Add($"{FormatUnit(owned.Unit, owned.Level)}  [{(position.HasValue ? ToPositionName(position.Value) : BenchText)}]");
+                string place = position.HasValue ? ToPositionName(position.Value) : BenchText;
+                cards[i + 1].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level),
+                    $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   {place}");
             }
-            SetColumn(UnitColumn, units);
         }
+
+        // 選んでいるユニットの要約を出す。ユニットが無ければ空にする
+        private void ShowSummary(PPUnitDefinition aUnit, int aLevel)
+        {
+            var icon = aUnit != null ? Icon(aUnit) : null;
+            if (mSummaryIcon != null)
+            {
+                mSummaryIcon.sprite = icon;
+                mSummaryIcon.enabled = icon != null;
+            }
+            if (mSummaryName != null) mSummaryName.text = aUnit != null ? PPStageUnitDisplay.NameAndLevel(aUnit, aLevel) : string.Empty;
+            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPStageUnitDisplay.ColoredAttribute(aUnit)}属性   |   {PPStageUnitDisplay.RoleName(aUnit)}" : string.Empty;
+            if (mSummaryStats != null) mSummaryStats.text = aUnit != null ? PPStageUnitDisplay.StatsLine(aUnit, aLevel) : string.Empty;
+        }
+
+        private Sprite Icon(PPUnitDefinition aUnit) => PPStageUnitDisplay.ResolveIcon(UnitVisualCatalog, aUnit);
 
         private static string ToPositionName(PPPartyPosition aPosition) => aPosition switch
         {

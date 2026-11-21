@@ -14,7 +14,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // 文字と背景だけの 1 行。選択中と、操作の途中で押さえている行を色で見分ける
-    public class PPStageListItem : MonoBehaviour
+    public class PPStageListItem : MonoBehaviour, IPPStageFocusable
     {
         /* インスペクタ設定 */
 
@@ -26,7 +26,7 @@ namespace PPCore
         [SerializeField] private Color mNormalColor = new(0.15f, 0.15f, 0.2f, 0.9f);
         [Label("選択中の色")]
         [SerializeField] private Color mFocusedColor = new(0.85f, 0.65f, 0.2f, 1f);
-        // 編成で入れ替え先を選んでいる間の、元の行の色
+        // 操作の途中で押さえている行の色
         [Label("押さえている行の色")]
         [SerializeField] private Color mMarkedColor = new(0.35f, 0.5f, 0.8f, 1f);
 

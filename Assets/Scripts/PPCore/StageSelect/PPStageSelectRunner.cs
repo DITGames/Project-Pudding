@@ -24,6 +24,9 @@ namespace PPCore
         private const string LogTag = "StageSelect";
         // スティックをどこまで倒したら 1 回の移動とみなすか(0〜1)
         private const float NavigateThreshold = 0.5f;
+        // 編成の札の並び
+        private static readonly PPPartyPosition[] PartyPositions =
+            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
 
         /* インスペクタ設定 */
 
@@ -46,6 +49,20 @@ namespace PPCore
         // マスに入れなかった理由やイベントの結果を出す。未設定なら出さない
         [Label("お知らせ")]
         [SerializeField] private TMP_Text mMessageText;
+
+        // 今の編成を、中央・右・左の順に出す札
+        [Header("パーティ")]
+        [Label("配置の札", true)]
+        [SerializeField] private PPStageUnitCard[] mPartyCards = new PPStageUnitCard[0];
+        [Label("ユニットの見た目カタログ")]
+        [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
+
+        // キーボードやゲームパッドで選んでいるマスの種類と中身。未設定なら出さない
+        [Header("選択中のマス")]
+        [Label("見出し")]
+        [SerializeField] private TMP_Text mNodeInfoTitle;
+        [Label("中身")]
+        [SerializeField] private TMP_Text mNodeInfoBody;
 
         [Header("入力")]
         // 左右で選べるマスを切り替える
@@ -205,7 +222,55 @@ namespace PPCore
 
         /* 表示 */
 
-        private void RefreshMap() => mMapView.Refresh(PPStageProgress.Current, IsSelectable, mFocused);
+        // マップの状態に合わせて、マス・パーティ・選択中のマスの表示を書き直す
+        private void RefreshMap()
+        {
+            mMapView.Refresh(PPStageProgress.Current, IsSelectable, mFocused);
+            RefreshParty();
+            RefreshNodeInfo();
+        }
+
+        private void RefreshParty()
+        {
+            var progress = PPStageProgress.Current;
+            for (int i = 0; i < mPartyCards.Length && i < PartyPositions.Length; i++)
+            {
+                if (mPartyCards[i] == null) continue;
+                var owned = progress.GetMember(PartyPositions[i]);
+                if (owned == null)
+                {
+                    mPartyCards[i].SetUnit(null, "（空き）", null);
+                    continue;
+                }
+                mPartyCards[i].SetUnit(PPStageUnitDisplay.ResolveIcon(mUnitVisualCatalog, owned.Unit),
+                    PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}属性");
+            }
+        }
+
+        // 選んでいるマスの種類と、バトルなら敵、それ以外なら起きることを出す
+        private void RefreshNodeInfo()
+        {
+            if (mNodeInfoTitle != null) mNodeInfoTitle.text = mFocused != null ? mMapView.GetTypeName(mFocused.Type) : string.Empty;
+            if (mNodeInfoBody == null) return;
+            mNodeInfoBody.text = mFocused == null ? string.Empty : mFocused.Type switch
+            {
+                PPStageNodeType.Upgrade => "所持ユニットのうち、一番レベルの低い 1 体のレベルが 1 上がる",
+                PPStageNodeType.Recruit => "候補から 1 体を選んで仲間にする",
+                _ => $"敵: {DescribeEnemies(mFocused.Encounter)}",
+            };
+        }
+
+        private static string DescribeEnemies(PPPartyDefinition aParty)
+        {
+            if (aParty == null) return "未設定";
+            var names = new List<string>();
+            foreach (var position in PartyPositions)
+            {
+                var entry = aParty.GetMember(position);
+                if (entry != null && entry.Unit != null) names.Add($"{entry.Unit.DisplayName} Lv{entry.Level}");
+            }
+            return names.Count > 0 ? string.Join("、", names) : "なし";
+        }
 
         private void SetMessage(string aMessage)
         {
