@@ -188,11 +188,15 @@ namespace PPCore
         // PPPartyDefinition からランタイムパーティを生成する
         // 配置の枠ごとにユニットを生成して編成し、それぞれへ専用の乱数供給元を割り当てる。空の枠は飛ばす
         public static PPBattleParty CreateFromDefinition(PPPartyDefinition aDefinition, BattleSide aSide)
+            => CreateFromMembers(aDefinition.GetMember, aDefinition.BaseResourceConversionRate, aSide);
+
+        // 配置ごとのメンバー枠からランタイムパーティを生成する。ステージの編成など、定義アセット以外から作るときに使う
+        public static PPBattleParty CreateFromMembers(Func<PPPartyPosition, PPPartyMemberEntry> aGetMember, float aConversionRate, BattleSide aSide)
         {
             var units = new List<BattleUnit>();
             foreach (var position in Positions)
             {
-                var entry = aDefinition.GetMember(position);
+                var entry = aGetMember(position);
                 if(entry == null || entry.Unit == null) continue;
 
                 var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
@@ -201,7 +205,7 @@ namespace PPCore
                 units.Add(unit);
             }
 
-            return new PPBattleParty(aDefinition.BaseResourceConversionRate, aSide, units);
+            return new PPBattleParty(aConversionRate, aSide, units);
         }
 
         // 編成 1 体分の乱数供給元を作る。単体の挙動を追えるよう、ユニットごとに別の乱数列を割り当てる

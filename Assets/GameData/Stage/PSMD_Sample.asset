@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4cc1c84612a49a4a90d794d6622f57a, type: 3}
+  m_Name: PSMD_Sample
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapDefinition
+  mWidth: 7
+  mHeight: 15
+  mPathCount: 6
+  mBattleWeight: 60
+  mEliteWeight: 16
+  mUpgradeWeight: 14
+  mRecruitWeight: 10
+  mSpecialMinFloor: 5
+  mRecruitFloor: 8
+  mTopFloorType: 3
+  mNormalEncounters:
+  - Party: {fileID: 11400000, guid: 2f02a597289df244899751ef139fd95f, type: 2}
+    Weight: 2
+    MinFloor: 0
+    MaxFloor: 6
+  - Party: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
+    Weight: 1
+    MinFloor: 3
+    MaxFloor: 99
+  mEliteEncounters:
+  - Party: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
+    Weight: 1
+    MinFloor: 0
+    MaxFloor: 99
+  - Party: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+    Weight: 1
+    MinFloor: 8
+    MaxFloor: 99
+  mBoss: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+  mRecruitCandidates:
+  - {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+  - {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+  - {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+  mRecruitOfferCount: 3
+  mRecruitLevel: 1
+  mInitialParty: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+  mIsFixedSeed: 0
+  mSeed: 12345
