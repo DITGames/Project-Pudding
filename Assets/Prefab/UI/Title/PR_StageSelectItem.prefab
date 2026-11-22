@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: mCursorX
       value: -168
       objectReference: {fileID: 0}
+    - target: {fileID: 477961648021614054, guid: 97d4ec02684fb4548b9855dc866d4cfd, type: 3}
+      propertyPath: mIsCursorAligned
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1935464675547273851, guid: 97d4ec02684fb4548b9855dc866d4cfd, type: 3}
       propertyPath: m_Name
       value: PR_StageSelectItem

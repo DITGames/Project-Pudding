@@ -93,7 +93,7 @@ namespace PPCore
             mItems = PrepareItems(0, mItemPrefab, RowCount);
             mItems[ResumeRow].SetText("つづける");
             mItems[ConfigRow].SetText("キー設定");
-            mItems[RetireRow].SetText("リタイア");
+            mItems[RetireRow].SetText("リタイア（タイトルに戻る）");
             mItems[QuitRow].SetText("ゲーム終了");
             RefreshAIMode(mItems[AIModeRow]);
             Focus(0, ResumeRow);
@@ -122,6 +122,8 @@ namespace PPCore
                 case AIModeRow:
                     mSwitchAIMode?.Invoke();
                     RefreshAIMode(mItems[AIModeRow]);
+                    // 型の名前で文字の長さが変わるため、印の位置をそろえ直す
+                    AlignCursors();
                     break;
                 case RetireRow:
                     Retire();

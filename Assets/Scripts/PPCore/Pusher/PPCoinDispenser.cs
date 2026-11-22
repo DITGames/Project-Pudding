@@ -33,8 +33,6 @@ namespace PPCore
 
         // 開始時に重ねて置くときの、1 段あたりの高さ
         private const float LayerHeight = 0.4f;
-        // 投入位置のガイドを置く面を、投入位置から真下へ探す長さ
-        private const float GuideRayLength = 50f;
 
         /* インスペクタ設定 */
 
@@ -88,19 +86,6 @@ namespace PPCore
         [Label("カーソルの初期位置(割合)")]
         [Range(0f, 1f)]
         [SerializeField] private float mCursorStart = 0.5f;
-        // プレイヤー操作の間だけ表示し、カーソルの真下にある床やコインの上へ置く。未設定なら出さない
-        [Label("投入位置のガイド")]
-        [SerializeField] private Transform mCursorGuide;
-        // 有効ならメインカメラの方へ向けて立て、無効なら面に沿って平らに置く(スプライトの表はローカルの -Z 側)
-        [Label("ガイドをカメラへ向ける")]
-        [SerializeField] private bool mIsCursorGuideFacingCamera = true;
-        // 真下に何も見つからないとき、投入位置の線から上下へずらして置く量。負の値で下へ
-        [Label("床が見つからないときの高さのずれ")]
-        [SerializeField] private float mCursorGuideHeightOffset = -3.5f;
-        // 床やコインの表面から浮かせる量。カメラへ向けるときは、ガイドの下端が表面に付くよう高さの半分ほどにする
-        [Label("ガイドを浮かせる量")]
-        [Min(0f)]
-        [SerializeField] private float mCursorGuideLift = 0.05f;
 
         [Header("床の区画")]
         // 投入 AI が数える範囲。未設定なら開始時に並べる範囲を使う
@@ -171,6 +156,8 @@ namespace PPCore
         // カーソルの位置。左端 0〜右端 1
         public float CursorRatio { get; private set; }
         public bool IsPlayerControlled => mIsPlayerControlled;
+        // 投入と回復を始めたか
+        public bool IsRunning => mIsRunning;
         // 投入 AI。プレイヤー操作中などは null
         public PPCoinDropAI AI => mAI;
         public PPPusherFloorSampler FloorSampler => mFloorSampler;
@@ -198,7 +185,6 @@ namespace PPCore
             {
                 if (action != null) action.action.Enable();
             }
-            RefreshGuide();
             RefreshLabel();
         }
 
@@ -263,7 +249,6 @@ namespace PPCore
         {
             mIsPlayerControlled = true;
             mAI = null;
-            RefreshGuide();
         }
 
         // 投入 AI で投入する。プロファイルが null なら、一定間隔で左右ランダムに投入する
@@ -271,7 +256,6 @@ namespace PPCore
         {
             mIsPlayerControlled = false;
             mAI = aProfile != null ? new PPCoinDropAI(aProfile, aRandom, aOwner) : null;
-            RefreshGuide();
         }
 
         /* 操作 */
@@ -281,8 +265,7 @@ namespace PPCore
         {
             if (!mIsRunning || mStock <= 0 || mLeftPoint == null || mRightPoint == null || mPool == null) return false;
 
-            var basePosition = Vector3.Lerp(mLeftPoint.position, mRightPoint.position, Mathf.Clamp01(aRatio));
-            var position = basePosition + mLeftPoint.right * UnityEngine.Random.Range(-mSpread, mSpread);
+            var position = GetDropPoint(aRatio) + mLeftPoint.right * UnityEngine.Random.Range(-mSpread, mSpread);
             // ほぼ水平にして、積み重なりやすくする
             var rotation = Quaternion.Euler(
                 UnityEngine.Random.Range(-10f, 10f),
@@ -292,6 +275,13 @@ namespace PPCore
 
             ChangeStock(-1);
             return true;
+        }
+
+        // 投入位置の線上の割合(左端 0〜右端 1)にあたる位置。ばらつきを加える前の位置で、投入位置の表示にも使う
+        public Vector3 GetDropPoint(float aRatio)
+        {
+            if (mLeftPoint == null || mRightPoint == null) return transform.position;
+            return Vector3.Lerp(mLeftPoint.position, mRightPoint.position, Mathf.Clamp01(aRatio));
         }
 
         // 床の区画を数え直して返す
@@ -353,8 +343,6 @@ namespace PPCore
             if (IsPressed(mDropLeftAction)) move -= 1f;
             if (IsPressed(mDropRightAction)) move += 1f;
             if (move != 0f) CursorRatio = Mathf.Clamp01(CursorRatio + move * mCursorSpeed * Time.deltaTime);
-            // 押し出し板やコインが動くため、カーソルを動かしていなくても毎フレーム置き直す
-            RefreshGuide();
             if (mDropAction != null && mDropAction.action.WasPressedThisFrame()) TryDropAt(CursorRatio);
         }
 
@@ -400,28 +388,6 @@ namespace PPCore
         private void RefreshLabel()
         {
             if (mStockLabel != null) mStockLabel.text = mStock.ToString();
-        }
-
-        // ガイドはプレイヤー操作の間だけ出し、カーソルの真下で最初に当たった面の上へ置く
-        private void RefreshGuide()
-        {
-            if (mCursorGuide == null) return;
-
-            if (mCursorGuide.gameObject.activeSelf != mIsPlayerControlled) mCursorGuide.gameObject.SetActive(mIsPlayerControlled);
-            if (!mIsPlayerControlled || mLeftPoint == null || mRightPoint == null) return;
-
-            var dropPoint = Vector3.Lerp(mLeftPoint.position, mRightPoint.position, CursorRatio);
-            bool isHit = Physics.Raycast(dropPoint, Vector3.down, out var hit, GuideRayLength, ~0, QueryTriggerInteraction.Ignore);
-            var surface = isHit ? hit.point : dropPoint + Vector3.up * mCursorGuideHeightOffset;
-            var normal = isHit ? hit.normal : Vector3.up;
-
-            var camera = mIsCursorGuideFacingCamera ? Camera.main : null;
-            if (camera != null)
-            {
-                mCursorGuide.SetPositionAndRotation(surface + Vector3.up * mCursorGuideLift, Quaternion.LookRotation(camera.transform.forward));
-                return;
-            }
-            mCursorGuide.SetPositionAndRotation(surface + normal * mCursorGuideLift, Quaternion.LookRotation(-normal));
         }
 
         /* ヘルパー */

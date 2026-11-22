@@ -208,6 +208,7 @@ namespace PPCore
         protected void Focus(int aGroup, int aIndex)
         {
             if (mCounts.Count == 0) return;
+            AlignCursors();
             FocusGroup = Mathf.Clamp(aGroup, 0, mCounts.Count - 1);
             FocusIndex = Mathf.Clamp(aIndex, 0, Mathf.Max(0, mCounts[FocusGroup] - 1));
 
@@ -219,6 +220,24 @@ namespace PPCore
                 }
             }
             OnFocusChanged();
+        }
+
+        // まとまりごとに、表示している行のうち一番長い文字に合わせて選択中の印の位置をそろえる
+        // 行の文字を変えたあとに呼び直す
+        protected void AlignCursors()
+        {
+            for (int g = 0; g < mItems.Count; g++)
+            {
+                float maxWidth = 0f;
+                for (int i = 0; i < mCounts[g]; i++)
+                {
+                    if (mItems[g][i] is PPStageListItem item && item.IsCursorAligned) maxWidth = Mathf.Max(maxWidth, item.TextWidth);
+                }
+                for (int i = 0; i < mCounts[g]; i++)
+                {
+                    if (mItems[g][i] is PPStageListItem item) item.AlignCursor(maxWidth);
+                }
+            }
         }
 
         protected void SetMarked(int aGroup, int aIndex, bool aIsMarked)
