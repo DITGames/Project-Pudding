@@ -16,3 +16,4 @@ MonoBehaviour:
   mDefaultKeyConfig: {fileID: 11400000, guid: 02685b8f1cff56b419a2792c17c45909, type: 2}
   mSceneLoadingScreen: {fileID: 1880054214568374967, guid: 141b3cff2a197ee47bdfc896821ade34, type: 3}
   mMenuCursorSprite: {fileID: 21300000, guid: efa8ed1c6a3d3a24fb8691b734f07254, type: 3}
+  mCoinDropAIDefaults: {fileID: 11400000, guid: b744dfb9cf4442140ad4f7a098a87976, type: 2}

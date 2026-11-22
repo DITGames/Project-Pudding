@@ -23,6 +23,12 @@ namespace PPCore
         [Label("右")] [SerializeField] private PPPartyMemberEntry mRight = new();
         [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
         [Label("コイン変換レート初期値")] [SerializeField] private float mCoinConversionRate = 1f;
+        // 敵のときに敵のプッシャーへ投入する AI。味方では使わない(オートバトル中はプレイヤーの既定を使う)
+        [Label("コイン投入 AI")] [SerializeField] private PPCoinDropAISetting mCoinDropAI = new();
+
+        /* プロパティ */
+
+        public PPCoinDropAISetting CoinDropAI => mCoinDropAI;
 
         /* 問い合わせ */
 

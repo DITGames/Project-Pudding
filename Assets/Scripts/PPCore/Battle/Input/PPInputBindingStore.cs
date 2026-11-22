@@ -14,20 +14,31 @@ using CustomConsole;
 
 namespace PPCore
 {
-    // キー設定で変更できる操作 1 つ分。入力アクションの名前と画面に出す名前を持つ
+    // キー設定の操作の分類。同じキーを使えないのは同じ分類の中だけで、分類が違えば同じキーを割り当てられる
+    public enum PPRebindCategory
+    {
+        // メニューやコマンド選択などの画面の操作
+        UI = 0,
+        // バトル中のプッシャーやオートバトルなどの操作
+        Game = 1,
+    }
+
+    // キー設定で変更できる操作 1 つ分。入力アクションの名前・画面に出す名前・分類を持つ
     public readonly struct PPRebindableAction
     {
         /* 状態 */
 
         public readonly string ActionName;
         public readonly string DisplayName;
+        public readonly PPRebindCategory Category;
 
         /* 生成 */
 
-        public PPRebindableAction(string aActionName, string aDisplayName)
+        public PPRebindableAction(string aActionName, string aDisplayName, PPRebindCategory aCategory)
         {
             ActionName = aActionName;
             DisplayName = aDisplayName;
+            Category = aCategory;
         }
     }
 
@@ -69,15 +80,17 @@ namespace PPCore
 
         /* static 変数 */
 
-        // キー設定に並べる操作。並び順が画面の行の順になる
+        // キー設定に並べる操作。分類ごとに、並び順が画面の行の順になる
         public static readonly PPRebindableAction[] RebindableActions =
         {
-            new("Submit", "決定"),
-            new("Cancel", "キャンセル"),
-            new("OpenCommand", "コマンドを開く"),
-            new("AutoBattle", "オートバトル"),
-            new("DropLeft", "コインを左へ投入"),
-            new("DropRight", "コインを右へ投入"),
+            new("Submit", "決定", PPRebindCategory.UI),
+            new("Cancel", "キャンセル", PPRebindCategory.UI),
+            new("OpenCommand", "コマンドを開く", PPRebindCategory.Game),
+            new("AutoBattle", "オートバトル", PPRebindCategory.Game),
+            new("SwitchAIMode", "AIモード切り替え", PPRebindCategory.Game),
+            new("DropLeft", "投入位置を左へ", PPRebindCategory.Game),
+            new("DropRight", "投入位置を右へ", PPRebindCategory.Game),
+            new("Drop", "コインを投入", PPRebindCategory.Game),
         };
 
         // 操作の場所の名前を短く言い換える表。ゲームパッドは Xbox / PlayStation の両方の呼び名を並べる
@@ -186,6 +199,18 @@ namespace PPCore
             return -1;
         }
 
+        public static string GetCategoryName(PPRebindCategory aCategory) => aCategory == PPRebindCategory.Game ? "ゲーム操作" : "UI操作";
+
+        // 操作の分類を返す。変更できる操作に無ければ null
+        public static PPRebindCategory? FindCategory(string aActionName)
+        {
+            foreach (var rebindable in RebindableActions)
+            {
+                if (rebindable.ActionName == aActionName) return rebindable.Category;
+            }
+            return null;
+        }
+
         // 割り当ての場所を、画面に出す短い名前にする。未割り当てなら「なし」
         public static string GetDisplayName(string aPath)
         {
@@ -241,13 +266,16 @@ namespace PPCore
             return operation.Start();
         }
 
-        // 新しく割り当てたキーを、同じデバイスのほかの枠が使っていたら、その枠へ元のキーを渡して入れ替える
+        // 新しく割り当てたキーを、同じ分類・同じデバイスのほかの枠が使っていたら、その枠へ元のキーを渡して入れ替える
+        // 分類が違う操作(UI 操作とゲーム操作)は、同じキーのまま残す
         private static void SwapDuplicate(InputActionAsset aAsset, InputAction aAction, int aBindingIndex, bool aIsGamepad, string aOldPath)
         {
             string newPath = aAction.bindings[aBindingIndex].effectivePath;
             if (string.IsNullOrEmpty(newPath)) return;
+            var category = FindCategory(aAction.name);
             foreach (var rebindable in RebindableActions)
             {
+                if (rebindable.Category != category) continue;
                 var other = FindAction(aAsset, rebindable.ActionName);
                 if (other == null) continue;
                 for (int slot = 0; slot < SlotCount; slot++)

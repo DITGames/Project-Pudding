@@ -417,8 +417,18 @@ MonoBehaviour:
   mRightPoint: {fileID: 6798435043938170393}
   mDropLeftAction: {fileID: 0}
   mDropRightAction: {fileID: 0}
+  mDropAction: {fileID: 9127176969723122772, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mSpread: 3
   mAutoInterval: 1.5
+  mCursorSpeed: 0.8
+  mCursorStart: 0.5
+  mSampleArea: {fileID: 0}
+  mSampleColumns: 3
+  mSampleRows: 3
+  mRowWeights:
+  - 3
+  - 2
+  - 1
   mInitialCount: 400
   mInitialArea: {fileID: 2755636174697559776}
   mInitialSpacing: 1.7

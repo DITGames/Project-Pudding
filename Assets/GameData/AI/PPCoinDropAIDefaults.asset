@@ -1,0 +1,94 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00d06cacbc82558418e2f4656acafaac, type: 3}
+  m_Name: PPCoinDropAIDefaults
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPCoinDropAIDefaultsDefinition
+  mBalance:
+  - CoinPriority: 1
+    ItemPriority: 1
+    Accuracy: 0.2
+    DropInterval: 2.2
+    RethinkInterval: 3
+  - CoinPriority: 1
+    ItemPriority: 1
+    Accuracy: 0.4
+    DropInterval: 1.8
+    RethinkInterval: 2.5
+  - CoinPriority: 1
+    ItemPriority: 1
+    Accuracy: 0.6
+    DropInterval: 1.5
+    RethinkInterval: 2
+  - CoinPriority: 1
+    ItemPriority: 1
+    Accuracy: 0.8
+    DropInterval: 1.2
+    RethinkInterval: 1.5
+  - CoinPriority: 1
+    ItemPriority: 1
+    Accuracy: 0.95
+    DropInterval: 0.9
+    RethinkInterval: 1
+  mCoin:
+  - CoinPriority: 1.5
+    ItemPriority: 0.3
+    Accuracy: 0.2
+    DropInterval: 1.8700001
+    RethinkInterval: 3
+  - CoinPriority: 1.5
+    ItemPriority: 0.3
+    Accuracy: 0.4
+    DropInterval: 1.53
+    RethinkInterval: 2.5
+  - CoinPriority: 1.5
+    ItemPriority: 0.3
+    Accuracy: 0.6
+    DropInterval: 1.2750001
+    RethinkInterval: 2
+  - CoinPriority: 1.5
+    ItemPriority: 0.3
+    Accuracy: 0.8
+    DropInterval: 1.0200001
+    RethinkInterval: 1.5
+  - CoinPriority: 1.5
+    ItemPriority: 0.3
+    Accuracy: 0.95
+    DropInterval: 0.765
+    RethinkInterval: 1
+  mItem:
+  - CoinPriority: 0.4
+    ItemPriority: 3
+    Accuracy: 0.2
+    DropInterval: 2.2
+    RethinkInterval: 2.1
+  - CoinPriority: 0.4
+    ItemPriority: 3
+    Accuracy: 0.4
+    DropInterval: 1.8
+    RethinkInterval: 1.75
+  - CoinPriority: 0.4
+    ItemPriority: 3
+    Accuracy: 0.6
+    DropInterval: 1.5
+    RethinkInterval: 1.4
+  - CoinPriority: 0.4
+    ItemPriority: 3
+    Accuracy: 0.8
+    DropInterval: 1.2
+    RethinkInterval: 1.05
+  - CoinPriority: 0.4
+    ItemPriority: 3
+    Accuracy: 0.95
+    DropInterval: 0.9
+    RethinkInterval: 0.7
+  mPlayerStyle: 0
+  mPlayerLevel: 3

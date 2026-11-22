@@ -29,7 +29,7 @@ namespace PPCore
         [Header("項目")]
         [Label("行のプレハブ")]
         [SerializeField] private PPStageListItem mItemPrefab;
-        [Label("キー設定画面")]
+        [Label("設定画面")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
         // 未設定なら、ユニットを選ばずにマップ定義の初期パーティで始める
         [Label("初期ユニット選択画面")]
@@ -43,14 +43,26 @@ namespace PPCore
         [Label("ユニットとステージを選んだ後に開くシーン名")]
         [SerializeField] private string mNewGameSceneName = "S_StageMap";
 
+        /* 状態 */
+
+        // 設定画面を開くためにメニューを閉じているか
+        private bool mIsInConfig;
+
         /* Unity イベント */
 
         private void Start() => Open();
 
-        // キー設定画面を開いている間と、それやユニット・ステージの選択画面を閉じたフレームはメニューの入力を受け付けない
+        // 設定画面を開いている間と、それやユニット・ステージの選択画面を閉じたフレームはメニューの入力を受け付けない
+        // 設定画面を閉じたら、閉じておいたメニューを開き直す
         protected override void Update()
         {
             int frame = Time.frameCount;
+            if (mIsInConfig && mConfigMenu != null && !mConfigMenu.IsOpen)
+            {
+                mIsInConfig = false;
+                Open();
+                Focus(0, ConfigRow);
+            }
             if (mConfigMenu != null && (mConfigMenu.IsOpen || mConfigMenu.ClosedFrame == frame)) return;
             if (mUnitSelect != null && mUnitSelect.ClosedFrame == frame) return;
             if (mStageSelect != null && mStageSelect.ClosedFrame == frame) return;
@@ -83,6 +95,9 @@ namespace PPCore
                     return false;
                 case ConfigRow:
                     if (mConfigMenu == null) return false;
+                    // 設定画面の後ろに透けて見えないよう、開いている間はメニューを閉じておく
+                    Close();
+                    mIsInConfig = true;
                     mConfigMenu.Open();
                     return true;
                 case QuitRow:

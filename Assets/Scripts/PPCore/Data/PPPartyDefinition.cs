@@ -45,6 +45,14 @@ namespace PPCore
         [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
         [Label("コイン変換レート初期値")] public float BaseResourceConversionRate = 1f;
 
+        // 敵として出たときに、敵のプッシャーへコインを投入する AI の型と段階
+        [Header("コイン投入 AI")]
+        [Label("コイン投入 AI")] [SerializeField] private PPCoinDropAISetting mCoinDropAI = new();
+
+        /* プロパティ */
+
+        public PPCoinDropAISetting CoinDropAI => mCoinDropAI;
+
         /* 問い合わせ */
 
         // 指定した配置のメンバー枠を返す。ユニット定義が空なら、その配置にはユニットを置かない

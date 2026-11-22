@@ -49,10 +49,20 @@ namespace PPCore
         [Label("プッシャーの読み込み")]
         [SerializeField] private PPPusherLoader mPusherLoader;
 
+        // 味方はオートバトル中だけ投入 AI、それ以外はプレイヤーのカーソルで投入する。敵は投入 AI で投入する
+        [Header("コイン投入")]
+        [Label("味方のコイン投入")]
+        [SerializeField] private PPCoinDispenser mAllyDispenser;
+        [Label("敵のコイン投入")]
+        [SerializeField] private PPCoinDispenser mEnemyDispenser;
+
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
         [Label("バトルビューバインダー")]
         [SerializeField] private PPStageUnitViewBinder mBattleUnitViewBinder;
+        // 未設定なら表示しない
+        [Label("オートバトル中の表示")]
+        [SerializeField] private PPAutoBattleIndicatorView mAutoBattleIndicator;
 
         // プレイヤーのコマンド入力を扱うコントローラー
         [Header("インプット")]
@@ -62,10 +72,16 @@ namespace PPCore
         [SerializeField] private InputActionReference mOpenCommandAction;
         [Label("オートバトルを切り替える入力")]
         [SerializeField] private InputActionReference mAutoBattleAction;
-        // キー設定を開閉する入力。キー設定では変更できない
-        [Label("キー設定を開く入力")]
+        // オートバトル中の味方の投入 AI の型を、バランス → コイン重視 → アイテム重視 の順に切り替える
+        [Label("AIモードを切り替える入力")]
+        [SerializeField] private InputActionReference mSwitchAIModeAction;
+        // バトル中のメニューを開く入力。キー設定では変更できない
+        [Label("メニューを開く入力")]
         [SerializeField] private InputActionReference mOpenConfigAction;
-        // 未設定ならキー設定は開けない
+        // 未設定なら、メニューを挟まずにキー設定を開く
+        [Label("バトル中のメニュー")]
+        [SerializeField] private PPBattlePauseMenuView mPauseMenu;
+        // メニューが未設定のときに直接開く。メニューを使うときは、メニュー側のキー設定を使う
         [Label("キー設定")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
 
@@ -128,6 +144,14 @@ namespace PPCore
         private readonly PPUnitAIStrategist mEnemyAI = new();
         // オートバトル中に味方の次の行動を決める AI
         private readonly PPUnitAIStrategist mAllyAI = new();
+        // オートバトル中の味方の投入 AI の型と段階。開始時に PPRuntimeSettings の既定から決める
+        private PPCoinDropStyle mAllyDropStyle = PPCoinDropStyle.Balance;
+        private int mAllyDropLevel = 3;
+
+        /* プロパティ */
+
+        public bool IsAutoBattle => mIsAutoBattle;
+        public PPCoinDropStyle AllyDropStyle => mAllyDropStyle;
 
         /* Unity イベント */
 
@@ -151,7 +175,7 @@ namespace PPCore
         private void StartBattle()
         {
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
-            foreach (var action in new[] { mOpenCommandAction, mAutoBattleAction, mOpenConfigAction })
+            foreach (var action in new[] { mOpenCommandAction, mAutoBattleAction, mSwitchAIModeAction, mOpenConfigAction })
             {
                 if (action != null) action.action.Enable();
             }
@@ -162,21 +186,25 @@ namespace PPCore
             var stageBattle = stage?.PendingBattle;
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             var context = new BattleContext() { Rules = new PPBattleRules() };
+            PPCoinDropAISetting enemyDropAI;
             if (stageBattle != null)
             {
                 context.AllyParty = stage.CreateAllyParty();
                 context.EnemyParty = PPPartyFactory.CreateFromDefinition(stageBattle.Enemy, BattleSide.Enemy);
+                enemyDropAI = stageBattle.Enemy.CoinDropAI;
             }
             else if (debugBattle != null)
             {
                 CustomConsoleLog.Log("Battle", $"デバッグバトル: {debugBattle.name} の設定で始める");
                 context.AllyParty = debugBattle.Ally.Create(BattleSide.Ally);
                 context.EnemyParty = debugBattle.Enemy.Create(BattleSide.Enemy);
+                enemyDropAI = debugBattle.Enemy.CoinDropAI;
             }
             else
             {
                 context.AllyParty = PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally);
                 context.EnemyParty = PPPartyFactory.CreateFromDefinition(mEnemyPartyDefinition, BattleSide.Enemy);
+                enemyDropAI = mEnemyPartyDefinition.CoinDropAI;
             }
             // スキルゲージ残量を検証するバリデータへ差し替える
             context.Rules.CastValidator = new PPBattleCastValidator();
@@ -221,10 +249,30 @@ namespace PPCore
                 mCoinResourceBridge.Bind(mBattleManager, BattleSide.Ally);
                 if (mChargeItemBridge != null) mChargeItemBridge.Bind(mBattleManager, BattleSide.Ally);
             }
+
+            BindCoinDropAI(context, enemyDropAI);
         }
 
-        // バトル専用の時計を進め、入力に応じてキー設定の開閉・オートバトルの切り替え・コマンド入力の開始を行う
-        // キー設定を開いている間は、ほかの入力を受け付けない
+        // 敵のプッシャーへ投入 AI を渡し、味方はオートバトルかどうかで投入の操作を決める
+        // 味方の型は設定画面の AI モード(保存が無ければ PPRuntimeSettings の既定)から始め、設定の変更に合わせて変える
+        private void BindCoinDropAI(BattleContext aContext, PPCoinDropAISetting aEnemySetting)
+        {
+            var defaults = PPRuntimeSettings.Current.CoinDropAIDefaults;
+            if (defaults != null) mAllyDropLevel = defaults.PlayerLevel;
+            mAllyDropStyle = PPGameSettings.GetAIStyle(defaults != null ? defaults.PlayerStyle : PPCoinDropStyle.Balance);
+            PPGameSettings.OnChanged -= HandleGameSettingsChanged;
+            PPGameSettings.OnChanged += HandleGameSettingsChanged;
+
+            if (IsEnemyPusherAvailable && mEnemyDispenser != null)
+            {
+                mEnemyDispenser.UseAI(aEnemySetting?.Resolve(defaults), aContext.Rules.RandomProvider, "敵");
+                CustomConsoleLog.Log("Pusher", $"敵の投入 AI: {aEnemySetting?.Describe() ?? "未設定(ランダム)"}");
+            }
+            ApplyAllyDropControl();
+        }
+
+        // バトル専用の時計を進め、入力に応じてメニューの開閉・オートバトルと AI モードの切り替え・コマンド入力の開始を行う
+        // メニューやキー設定を開いている間は、ほかの入力を受け付けない
         void Update()
         {
             // プッシャーの読み込み中は、まだバトルを組み立てていない
@@ -232,15 +280,15 @@ namespace PPCore
 
             mBattleManager.AdvanceTime(Time.deltaTime);
 
-            if (mConfigMenu != null && WasPressed(mOpenConfigAction) && !mController.IsInputOpen && CanSelectAnyCommand())
-            {
-                mConfigMenu.Toggle(mBattleManager);
-            }
-            if (mConfigMenu != null && mConfigMenu.IsOpen) return;
+            if (UpdateMenu()) return;
 
             if (IsAutoBattleTogglePressed() && CanSelectAnyCommand())
             {
                 SetAutoBattle(!mIsAutoBattle);
+            }
+            if (WasPressed(mSwitchAIModeAction) && CanSelectAnyCommand())
+            {
+                SetAllyDropStyle(PPCoinDropStyleUtility.Next(mAllyDropStyle));
             }
 
             if (IsCommandInputPressed() && CanSelectAnyCommand())
@@ -249,18 +297,77 @@ namespace PPCore
             }
         }
 
-        // バトルが決着しないまま破棄された場合にも、進行役と AI の購読を外す
-        void OnDestroy() => UnbindBattle();
+        // バトルが決着しないまま破棄された場合にも、進行役と AI と設定の購読を外す
+        void OnDestroy()
+        {
+            UnbindBattle();
+            PPGameSettings.OnChanged -= HandleGameSettingsChanged;
+        }
 
         /* 操作 */
 
         // オートバトルを切り替える。有効にした時点で、味方全員の次の行動を AI に決めさせる
         // 無効にしても、AI が決めたスキルの選択と狙う相手はそのまま残る（コマンド入力で変えられる）
+        // 味方のコイン投入も、オートバトル中は投入 AI、それ以外はプレイヤーのカーソルに切り替える
         public void SetAutoBattle(bool aIsEnabled)
         {
             mIsAutoBattle = aIsEnabled;
             CustomConsoleLog.Log("Battle", $"オートバトル: {(mIsAutoBattle ? "ON" : "OFF")}");
             if (mIsAutoBattle && CanSelectAnyCommand()) mAllyAI.ThinkAll(mBattleManager.Context);
+            ApplyAllyDropControl();
+        }
+
+        // オートバトル中の味方の投入 AI の型を変え、設定画面の AI モードにも保存する
+        // オートバトル中ならすぐに新しい型で投入し直す
+        public void SetAllyDropStyle(PPCoinDropStyle aStyle)
+        {
+            ApplyAllyDropStyle(aStyle);
+            PPGameSettings.SetAIStyle(aStyle);
+        }
+
+        // 味方の投入 AI の型だけを変える。設定には保存しない
+        private void ApplyAllyDropStyle(PPCoinDropStyle aStyle)
+        {
+            if (mAllyDropStyle == aStyle) return;
+            CustomConsoleLog.Log("Pusher", $"味方の AI モード: {PPCoinDropStyleUtility.GetName(aStyle)} Lv{mAllyDropLevel}");
+            mAllyDropStyle = aStyle;
+            ApplyAllyDropControl();
+        }
+
+        // メニューの開閉を受け付ける。メニューかキー設定を開いている間は true を返し、ほかの入力を止める
+        // メニューが未設定なら、これまでどおりキー設定を直接開閉する
+        private bool UpdateMenu()
+        {
+            bool canOpen = WasPressed(mOpenConfigAction) && !mController.IsInputOpen && CanSelectAnyCommand();
+            if (mPauseMenu != null)
+            {
+                if (canOpen && !mPauseMenu.IsOpen) mPauseMenu.Open(mBattleManager);
+                return mPauseMenu.IsOpen || mPauseMenu.ClosedFrame == Time.frameCount;
+            }
+
+            if (mConfigMenu == null) return false;
+            if (canOpen) mConfigMenu.Toggle(mBattleManager);
+            return mConfigMenu.IsOpen;
+        }
+
+        // 味方のプッシャーの投入を、オートバトル中は投入 AI、それ以外はプレイヤーのカーソルにし、表示も合わせる
+        private void ApplyAllyDropControl()
+        {
+            if (mAllyDispenser != null && mBattleManager.Context != null)
+            {
+                if (mIsAutoBattle)
+                {
+                    // UnityEngine.Object は破棄済みでも参照が残るため、?. ではなく != null で判定する
+                    var defaults = PPRuntimeSettings.Current.CoinDropAIDefaults;
+                    var profile = defaults != null ? defaults.GetProfile(mAllyDropStyle, mAllyDropLevel) : null;
+                    mAllyDispenser.UseAI(profile, mBattleManager.Context.Rules.RandomProvider, "味方");
+                }
+                else
+                {
+                    mAllyDispenser.UsePlayer();
+                }
+            }
+            if (mAutoBattleIndicator != null) mAutoBattleIndicator.Show(mIsAutoBattle, PPCoinDropStyleUtility.GetName(mAllyDropStyle));
         }
 
         // 決着をステージの進行状態へ反映し、少し待ってからマップのシーンへ戻る
@@ -308,6 +415,13 @@ namespace PPCore
         private static bool WasPressed(InputActionReference aAction) => aAction != null && aAction.action.WasPressedThisFrame();
 
         /* イベントハンドラ */
+
+        // 設定画面で AI モードが変わったら、味方の投入 AI の型を合わせる。設定から来た値なので保存し直さない
+        private void HandleGameSettingsChanged()
+        {
+            var defaults = PPRuntimeSettings.Current.CoinDropAIDefaults;
+            ApplyAllyDropStyle(PPGameSettings.GetAIStyle(defaults != null ? defaults.PlayerStyle : PPCoinDropStyle.Balance));
+        }
 
         // ユニットの行動が終わったとき、AI が担当するユニットなら次の行動を決めさせる
         private void HandleActionFinished(PPBattleUnit aUnit)

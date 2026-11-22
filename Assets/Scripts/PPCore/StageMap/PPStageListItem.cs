@@ -26,7 +26,13 @@ namespace PPCore
         // 画像は PPRuntimeSettings の「メニューの選択中の印」を使う。未設定ならこの Image の画像のまま
         [Label("選択中の印")]
         [SerializeField] private Image mCursor;
-        // 行の中央から見た横の位置。文字の長さに関係なく、どの行でも同じ位置に出す
+        // 有効なら、メニューに並ぶ行のうち一番長い文字の左隣へ、どの行でも同じ位置に印を置く(中央寄せの文字が前提)
+        // 無効なら、下の「印の位置(横)」に置く
+        [Label("印の位置を一覧の文字に合わせる")]
+        [SerializeField] private bool mIsCursorAligned = true;
+        [Label("印と文字の間隔")]
+        [SerializeField] private float mCursorGap = 16f;
+        // 行の中央から見た横の位置。一覧の文字に合わせないときに使う
         [Label("印の位置(横)")]
         [SerializeField] private float mCursorX = -120f;
         [Label("通常の色")]
@@ -66,6 +72,9 @@ namespace PPCore
         /* プロパティ */
 
         public string Text => mLabel != null ? mLabel.text : string.Empty;
+        public bool IsCursorAligned => mIsCursorAligned && mCursor != null && mLabel != null;
+        // 今の文字を 1 行で出したときの幅
+        public float TextWidth => mLabel != null ? mLabel.GetPreferredValues(mLabel.text).x : 0f;
 
         // 印の止まる位置
         private Vector2 CursorRestPosition => new(mCursorX, 0f);
@@ -110,6 +119,15 @@ namespace PPCore
         public void SetText(string aText)
         {
             if (mLabel != null) mLabel.text = aText;
+        }
+
+        // 一覧で一番長い文字の幅から、その左隣へ印を置く。動いている途中なら、動きの行き先だけを変える
+        public void AlignCursor(float aMaxTextWidth)
+        {
+            if (!IsCursorAligned) return;
+
+            mCursorX = -aMaxTextWidth * 0.5f - mCursorGap - mCursor.rectTransform.rect.width * 0.5f;
+            if (mMoveElapsed < 0f) mCursor.rectTransform.anchoredPosition = CursorRestPosition;
         }
 
         // 選べない行は文字を薄くし、決定しても動かさない
