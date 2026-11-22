@@ -254,15 +254,14 @@ namespace PPCore
         }
 
         // 敵のプッシャーへ投入 AI を渡し、味方はオートバトルかどうかで投入の操作を決める
-        // 味方の型と段階は PPRuntimeSettings の既定から始め、型はバトル中に切り替えられる
+        // 味方の型は設定画面の AI モード(保存が無ければ PPRuntimeSettings の既定)から始め、設定の変更に合わせて変える
         private void BindCoinDropAI(BattleContext aContext, PPCoinDropAISetting aEnemySetting)
         {
             var defaults = PPRuntimeSettings.Current.CoinDropAIDefaults;
-            if (defaults != null)
-            {
-                mAllyDropStyle = defaults.PlayerStyle;
-                mAllyDropLevel = defaults.PlayerLevel;
-            }
+            if (defaults != null) mAllyDropLevel = defaults.PlayerLevel;
+            mAllyDropStyle = PPGameSettings.GetAIStyle(defaults != null ? defaults.PlayerStyle : PPCoinDropStyle.Balance);
+            PPGameSettings.OnChanged -= HandleGameSettingsChanged;
+            PPGameSettings.OnChanged += HandleGameSettingsChanged;
 
             if (IsEnemyPusherAvailable && mEnemyDispenser != null)
             {
@@ -298,8 +297,12 @@ namespace PPCore
             }
         }
 
-        // バトルが決着しないまま破棄された場合にも、進行役と AI の購読を外す
-        void OnDestroy() => UnbindBattle();
+        // バトルが決着しないまま破棄された場合にも、進行役と AI と設定の購読を外す
+        void OnDestroy()
+        {
+            UnbindBattle();
+            PPGameSettings.OnChanged -= HandleGameSettingsChanged;
+        }
 
         /* 操作 */
 
@@ -314,11 +317,20 @@ namespace PPCore
             ApplyAllyDropControl();
         }
 
-        // オートバトル中の味方の投入 AI の型を変える。オートバトル中ならすぐに新しい型で投入し直す
+        // オートバトル中の味方の投入 AI の型を変え、設定画面の AI モードにも保存する
+        // オートバトル中ならすぐに新しい型で投入し直す
         public void SetAllyDropStyle(PPCoinDropStyle aStyle)
         {
-            mAllyDropStyle = aStyle;
+            ApplyAllyDropStyle(aStyle);
+            PPGameSettings.SetAIStyle(aStyle);
+        }
+
+        // 味方の投入 AI の型だけを変える。設定には保存しない
+        private void ApplyAllyDropStyle(PPCoinDropStyle aStyle)
+        {
+            if (mAllyDropStyle == aStyle) return;
             CustomConsoleLog.Log("Pusher", $"味方の AI モード: {PPCoinDropStyleUtility.GetName(aStyle)} Lv{mAllyDropLevel}");
+            mAllyDropStyle = aStyle;
             ApplyAllyDropControl();
         }
 
@@ -329,7 +341,7 @@ namespace PPCore
             bool canOpen = WasPressed(mOpenConfigAction) && !mController.IsInputOpen && CanSelectAnyCommand();
             if (mPauseMenu != null)
             {
-                if (canOpen && !mPauseMenu.IsOpen) mPauseMenu.Open(mBattleManager, () => PPCoinDropStyleUtility.GetName(mAllyDropStyle), () => SetAllyDropStyle(PPCoinDropStyleUtility.Next(mAllyDropStyle)));
+                if (canOpen && !mPauseMenu.IsOpen) mPauseMenu.Open(mBattleManager);
                 return mPauseMenu.IsOpen || mPauseMenu.ClosedFrame == Time.frameCount;
             }
 
@@ -403,6 +415,13 @@ namespace PPCore
         private static bool WasPressed(InputActionReference aAction) => aAction != null && aAction.action.WasPressedThisFrame();
 
         /* イベントハンドラ */
+
+        // 設定画面で AI モードが変わったら、味方の投入 AI の型を合わせる。設定から来た値なので保存し直さない
+        private void HandleGameSettingsChanged()
+        {
+            var defaults = PPRuntimeSettings.Current.CoinDropAIDefaults;
+            ApplyAllyDropStyle(PPGameSettings.GetAIStyle(defaults != null ? defaults.PlayerStyle : PPCoinDropStyle.Balance));
+        }
 
         // ユニットの行動が終わったとき、AI が担当するユニットなら次の行動を決めさせる
         private void HandleActionFinished(PPBattleUnit aUnit)

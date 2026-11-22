@@ -154,7 +154,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4156849616662976313
 RectTransform:
   m_ObjectHideFlags: 0
@@ -476,7 +476,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u30AD\u30FC\u8A2D\u5B9A"
+  m_text: "\u8A2D\u5B9A"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 237988ce1ecea544dbe79397274c6ba6, type: 2}
   m_sharedMaterial: {fileID: 2100000, guid: 8242b1d9ef1bb6444b72521953a997b2, type: 2}
@@ -677,7 +677,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &4337156764750521351
 RectTransform:
   m_ObjectHideFlags: 0
@@ -857,18 +857,24 @@ MonoBehaviour:
   mGrid: {fileID: 5851863592762192595}
   mLabelX: -230
   mColumnX:
-  - -30
-  - 75
-  - 205
-  - 310
-  mFirstRowY: 100
+  - 40
+  - 190
+  mValueX: 100
+  mFirstRowY: 88
   mRowSpacing: 44
+  mTabY: 138
+  mTabX:
+  - -160
+  - 0
+  - 160
   mFooterX:
   - -100
   - 100
   mFooterY: -235
   mFooterScale: 1.3
-  mCategoryPosition: {x: -230, y: 148}
+  mSwitchX:
+  - -110
+  - 110
   mDropHeight: 300
   mDropDuration: 0.4
   mDropStagger: 0.04

@@ -6,16 +6,14 @@
  * @brief バトル中に開くメニュー
  * =====================================*/
 
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 using AttributeUtility;
 using CustomConsole;
 
 namespace PPCore
 {
-    // バトル中に開くメニュー。つづける・キー設定・AI モード・リタイア・ゲーム終了を選ぶ
-    // 開いている間はバトルの時計と物理を止める。キー設定やダイアログを開いている間は、メニューの入力を止める
+    // バトル中に開くメニュー。つづける・設定・リタイア・ゲーム終了を選ぶ
+    // 開いている間はバトルの時計と物理を止める。設定やダイアログを開いている間は、メニューの入力を止める
     public class PPBattlePauseMenuView : PPStageListMenuBase
     {
         /* 定数 */
@@ -23,10 +21,9 @@ namespace PPCore
         private const string LogTag = "Battle";
         private const int ResumeRow = 0;
         private const int ConfigRow = 1;
-        private const int AIModeRow = 2;
-        private const int RetireRow = 3;
-        private const int QuitRow = 4;
-        private const int RowCount = 5;
+        private const int RetireRow = 2;
+        private const int QuitRow = 3;
+        private static readonly string[] Texts = { "つづける", "設定", "リタイア（タイトルに戻る）", "ゲーム終了" };
         private const string QuitMessage = "ゲームを終了しますか？\n進行状況は保存されません";
 
         /* インスペクタ設定 */
@@ -34,11 +31,11 @@ namespace PPCore
         [Header("項目")]
         [Label("行のプレハブ")]
         [SerializeField] private PPStageListItem mItemPrefab;
-        [Label("キー設定画面")]
+        [Label("設定画面")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
         [Label("確認のダイアログ")]
         [SerializeField] private PPConfirmDialogView mConfirmDialog;
-        // キー設定を開いている間にメニューを見えなくするのに使う。未設定なら隠さない
+        // 設定を開いている間にメニューを見えなくするのに使う。未設定なら隠さない
         [Label("メニュー全体の透明度")]
         [SerializeField] private CanvasGroup mCanvasGroup;
 
@@ -50,17 +47,13 @@ namespace PPCore
         /* 状態 */
 
         private BattleManager mManager;
-        private List<PPStageListItem> mItems;
         // リタイアでシーンを切り替え始めたか
         private bool mIsLeaving;
-        // AI モードの行に出す、今の型の名前を返す
-        private Func<string> mGetAIModeName;
-        private Action mSwitchAIMode;
 
         /* Unity イベント */
 
-        // キー設定やダイアログを開いている間と、それらを閉じたフレームはメニューの入力を受け付けない
-        // キー設定は閉じるときに時間の流れを戻すため、メニューを開いている間は毎フレーム止め直す
+        // 設定やダイアログを開いている間と、それらを閉じたフレームはメニューの入力を受け付けない
+        // 設定は閉じるときに時間の流れを戻すため、メニューを開いている間は毎フレーム止め直す
         protected override void Update()
         {
             // リタイアでシーンを切り替えている間は、戻した時間の流れを止め直さない
@@ -68,7 +61,7 @@ namespace PPCore
 
             bool isConfigOpen = mConfigMenu != null && mConfigMenu.IsOpen;
             if (IsOpen && !isConfigOpen) Time.timeScale = 0f;
-            // キー設定はメニューより奥の Canvas にあるため、開いている間はメニューを見えなくする
+            // 設定はメニューより奥の Canvas にあるため、開いている間はメニューを見えなくする
             if (mCanvasGroup != null) mCanvasGroup.alpha = isConfigOpen ? 0f : 1f;
 
             int frame = Time.frameCount;
@@ -80,22 +73,16 @@ namespace PPCore
         /* 操作 */
 
         // メニューを開き、バトルの時計と物理を止める
-        public void Open(BattleManager aManager, Func<string> aGetAIModeName, Action aSwitchAIMode)
+        public void Open(BattleManager aManager)
         {
             if (IsOpen) return;
             mManager = aManager;
-            mGetAIModeName = aGetAIModeName;
-            mSwitchAIMode = aSwitchAIMode;
             mManager?.Context?.Clock.Pause();
             Time.timeScale = 0f;
 
             OpenPanel();
-            mItems = PrepareItems(0, mItemPrefab, RowCount);
-            mItems[ResumeRow].SetText("つづける");
-            mItems[ConfigRow].SetText("キー設定");
-            mItems[RetireRow].SetText("リタイア（タイトルに戻る）");
-            mItems[QuitRow].SetText("ゲーム終了");
-            RefreshAIMode(mItems[AIModeRow]);
+            var items = PrepareItems(0, mItemPrefab, Texts.Length);
+            for (int i = 0; i < items.Count; i++) items[i].SetText(Texts[i]);
             Focus(0, ResumeRow);
         }
 
@@ -118,12 +105,6 @@ namespace PPCore
                     break;
                 case ConfigRow:
                     if (mConfigMenu != null) mConfigMenu.Open();
-                    break;
-                case AIModeRow:
-                    mSwitchAIMode?.Invoke();
-                    RefreshAIMode(mItems[AIModeRow]);
-                    // 型の名前で文字の長さが変わるため、印の位置をそろえ直す
-                    AlignCursors();
                     break;
                 case RetireRow:
                     Retire();
@@ -163,12 +144,5 @@ namespace PPCore
 #endif
         }
 
-        /* 表示 */
-
-        private void RefreshAIMode(PPStageListItem aItem)
-        {
-            string name = mGetAIModeName != null ? mGetAIModeName() : "-";
-            aItem.SetText($"AIモード：{name}");
-        }
     }
 }

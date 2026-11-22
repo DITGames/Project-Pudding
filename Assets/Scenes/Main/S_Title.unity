@@ -428,6 +428,18 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 9151257894480997842, guid: 391868e524c330540a06beee95e683b3, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 2.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9151257894480997842, guid: 391868e524c330540a06beee95e683b3, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 2.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9151257894480997842, guid: 391868e524c330540a06beee95e683b3, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 2.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9151257894480997842, guid: 391868e524c330540a06beee95e683b3, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
       objectReference: {fileID: 0}
@@ -951,9 +963,17 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8828473313077978145, guid: 6b13e920d0995224b973c3385c33d144, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 8852638129075463373, guid: 6b13e920d0995224b973c3385c33d144, type: 3}
       propertyPath: m_Name
       value: StageSelect
+      objectReference: {fileID: 0}
+    - target: {fileID: 8876080907254307061, guid: 6b13e920d0995224b973c3385c33d144, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
