@@ -33,6 +33,8 @@ namespace PPCore
 
         // 開始時に重ねて置くときの、1 段あたりの高さ
         private const float LayerHeight = 0.4f;
+        // 投入位置のガイドを置く面を、投入位置から真下へ探す長さ
+        private const float GuideRayLength = 50f;
 
         /* インスペクタ設定 */
 
@@ -86,12 +88,19 @@ namespace PPCore
         [Label("カーソルの初期位置(割合)")]
         [Range(0f, 1f)]
         [SerializeField] private float mCursorStart = 0.5f;
-        // プレイヤー操作の間だけ表示し、カーソルの位置へ動かす。未設定なら出さない
+        // プレイヤー操作の間だけ表示し、カーソルの真下にある床やコインの上へ置く。未設定なら出さない
         [Label("投入位置のガイド")]
         [SerializeField] private Transform mCursorGuide;
-        // 投入位置の線から上下へずらす量。負の値で下へ
-        [Label("ガイドの高さのずれ")]
+        // 有効ならメインカメラの方へ向けて立て、無効なら面に沿って平らに置く(スプライトの表はローカルの -Z 側)
+        [Label("ガイドをカメラへ向ける")]
+        [SerializeField] private bool mIsCursorGuideFacingCamera = true;
+        // 真下に何も見つからないとき、投入位置の線から上下へずらして置く量。負の値で下へ
+        [Label("床が見つからないときの高さのずれ")]
         [SerializeField] private float mCursorGuideHeightOffset = -3.5f;
+        // 床やコインの表面から浮かせる量。カメラへ向けるときは、ガイドの下端が表面に付くよう高さの半分ほどにする
+        [Label("ガイドを浮かせる量")]
+        [Min(0f)]
+        [SerializeField] private float mCursorGuideLift = 0.05f;
 
         [Header("床の区画")]
         // 投入 AI が数える範囲。未設定なら開始時に並べる範囲を使う
@@ -343,11 +352,9 @@ namespace PPCore
             float move = 0f;
             if (IsPressed(mDropLeftAction)) move -= 1f;
             if (IsPressed(mDropRightAction)) move += 1f;
-            if (move != 0f)
-            {
-                CursorRatio = Mathf.Clamp01(CursorRatio + move * mCursorSpeed * Time.deltaTime);
-                RefreshGuide();
-            }
+            if (move != 0f) CursorRatio = Mathf.Clamp01(CursorRatio + move * mCursorSpeed * Time.deltaTime);
+            // 押し出し板やコインが動くため、カーソルを動かしていなくても毎フレーム置き直す
+            RefreshGuide();
             if (mDropAction != null && mDropAction.action.WasPressedThisFrame()) TryDropAt(CursorRatio);
         }
 
@@ -395,14 +402,26 @@ namespace PPCore
             if (mStockLabel != null) mStockLabel.text = mStock.ToString();
         }
 
-        // ガイドはプレイヤー操作の間だけ出し、カーソルの位置へ動かす
+        // ガイドはプレイヤー操作の間だけ出し、カーソルの真下で最初に当たった面の上へ置く
         private void RefreshGuide()
         {
             if (mCursorGuide == null) return;
 
-            mCursorGuide.gameObject.SetActive(mIsPlayerControlled);
+            if (mCursorGuide.gameObject.activeSelf != mIsPlayerControlled) mCursorGuide.gameObject.SetActive(mIsPlayerControlled);
             if (!mIsPlayerControlled || mLeftPoint == null || mRightPoint == null) return;
-            mCursorGuide.position = Vector3.Lerp(mLeftPoint.position, mRightPoint.position, CursorRatio) + Vector3.up * mCursorGuideHeightOffset;
+
+            var dropPoint = Vector3.Lerp(mLeftPoint.position, mRightPoint.position, CursorRatio);
+            bool isHit = Physics.Raycast(dropPoint, Vector3.down, out var hit, GuideRayLength, ~0, QueryTriggerInteraction.Ignore);
+            var surface = isHit ? hit.point : dropPoint + Vector3.up * mCursorGuideHeightOffset;
+            var normal = isHit ? hit.normal : Vector3.up;
+
+            var camera = mIsCursorGuideFacingCamera ? Camera.main : null;
+            if (camera != null)
+            {
+                mCursorGuide.SetPositionAndRotation(surface + Vector3.up * mCursorGuideLift, Quaternion.LookRotation(camera.transform.forward));
+                return;
+            }
+            mCursorGuide.SetPositionAndRotation(surface + normal * mCursorGuideLift, Quaternion.LookRotation(-normal));
         }
 
         /* ヘルパー */
