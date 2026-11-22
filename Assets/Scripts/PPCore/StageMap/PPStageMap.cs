@@ -3,7 +3,7 @@
  * @file PPStageMap.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのマップとその生成
+ * @brief ステージマップの生成
  * =====================================*/
 
 using System.Collections.Generic;
@@ -143,7 +143,7 @@ namespace PPCore
     {
         /* 定数 */
 
-        private const string LogTag = "StageSelect";
+        private const string LogTag = "StageMap";
         // 規則に合う種類が引けなかったときに引き直す回数
         private const int PickAttemptCount = 30;
 

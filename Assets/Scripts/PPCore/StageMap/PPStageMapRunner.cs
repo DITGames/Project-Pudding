@@ -1,9 +1,9 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageSelectRunner.cs
+ * @file PPStageMapRunner.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのシーンのエントリポイント
+ * @brief ステージマップのシーンのエントリポイント
  * =====================================*/
 
 using System.Collections.Generic;
@@ -17,11 +17,11 @@ namespace PPCore
 {
     // 進行状態からマップを作って表示し、マスの選択・メニュー・編成画面・マスのイベントをつなぐ
     // 進行状態が無ければマップ定義から新しく始め、バトルから戻ったときは持ち越した状態でマップを作り直す
-    public class PPStageSelectRunner : MonoBehaviour
+    public class PPStageMapRunner : MonoBehaviour
     {
         /* 定数 */
 
-        private const string LogTag = "StageSelect";
+        private const string LogTag = "StageMap";
         // スティックをどこまで倒したら 1 回の移動とみなすか(0〜1)
         private const float NavigateThreshold = 0.5f;
         // 編成の札の並び

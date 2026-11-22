@@ -3,7 +3,7 @@
  * @file PPStageUnitDetailView.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのユニット詳細画面
+ * @brief ステージマップのユニット詳細画面
  * =====================================*/
 
 using System.Collections.Generic;

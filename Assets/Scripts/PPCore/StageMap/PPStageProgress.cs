@@ -46,7 +46,7 @@ namespace PPCore
     {
         /* 定数 */
 
-        private const string LogTag = "StageSelect";
+        private const string LogTag = "StageMap";
         // 編成の配置。編成とコイン配布の順番（Center → Right → Left）で並べる
         private static readonly PPPartyPosition[] Positions =
             { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };

@@ -3,7 +3,7 @@
  * @file PPStageListItem.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのメニューに並べる 1 行
+ * @brief ステージマップのメニューに並べる 1 行
  * =====================================*/
 
 using TMPro;

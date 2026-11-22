@@ -3,7 +3,7 @@
  * @file PPStageMapView.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのマップの表示
+ * @brief ステージマップの表示
  * =====================================*/
 
 using System;

@@ -3,7 +3,7 @@
  * @file PPStageMenuView.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのメニュー
+ * @brief ステージマップのメニュー
  * =====================================*/
 
 using System;

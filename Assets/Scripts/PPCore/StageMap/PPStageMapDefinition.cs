@@ -3,7 +3,7 @@
  * @file PPStageMapDefinition.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのマップ定義
+ * @brief ステージマップの定義
  * =====================================*/
 
 using System;

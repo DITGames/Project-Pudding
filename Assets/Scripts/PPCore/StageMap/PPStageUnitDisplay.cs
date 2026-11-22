@@ -3,14 +3,14 @@
  * @file PPStageUnitDisplay.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトの画面で使う、ユニットの表示用の文字と色
+ * @brief ステージマップの画面で使う、ユニットの表示用の文字と色
  * =====================================*/
 
 using UnityEngine;
 
 namespace PPCore
 {
-    // ユニットの属性・ロール・ステータスを、ステージセレクトの画面に出す文字と色へ変える
+    // ユニットの属性・ロール・ステータスを、ステージマップの画面に出す文字と色へ変える
     public static class PPStageUnitDisplay
     {
         /* 問い合わせ */

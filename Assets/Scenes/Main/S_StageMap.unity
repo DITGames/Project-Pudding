@@ -12895,7 +12895,7 @@ GameObject:
   - component: {fileID: 2083965988}
   - component: {fileID: 2083965987}
   m_Layer: 0
-  m_Name: StageSelectRunner
+  m_Name: StageMapRunner
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

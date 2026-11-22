@@ -3,7 +3,7 @@
  * @file PPStageUnitCard.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトの画面に並べる、ユニット 1 体分の札
+ * @brief ステージマップの画面に並べる、ユニット 1 体分の札
  * =====================================*/
 
 using TMPro;

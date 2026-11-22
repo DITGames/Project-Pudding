@@ -3,7 +3,7 @@
  * @file PPStageFormationView.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトのパーティ編成画面
+ * @brief ステージマップのパーティ編成画面
  * =====================================*/
 
 using System;

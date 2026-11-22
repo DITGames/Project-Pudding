@@ -3,7 +3,7 @@
  * @file PPStageListMenuBase.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージセレクトの、札や行を並べて選ぶ画面の基底
+ * @brief ステージマップの、札や行を並べて選ぶ画面の基底
  * =====================================*/
 
 using System;
