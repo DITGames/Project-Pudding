@@ -16,7 +16,7 @@ using CustomConsole;
 namespace PPCore
 {
     // 進行状態からマップを作って表示し、マスの選択・メニュー・編成画面・マスのイベントをつなぐ
-    // 進行状態が無ければマップ定義から新しく始め、バトルから戻ったときは持ち越した状態でマップを作り直す
+    // 選んだ内容があればそれで、進行状態も無ければマップ定義から新しく始め、バトルから戻ったときは持ち越した状態でマップを作り直す
     public class PPStageMapRunner : MonoBehaviour
     {
         /* 定数 */
@@ -31,6 +31,7 @@ namespace PPCore
         /* インスペクタ設定 */
 
         [Header("ステージ")]
+        // タイトルで選んだ内容が無いとき（このシーンを単体で Play したときなど）に使う
         [Label("マップ定義")]
         [SerializeField] private PPStageMapDefinition mDefinition;
         // Build Settings に登録したシーンの名前
@@ -84,16 +85,23 @@ namespace PPCore
 
         public PPStageMap Map => mMap;
         public PPStageProgress Progress => PPStageProgress.Current;
-        // マスのイベントやメニューの途中なら true
-        public bool IsBusy => mMenuView.IsOpen || mFormationView.IsOpen || mRecruitView.IsOpen;
+        // マスのイベントやメニューの途中か、シーンを切り替えている途中なら true
+        public bool IsBusy => mMenuView.IsOpen || mFormationView.IsOpen || mRecruitView.IsOpen || PPSceneTransition.IsLoading;
 
         /* Unity イベント */
 
-        // 進行状態が無いか、別のマップ定義のものなら新しく始める
+        // 選んだ内容があればそれで新しく始め、無ければ持ち越した進行状態を使う。どちらも無ければインスペクタのマップ定義で始める
         void Start()
         {
             var progress = PPStageProgress.Current;
-            if (progress == null || progress.Definition != mDefinition)
+            var selection = PPStageStartSelection.Current;
+            if (selection != null && selection.IsReady)
+            {
+                var definition = selection.Definition;
+                progress = PPStageProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits);
+                PPStageStartSelection.Clear();
+            }
+            else if (progress == null)
             {
                 progress = PPStageProgress.Begin(mDefinition, mDefinition.ResolveSeed());
             }
@@ -103,7 +111,7 @@ namespace PPCore
                 if (action != null) action.action.Enable();
             }
 
-            mMap = PPStageMapGenerator.Generate(mDefinition, progress.Seed);
+            mMap = PPStageMapGenerator.Generate(progress.Definition, progress.Seed);
             // 始点は選ばずに到達済みのマスとし、最初からその次の段を選べるようにする
             if (!progress.CurrentNode.HasValue && mMap.Start != null) progress.CompleteNode(mMap.Start.Key);
             mMapView.OnNodeClicked += aNode => SelectNode(aNode);

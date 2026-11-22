@@ -3,7 +3,7 @@
  * @file PPStageProgress.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief シーンをまたいで残るステージの進行状態
+ * @brief シーンをまたいで残るステージの進行状態と、始める前に選んだ内容
  * =====================================*/
 
 using System.Collections.Generic;
@@ -38,6 +38,72 @@ namespace PPCore
             Type = aType;
             Enemy = aEnemy;
         }
+    }
+
+    // タイトルからマップに入るまでの画面で選んだ内容。マップのシーンを開いたときに、これで進行状態を始める
+    public sealed class PPStageStartSelection
+    {
+        /* 定数 */
+
+        private const string LogTag = "StageMap";
+
+        /* static 変数 */
+
+        // 選んでいる途中の内容。null なら選んでいない（マップのシーンを単体で Play したときなど）
+        private static PPStageStartSelection sCurrent;
+
+        /* 状態 */
+
+        // 空ならマップ定義の初期パーティを使う
+        private readonly List<PPPartySaveUnitEntry> mInitialUnits = new();
+
+        /* プロパティ */
+
+        public static PPStageStartSelection Current => sCurrent;
+
+        public IReadOnlyList<PPPartySaveUnitEntry> InitialUnits => mInitialUnits;
+        // まだ選んでいなければ null
+        public PPStageMapDefinition Definition { get; private set; }
+        // null ならマップ定義の設定でシードを決める
+        public int? Seed { get; private set; }
+        // マップが決まっていれば、マップのシーンへ進める
+        public bool IsReady => Definition != null;
+
+        /* static 関数 */
+
+        // 選び直すときは前の内容を捨てて新しく始める
+        public static PPStageStartSelection Begin()
+        {
+            sCurrent = new PPStageStartSelection();
+            return sCurrent;
+        }
+
+        public static void Clear() => sCurrent = null;
+
+        /* 操作 */
+
+        public void SetInitialUnits(IEnumerable<PPPartySaveUnitEntry> aUnits)
+        {
+            mInitialUnits.Clear();
+            foreach (var entry in aUnits)
+            {
+                if (entry.Unit != null) mInitialUnits.Add(entry);
+            }
+            CustomConsoleLog.Log(LogTag, $"初期ユニットを選択: {mInitialUnits.Count} 体");
+        }
+
+        public void SetStage(PPStageMapDefinition aDefinition, int? aSeed = null)
+        {
+            Definition = aDefinition;
+            Seed = aSeed;
+            CustomConsoleLog.Log(LogTag, $"ステージを選択: {(aDefinition != null ? aDefinition.name : "-")} シード={(aSeed.HasValue ? aSeed.Value.ToString() : "マップ定義の設定")}");
+        }
+
+        /* ヘルパー */
+
+        // Play を始めるたびに空に戻す。ドメインの再読み込みを切っているため、前回の Play の状態が残るのを防ぐ
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnPlay() => sCurrent = null;
     }
 
     // マップのシード・通過したマス・所持ユニット・編成など、シーンをまたいで残す進行状態
@@ -85,10 +151,10 @@ namespace PPCore
 
         /* static 関数 */
 
-        // 新しく始める。初期パーティにいるユニットを所持ユニットとし、編成もその配置にする
-        public static PPStageProgress Begin(PPStageMapDefinition aDefinition, int aSeed)
+        // 新しく始める。初期ユニットを渡せばそれを、空ならマップ定義の初期パーティを所持ユニットと編成にする
+        public static PPStageProgress Begin(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null)
         {
-            sCurrent = new PPStageProgress(aDefinition, aSeed);
+            sCurrent = new PPStageProgress(aDefinition, aSeed, aInitialUnits);
             CustomConsoleLog.Log(LogTag, $"ステージ開始: {aDefinition.name} シード={aSeed} 所持ユニット={sCurrent.mOwnedUnits.Count}");
             return sCurrent;
         }
@@ -98,13 +164,26 @@ namespace PPCore
 
         /* 生成 */
 
-        private PPStageProgress(PPStageMapDefinition aDefinition, int aSeed)
+        // 渡された初期ユニットは選んだ順に Center → Right → Left へ置き、4 体目からは控えにする
+        private PPStageProgress(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
         {
             Definition = aDefinition;
             Seed = aSeed;
 
             var initial = aDefinition.InitialParty;
             mCoinConversionRate = initial != null ? initial.BaseResourceConversionRate : 1f;
+            if (aInitialUnits != null && aInitialUnits.Count > 0)
+            {
+                foreach (var entry in aInitialUnits)
+                {
+                    if (entry.Unit == null) continue;
+                    var owned = new PPStageOwnedUnit(entry.Unit, Mathf.Max(1, entry.Level));
+                    mOwnedUnits.Add(owned);
+                    PlaceInFirstEmpty(owned);
+                }
+                return;
+            }
+
             if (initial == null)
             {
                 CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「初期パーティ」が未設定です。味方のパーティ定義を割り当ててください");
@@ -179,14 +258,20 @@ namespace PPCore
         {
             var owned = new PPStageOwnedUnit(aUnit, Mathf.Max(1, aLevel));
             mOwnedUnits.Add(owned);
+            PlaceInFirstEmpty(owned);
+            CustomConsoleLog.Log(LogTag, $"ユニット獲得: {aUnit.DisplayName} Lv{owned.Level} 配置={FindPosition(owned)?.ToString() ?? "控え"}");
+            return owned;
+        }
+
+        // 編成の Center → Right → Left のうち最初の空きに置く。空きがなければ控えのまま
+        private void PlaceInFirstEmpty(PPStageOwnedUnit aUnit)
+        {
             foreach (var position in Positions)
             {
                 if (mFormation[(int)position] != null) continue;
-                mFormation[(int)position] = owned;
-                break;
+                mFormation[(int)position] = aUnit;
+                return;
             }
-            CustomConsoleLog.Log(LogTag, $"ユニット獲得: {aUnit.DisplayName} Lv{owned.Level} 配置={FindPosition(owned)?.ToString() ?? "控え"}");
-            return owned;
         }
 
         public void LevelUp(PPStageOwnedUnit aUnit)

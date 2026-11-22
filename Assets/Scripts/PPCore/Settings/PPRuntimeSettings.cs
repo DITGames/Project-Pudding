@@ -58,6 +58,9 @@ namespace PPCore
         // 未設定なら、入力アクションのアセットに書かれた割り当てを既定にする
         [Label("キー設定の既定")]
         [SerializeField] private PPDefaultKeyConfigDefinition mDefaultKeyConfig;
+        // 子に PPLoadingScreenView を持つプレハブ。未設定ならロード画面を出さずに切り替える
+        [Label("シーン切り替えのロード画面")]
+        [SerializeField] private GameObject mSceneLoadingScreen;
 
         /* 状態 */
 
@@ -68,6 +71,7 @@ namespace PPCore
 
         public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
         public PPDefaultKeyConfigDefinition DefaultKeyConfig => mDefaultKeyConfig;
+        public GameObject SceneLoadingScreen => mSceneLoadingScreen;
 
         /* static 関数 */
 

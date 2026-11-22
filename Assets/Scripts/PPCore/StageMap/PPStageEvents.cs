@@ -61,11 +61,13 @@ namespace PPCore
             return null;
         }
 
+        // 切り替えを受け付けられなかったときは、預けた敵を取り消してマップに残る
         public virtual void Begin(PPStageEventContext aContext)
         {
-            aContext.Progress.BeginBattle(new PPStageBattleRequest(aContext.Node.Key, aContext.Node.Type, aContext.Node.Encounter));
-            aContext.Progress.ReturnSceneName = SceneManager.GetActiveScene().name;
-            SceneManager.LoadScene(aContext.BattleSceneName);
+            var progress = aContext.Progress;
+            progress.BeginBattle(new PPStageBattleRequest(aContext.Node.Key, aContext.Node.Type, aContext.Node.Encounter));
+            progress.ReturnSceneName = SceneManager.GetActiveScene().name;
+            if (!PPSceneTransition.Load(aContext.BattleSceneName)) progress.BeginBattle(null);
         }
     }
 

@@ -263,7 +263,7 @@ namespace PPCore
             yield return new WaitForSecondsRealtime(mReturnToStageDelay);
             // 次のバトルでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る
             Time.timeScale = 1f;
-            UnityEngine.SceneManagement.SceneManager.LoadScene(returnScene);
+            PPSceneTransition.Load(returnScene);
         }
 
         // 進行役と AI をバトルから切り離す
