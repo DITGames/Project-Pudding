@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e3d00ce19aef3c74d921f863e815a162, type: 3}
+  m_Name: PPDebugBattle
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPDebugBattleDefinition
+  mAlly:
+    mCenter:
+      Unit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+      Level: 1
+      IsFixedSeed: 0
+      Seed: 0
+    mRight:
+      Unit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+      Level: 1
+      IsFixedSeed: 0
+      Seed: 0
+    mLeft:
+      Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+      Level: 1
+      IsFixedSeed: 0
+      Seed: 0
+    mCoinConversionRate: 1
+  mEnemy:
+    mCenter:
+      Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+      Level: 2
+      IsFixedSeed: 0
+      Seed: 0
+    mRight:
+      Unit: {fileID: 0}
+      Level: 1
+      IsFixedSeed: 0
+      Seed: 0
+    mLeft:
+      Unit: {fileID: 0}
+      Level: 1
+      IsFixedSeed: 0
+      Seed: 0
+    mCoinConversionRate: 1

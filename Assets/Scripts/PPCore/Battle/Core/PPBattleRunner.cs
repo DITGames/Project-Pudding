@@ -156,17 +156,28 @@ namespace PPCore
                 if (action != null) action.action.Enable();
             }
 
-            // ステージのマスから来たときは持ち越した編成とマスの敵で、単体で Play したときはインスペクタの定義で戦う
+            // ステージのマスから来たときは持ち越した編成とマスの敵で、Editor のデバッグバトルから始めたときはその設定で、
+            // 単体で Play したときはインスペクタの定義で戦う
             var stage = PPStageProgress.Current;
             var stageBattle = stage?.PendingBattle;
-            var context = new BattleContext()
+            var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
+            var context = new BattleContext() { Rules = new PPBattleRules() };
+            if (stageBattle != null)
             {
-                AllyParty = stageBattle != null
-                    ? stage.CreateAllyParty()
-                    : PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally),
-                EnemyParty = PPPartyFactory.CreateFromDefinition(stageBattle != null ? stageBattle.Enemy : mEnemyPartyDefinition, BattleSide.Enemy),
-                Rules = new PPBattleRules(),
-            };
+                context.AllyParty = stage.CreateAllyParty();
+                context.EnemyParty = PPPartyFactory.CreateFromDefinition(stageBattle.Enemy, BattleSide.Enemy);
+            }
+            else if (debugBattle != null)
+            {
+                CustomConsoleLog.Log("Battle", $"デバッグバトル: {debugBattle.name} の設定で始める");
+                context.AllyParty = debugBattle.Ally.Create(BattleSide.Ally);
+                context.EnemyParty = debugBattle.Enemy.Create(BattleSide.Enemy);
+            }
+            else
+            {
+                context.AllyParty = PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally);
+                context.EnemyParty = PPPartyFactory.CreateFromDefinition(mEnemyPartyDefinition, BattleSide.Enemy);
+            }
             // スキルゲージ残量を検証するバリデータへ差し替える
             context.Rules.CastValidator = new PPBattleCastValidator();
 
