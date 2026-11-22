@@ -101,6 +101,12 @@ namespace PPCore
         [Label("敵パーティ定義")]
         [SerializeField] private PPPartyDefinition mEnemyPartyDefinition;
 
+        // ステージのマスから来たとき、決着してからマップへ戻るまでの秒数。単体で Play したときは戻らない
+        [Header("ステージ")]
+        [Label("決着後にマップへ戻るまでの秒数")]
+        [Min(0f)]
+        [SerializeField] private float mReturnToStageDelay = 2f;
+
         // trueの場合、プッシャーのコイン獲得の代わりに供給の間隔ごとのゲージ加算で味方を進行させる
         // 実機のコインプッシャーが無いシミュレーション環境向け
         [Header("デバッグ")]
@@ -150,16 +156,22 @@ namespace PPCore
                 if (action != null) action.action.Enable();
             }
 
+            // ステージのマスから来たときは持ち越した編成とマスの敵で、単体で Play したときはインスペクタの定義で戦う
+            var stage = PPStageProgress.Current;
+            var stageBattle = stage?.PendingBattle;
             var context = new BattleContext()
             {
-                AllyParty = PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally),
-                EnemyParty = PPPartyFactory.CreateFromDefinition(mEnemyPartyDefinition, BattleSide.Enemy),
+                AllyParty = stageBattle != null
+                    ? stage.CreateAllyParty()
+                    : PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally),
+                EnemyParty = PPPartyFactory.CreateFromDefinition(stageBattle != null ? stageBattle.Enemy : mEnemyPartyDefinition, BattleSide.Enemy),
                 Rules = new PPBattleRules(),
             };
             // スキルゲージ残量を検証するバリデータへ差し替える
             context.Rules.CastValidator = new PPBattleCastValidator();
 
             mBattleManager.OnBattleEnded += r => UnbindBattle();
+            if (stageBattle != null) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
             PPBattleLogBinder.Bind(mBattleManager, context);
             mBattleManager.StartBattle(context);
             mBattleUnitViewBinder.Bind(mBattleManager);
@@ -238,6 +250,20 @@ namespace PPCore
             mIsAutoBattle = aIsEnabled;
             CustomConsoleLog.Log("Battle", $"オートバトル: {(mIsAutoBattle ? "ON" : "OFF")}");
             if (mIsAutoBattle && CanSelectAnyCommand()) mAllyAI.ThinkAll(mBattleManager.Context);
+        }
+
+        // 決着をステージの進行状態へ反映し、少し待ってからマップのシーンへ戻る
+        // 入力中に決着して timeScale が 0 のまま残っても待てるよう、待ち時間は timeScale に左右されない時間で数える
+        private IEnumerator ReturnToStage(PPStageProgress aStage, BattleResult aResult)
+        {
+            string returnScene = aStage.ReturnSceneName;
+            aStage.ResolveBattle(aResult.Type);
+            CustomConsoleLog.Log("Battle", $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に {returnScene} へ戻る");
+
+            yield return new WaitForSecondsRealtime(mReturnToStageDelay);
+            // 次のバトルでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る
+            Time.timeScale = 1f;
+            UnityEngine.SceneManagement.SceneManager.LoadScene(returnScene);
         }
 
         // 進行役と AI をバトルから切り離す
