@@ -76,8 +76,10 @@ namespace PPCore
             new("Cancel", "キャンセル"),
             new("OpenCommand", "コマンドを開く"),
             new("AutoBattle", "オートバトル"),
-            new("DropLeft", "コインを左へ投入"),
-            new("DropRight", "コインを右へ投入"),
+            new("SwitchAIMode", "AIモード切り替え"),
+            new("DropLeft", "投入位置を左へ"),
+            new("DropRight", "投入位置を右へ"),
+            new("Drop", "コインを投入"),
         };
 
         // 操作の場所の名前を短く言い換える表。ゲームパッドは Xbox / PlayStation の両方の呼び名を並べる

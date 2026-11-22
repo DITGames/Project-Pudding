@@ -862,7 +862,7 @@ MonoBehaviour:
   - 205
   - 310
   mFirstRowY: 120
-  mRowSpacing: 56
+  mRowSpacing: 44
   mFooterX:
   - -100
   - 100
