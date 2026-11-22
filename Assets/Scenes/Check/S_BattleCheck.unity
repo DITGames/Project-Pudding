@@ -1027,13 +1027,14 @@ MonoBehaviour:
   - 75
   - 205
   - 310
-  mFirstRowY: 120
+  mFirstRowY: 100
   mRowSpacing: 44
   mFooterX:
   - -100
   - 100
   mFooterY: -235
   mFooterScale: 1.3
+  mCategoryPosition: {x: -230, y: 148}
   mDropHeight: 300
   mDropDuration: 0.4
   mDropStagger: 0.04

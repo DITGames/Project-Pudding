@@ -42,7 +42,8 @@ namespace PPCore
             if (mIcon == null) return;
 
             var camera = mCamera != null ? mCamera : Camera.main;
-            bool isVisible = mDispenser != null && camera != null && mDispenser.IsRunning && mDispenser.IsPlayerControlled;
+            // メニューやコマンド入力で時間が止まっている間は投入できないため隠す
+            bool isVisible = mDispenser != null && camera != null && mDispenser.IsRunning && mDispenser.IsPlayerControlled && Time.timeScale > 0f;
             if (mIcon.gameObject.activeSelf != isVisible) mIcon.gameObject.SetActive(isVisible);
             if (!isVisible) return;
 

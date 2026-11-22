@@ -15,7 +15,7 @@ using UnityEngine.InputSystem;
 
 namespace PPCore
 {
-    // 変更できる操作ごとに、キーボード 2 枠・ゲームパッド 2 枠の札を並べるキー設定画面
+    // 変更できる操作ごとに、キーボード 2 枠・ゲームパッド 2 枠の札を並べるキー設定画面。UI 操作とゲーム操作は切り替えて並べる
     // 開いている間はバトルの時計(バトル中だけ)と物理を止める。動きは timeScale に関係なく unscaled の時間で進める
     public class PPInputConfigMenuView : MonoBehaviour
     {
@@ -43,6 +43,8 @@ namespace PPCore
         private const string WaitingText = "入力待ち";
         // 列の数(キーボード 2 枠・ゲームパッド 2 枠)
         private const int ColumnCount = PPInputBindingStore.SlotCount * 2;
+        // 分類を切り替える札の行。割り当ての行(0 から)より上に置く
+        private const int CategoryRow = -1;
 
         /* インスペクタ設定 */
 
@@ -91,6 +93,9 @@ namespace PPCore
         [Label("下のボタンの大きさ")]
         [Min(0.1f)]
         [SerializeField] private float mFooterScale = 1.4f;
+        // 分類(UI操作 / ゲーム操作)を切り替える札の位置。見出しと同じ高さの、行の名前の列に置く
+        [Label("分類の切り替えの位置")]
+        [SerializeField] private Vector2 mCategoryPosition = new(-230f, 148f);
 
         [Header("動き")]
         [Label("落ち始める高さ")]
@@ -117,6 +122,12 @@ namespace PPCore
         private readonly List<SlotEntry[]> mRows = new();
         // 一番下の「既定に戻す」「閉じる」
         private readonly List<SlotEntry> mFooter = new();
+        // 並べている行の名前。分類を切り替えるときに消す
+        private readonly List<TMP_Text> mRowLabels = new();
+        // 分類を切り替える札
+        private SlotEntry mCategoryEntry;
+        // 並べている分類
+        private PPRebindCategory mCategory = PPRebindCategory.UI;
         private BattleManager mManager;
         private bool mIsOpen;
         // 開いてからの経過時間。落ちてくる動きに使う
@@ -155,9 +166,9 @@ namespace PPCore
             if (!mIsOpen) return;
             mOpenElapsed += Time.unscaledDeltaTime;
             float follow = 1f - Mathf.Exp(-mFocusFollowSpeed * Time.unscaledDeltaTime);
-            for (int row = 0; row <= mRows.Count; row++)
+            for (int row = CategoryRow; row <= mRows.Count; row++)
             {
-                int columns = row < mRows.Count ? ColumnCount : mFooter.Count;
+                int columns = GetColumnCount(row);
                 for (int column = 0; column < columns; column++)
                 {
                     var entry = GetEntry(row, column);
@@ -182,13 +193,39 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // 変更できる操作ごとに行の名前と 4 枠の札を並べ、一番下に「既定に戻す」「閉じる」を置く
+        // 上に分類を切り替える札、今の分類の行、一番下に「既定に戻す」「閉じる」を置く
         private void BuildGrid()
         {
             if (mActions == null) return;
-            for (int row = 0; row < PPInputBindingStore.RebindableActions.Length; row++)
+            mCategoryEntry = CreateEntry(mCategoryPosition, 0);
+            mCategoryEntry.Slot.transform.localScale = Vector3.one * mFooterScale;
+            BuildRows(0f);
+
+            int footerRow = PPInputBindingStore.RebindableActions.Length;
+            mFooter.Add(CreateEntry(new Vector2(mFooterX[0], mFooterY), footerRow));
+            mFooter.Add(CreateEntry(new Vector2(mFooterX[1], mFooterY), footerRow + 1));
+            mFooter[0].Slot.SetText(ResetText);
+            mFooter[1].Slot.SetText(CloseText);
+            foreach (var entry in mFooter) entry.Slot.transform.localScale = Vector3.one * mFooterScale;
+        }
+
+        // 今の分類の操作ごとに、行の名前と 4 枠の札を並べる。前に並べていた行は消す
+        // 落ちてくる動きは、開いてからの経過時間が aBaseDelay 秒になってから始める
+        private void BuildRows(float aBaseDelay)
+        {
+            foreach (var entries in mRows)
             {
-                var rebindable = PPInputBindingStore.RebindableActions[row];
+                foreach (var entry in entries) Destroy(entry.Slot.gameObject);
+            }
+            foreach (var label in mRowLabels) Destroy(label.gameObject);
+            mRows.Clear();
+            mRowLabels.Clear();
+            if (mActions == null) return;
+
+            int row = 0;
+            foreach (var rebindable in PPInputBindingStore.RebindableActions)
+            {
+                if (rebindable.Category != mCategory) continue;
                 var action = PPInputBindingStore.FindAction(mActions, rebindable.ActionName);
                 float y = mFirstRowY - row * mRowSpacing;
 
@@ -196,24 +233,20 @@ namespace PPCore
                 label.gameObject.SetActive(true);
                 label.text = rebindable.DisplayName;
                 label.rectTransform.anchoredPosition = new Vector2(mLabelX, y);
+                mRowLabels.Add(label);
 
                 var entries = new SlotEntry[ColumnCount];
                 for (int column = 0; column < ColumnCount; column++)
                 {
                     entries[column] = CreateEntry(new Vector2(mColumnX[column], y), row + column);
+                    entries[column].Delay += aBaseDelay;
                     entries[column].Action = action;
                     entries[column].IsGamepad = column >= PPInputBindingStore.SlotCount;
                     entries[column].SlotIndex = column % PPInputBindingStore.SlotCount;
                 }
                 mRows.Add(entries);
+                row++;
             }
-
-            int footerRow = mRows.Count;
-            mFooter.Add(CreateEntry(new Vector2(mFooterX[0], mFooterY), footerRow));
-            mFooter.Add(CreateEntry(new Vector2(mFooterX[1], mFooterY), footerRow + 1));
-            mFooter[0].Slot.SetText(ResetText);
-            mFooter[1].Slot.SetText(CloseText);
-            foreach (var entry in mFooter) entry.Slot.transform.localScale = Vector3.one * mFooterScale;
         }
 
         // 札を 1 枚置く。落ちてくる順番は左上から斜めに並ぶ
@@ -246,6 +279,7 @@ namespace PPCore
 
             mPanel.SetActive(true);
             mOpenElapsed = 0f;
+            BuildRows(0f);
             mFocusRow = 0;
             mFocusColumn = 0;
             RefreshAll();
@@ -280,22 +314,38 @@ namespace PPCore
         }
 
         // カーソルを動かす。行をまたぐときは、下のボタンの列と割り当ての列を近い位置どうしで対応させる
+        // 分類を切り替える札の上では、左右で分類を切り替える
         private void Move(int aColumnDelta, int aRowDelta)
         {
-            int rowCount = mRows.Count + 1;
+            // 分類の札・割り当ての行・下のボタンの行を、上から順に輪にして動かす
+            int rowCount = mRows.Count + 2;
             if (aRowDelta != 0)
             {
-                int nextRow = (mFocusRow + aRowDelta + rowCount) % rowCount;
-                if (nextRow == mRows.Count) mFocusColumn = mFocusColumn < PPInputBindingStore.SlotCount ? 0 : 1;
+                int nextRow = ((mFocusRow - CategoryRow + aRowDelta) % rowCount + rowCount) % rowCount + CategoryRow;
+                if (nextRow == CategoryRow || mFocusRow == CategoryRow) mFocusColumn = 0;
+                else if (nextRow == mRows.Count) mFocusColumn = mFocusColumn < PPInputBindingStore.SlotCount ? 0 : 1;
                 else if (mFocusRow == mRows.Count) mFocusColumn = mFocusColumn == 0 ? 0 : PPInputBindingStore.SlotCount;
                 mFocusRow = nextRow;
             }
             if (aColumnDelta != 0)
             {
-                int columns = mFocusRow < mRows.Count ? ColumnCount : mFooter.Count;
+                if (mFocusRow == CategoryRow)
+                {
+                    SwitchCategory();
+                    return;
+                }
+                int columns = GetColumnCount(mFocusRow);
                 mFocusColumn = (mFocusColumn + aColumnDelta + columns) % columns;
             }
             RefreshFocus();
+        }
+
+        // UI 操作とゲーム操作を切り替え、その分類の行を並べ直す
+        private void SwitchCategory()
+        {
+            mCategory = mCategory == PPRebindCategory.UI ? PPRebindCategory.Game : PPRebindCategory.UI;
+            BuildRows(mOpenElapsed);
+            RefreshAll();
         }
 
         // 選んでいる枠の入力待ちを始める。決定に使ったキーを拾わないよう、離されてから始める
@@ -324,6 +374,7 @@ namespace PPCore
         // すべての枠の文字を今の割り当てに合わせ、選択中の光を付け直す
         private void RefreshAll()
         {
+            if (mCategoryEntry != null) mCategoryEntry.Slot.SetText($"◀ {PPInputBindingStore.GetCategoryName(mCategory)} ▶");
             foreach (var entries in mRows)
             {
                 foreach (var entry in entries)
@@ -339,9 +390,9 @@ namespace PPCore
         // 選択中の光を今のカーソル位置に合わせる
         private void RefreshFocus()
         {
-            for (int row = 0; row <= mRows.Count; row++)
+            for (int row = CategoryRow; row <= mRows.Count; row++)
             {
-                int columns = row < mRows.Count ? ColumnCount : mFooter.Count;
+                int columns = GetColumnCount(row);
                 for (int column = 0; column < columns; column++)
                 {
                     GetEntry(row, column).Slot.SetFocused(row == mFocusRow && column == mFocusColumn);
@@ -362,10 +413,15 @@ namespace PPCore
             mLastNavigate = direction;
         }
 
-        // 割り当ての枠なら入力待ちを始め、下のボタンなら既定に戻すか閉じる
+        // 分類の札なら分類を切り替え、割り当ての枠なら入力待ちを始め、下のボタンなら既定に戻すか閉じる
         private void HandleSubmit(InputAction.CallbackContext aContext)
         {
             if (IsRebinding || mRebindEndFrame == Time.frameCount) return;
+            if (mFocusRow == CategoryRow)
+            {
+                SwitchCategory();
+                return;
+            }
             if (mFocusRow < mRows.Count)
             {
                 StartCoroutine(RebindRoutine(mRows[mFocusRow][mFocusColumn]));
@@ -391,7 +447,17 @@ namespace PPCore
 
         /* ヘルパー */
 
-        private SlotEntry GetEntry(int aRow, int aColumn) => aRow < mRows.Count ? mRows[aRow][aColumn] : mFooter[aColumn];
+        private SlotEntry GetEntry(int aRow, int aColumn)
+        {
+            if (aRow == CategoryRow) return mCategoryEntry;
+            return aRow < mRows.Count ? mRows[aRow][aColumn] : mFooter[aColumn];
+        }
+
+        private int GetColumnCount(int aRow)
+        {
+            if (aRow == CategoryRow) return 1;
+            return aRow < mRows.Count ? ColumnCount : mFooter.Count;
+        }
 
         // 床で跳ねるような減衰
         private static float EaseOutBounce(float aT)
