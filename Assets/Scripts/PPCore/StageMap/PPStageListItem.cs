@@ -29,11 +29,16 @@ namespace PPCore
         // 操作の途中で押さえている行の色
         [Label("押さえている行の色")]
         [SerializeField] private Color mMarkedColor = new(0.35f, 0.5f, 0.8f, 1f);
+        // 選べない行の文字の色
+        [Label("選べない行の文字の色")]
+        [SerializeField] private Color mDisabledTextColor = new(1f, 1f, 1f, 0.35f);
 
         /* 状態 */
 
         private bool mIsFocused;
         private bool mIsMarked;
+        // 選べるときの文字の色。最初に選べなくしたときに覚える
+        private Color? mEnabledTextColor;
 
         /* プロパティ */
 
@@ -44,6 +49,14 @@ namespace PPCore
         public void SetText(string aText)
         {
             if (mLabel != null) mLabel.text = aText;
+        }
+
+        // 選べない行は文字を薄くする
+        public void SetInteractable(bool aIsInteractable)
+        {
+            if (mLabel == null) return;
+            mEnabledTextColor ??= mLabel.color;
+            mLabel.color = aIsInteractable ? mEnabledTextColor.Value : mDisabledTextColor;
         }
 
         public void SetFocused(bool aIsFocused)

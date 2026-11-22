@@ -3,7 +3,7 @@
  * @file PPInputConfigMenuView.cs
  * @author hqrse
  * @date 2026/11/18
- * @brief バトル中に開くキー設定画面
+ * @brief バトル中やタイトルで開くキー設定画面
  * =====================================*/
 
 using System.Collections;
@@ -16,7 +16,7 @@ using UnityEngine.InputSystem;
 namespace PPCore
 {
     // 変更できる操作ごとに、キーボード 2 枠・ゲームパッド 2 枠の札を並べるキー設定画面
-    // 開いている間はバトルの時計と物理を止める。動きは timeScale に関係なく unscaled の時間で進める
+    // 開いている間はバトルの時計(バトル中だけ)と物理を止める。動きは timeScale に関係なく unscaled の時間で進める
     public class PPInputConfigMenuView : MonoBehaviour
     {
         /* 内部型 */
@@ -136,6 +136,8 @@ namespace PPCore
 
         public bool IsOpen => mIsOpen;
         public bool IsRebinding => mRebindOperation != null || mIsRebindPending;
+        // 最後に閉じたフレーム。閉じたキーでほかの操作まで動かないよう、呼び出し側がそのフレームの入力を捨てる
+        public int ClosedFrame { get; private set; } = -1;
 
         /* Unity イベント */
 
@@ -226,15 +228,15 @@ namespace PPCore
         /* 操作 */
 
         // 開いていれば閉じ、閉じていれば開く。入力待ちの最中と、入力待ちが終わったフレームは何もしない
-        public void Toggle(BattleManager aManager)
+        public void Toggle(BattleManager aManager = null)
         {
             if (IsRebinding || mRebindEndFrame == Time.frameCount) return;
             if (mIsOpen) Close();
             else Open(aManager);
         }
 
-        // 画面を開き、バトルの時計と物理を止めて、入力を受け付ける
-        public void Open(BattleManager aManager)
+        // 画面を開き、物理と、バトル中ならバトルの時計を止めて、入力を受け付ける。バトルの外では aManager を省く
+        public void Open(BattleManager aManager = null)
         {
             if (mIsOpen) return;
             mIsOpen = true;
@@ -262,6 +264,7 @@ namespace PPCore
         {
             if (!mIsOpen) return;
             mIsOpen = false;
+            ClosedFrame = Time.frameCount;
             StopAllCoroutines();
             mIsRebindPending = false;
             mRebindOperation?.Cancel();
