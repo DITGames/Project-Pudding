@@ -40,7 +40,7 @@ namespace PPCore
         // ボスの段を含まない段数
         [Label("段数")] [Min(2)]
         [SerializeField] private int mHeight = 15;
-        // 最下段から最上段へ引く経路の本数
+        // 最下段の始点から最上段へ引く経路の本数。多いほど枝分かれが増える
         [Label("経路の本数")] [Min(1)]
         [SerializeField] private int mPathCount = 6;
 

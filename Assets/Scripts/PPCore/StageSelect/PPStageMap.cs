@@ -138,7 +138,7 @@ namespace PPCore
     }
 
     // マップ定義とシードからマップを作る。同じ定義とシードからは同じマップになる
-    // 経路は下から上へ交差しないように引き、マスの種類と敵は段ごとの規則と重みで決める
+    // 経路は最下段の 1 マスから上へ交差しないように引き、最上段からボスの 1 マスへ集める。マスの種類と敵は段ごとの規則と重みで決める
     public static class PPStageMapGenerator
     {
         /* 定数 */
@@ -154,18 +154,9 @@ namespace PPCore
             var random = new System.Random(aSeed);
             var map = new PPStageMap(aDefinition.Width, aDefinition.Height);
 
-            // 最初の 2 本は始点を分け、1 本道から始まらないようにする
-            int firstStart = -1;
-            for (int i = 0; i < aDefinition.PathCount; i++)
-            {
-                int x = random.Next(map.Width);
-                if (i == 0) firstStart = x;
-                if (i == 1 && map.Width > 1)
-                {
-                    while (x == firstStart) x = random.Next(map.Width);
-                }
-                CreatePath(map, x, random);
-            }
+            // すべての経路を最下段の中央の 1 マスから始め、そこから枝分かれさせる
+            int startColumn = (map.Width - 1) / 2;
+            for (int i = 0; i < aDefinition.PathCount; i++) CreatePath(map, startColumn, random);
 
             AssignTypes(map, aDefinition, random);
             CreateBoss(map, aDefinition);

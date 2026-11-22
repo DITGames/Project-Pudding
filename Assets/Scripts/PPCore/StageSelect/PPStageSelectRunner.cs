@@ -173,7 +173,7 @@ namespace PPCore
 
         /* 問い合わせ */
 
-        // まだマスを選んでいなければ最下段のすべて、選んでいれば現在地の次の段でつながっているマスだけ選べる
+        // まだマスを選んでいなければ最下段(始点の 1 マス)、選んでいれば現在地の次の段でつながっているマスだけ選べる
         public bool IsSelectable(PPStageMapNode aNode)
         {
             var current = CurrentMapNode();
