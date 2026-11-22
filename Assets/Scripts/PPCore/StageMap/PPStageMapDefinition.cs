@@ -34,6 +34,15 @@ namespace PPCore
     {
         /* インスペクタ設定 */
 
+        // ステージ選択の画面に出す内容。表示名が空ならアセット名を出す
+        [Header("表示")]
+        [Label("表示名")]
+        [SerializeField] private string mDisplayName;
+        [Label("サムネイル")]
+        [SerializeField] private Sprite mThumbnail;
+        [Label("説明")] [TextArea(2, 5)]
+        [SerializeField] private string mDescription;
+
         [Header("マップ形状")]
         [Label("列数")] [Min(1)]
         [SerializeField] private int mWidth = 7;
@@ -92,6 +101,9 @@ namespace PPCore
 
         /* プロパティ */
 
+        public string DisplayName => string.IsNullOrEmpty(mDisplayName) ? name : mDisplayName;
+        public Sprite Thumbnail => mThumbnail;
+        public string Description => mDescription;
         public int Width => mWidth;
         public int Height => mHeight;
         public int PathCount => mPathCount;

@@ -298,6 +298,7 @@ namespace PPCore
         public void BeginBattle(PPStageBattleRequest aRequest) => PendingBattle = aRequest;
 
         // バトルの決着を反映する。勝てば現在地を進め、ボスに勝つか負けたら進行状態を捨てて最初からにする
+        // ボスに勝ったときは、このステージのクリアを記録して次のステージを選べるようにする
         public void ResolveBattle(BattleResultType aResult)
         {
             var request = PendingBattle;
@@ -314,6 +315,7 @@ namespace PPCore
             CompleteNode(request.Node);
             if (request.Type == PPStageNodeType.Boss)
             {
+                PPStageClearRecord.MarkCleared(Definition);
                 CustomConsoleLog.Log(LogTag, "ステージクリア: 最初からやり直す");
                 Clear();
             }
