@@ -91,14 +91,15 @@ namespace PPCore
         /* Unity イベント */
 
         // 選んだ内容があればそれで新しく始め、無ければ持ち越した進行状態を使う。どちらも無ければインスペクタのマップ定義で始める
+        // 選んだ内容にマップが無ければ、インスペクタのマップ定義を使う
         void Start()
         {
             var progress = PPStageProgress.Current;
             var selection = PPStageStartSelection.Current;
-            if (selection != null && selection.IsReady)
+            if (selection != null)
             {
-                var definition = selection.Definition;
-                progress = PPStageProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits);
+                var definition = selection.Definition != null ? selection.Definition : mDefinition;
+                progress = PPStageProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits, selection.CoinConversionRate);
                 PPStageStartSelection.Clear();
             }
             else if (progress == null)

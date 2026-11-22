@@ -31,10 +31,13 @@ namespace PPCore
         [SerializeField] private PPStageListItem mItemPrefab;
         [Label("キー設定画面")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
+        // 未設定なら、ユニットを選ばずにマップ定義の初期パーティで始める
+        [Label("初期ユニット選択画面")]
+        [SerializeField] private PPInitialUnitSelectView mUnitSelect;
 
         // Build Profiles に登録したシーンの名前
         [Header("シーン")]
-        [Label("はじめからで開くシーン名")]
+        [Label("ユニットを選んだ後に開くシーン名")]
         [SerializeField] private string mNewGameSceneName = "S_StageMap";
 
         /* Unity イベント */
@@ -45,6 +48,7 @@ namespace PPCore
         protected override void Update()
         {
             if (mConfigMenu != null && (mConfigMenu.IsOpen || mConfigMenu.ClosedFrame == Time.frameCount)) return;
+            if (mUnitSelect != null && mUnitSelect.ClosedFrame == Time.frameCount) return;
             base.Update();
         }
 
@@ -68,9 +72,7 @@ namespace PPCore
             switch (aIndex)
             {
                 case NewGameRow:
-                    PPStageStartSelection.Begin();
-                    CustomConsoleLog.Log(LogTag, $"はじめから: {mNewGameSceneName} へ進む");
-                    return PPSceneTransition.Load(mNewGameSceneName);
+                    return StartNewGame();
                 case ContinueRow:
                     // 復元はセーブの仕組みと一緒に作る。それまでは選べない
                     return false;
@@ -90,6 +92,29 @@ namespace PPCore
 
         // タイトルより前の画面はないため、キャンセルでは閉じない
         protected override void OnCancel() { }
+
+        // メニューを閉じて初期ユニットを選ばせ、選んだら次のシーンへ進む。キャンセルならメニューに戻る
+        private bool StartNewGame()
+        {
+            var selection = PPStageStartSelection.Begin();
+            if (mUnitSelect == null) return LoadNewGameScene();
+
+            Close();
+            bool isOpened = mUnitSelect.Open(aPicked =>
+            {
+                var definition = mUnitSelect.Definition;
+                selection.SetInitialUnits(definition.CreateUnits(aPicked), definition.CoinConversionRate);
+                LoadNewGameScene();
+            }, Open);
+            if (!isOpened) Open();
+            return isOpened;
+        }
+
+        private bool LoadNewGameScene()
+        {
+            CustomConsoleLog.Log(LogTag, $"はじめから: {mNewGameSceneName} へ進む");
+            return PPSceneTransition.Load(mNewGameSceneName);
+        }
 
         // アプリを終了する。Editor では Play を止める
         private static void Quit()
