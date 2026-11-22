@@ -36,7 +36,7 @@ MonoBehaviour:
       IsFixedSeed: 0
       Seed: 0
     mRight:
-      Unit: {fileID: 0}
+      Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
       Level: 1
       IsFixedSeed: 0
       Seed: 0
