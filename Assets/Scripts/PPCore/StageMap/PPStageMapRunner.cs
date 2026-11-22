@@ -104,6 +104,8 @@ namespace PPCore
             }
 
             mMap = PPStageMapGenerator.Generate(mDefinition, progress.Seed);
+            // 始点は選ばずに到達済みのマスとし、最初からその次の段を選べるようにする
+            if (!progress.CurrentNode.HasValue && mMap.Start != null) progress.CompleteNode(mMap.Start.Key);
             mMapView.OnNodeClicked += aNode => SelectNode(aNode);
             mMapView.Build(mMap);
             mFocused = FirstSelectable();
@@ -173,7 +175,7 @@ namespace PPCore
 
         /* 問い合わせ */
 
-        // まだマスを選んでいなければ最下段(始点の 1 マス)、選んでいれば現在地の次の段でつながっているマスだけ選べる
+        // 現在地の次の段でつながっているマスだけ選べる。現在地が無い(始点の無いマップ)ときは最下段を選べる
         public bool IsSelectable(PPStageMapNode aNode)
         {
             var current = CurrentMapNode();

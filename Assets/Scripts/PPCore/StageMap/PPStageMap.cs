@@ -25,6 +25,9 @@ namespace PPCore
         Upgrade = 3,
         [InspectorName("ユニット獲得")]
         Recruit = 4,
+        // 最下段の始点。ステージを始めた時点で通過済みとして扱い、イベントは起きない
+        [InspectorName("スタート")]
+        Start = 5,
     }
 
     // マップ上の 1 マス。前後のマスへの参照を持つ有向グラフのノード
@@ -75,6 +78,8 @@ namespace PPCore
         // ボスの段を含まない段数
         public readonly int Height;
         public PPStageMapNode Boss;
+        // 最下段の始点の 1 マス
+        public PPStageMapNode Start;
 
         private readonly PPStageMapNode[,] mGrid;
 
@@ -157,6 +162,7 @@ namespace PPCore
             // すべての経路を最下段の中央の 1 マスから始め、そこから枝分かれさせる
             int startColumn = (map.Width - 1) / 2;
             for (int i = 0; i < aDefinition.PathCount; i++) CreatePath(map, startColumn, random);
+            map.Start = map.Get(new Vector2Int(0, startColumn));
 
             AssignTypes(map, aDefinition, random);
             CreateBoss(map, aDefinition);
@@ -216,12 +222,12 @@ namespace PPCore
 
         /* マスの種類 */
 
-        // 最下段は通常戦、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには敵も決める
+        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには敵も決める
         private static void AssignTypes(PPStageMap aMap, PPStageMapDefinition aDefinition, System.Random aRandom)
         {
             foreach (var node in aMap.AllNodes())
             {
-                if (node.Floor == 0) node.Type = PPStageNodeType.Battle;
+                if (node.Floor == 0) node.Type = PPStageNodeType.Start;
                 else if (node.Floor == aMap.Height - 1) node.Type = aDefinition.TopFloorType;
                 else if (node.Floor == aDefinition.RecruitFloor) node.Type = PPStageNodeType.Recruit;
                 else node.Type = PickType(aMap, node, aDefinition, aRandom);
