@@ -21,6 +21,16 @@ namespace PPCore
         void SetMarked(bool aIsMarked);
     }
 
+    // 選択の移動と決定に動きを付けられる要素。動きの間も選択と決定の処理は画面側が受け持つ
+    public interface IPPStageFocusMotion
+    {
+        // 上下左右の移動で、aPrevious から選択が移ってきたとき
+        void MoveFocusFrom(Component aPrevious);
+
+        // 決定したときの動きを始め、決定の処理を遅らせる秒数を返す。動かないなら 0
+        float PlaySubmit();
+    }
+
     // 要素を並べるまとまり。上から順に置き、まとまりの中は列数で折り返す格子として動く
     [Serializable]
     public sealed class PPStageListGroup
@@ -72,6 +82,8 @@ namespace PPCore
         private readonly List<int> mCounts = new();
         private int mOpenedFrame = -1;
         private Vector2Int mLastNavigate;
+        // 決定の動きが終わって決定の処理を呼ぶ時刻(timeScale に左右されない時間)。待っていなければ負
+        private float mSubmitAt = -1f;
 
         /* プロパティ */
 
@@ -92,9 +104,17 @@ namespace PPCore
         }
 
         // 開いたフレームと、詳細を開いている間・閉じたフレームは、開閉に使ったキーで動かないよう入力を受け付けない
+        // 決定の動きを待っている間も入力を受け付けず、終わったら決定の処理を呼ぶ
         protected virtual void Update()
         {
             if (!IsOpen || Time.frameCount == mOpenedFrame) return;
+            if (mSubmitAt >= 0f)
+            {
+                if (Time.unscaledTime < mSubmitAt) return;
+                mSubmitAt = -1f;
+                OnSubmit(FocusGroup, FocusIndex);
+                return;
+            }
             if (mDetailView != null && (mDetailView.IsOpen || mDetailView.ClosedFrame == Time.frameCount))
             {
                 mLastNavigate = ReadNavigate();
@@ -102,10 +122,10 @@ namespace PPCore
             }
 
             var navigate = ReadNavigate();
-            if (navigate != mLastNavigate && navigate != Vector2Int.zero) Move(navigate);
+            if (navigate != mLastNavigate && navigate != Vector2Int.zero) MoveWithMotion(navigate);
             mLastNavigate = navigate;
 
-            if (WasPressed(mSubmitAction)) OnSubmit(FocusGroup, FocusIndex);
+            if (WasPressed(mSubmitAction)) BeginSubmit();
             else if (WasPressed(mCancelAction)) OnCancel();
             else if (WasPressed(mDetailAction)) OpenDetail();
         }
@@ -116,6 +136,7 @@ namespace PPCore
         {
             if (!IsOpen) return;
             IsOpen = false;
+            mSubmitAt = -1f;
             ClosedFrame = Time.frameCount;
             if (mPanel != null) mPanel.SetActive(false);
         }
@@ -151,6 +172,7 @@ namespace PPCore
         protected void OpenPanel()
         {
             IsOpen = true;
+            mSubmitAt = -1f;
             mOpenedFrame = Time.frameCount;
             mLastNavigate = ReadNavigate();
             foreach (var action in new[] { mNavigateAction, mSubmitAction, mCancelAction, mDetailAction })
@@ -202,6 +224,23 @@ namespace PPCore
         protected void SetMarked(int aGroup, int aIndex, bool aIsMarked)
         {
             if (aGroup < mItems.Count && aIndex < mItems[aGroup].Count) ((IPPStageFocusable)mItems[aGroup][aIndex]).SetMarked(aIsMarked);
+        }
+
+        // 決定の動きがある要素なら動きの後に、なければすぐに決定の処理を呼ぶ
+        private void BeginSubmit()
+        {
+            float delay = GetFocusedItem() is IPPStageFocusMotion motion ? motion.PlaySubmit() : 0f;
+            if (delay > 0f) mSubmitAt = Time.unscaledTime + delay;
+            else OnSubmit(FocusGroup, FocusIndex);
+        }
+
+        // 選択を動かし、移った先の要素に動きがあれば、前の要素から移ってきたことを伝える
+        private void MoveWithMotion(Vector2Int aDirection)
+        {
+            var previous = GetFocusedItem();
+            Move(aDirection);
+            var next = GetFocusedItem();
+            if (previous != null && next != previous && next is IPPStageFocusMotion motion) motion.MoveFocusFrom(previous);
         }
 
         // 左右はまとまりの行の中で、上下は行をまたいで動かす。まとまりの上下の端からは隣のまとまりへ移る
@@ -262,6 +301,13 @@ namespace PPCore
         }
 
         /* ヘルパー */
+
+        // 選んでいる要素。まだ並べていなければ null
+        private Component GetFocusedItem()
+        {
+            if (FocusGroup >= mItems.Count || FocusIndex >= mCounts[FocusGroup]) return null;
+            return mItems[FocusGroup][FocusIndex];
+        }
 
         private static bool WasPressed(InputActionReference aAction) => aAction != null && aAction.action.WasPressedThisFrame();
     }

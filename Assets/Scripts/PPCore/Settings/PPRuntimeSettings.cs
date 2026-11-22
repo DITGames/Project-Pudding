@@ -61,6 +61,9 @@ namespace PPCore
         // 子に PPLoadingScreenView を持つプレハブ。未設定ならロード画面を出さずに切り替える
         [Label("シーン切り替えのロード画面")]
         [SerializeField] private GameObject mSceneLoadingScreen;
+        // メニューで選んでいる行の左に出す画像。未設定なら行のプレハブにある画像のまま
+        [Label("メニューの選択中の印")]
+        [SerializeField] private Sprite mMenuCursorSprite;
 
         /* 状態 */
 
@@ -72,6 +75,7 @@ namespace PPCore
         public PPUnitAIDefaultsDefinition UnitAIDefaults => mUnitAIDefaults;
         public PPDefaultKeyConfigDefinition DefaultKeyConfig => mDefaultKeyConfig;
         public GameObject SceneLoadingScreen => mSceneLoadingScreen;
+        public Sprite MenuCursorSprite => mMenuCursorSprite;
 
         /* static 関数 */
 
