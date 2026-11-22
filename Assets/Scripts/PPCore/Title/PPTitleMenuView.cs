@@ -34,21 +34,26 @@ namespace PPCore
         // 未設定なら、ユニットを選ばずにマップ定義の初期パーティで始める
         [Label("初期ユニット選択画面")]
         [SerializeField] private PPInitialUnitSelectView mUnitSelect;
+        // 未設定なら、ステージを選ばずにマップのシーンに設定されたマップ定義で始める
+        [Label("ステージ選択画面")]
+        [SerializeField] private PPStageSelectView mStageSelect;
 
         // Build Profiles に登録したシーンの名前
         [Header("シーン")]
-        [Label("ユニットを選んだ後に開くシーン名")]
+        [Label("ユニットとステージを選んだ後に開くシーン名")]
         [SerializeField] private string mNewGameSceneName = "S_StageMap";
 
         /* Unity イベント */
 
         private void Start() => Open();
 
-        // キー設定画面を開いている間と、それを閉じたフレームはメニューの入力を受け付けない
+        // キー設定画面を開いている間と、それやユニット・ステージの選択画面を閉じたフレームはメニューの入力を受け付けない
         protected override void Update()
         {
-            if (mConfigMenu != null && (mConfigMenu.IsOpen || mConfigMenu.ClosedFrame == Time.frameCount)) return;
-            if (mUnitSelect != null && mUnitSelect.ClosedFrame == Time.frameCount) return;
+            int frame = Time.frameCount;
+            if (mConfigMenu != null && (mConfigMenu.IsOpen || mConfigMenu.ClosedFrame == frame)) return;
+            if (mUnitSelect != null && mUnitSelect.ClosedFrame == frame) return;
+            if (mStageSelect != null && mStageSelect.ClosedFrame == frame) return;
             base.Update();
         }
 
@@ -93,21 +98,26 @@ namespace PPCore
         // タイトルより前の画面はないため、キャンセルでは閉じない
         protected override void OnCancel() { }
 
-        // メニューを閉じて初期ユニットを選ばせ、選んだら次のシーンへ進む。キャンセルならメニューに戻る
+        // メニューを閉じ、初期ユニット → ステージの順に選ばせてから次のシーンへ進む
+        // 選択画面のキャンセルでは 1 つ前の画面へ戻る。未設定の選択画面は飛ばす
         private bool StartNewGame()
         {
-            var selection = PPStageStartSelection.Begin();
-            if (mUnitSelect == null) return LoadNewGameScene();
+            PPStageStartSelection.Begin();
+            if (mUnitSelect == null && mStageSelect == null) return LoadNewGameScene();
 
             Close();
-            bool isOpened = mUnitSelect.Open(aPicked =>
-            {
-                var definition = mUnitSelect.Definition;
-                selection.SetInitialUnits(definition.CreateUnits(aPicked), definition.CoinConversionRate);
-                LoadNewGameScene();
-            }, Open);
+            bool isOpened = mUnitSelect != null ? OpenUnitSelect() : OpenStageSelect();
             if (!isOpened) Open();
             return isOpened;
+        }
+
+        private bool OpenUnitSelect() => mUnitSelect.Open(HandleUnitPicked, Open);
+
+        private bool OpenStageSelect() => mStageSelect.Open(HandleStagePicked, mUnitSelect != null ? ReturnToUnitSelect : Open);
+
+        private void ReturnToUnitSelect()
+        {
+            if (!OpenUnitSelect()) Open();
         }
 
         private bool LoadNewGameScene()
@@ -115,6 +125,30 @@ namespace PPCore
             CustomConsoleLog.Log(LogTag, $"はじめから: {mNewGameSceneName} へ進む");
             return PPSceneTransition.Load(mNewGameSceneName);
         }
+
+        /* 問い合わせ */
+
+        // セーブの判定ができるまでは、常にセーブデータがないものとする
+        protected virtual bool HasSaveData() => false;
+
+        /* イベントハンドラ */
+
+        // 選んだユニットを入れ物に入れ、ステージを選ばせる。ステージ選択が無ければそのまま次のシーンへ進む
+        private void HandleUnitPicked(PPInitialPartyMember aPicked)
+        {
+            var definition = mUnitSelect.Definition;
+            PPStageStartSelection.Current.SetInitialUnits(definition.CreateUnits(aPicked), definition.CoinConversionRate);
+            if (mStageSelect == null || !OpenStageSelect()) LoadNewGameScene();
+        }
+
+        // 選んだステージとそのシードを入れ物に入れ、次のシーンへ進む
+        private void HandleStagePicked(PPStageMapDefinition aMap)
+        {
+            PPStageStartSelection.Current.SetStage(aMap, aMap.ResolveSeed());
+            LoadNewGameScene();
+        }
+
+        /* ヘルパー */
 
         // アプリを終了する。Editor では Play を止める
         private static void Quit()
@@ -126,10 +160,5 @@ namespace PPCore
             Application.Quit();
 #endif
         }
-
-        /* 問い合わせ */
-
-        // セーブの判定ができるまでは、常にセーブデータがないものとする
-        protected virtual bool HasSaveData() => false;
     }
 }

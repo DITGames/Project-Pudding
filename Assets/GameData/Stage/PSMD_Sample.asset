@@ -12,6 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4cc1c84612a49a4a90d794d6622f57a, type: 3}
   m_Name: PSMD_Sample
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapDefinition
+  mDisplayName: "\u30B5\u30F3\u30D7\u30EB\u30B9\u30C6\u30FC\u30B8"
+  mThumbnail: {fileID: 0}
+  mDescription: "\u6700\u521D\u306E\u30B9\u30C6\u30FC\u30B8\u3002\u5206\u5C90\u3059\u308B\u9053\u3092\u9078\u3093\u3067\u3001\u9802\u4E0A\u306E\u30DC\u30B9\u3092\u76EE\u6307\u305D\u3046\u3002"
   mWidth: 7
   mHeight: 15
   mPathCount: 6
