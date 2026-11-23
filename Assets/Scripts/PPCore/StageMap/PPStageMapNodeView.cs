@@ -26,7 +26,7 @@ namespace PPCore
     }
 
     // マップ上の 1 マス。種類の色とアイコンを出し、選べるマスはクリックで選べる
-    // 選べるマスはゆっくり脈打ち、キーボードやゲームパッドで選んでいるマスは大きく表示する
+    // 選べるマスはゆっくり脈打ち、キーボードやゲームパッドで選んでいるマスは大きく、通過したマスは別の色の枠で表示する
     [RequireComponent(typeof(RectTransform))]
     public class PPStageMapNodeView : MonoBehaviour, IPointerClickHandler
     {
@@ -39,7 +39,7 @@ namespace PPCore
         // 種類のアイコン。背景の上に重ねる
         [Label("アイコン")]
         [SerializeField] private Image mIcon;
-        // 選んでいるマスにだけ出す枠。未設定なら出さない
+        // 選んでいるマス・現在地・通過したマスに出す枠。選んでいるマスと現在地は Image に設定した色で出す。未設定なら出さない
         [Label("選択中の枠")]
         [SerializeField] private Image mRing;
 
@@ -51,6 +51,9 @@ namespace PPCore
         [Label("通過したマスの明るさ")]
         [Range(0f, 1f)]
         [SerializeField] private float mVisitedBrightness = 0.6f;
+        // 選んでいるマスと現在地の枠と見分けられる色にする。通った線の色とそろえる
+        [Label("通過したマスの枠の色")]
+        [SerializeField] private Color mVisitedRingColor = new(0.42f, 0.66f, 0.38f, 1f);
 
         [Header("動き")]
         [Label("脈打つ速さ")]
@@ -65,6 +68,8 @@ namespace PPCore
         private Action<PPStageMapNodeView> mOnClick;
         private RectTransform mRect;
         private Color mTypeColor = Color.white;
+        // 選んでいるマスと現在地の枠の色。Setup の時点で枠の Image に設定されている色
+        private Color mRingColor = Color.white;
         private bool mIsFocused;
 
         /* プロパティ */
@@ -96,6 +101,7 @@ namespace PPCore
             Node = aNode;
             mOnClick = aOnClick;
             mTypeColor = aColor;
+            if (mRing != null) mRingColor = mRing.color;
 
             name = $"Node_{aNode.Floor}_{aNode.Column}_{aNode.Type}";
             mRect.anchoredPosition = aPosition;
@@ -124,7 +130,13 @@ namespace PPCore
             }
             // アイコンは背景と同じだけ暗くすると見えにくいため、まだ行けないマスだけ薄くする
             if (mIcon != null) mIcon.color = new Color(1f, 1f, 1f, aState == PPStageNodeState.Locked ? 0.5f : 1f);
-            if (mRing != null) mRing.enabled = aIsFocused || aState == PPStageNodeState.Current;
+            // 選んでいるマスと現在地の枠を、通過したマスの枠より優先する
+            if (mRing != null)
+            {
+                bool isHighlighted = aIsFocused || aState == PPStageNodeState.Current;
+                mRing.enabled = isHighlighted || aState == PPStageNodeState.Visited;
+                mRing.color = isHighlighted ? mRingColor : mVisitedRingColor;
+            }
             if (aState != PPStageNodeState.Selectable) mRect.localScale = Vector3.one * (aIsFocused ? mFocusScale : 1f);
         }
     }
