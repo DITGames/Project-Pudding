@@ -12,7 +12,7 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ユニット定義。属性・ロール・追加ステータス・レベル成長曲線・ビヘイビアツリーを持つ
+    // ユニット定義。属性・ロール・追加ステータス・レベル成長曲線・ビヘイビアツリー・難易度の基本ポイントを持つ
     // 成長は AnimationCurve の倍率で表現し、成長後の値は四捨五入で整数に丸める
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
     public class PPUnitDefinition : UnitDefinition
@@ -41,6 +41,11 @@ namespace PPCore
         [Label("ビヘイビアツリー")]
         [SerializeField]protected PPUnitBehaviourTree mBehaviourTree;
 
+        // 遭遇の難易度ポイントの元になる値。遭遇は編成のユニットのこの値を合計する
+        [Header("レベルデザイン")]
+        [Label("難易度の基本ポイント")] [Min(0)]
+        [SerializeField]protected int mDifficultyPoint = 10;
+
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
         [Label(PPUnitAbilityDefinition.NameHp + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
         [Label(PPUnitAbilityDefinition.NameStrength + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
@@ -54,6 +59,7 @@ namespace PPCore
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
         public PPUnitRole Role => mRole;
         public PPUnitBehaviourTree BehaviourTree => mBehaviourTree;
+        public int DifficultyPoint => mDifficultyPoint;
 
         /* static 関数 */
 
@@ -130,5 +136,8 @@ namespace PPCore
         // きようさの育成値を評価する。他の 4 能力と同じ丸め規則を使う
         public virtual float EvaluateDexterity(int aLevel)
             => EvaluateGrowthValue(mExpandStatBlock.Dexterity, mDexterityGrowth, aLevel);
+
+        // 指定したレベルでの難易度ポイント。今はレベルによる補正をせず、基本ポイントをそのまま返す
+        public virtual int EvaluateDifficultyPoint(int aLevel) => mDifficultyPoint;
     }
 }

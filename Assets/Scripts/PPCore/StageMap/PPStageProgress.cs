@@ -31,12 +31,15 @@ namespace PPCore
         public readonly Vector2Int Node;
         public readonly PPStageNodeType Type;
         public readonly PPPartyDefinition Enemy;
+        // 敵の元になった遭遇。ボスでは null
+        public readonly PPEncounterDefinition Encounter;
 
-        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPPartyDefinition aEnemy)
+        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPPartyDefinition aEnemy, PPEncounterDefinition aEncounter = null)
         {
             Node = aNode;
             Type = aType;
             Enemy = aEnemy;
+            Encounter = aEncounter;
         }
     }
 

@@ -49,6 +49,7 @@ MonoBehaviour:
   mTypeAttribute: 3
   mRole: 0
   mBehaviourTree: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
+  mDifficultyPoint: 10
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

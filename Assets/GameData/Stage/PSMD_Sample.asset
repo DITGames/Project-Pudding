@@ -26,23 +26,15 @@ MonoBehaviour:
   mRecruitFloor: 8
   mTopFloorType: 3
   mNormalEncounters:
-  - Party: {fileID: 11400000, guid: 2f02a597289df244899751ef139fd95f, type: 2}
+  - Encounter: {fileID: 11400000, guid: 81e062d640550bf4b8589e3ac85220ca, type: 2}
     Weight: 2
-    MinFloor: 0
-    MaxFloor: 6
-  - Party: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
+  - Encounter: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
     Weight: 1
-    MinFloor: 3
-    MaxFloor: 99
   mEliteEncounters:
-  - Party: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
+  - Encounter: {fileID: 11400000, guid: ae96554ec2557c14a8af1a4663480eaa, type: 2}
     Weight: 1
-    MinFloor: 0
-    MaxFloor: 99
-  - Party: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+  - Encounter: {fileID: 11400000, guid: bd4f78f4449a43b409abdf7e09d5b872, type: 2}
     Weight: 1
-    MinFloor: 8
-    MaxFloor: 99
   mBoss: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
   mRecruitCandidates:
   - {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}

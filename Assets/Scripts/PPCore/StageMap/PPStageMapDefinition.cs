@@ -13,18 +13,15 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // マップに出てくる敵パーティの候補 1 件分。重みと出てくる段の範囲で分布を決める
+    // マップに出てくる遭遇の候補 1 件分。出てくる段は遭遇が持ち、マップごとの出やすさは重みで決める
     [Serializable]
     public sealed class PPStageEncounterEntry
     {
-        [Label("敵パーティ定義")] public PPPartyDefinition Party;
+        [Label("遭遇")] public PPEncounterDefinition Encounter;
         [Label("重み")] [Min(0f)] public float Weight = 1f;
-        // 段は最下段を 0 として数える
-        [Label("出てくる最小の段")] [Min(0)] public int MinFloor = 0;
-        [Label("出てくる最大の段")] [Min(0)] public int MaxFloor = 99;
 
         // 指定した段に出てくる候補か
-        public bool IsAvailable(int aFloor) => Party != null && Weight > 0f && aFloor >= MinFloor && aFloor <= MaxFloor;
+        public bool IsAvailable(int aFloor) => Encounter != null && Weight > 0f && Encounter.IsAvailableOnFloor(aFloor);
     }
 
     // 1 つのマップの形・マスの出現・敵の分布・ユニット獲得・開始時のパーティをまとめた定義
@@ -72,6 +69,7 @@ namespace PPCore
         [Label("最上段のマス")]
         [SerializeField] private PPStageNodeType mTopFloorType = PPStageNodeType.Upgrade;
 
+        // 通常敵にはエリートでない遭遇を、エリートにはエリートの遭遇を置く
         [Header("敵")]
         [Label("通常敵", true)]
         [SerializeField] private List<PPStageEncounterEntry> mNormalEncounters = new();

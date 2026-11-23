@@ -41,8 +41,10 @@ namespace PPCore
         public readonly List<PPStageMapNode> Prev = new();
 
         public PPStageNodeType Type;
-        // バトルのマスで戦う敵。バトル以外のマスでは null
-        public PPPartyDefinition Encounter;
+        // 通常戦・エリートのマスの遭遇。ボスとバトル以外のマスでは null
+        public PPEncounterDefinition Encounter;
+        // バトルのマスで戦う敵。通常戦・エリートでは遭遇の敵パーティ、ボスではボスの定義。バトル以外のマスでは null
+        public PPPartyDefinition Enemy;
         // 表示位置のゆらぎ。-1〜1 で持ち、表示側が間隔を掛ける
         public Vector2 Jitter;
 
@@ -222,9 +224,10 @@ namespace PPCore
 
         /* マスの種類 */
 
-        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには敵も決める
+        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには遭遇と敵も決める
         private static void AssignTypes(PPStageMap aMap, PPStageMapDefinition aDefinition, System.Random aRandom)
         {
+            WarnMismatchedEncounters(aDefinition);
             foreach (var node in aMap.AllNodes())
             {
                 if (node.Floor == 0) node.Type = PPStageNodeType.Start;
@@ -243,9 +246,26 @@ namespace PPCore
                     node.Encounter = PickEncounter(aDefinition.NormalEncounters, node.Floor, aRandom);
                     if (node.Encounter == null)
                     {
-                        CustomConsoleLog.Error(LogTag, $"{node.Floor} 段目に出せる通常敵がありません。マップ定義 {aDefinition.name} の「通常敵」に、この段を含む候補を足してください");
+                        CustomConsoleLog.Error(LogTag, $"{node.Floor} 段目に出せる通常敵がありません。マップ定義 {aDefinition.name} の「通常敵」に、この段を含む遭遇を足してください");
                     }
                 }
+                node.Enemy = node.Encounter != null ? node.Encounter.Party : null;
+            }
+        }
+
+        // 通常敵の欄にエリートの遭遇が、エリートの欄にエリートでない遭遇が置かれていたら警告する。候補からは外さない
+        private static void WarnMismatchedEncounters(PPStageMapDefinition aDefinition)
+        {
+            WarnMismatchedEncounters(aDefinition, aDefinition.NormalEncounters, false, "通常敵");
+            WarnMismatchedEncounters(aDefinition, aDefinition.EliteEncounters, true, "エリート");
+        }
+
+        private static void WarnMismatchedEncounters(PPStageMapDefinition aDefinition, IReadOnlyList<PPStageEncounterEntry> aEntries, bool aIsElite, string aListName)
+        {
+            foreach (var entry in aEntries)
+            {
+                if (entry == null || entry.Encounter == null || entry.Encounter.IsElite == aIsElite) continue;
+                CustomConsoleLog.Warning(LogTag, $"マップ定義 {aDefinition.name} の「{aListName}」にある遭遇 {entry.Encounter.name} は、エリートの設定が{(aIsElite ? "オフ" : "オン")}です。遭遇の「エリート」か、置く欄を直してください");
             }
         }
 
@@ -302,7 +322,7 @@ namespace PPCore
         }
 
         // 段に出てくる候補から、重みで 1 つ選ぶ。候補が無ければ null
-        private static PPPartyDefinition PickEncounter(IReadOnlyList<PPStageEncounterEntry> aEntries, int aFloor, System.Random aRandom)
+        private static PPEncounterDefinition PickEncounter(IReadOnlyList<PPStageEncounterEntry> aEntries, int aFloor, System.Random aRandom)
         {
             float total = 0f;
             foreach (var entry in aEntries)
@@ -312,12 +332,12 @@ namespace PPCore
             if (total <= 0f) return null;
 
             float v = (float)aRandom.NextDouble() * total;
-            PPPartyDefinition last = null;
+            PPEncounterDefinition last = null;
             foreach (var entry in aEntries)
             {
                 if (entry == null || !entry.IsAvailable(aFloor)) continue;
-                last = entry.Party;
-                if ((v -= entry.Weight) < 0f) return entry.Party;
+                last = entry.Encounter;
+                if ((v -= entry.Weight) < 0f) return entry.Encounter;
             }
             // 小数の誤差で最後まで引けなかったときは、最後の候補にする
             return last;
@@ -331,10 +351,10 @@ namespace PPCore
             var boss = new PPStageMapNode(aMap.Height, (aMap.Width - 1) / 2)
             {
                 Type = PPStageNodeType.Boss,
-                Encounter = aDefinition.Boss,
+                Enemy = aDefinition.Boss,
             };
             aMap.Boss = boss;
-            if (boss.Encounter == null)
+            if (boss.Enemy == null)
             {
                 CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「ボス」が未設定です。敵パーティ定義を割り当ててください");
             }

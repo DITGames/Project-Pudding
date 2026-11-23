@@ -155,7 +155,7 @@ namespace PPCore
                 return false;
             }
 
-            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} 敵={(aNode.Encounter != null ? aNode.Encounter.name : "-")}");
+            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} 遭遇={(aNode.Encounter != null ? aNode.Encounter.name : "-")} 敵={(aNode.Enemy != null ? aNode.Enemy.name : "-")}");
             SetMessage(null);
             stageEvent.Begin(new PPStageEventContext
             {
@@ -267,7 +267,7 @@ namespace PPCore
             {
                 PPStageNodeType.Upgrade => "所持ユニットのうち、一番レベルの低い 1 体のレベルが 1 上がる",
                 PPStageNodeType.Recruit => "候補から 1 体を選んで仲間にする",
-                _ => $"敵: {DescribeEnemies(mFocused.Encounter)}",
+                _ => $"敵: {DescribeEnemies(mFocused.Enemy)}",
             };
         }
 
