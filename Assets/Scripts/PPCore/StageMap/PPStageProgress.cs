@@ -25,6 +25,17 @@ namespace PPCore
         }
     }
 
+    // バトルの決着を進行状態へ反映した結果
+    public enum PPStageBattleOutcome
+    {
+        // 勝って、マップに戻って続ける
+        Continue,
+        // 負けて、進行状態を捨てた
+        Defeated,
+        // ボスに勝ってステージをクリアし、進行状態を捨てた
+        Cleared,
+    }
+
     // マップからバトルのシーンへ渡す、これから戦うバトルの内容
     public sealed class PPStageBattleRequest
     {
@@ -300,28 +311,28 @@ namespace PPCore
         // バトルのマスに入る。決着するまでは現在地を進めない
         public void BeginBattle(PPStageBattleRequest aRequest) => PendingBattle = aRequest;
 
-        // バトルの決着を反映する。勝てば現在地を進め、ボスに勝つか負けたら進行状態を捨てて最初からにする
+        // バトルの決着を反映する。勝てば現在地を進め、ボスに勝つか負けたら進行状態を捨てる
         // ボスに勝ったときは、このステージのクリアを記録して次のステージを選べるようにする
-        public void ResolveBattle(BattleResultType aResult)
+        public PPStageBattleOutcome ResolveBattle(BattleResultType aResult)
         {
             var request = PendingBattle;
             PendingBattle = null;
-            if (request == null) return;
+            if (request == null) return PPStageBattleOutcome.Continue;
 
             if (aResult != BattleResultType.Victory)
             {
-                CustomConsoleLog.Log(LogTag, $"敗北: 最初からやり直す (結果={aResult})");
+                CustomConsoleLog.Log(LogTag, $"敗北: 進行状態を捨てる (結果={aResult})");
                 Clear();
-                return;
+                return PPStageBattleOutcome.Defeated;
             }
 
             CompleteNode(request.Node);
-            if (request.Type == PPStageNodeType.Boss)
-            {
-                PPStageClearRecord.MarkCleared(Definition);
-                CustomConsoleLog.Log(LogTag, "ステージクリア: 最初からやり直す");
-                Clear();
-            }
+            if (request.Type != PPStageNodeType.Boss) return PPStageBattleOutcome.Continue;
+
+            PPStageClearRecord.MarkCleared(Definition);
+            CustomConsoleLog.Log(LogTag, "ステージクリア: 進行状態を捨てる");
+            Clear();
+            return PPStageBattleOutcome.Cleared;
         }
 
         /* ヘルパー */

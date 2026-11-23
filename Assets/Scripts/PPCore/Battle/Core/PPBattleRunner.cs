@@ -122,6 +122,12 @@ namespace PPCore
         [Label("決着後にマップへ戻るまでの秒数")]
         [Min(0f)]
         [SerializeField] private float mReturnToStageDelay = 2f;
+        // ステージで負けたときと、ボスに勝ったときに出す。未設定なら結果を出さずにタイトルへ戻る
+        [Label("決着の結果画面")]
+        [SerializeField] private PPStageResultView mResultView;
+        // 結果画面が未設定のときに戻るシーン。Build Profiles に登録したシーンの名前
+        [Label("結果のあとに戻るシーン名")]
+        [SerializeField] private string mTitleSceneName = "S_Title";
 
         // trueの場合、プッシャーのコイン獲得の代わりに供給の間隔ごとのゲージ加算で味方を進行させる
         // 実機のコインプッシャーが無いシミュレーション環境向け
@@ -370,15 +376,31 @@ namespace PPCore
             if (mAutoBattleIndicator != null) mAutoBattleIndicator.Show(mIsAutoBattle, PPCoinDropStyleUtility.GetName(mAllyDropStyle));
         }
 
-        // 決着をステージの進行状態へ反映し、少し待ってからマップのシーンへ戻る
+        // 決着をステージの進行状態へ反映し、少し待ってから次へ進む。勝って続けるならマップのシーンへ戻り、
+        // 負けたときとボスに勝ったときは結果画面を出す(決定でタイトルへ戻る)
         // 入力中に決着して timeScale が 0 のまま残っても待てるよう、待ち時間は timeScale に左右されない時間で数える
         private IEnumerator ReturnToStage(PPStageProgress aStage, BattleResult aResult)
         {
             string returnScene = aStage.ReturnSceneName;
-            aStage.ResolveBattle(aResult.Type);
-            CustomConsoleLog.Log("Battle", $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に {returnScene} へ戻る");
+            string stageName = aStage.Definition.DisplayName;
+            int floor = aStage.PendingBattle != null ? aStage.PendingBattle.Node.x : 0;
+            var outcome = aStage.ResolveBattle(aResult.Type);
+            CustomConsoleLog.Log("Battle", outcome == PPStageBattleOutcome.Continue
+                ? $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に {returnScene} へ戻る"
+                : $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に結果を出す ({outcome})");
 
             yield return new WaitForSecondsRealtime(mReturnToStageDelay);
+            if (outcome != PPStageBattleOutcome.Continue && mResultView != null)
+            {
+                mResultView.Open(outcome, aResult.Type, stageName, floor);
+                yield break;
+            }
+            if (outcome != PPStageBattleOutcome.Continue)
+            {
+                CustomConsoleLog.Warning("Battle", $"決着の結果画面が未設定のため、結果を出さずに {mTitleSceneName} へ戻ります。PPBattleRunner の「決着の結果画面」を割り当ててください");
+                PPStageStartSelection.Clear();
+                returnScene = mTitleSceneName;
+            }
             // 次のバトルでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る
             Time.timeScale = 1f;
             PPSceneTransition.Load(returnScene);
