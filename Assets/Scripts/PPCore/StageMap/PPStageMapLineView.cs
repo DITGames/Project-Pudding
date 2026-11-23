@@ -30,8 +30,9 @@ namespace PPCore
         // 現在地から選べるマスへ伸びている線
         [Label("行き先の色")]
         [SerializeField] private Color mActiveColor = new(1f, 0.9f, 0.45f, 1f);
+        // 通過したマスの枠の色とそろえる
         [Label("通った線の色")]
-        [SerializeField] private Color mTakenColor = new(1f, 0.75f, 0.3f, 0.75f);
+        [SerializeField] private Color mTakenColor = new(0.42f, 0.66f, 0.38f, 1f);
 
         /* プロパティ */
 

@@ -131,6 +131,7 @@ MonoBehaviour:
   mRing: {fileID: 6420624017667013937}
   mLockedBrightness: 0.45
   mVisitedBrightness: 0.7
+  mVisitedRingColor: {r: 0.42, g: 0.66, b: 0.38, a: 1}
   mPulseSpeed: 3.2
   mPulseAmount: 0.1
   mFocusScale: 1.25

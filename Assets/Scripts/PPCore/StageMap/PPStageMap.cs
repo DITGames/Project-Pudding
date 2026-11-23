@@ -41,8 +41,10 @@ namespace PPCore
         public readonly List<PPStageMapNode> Prev = new();
 
         public PPStageNodeType Type;
-        // バトルのマスで戦う敵。バトル以外のマスでは null
-        public PPPartyDefinition Encounter;
+        // 通常戦・エリートのマスの遭遇。ボスとバトル以外のマスでは null
+        public PPEncounterDefinition Encounter;
+        // バトルのマスで戦う敵。通常戦・エリートでは遭遇の敵パーティ、ボスではボスの定義。バトル以外のマスでは null
+        public PPPartyDefinition Enemy;
         // 表示位置のゆらぎ。-1〜1 で持ち、表示側が間隔を掛ける
         public Vector2 Jitter;
 
@@ -152,6 +154,11 @@ namespace PPCore
         // 規則に合う種類が引けなかったときに引き直す回数
         private const int PickAttemptCount = 30;
 
+        /* 状態 */
+
+        // 欄と遭遇の食い違いを警告し終えたマップ定義
+        private static readonly HashSet<PPStageMapDefinition> sWarnedDefinitions = new();
+
         /* 生成 */
 
         public static PPStageMap Generate(PPStageMapDefinition aDefinition, int aSeed)
@@ -222,9 +229,10 @@ namespace PPCore
 
         /* マスの種類 */
 
-        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには敵も決める
+        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには遭遇と敵も決める
         private static void AssignTypes(PPStageMap aMap, PPStageMapDefinition aDefinition, System.Random aRandom)
         {
+            WarnMismatchedEncounters(aDefinition);
             foreach (var node in aMap.AllNodes())
             {
                 if (node.Floor == 0) node.Type = PPStageNodeType.Start;
@@ -243,11 +251,26 @@ namespace PPCore
                     node.Encounter = PickEncounter(aDefinition.NormalEncounters, node.Floor, aRandom);
                     if (node.Encounter == null)
                     {
-                        CustomConsoleLog.Error(LogTag, $"{node.Floor} 段目に出せる通常敵がありません。マップ定義 {aDefinition.name} の「通常敵」に、この段を含む候補を足してください");
+                        CustomConsoleLog.Error(LogTag, $"{node.Floor} 段目に出せる通常敵がありません。マップ定義 {aDefinition.name} の「通常敵」に、この段を含む遭遇を足してください");
                     }
                 }
+                node.Enemy = node.Encounter != null ? node.Encounter.Party : null;
             }
         }
+
+        // 欄と遭遇の「エリート」の食い違いを警告する。バトルから戻るたびに生成し直すため、同じ定義では Play 中に 1 回だけ出す
+        private static void WarnMismatchedEncounters(PPStageMapDefinition aDefinition)
+        {
+            if (!sWarnedDefinitions.Add(aDefinition)) return;
+            foreach (var message in aDefinition.FindMismatchedEncounters())
+            {
+                CustomConsoleLog.Warning(LogTag, message, aDefinition);
+            }
+        }
+
+        // Play を始めるたびに警告済みの記録を空にする。ドメインの再読み込みを切っているため、前回の Play の記録が残るのを防ぐ
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetWarnedDefinitions() => sWarnedDefinitions.Clear();
 
         // 重みで種類を引き、序盤の特殊なマス・同じ経路での連続・同じ段の隣り合わせを避ける
         private static PPStageNodeType PickType(PPStageMap aMap, PPStageMapNode aNode, PPStageMapDefinition aDefinition, System.Random aRandom)
@@ -302,7 +325,7 @@ namespace PPCore
         }
 
         // 段に出てくる候補から、重みで 1 つ選ぶ。候補が無ければ null
-        private static PPPartyDefinition PickEncounter(IReadOnlyList<PPStageEncounterEntry> aEntries, int aFloor, System.Random aRandom)
+        private static PPEncounterDefinition PickEncounter(IReadOnlyList<PPStageEncounterEntry> aEntries, int aFloor, System.Random aRandom)
         {
             float total = 0f;
             foreach (var entry in aEntries)
@@ -312,12 +335,12 @@ namespace PPCore
             if (total <= 0f) return null;
 
             float v = (float)aRandom.NextDouble() * total;
-            PPPartyDefinition last = null;
+            PPEncounterDefinition last = null;
             foreach (var entry in aEntries)
             {
                 if (entry == null || !entry.IsAvailable(aFloor)) continue;
-                last = entry.Party;
-                if ((v -= entry.Weight) < 0f) return entry.Party;
+                last = entry.Encounter;
+                if ((v -= entry.Weight) < 0f) return entry.Encounter;
             }
             // 小数の誤差で最後まで引けなかったときは、最後の候補にする
             return last;
@@ -331,10 +354,10 @@ namespace PPCore
             var boss = new PPStageMapNode(aMap.Height, (aMap.Width - 1) / 2)
             {
                 Type = PPStageNodeType.Boss,
-                Encounter = aDefinition.Boss,
+                Enemy = aDefinition.Boss,
             };
             aMap.Boss = boss;
-            if (boss.Encounter == null)
+            if (boss.Enemy == null)
             {
                 CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「ボス」が未設定です。敵パーティ定義を割り当ててください");
             }

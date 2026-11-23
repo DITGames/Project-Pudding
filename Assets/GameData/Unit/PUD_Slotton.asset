@@ -30,6 +30,7 @@ MonoBehaviour:
   mTypeAttribute: 2
   mRole: 0
   mBehaviourTree: {fileID: 11400000, guid: af05137b16a249bcbe1aa348f5e6ae44, type: 2}
+  mDifficultyPoint: 10
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

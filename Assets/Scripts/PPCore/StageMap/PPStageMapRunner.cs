@@ -155,7 +155,7 @@ namespace PPCore
                 return false;
             }
 
-            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} 敵={(aNode.Encounter != null ? aNode.Encounter.name : "-")}");
+            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} 遭遇={(aNode.Encounter != null ? aNode.Encounter.name : "-")} 敵={(aNode.Enemy != null ? aNode.Enemy.name : "-")}");
             SetMessage(null);
             stageEvent.Begin(new PPStageEventContext
             {
@@ -258,29 +258,20 @@ namespace PPCore
             }
         }
 
-        // 選んでいるマスの種類と、バトルなら敵、それ以外なら起きることを出す
+        // 選んでいるマスの種類と、そのマスで起きることを出す。バトルのマスでも敵の中身は見せない
         private void RefreshNodeInfo()
         {
             if (mNodeInfoTitle != null) mNodeInfoTitle.text = mFocused != null ? mMapView.GetTypeName(mFocused.Type) : string.Empty;
             if (mNodeInfoBody == null) return;
             mNodeInfoBody.text = mFocused == null ? string.Empty : mFocused.Type switch
             {
+                PPStageNodeType.Battle => "敵と戦う",
+                PPStageNodeType.Elite => "強い敵と戦う",
+                PPStageNodeType.Boss => "ボスと戦う",
                 PPStageNodeType.Upgrade => "所持ユニットのうち、一番レベルの低い 1 体のレベルが 1 上がる",
                 PPStageNodeType.Recruit => "候補から 1 体を選んで仲間にする",
-                _ => $"敵: {DescribeEnemies(mFocused.Encounter)}",
+                _ => string.Empty,
             };
-        }
-
-        private static string DescribeEnemies(PPPartyDefinition aParty)
-        {
-            if (aParty == null) return "未設定";
-            var names = new List<string>();
-            foreach (var position in PartyPositions)
-            {
-                var entry = aParty.GetMember(position);
-                if (entry != null && entry.Unit != null) names.Add($"{entry.Unit.DisplayName} Lv{entry.Level}");
-            }
-            return names.Count > 0 ? string.Join("、", names) : "なし";
         }
 
         private void SetMessage(string aMessage)

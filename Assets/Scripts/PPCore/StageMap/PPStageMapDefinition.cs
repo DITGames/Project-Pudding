@@ -10,21 +10,19 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using AttributeUtility;
+using CustomConsole;
 
 namespace PPCore
 {
-    // マップに出てくる敵パーティの候補 1 件分。重みと出てくる段の範囲で分布を決める
+    // マップに出てくる遭遇の候補 1 件分。出てくる段は遭遇が持ち、マップごとの出やすさは重みで決める
     [Serializable]
     public sealed class PPStageEncounterEntry
     {
-        [Label("敵パーティ定義")] public PPPartyDefinition Party;
+        [Label("遭遇")] public PPEncounterDefinition Encounter;
         [Label("重み")] [Min(0f)] public float Weight = 1f;
-        // 段は最下段を 0 として数える
-        [Label("出てくる最小の段")] [Min(0)] public int MinFloor = 0;
-        [Label("出てくる最大の段")] [Min(0)] public int MaxFloor = 99;
 
         // 指定した段に出てくる候補か
-        public bool IsAvailable(int aFloor) => Party != null && Weight > 0f && aFloor >= MinFloor && aFloor <= MaxFloor;
+        public bool IsAvailable(int aFloor) => Encounter != null && Weight > 0f && Encounter.IsAvailableOnFloor(aFloor);
     }
 
     // 1 つのマップの形・マスの出現・敵の分布・ユニット獲得・開始時のパーティをまとめた定義
@@ -32,6 +30,10 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPStageMapDefinition", menuName = "Project-Pudding/Definition/PPStageMapDefinition")]
     public class PPStageMapDefinition : ScriptableObject
     {
+        /* 定数 */
+
+        private const string LogTag = "StageMap";
+
         /* インスペクタ設定 */
 
         // ステージ選択の画面に出す内容。表示名が空ならアセット名を出す
@@ -72,6 +74,7 @@ namespace PPCore
         [Label("最上段のマス")]
         [SerializeField] private PPStageNodeType mTopFloorType = PPStageNodeType.Upgrade;
 
+        // 通常敵にはエリートでない遭遇を、エリートにはエリートの遭遇を置く
         [Header("敵")]
         [Label("通常敵", true)]
         [SerializeField] private List<PPStageEncounterEntry> mNormalEncounters = new();
@@ -122,9 +125,40 @@ namespace PPCore
         public int RecruitLevel => mRecruitLevel;
         public PPPartyDefinition InitialParty => mInitialParty;
 
+        /* Unity イベント */
+
+#if UNITY_EDITOR
+        // インスペクタで編集した時点で、欄と遭遇の「エリート」の食い違いを警告する
+        void OnValidate()
+        {
+            foreach (var message in FindMismatchedEncounters())
+            {
+                CustomConsoleLog.Warning(LogTag, message, this);
+            }
+        }
+#endif
+
         /* 問い合わせ */
 
         // 新しく始めるときのシードを返す。固定しない場合は毎回違う値になる
         public int ResolveSeed() => mIsFixedSeed ? mSeed : new System.Random().Next();
+
+        // 通常敵の欄にエリートの遭遇が、エリートの欄にエリートでない遭遇が置かれていれば、その警告文を返す。無ければ空
+        public List<string> FindMismatchedEncounters()
+        {
+            var messages = new List<string>();
+            CollectMismatched(mNormalEncounters, false, "通常敵", messages);
+            CollectMismatched(mEliteEncounters, true, "エリート", messages);
+            return messages;
+        }
+
+        private void CollectMismatched(List<PPStageEncounterEntry> aEntries, bool aIsElite, string aListName, List<string> aMessages)
+        {
+            foreach (var entry in aEntries)
+            {
+                if (entry == null || entry.Encounter == null || entry.Encounter.IsElite == aIsElite) continue;
+                aMessages.Add($"マップ定義 {name} の「{aListName}」にある遭遇 {entry.Encounter.name} は、エリートの設定が{(aIsElite ? "オフ" : "オン")}です。遭遇の「エリート」か、置く欄を直してください");
+            }
+        }
     }
 }
