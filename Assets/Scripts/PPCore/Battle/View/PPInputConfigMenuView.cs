@@ -3,7 +3,7 @@
  * @file PPInputConfigMenuView.cs
  * @author hqrse
  * @date 2026/11/18
- * @brief バトル中やタイトルで開く設定画面(ゲーム・サウンド・キー設定のタブと表)
+ * @brief バトル中やタイトルで開く設定画面(サウンド・キー設定のタブと表)
  * =====================================*/
 
 using System.Collections;
@@ -15,7 +15,7 @@ using UnityEngine.InputSystem;
 
 namespace PPCore
 {
-    // 上のタブで「ゲーム」「サウンド」「キー設定」を切り替え、その中身を表の行で並べる設定画面
+    // 上のタブで「サウンド」「キー設定」を切り替え、その中身を表の行で並べる設定画面
     // キー設定では UI 操作 / ゲーム操作 と キーボード / コントローラー を選び、選んだ組み合わせの操作の 2 枠を並べる
     // 開いている間はバトルの時計(バトル中だけ)と物理を止める
     public class PPInputConfigMenuView : MonoBehaviour
@@ -31,7 +31,7 @@ namespace PPCore
             // キー設定の キーボード / コントローラー
             Device,
             Rebind,
-            // 左右で値を変える(AI モード・音量)
+            // 左右で値を変える(音量)
             Value,
             Reset,
             Close,
@@ -40,15 +40,13 @@ namespace PPCore
         // 設定画面のタブ。並び順が画面の左からの順になる
         private enum Tab
         {
-            Game = 0,
-            Sound = 1,
-            Key = 2,
+            Sound = 0,
+            Key = 1,
         }
 
         // 左右で変える値の種類
         private enum ValueKind
         {
-            AIStyle,
             MasterVolume,
             BgmVolume,
             SeVolume,
@@ -74,7 +72,7 @@ namespace PPCore
         private const string CloseText = "閉じる";
         // 割り当ての入力待ちの間に出す文字
         private const string WaitingText = "入力待ち";
-        private static readonly string[] TabNames = { "ゲーム", "サウンド", "キー設定" };
+        private static readonly string[] TabNames = { "サウンド", "キー設定" };
 
         /* インスペクタ設定 */
 
@@ -145,7 +143,7 @@ namespace PPCore
         private Cell[] mFooterCells;
         // 今のタブで並べた表の行。タブや切り替えを変えるときに消す
         private readonly List<PPSettingsRow> mContentRows = new();
-        private Tab mTab = Tab.Game;
+        private Tab mTab = Tab.Sound;
         private PPRebindCategory mCategory = PPRebindCategory.UI;
         private bool mIsGamepad;
         private BattleManager mManager;
@@ -237,9 +235,6 @@ namespace PPCore
 
             switch (mTab)
             {
-                case Tab.Game:
-                    AddValueRow("オートのAIモード", ValueKind.AIStyle);
-                    break;
                 case Tab.Sound:
                     AddValueRow("全体の音量", ValueKind.MasterVolume);
                     AddValueRow("BGMの音量", ValueKind.BgmVolume);
@@ -410,23 +405,11 @@ namespace PPCore
             RefreshAll();
         }
 
-        // 値を 1 段変える。AI モードは型を順に、音量は 1 ずつ変える
+        // 音量を 1 段変える
         private void ChangeValue(ValueKind aValue, int aDelta)
         {
-            switch (aValue)
-            {
-                case ValueKind.AIStyle:
-                    var style = PPGameSettings.GetAIStyle(GetDefaultAIStyle());
-                    int count = System.Enum.GetValues(typeof(PPCoinDropStyle)).Length;
-                    // バランス → コイン重視 → アイテム重視 の順に回す(左は逆回り)
-                    for (int i = 0; i < (aDelta > 0 ? 1 : count - 1); i++) style = PPCoinDropStyleUtility.Next(style);
-                    PPGameSettings.SetAIStyle(style);
-                    break;
-                default:
-                    var kind = ToVolumeKind(aValue);
-                    PPGameSettings.SetVolume(kind, PPGameSettings.GetVolume(kind) + aDelta);
-                    break;
-            }
+            var kind = ToVolumeKind(aValue);
+            PPGameSettings.SetVolume(kind, PPGameSettings.GetVolume(kind) + aDelta);
             RefreshAll();
         }
 
@@ -435,7 +418,6 @@ namespace PPCore
         {
             switch (mTab)
             {
-                case Tab.Game: PPGameSettings.ResetGame(); break;
                 case Tab.Sound: PPGameSettings.ResetSound(); break;
                 case Tab.Key: PPInputBindingStore.ResetToDefault(mActions); break;
             }
@@ -519,11 +501,8 @@ namespace PPCore
             }
         }
 
-        private string DescribeValue(ValueKind aValue) => aValue switch
-        {
-            ValueKind.AIStyle => PPCoinDropStyleUtility.GetName(PPGameSettings.GetAIStyle(GetDefaultAIStyle())),
-            _ => $"{PPGameSettings.GetVolume(ToVolumeKind(aValue))} / {PPGameSettings.VolumeMax}",
-        };
+        private string DescribeValue(ValueKind aValue)
+            => $"{PPGameSettings.GetVolume(ToVolumeKind(aValue))} / {PPGameSettings.VolumeMax}";
 
         /* イベントハンドラ */
 
@@ -581,12 +560,5 @@ namespace PPCore
             ValueKind.SeVolume => PPVolumeKind.Se,
             _ => PPVolumeKind.Master,
         };
-
-        // 保存した AI モードが無いときの型。PPRuntimeSettings の既定に合わせる
-        private static PPCoinDropStyle GetDefaultAIStyle()
-        {
-            var defaults = PPRuntimeSettings.Current.CoinDropAIDefaults;
-            return defaults != null ? defaults.PlayerStyle : PPCoinDropStyle.Balance;
-        }
     }
 }

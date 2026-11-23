@@ -263,14 +263,7 @@ namespace PPCore
             var label = new GUIContent(aLabel);
             switch (aProperty.managedReferenceValue)
             {
-                case PPSkillEffectDefinition skillEffect: label.text = skillEffect.BuildString(); break;
                 case PPStatusEffectBehaviourDefinition behaviour: label.text = behaviour.BuildString(); break;
-                case PPPartyConditionValidator condition when !string.IsNullOrEmpty(condition.Description):
-                    label.text = condition.Description; break;
-                case PPUnitConditionValidator unitCondition when !string.IsNullOrEmpty(unitCondition.Description):
-                    label.text = unitCondition.Description; break;
-                case PPUnitAINode node: label.text = node.NodeName; break;
-                case PPUnitAIActionBase action: label.text = action.ActionName; break;
             }
             EditorGUI.PropertyField(aPosition, aProperty, label, true);
         }

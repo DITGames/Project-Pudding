@@ -50,7 +50,7 @@ namespace PPCore
     }
 
     // 毒・火傷など、属性相性を伴う継続ダメージの振る舞い
-    // ダメージ情報を属性・スキル種別付きの PPDamageInfo で生成する
+    // ダメージ情報を属性付きの PPDamageInfo で生成する
     public sealed class PPPeriodicDamageBehaviour : PeriodicDamageBehaviour
     {
         private readonly PPTypeAttribute mAttribute;
@@ -60,7 +60,7 @@ namespace PPCore
 
         protected override DamageInfo CreateDamage(StatusEffectContext aContext)
             => new PPDamageInfo(aContext.Source, aContext.Owner,
-                mAmountPerStack * aContext.Stacks, PPSkillCategory.Debuff, mAttribute,
+                mAmountPerStack * aContext.Stacks, mAttribute,
                 new StatusEffectDamageReason(aContext.Effect));
     }
 
@@ -93,7 +93,7 @@ namespace PPCore
             float amount = (float)Math.Round(rawAmount, MidpointRounding.AwayFromZero);
 
             return new PPDamageInfo(aContext.Source, aContext.Owner, amount,
-                PPSkillCategory.Debuff, mAttribute, new StatusEffectDamageReason(aContext.Effect));
+                mAttribute, new StatusEffectDamageReason(aContext.Effect));
         }
 
         /* イベントハンドラ */

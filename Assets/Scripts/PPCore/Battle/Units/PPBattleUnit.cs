@@ -12,7 +12,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // 戦闘に参加する 1 体分のランタイムインスタンス。パラメータ・スキル・ステータスエフェクト・リアクションを保持する
+    // 戦闘に参加する 1 体分のランタイムインスタンス。パラメータ・ステータスエフェクト・リアクションを保持する
     // 状態が変わるたびに event を発火し、BattleManager が購読して通知・ログ・リアクション発火へ変換する
     public class BattleUnit
     {
@@ -28,12 +28,9 @@ namespace PPCore
         public ParameterSet Parameters { get; }
         // 発動中のステータスエフェクト（ステータス上昇や状態異常もこれに含まれる想定）
         public List<StatusEffect> ActiveStatusEffects { get; } = new();
-        // 使用可能なスキル
-        public List<BattleSkill> Skills { get; } = new();
         // 反撃などのリアクション定義。トリガー発生時に BattleManager が走査する
         public List<IBattleReaction> Reactions { get; } = new();
-        // 生成元の定義アセットへの参照
-        // AI が定義型で判定するため、CreateRuntimeUnit() での設定を省略しない
+        // 生成元の定義アセットへの参照。定義の値を引けるよう、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }
         // このユニット専用の乱数供給元。ユニットごとに列を分けることで、他のユニットの消費に影響されずに挙動を再現できる
         // 未設定なら BattleRules.RandomProvider へフォールバックする
@@ -56,7 +53,6 @@ namespace PPCore
         }
 
         // 確率の抽選なしで、確定的に行動できない状態か（睡眠など）。失敗率が 1 以上のものも確定扱いにする
-        // AI が「このユニットに行動を割り当てても無駄か」を判断するときに使う
         public bool IsActionCertainlyBlocked
         {
             get
@@ -106,7 +102,6 @@ namespace PPCore
         /* ダメージと回復 */
 
         // 数値だけを指定してダメージを適用する簡易版。攻撃元なしの DamageInfo を組んで委譲する
-        // スキルのコンテキストを渡してダメージ計算をする拡張もあり、もしくは事前計算
         public void ApplyDamage(float aAmount, BattleContext aContext = null)
         {
             // 発生源が分からない経路のため、攻撃とは見なさない
@@ -377,31 +372,10 @@ namespace PPCore
         public PPParameterSet ExtraParameters { get; }
         // ユニットの属性。弱点・耐性倍率の判定に使う
         public PPTypeAttribute TypeAttribute { get; }
-        // 育成値とスキル効果値から BaseValue を組み立てるテーブル
-        // パッシブスキルやパーティ効果は、ここへ効果値を足すことで BaseValue に反映させる
+        // 育成値から BaseValue を組み立てるテーブル
         public PPBaseParameterTable BaseParameters { get; }
-        // パーティ内の配置。コインを配る順番と正面の相手の判定に使う。パーティ生成時に定義から設定される
+        // パーティ内の配置。正面の相手の判定に使う。パーティ生成時に定義から設定される
         public PPPartyPosition Position { get; set; }
-        // 選択中のスキル。行動を積むときに発動可能ならこのスキルを使い、そうでなければ通常攻撃になる。未選択なら null
-        // 使用後や失敗後も解除されず、取り消すまで残る
-        public BattleSkill SelectedSkill { get; private set; }
-        // 選択中のスキルの対象として選んだ味方。味方単体が対象のスキルで使う。未指定なら null
-        public BattleUnit SelectedSkillTarget { get; private set; }
-        // 狙う相手として指定した敵。通常攻撃と敵単体が対象のスキルに使う。未指定なら正面の敵を狙う
-        // 指定した相手が倒れると解除される
-        public BattleUnit DesignatedTarget { get; private set; }
-
-        /* プロパティ */
-
-        // 1 回の行動に必要なコインゲージ量。バフ・デバフ込みの現在値
-        public float ActionCost => ExtraParameters.AttackCost.CurrentValue;
-
-        /* イベント */
-
-        // スキルの選択が変わったとき（選択・変更・取り消し）
-        public event Action<PPBattleUnit> OnSkillSelectionChanged;
-        // 狙う相手の指定が変わったとき（指定・変更・解除）
-        public event Action<PPBattleUnit> OnDesignatedTargetChanged;
 
         /* 生成 */
 
@@ -415,7 +389,6 @@ namespace PPCore
         }
 
         // 育成値テーブルを組み立てる。コンストラクタから呼ばれる
-        // スキルゲージ上限はバフの対象外だが、パッシブによる上限上昇（S）の対象にはなるため登録する
         protected virtual PPBaseParameterTable CreateBaseParameterTable()
         {
             var table = new PPBaseParameterTable();
@@ -424,68 +397,10 @@ namespace PPCore
             table.Register(ParameterSet.ParamIdDefense, Parameters.Defense);
             table.Register(ParameterSet.ParamIdSpeed, Parameters.Speed);
             table.Register(PPParameterSet.ParameterIdDexterity, ExtraParameters.Dexterity);
-            table.Register(PPParameterSet.ParameterIdSkillGaugeMax, ExtraParameters.SkillGauge.Max);
             return table;
         }
 
-        /* 操作 */
-
-        // 次の行動から使うスキルを選ぶ。自分の持っていないスキルは選べない
-        public bool SelectSkill(BattleSkill aSkill, BattleUnit aTarget = null)
-        {
-            if (aSkill == null || !Skills.Contains(aSkill)) return false;
-
-            SelectedSkill = aSkill;
-            SelectedSkillTarget = aTarget;
-            OnSkillSelectionChanged?.Invoke(this);
-            return true;
-        }
-
-        // スキルの選択を取り消し、通常攻撃を行う状態へ戻す
-        public void ClearSkillSelection()
-        {
-            if (SelectedSkill == null) return;
-
-            SelectedSkill = null;
-            SelectedSkillTarget = null;
-            OnSkillSelectionChanged?.Invoke(this);
-        }
-
-        // 狙う相手を指定する。自分と同じ陣営のユニットは指定できない
-        public bool DesignateTarget(BattleUnit aTarget)
-        {
-            if (aTarget == null || aTarget.Side == Side) return false;
-            if (DesignatedTarget == aTarget) return true;
-
-            DesignatedTarget = aTarget;
-            OnDesignatedTargetChanged?.Invoke(this);
-            return true;
-        }
-
-        // 狙う相手の指定を解除し、正面の敵を狙う状態へ戻す
-        public void ClearDesignatedTarget()
-        {
-            if (DesignatedTarget == null) return;
-
-            DesignatedTarget = null;
-            OnDesignatedTargetChanged?.Invoke(this);
-        }
-
         /* 問い合わせ */
-
-        // 今の状況で発動できるスキルを 1 つでも持っているかを判定する
-        // リソース不足やクールダウンで全スキルが撃てない「手詰まり」の検出に使う
-        public bool CanValidateSkill(BattleContext aContext)
-        {
-            foreach (var skill in Skills)
-            {
-                var result = aContext.Rules.CastValidator.Validate(this, skill, aContext);
-                if (result.CanCast)
-                    return true;
-            }
-
-            return false;
-        }
 
         // ID からパラメータを解決する。基本パラメータを先に探し、無ければ拡張パラメータを探す
         public override Parameter ResolveParameter(string aId)

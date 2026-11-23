@@ -14,7 +14,7 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // 味方と敵のプッシャーで共有するコインの置き場。読み込み時にまとめて作り、表示を切り替えて使い回す
+    // プッシャーで使うコインの置き場。読み込み時にまとめて作り、表示を切り替えて使い回す
     // コインはこのオブジェクトの子として作る。落下検出は親をたどってここへ戻す
     public class PPCoinPool : MonoBehaviour
     {

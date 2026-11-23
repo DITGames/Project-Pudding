@@ -162,7 +162,6 @@ namespace MCPBridgeBindings.Editor
                     ["assets"] = new JArray(paths.Select(aPath => new JObject { ["path"] = aPath, ["guid"] = AssetDatabase.AssetPathToGUID(aPath) })),
                     ["unitCatalogRegistered"] = draft.UnitCatalog != null,
                     ["visualCatalogRegistered"] = draft.VisualCatalog != null && draft.SourceVisual != null,
-                    ["skillCatalogRegistered"] = draft.SkillCatalog != null,
                 };
             return new JObject
             {
@@ -170,7 +169,6 @@ namespace MCPBridgeBindings.Editor
                 ["assets"] = new JArray(paths.Select((aPath, aIndex) => new JObject { ["path"] = aPath, ["guid"] = draft.CreatedGuids[aIndex] })),
                 ["unitCatalogRegistered"] = draft.UnitCatalog != null,
                 ["visualCatalogRegistered"] = draft.VisualCatalog != null,
-                ["skillCatalogRegistered"] = draft.SkillCatalog != null,
             };
         });
     }
@@ -197,7 +195,7 @@ namespace MCPBridgeBindings.Editor
             {
                 ["operation"] = new JObject { ["type"] = "string", ["enum"] = new JArray("state", "set", "event") },
                 ["draftId"] = new JObject { ["type"] = "string", ["description"] = "set用。その下書きを開く" },
-                ["tab"] = new JObject { ["type"] = "integer", ["description"] = "set用。0=ビジュアル,1=パラメータ,2=スキル,3=ディテイル" },
+                ["tab"] = new JObject { ["type"] = "integer", ["description"] = "set用。0=ビジュアル,1=パラメータ,2=ディテイル" },
                 ["parameterView"] = new JObject { ["type"] = "integer", ["description"] = "set用。0=編集,1=比較,2=ランキング" },
                 ["compareLevel"] = new JObject { ["type"] = "integer", ["minimum"] = 1, ["description"] = "set用。描画時に1〜最大Lvへ丸める" },
                 ["rankingLevel"] = new JObject { ["type"] = "integer", ["minimum"] = 1, ["description"] = "set用。描画時に1〜最大Lvへ丸める" },
@@ -403,16 +401,13 @@ namespace MCPBridgeBindings.Editor
             {
                 ["unitId"] = new JObject { ["type"] = "string" }, ["displayName"] = new JObject { ["type"] = "string" },
                 ["folder"] = new JObject { ["type"] = "string" }, ["maxLevel"] = new JObject { ["type"] = "integer", ["minimum"] = 1, ["maximum"] = 100000 },
-                ["previewLevel"] = new JObject { ["type"] = "integer" }, ["newAI"] = new JObject { ["type"] = "boolean", ["description"] = "trueで雛形からPUBT_<unitId>.assetを新規作成して割り当てる。falseならbehaviourTreeがあれば既存を使い、なければ個別ツリーなし" },
+                ["previewLevel"] = new JObject { ["type"] = "integer" },
                 ["typeAttribute"] = new JObject { ["type"] = "string", ["enum"] = new JArray(Enum.GetNames(typeof(PPTypeAttribute))) },
-                ["role"] = new JObject { ["type"] = "string", ["enum"] = new JArray(Enum.GetNames(typeof(PPUnitRole))) },
-                ["icon"] = ReferenceSchema(), ["portrait"] = ReferenceSchema("立ち絵のSprite"), ["behaviourTree"] = ReferenceSchema("既存のPPUnitBehaviourTree。newAIがfalseのときに使う。nullなら個別ツリーなし"),
-                ["unitCatalog"] = ReferenceSchema(), ["visualCatalog"] = ReferenceSchema(), ["skillCatalog"] = ReferenceSchema(),
+                ["icon"] = ReferenceSchema(), ["portrait"] = ReferenceSchema("立ち絵のSprite"),
+                ["unitCatalog"] = ReferenceSchema(), ["visualCatalog"] = ReferenceSchema(),
                 ["compareTarget"] = ReferenceSchema("比較ビューとcompareの既定の比較対象PPUnitDefinition"),
                 ["scales"] = new JObject { ["type"] = "array", ["minItems"] = 4, ["maxItems"] = 5, ["description"] = "棒グラフの基準値。" + StatLegend + "の順。4要素ならきようさは変更しない", ["items"] = new JObject { ["type"] = "number", ["exclusiveMinimum"] = 0 } },
-                ["extra"] = new JObject { ["type"] = "object", ["description"] = "AttackCost, SkillGaugeMax, CarryOverActions" },
                 ["stats"] = new JObject { ["type"] = "array", ["description"] = "各要素: index(0=HP,1=攻撃,2=防御,3=速度), initial, final, template(線形/早熟/晩成/S字), curve({keys:[{time,value,inTangent,outTangent,inWeight,outWeight,weightedMode}],preWrapMode,postWrapMode})。templateとcurveは同時指定不可。" },
-                ["skills"] = new JObject { ["type"] = "array", ["description"] = "一覧を置換。各要素は{reference:{guid,localFileId}}または{new:{mSkillId:...,mDisplayName:...,mSkillEffects:[{type:完全型名,properties:{...}}]}}。get結果のpropertiesはそのままnewへ渡せる。" },
             },
         };
 
@@ -483,18 +478,14 @@ namespace MCPBridgeBindings.Editor
             ["lastSave"] = aDraft.SavedRevision >= 0 ? new JObject { ["requestId"] = aDraft.SavedRequestId, ["revision"] = aDraft.SavedRevision, ["paths"] = new JArray(aDraft.SavedPaths) } : JValue.CreateNull(),
             ["unitId"] = aDraft.Unit.UnitId, ["displayName"] = aDraft.Unit.DisplayName,
             ["folder"] = aDraft.Folder, ["maxLevel"] = aDraft.MaxLevel, ["previewLevel"] = aDraft.PreviewLevel,
-            ["typeAttribute"] = aDraft.Unit.TypeAttribute.ToString(), ["role"] = aDraft.Unit.Role.ToString(), ["icon"] = Reference(aDraft.Icon), ["portrait"] = Reference(aDraft.Portrait),
-            ["newAI"] = aDraft.IsNewTree, ["behaviourTree"] = Reference(aDraft.Unit.BehaviourTree),
-            ["unitCatalog"] = Reference(aDraft.UnitCatalog), ["visualCatalog"] = Reference(aDraft.VisualCatalog), ["skillCatalog"] = Reference(aDraft.SkillCatalog),
+            ["typeAttribute"] = aDraft.Unit.TypeAttribute.ToString(), ["icon"] = Reference(aDraft.Icon), ["portrait"] = Reference(aDraft.Portrait),
+            ["unitCatalog"] = Reference(aDraft.UnitCatalog), ["visualCatalog"] = Reference(aDraft.VisualCatalog),
             ["compareTarget"] = Reference(aDraft.CompareTarget),
-            ["scales"] = new JArray(aDraft.Scales), ["extra"] = JObject.FromObject(aDraft.Unit.ExpandStatBlock),
+            ["scales"] = new JArray(aDraft.Scales),
             ["stats"] = new JArray(Enumerable.Range(0, 4).Select(aIndex => new JObject
             {
                 ["index"] = aIndex, ["initial"] = aDraft.GetInitial(aIndex), ["final"] = aDraft.GetFinal(aIndex), ["curve"] = CurveData(aDraft.GetCurve(aIndex)),
             })),
-            ["skills"] = new JArray(aDraft.Unit.Skills.Select(aSkill => aSkill is PPSkillDefinition skill && aDraft.NewSkills.Contains(skill)
-                ? new JObject { ["new"] = ReadProperties(new SerializedObject(skill)) }
-                : new JObject { ["reference"] = Reference(aSkill) })),
             ["createdPaths"] = new JArray(aDraft.CreatedPaths),
         };
 
@@ -523,7 +514,6 @@ namespace MCPBridgeBindings.Editor
             if (aPatch["portrait"] != null) aDraft.Portrait = Resolve<Sprite>(aPatch["portrait"]);
             if (aPatch["unitCatalog"] != null) aDraft.UnitCatalog = Resolve<PPUnitCatalog>(aPatch["unitCatalog"]);
             if (aPatch["visualCatalog"] != null) aDraft.VisualCatalog = Resolve<PPUnitVisualCatalog>(aPatch["visualCatalog"]);
-            if (aPatch["skillCatalog"] != null) aDraft.SkillCatalog = Resolve<PPSkillCatalog>(aPatch["skillCatalog"]);
             if (aPatch["compareTarget"] != null) aDraft.CompareTarget = Resolve<PPUnitDefinition>(aPatch["compareTarget"]);
             var so = new SerializedObject(aDraft.Unit);
             if (aPatch["unitId"] != null) so.FindProperty("mUnitId").stringValue = aPatch.Value<string>("unitId");
@@ -533,22 +523,6 @@ namespace MCPBridgeBindings.Editor
                 if (!Enum.TryParse<PPTypeAttribute>(aPatch.Value<string>("typeAttribute"), out var type) || !Enum.IsDefined(typeof(PPTypeAttribute), type)) throw new ArgumentException("不正な属性です。");
                 so.FindProperty("mTypeAttribute").intValue = (int)type;
             }
-            if (aPatch["role"] != null)
-            {
-                if (!Enum.TryParse<PPUnitRole>(aPatch.Value<string>("role"), out var role) || !Enum.IsDefined(typeof(PPUnitRole), role)) throw new ArgumentException("不正なロールです。");
-                so.FindProperty("mRole").intValue = (int)role;
-            }
-            if (aPatch["behaviourTree"] != null) so.FindProperty("mBehaviourTree").objectReferenceValue = Resolve<PPUnitBehaviourTree>(aPatch["behaviourTree"]);
-            // 割り当て方は newAI（雛形から新規）を優先し、次に behaviourTree（既存）の有無で決める。どちらも無ければ個別ツリーなし
-            // 既存の選択はウィンドウと同じく「既存を選ぶ」でだけ持たせる
-            if (aPatch["newAI"] != null || aPatch["behaviourTree"] != null)
-            {
-                var isNewTree = aPatch["newAI"] != null && aPatch.Value<bool>("newAI");
-                if (isNewTree) so.FindProperty("mBehaviourTree").objectReferenceValue = null;
-                aDraft.TreeMode = isNewTree ? PPUnitTreeAssignMode.Template
-                    : so.FindProperty("mBehaviourTree").objectReferenceValue != null ? PPUnitTreeAssignMode.Existing : PPUnitTreeAssignMode.None;
-            }
-            if (aPatch["extra"] is JObject extra) ApplyValue(so.FindProperty("mExpandStatBlock"), extra);
             so.ApplyModifiedPropertiesWithoutUndo();
             if (aPatch["scales"] is JArray scales)
             {
@@ -575,113 +549,6 @@ namespace MCPBridgeBindings.Editor
                     }
                     if (entry["curve"] != null) aDraft.SetCurve(index, ReadCurve(entry["curve"]));
                 }
-            }
-            if (aPatch["skills"] is JArray skills)
-            {
-                if (skills.Count > 256) throw new ArgumentException("スキルは256件以下です。");
-                aDraft.Unit.Skills.Clear();
-                foreach (var skill in aDraft.NewSkills) UnityEngine.Object.DestroyImmediate(skill);
-                aDraft.NewSkills.Clear();
-                foreach (var entry in skills)
-                {
-                    if (entry["reference"] != null && entry["new"] != null) throw new ArgumentException("スキルはreferenceまたはnewを指定してください。");
-                    if (entry["new"] is JObject properties)
-                    {
-                        var skill = aDraft.AddNewSkill();
-                        var skillSo = new SerializedObject(skill);
-                        foreach (var property in properties.Properties())
-                        {
-                            if (property.Name == "m_Script") throw new ArgumentException("スクリプトの変更はできません。");
-                            ApplyValue(skillSo.FindProperty(property.Name) ?? throw new ArgumentException("不明なスキル項目: " + property.Name), property.Value);
-                        }
-                        skillSo.ApplyModifiedPropertiesWithoutUndo();
-                    }
-                    else aDraft.Unit.Skills.Add(Resolve<PPSkillDefinition>(entry["reference"] ?? throw new ArgumentException("スキル参照が必要です。")));
-                }
-            }
-        }
-
-        // スキル効果も既存SerializedPropertyへ設定し、ランタイム生成は行わない
-        private static void ApplyValue(SerializedProperty aProperty, JToken aValue)
-        {
-            if (aProperty.isArray && aProperty.propertyType != SerializedPropertyType.String)
-            {
-                var array = aValue as JArray ?? throw new ArgumentException("配列が必要です: " + aProperty.propertyPath);
-                if (array.Count > 1024) throw new ArgumentException("配列が大きすぎます。");
-                aProperty.arraySize = array.Count;
-                for (var i = 0; i < array.Count; i++) ApplyValue(aProperty.GetArrayElementAtIndex(i), array[i]);
-            }
-            else if (aProperty.propertyType == SerializedPropertyType.ManagedReference)
-            {
-                if (aValue.Type == JTokenType.Null) { aProperty.managedReferenceValue = null; return; }
-                var typeName = aValue.Value<string>("type");
-                var fieldType = aProperty.managedReferenceFieldTypename.Split(' ');
-                var baseType = Type.GetType(fieldType[1] + ", " + fieldType[0]);
-                var type = baseType == null ? null : TypeCache.GetTypesDerivedFrom(baseType).FirstOrDefault(aType => aType.FullName == typeName && !aType.IsAbstract && aType.IsSerializable && aType.Namespace == "PPCore");
-                if (type == null) throw new ArgumentException("不明なスキル効果型: " + typeName);
-                aProperty.managedReferenceValue = Activator.CreateInstance(type);
-                foreach (var child in ((JObject)aValue["properties"]).Properties())
-                    ApplyValue(aProperty.FindPropertyRelative(child.Name) ?? throw new ArgumentException("不明な効果項目: " + child.Name), child.Value);
-            }
-            else if (aProperty.propertyType == SerializedPropertyType.Generic)
-            {
-                foreach (var child in ((JObject)aValue).Properties())
-                    ApplyValue(aProperty.FindPropertyRelative(child.Name) ?? throw new ArgumentException("不明な項目: " + child.Name), child.Value);
-            }
-            else if (aProperty.propertyType == SerializedPropertyType.ObjectReference)
-            {
-                var value = Resolve<UnityEngine.Object>(aValue);
-                if (value != null && aProperty.type.StartsWith("PPtr<", StringComparison.Ordinal))
-                {
-                    var expectedName = aProperty.type.Substring(5).TrimEnd('>').TrimStart('$');
-                    var actualType = value.GetType();
-                    while (actualType != null && actualType.Name != expectedName) actualType = actualType.BaseType;
-                    if (actualType == null) throw new ArgumentException("参照の型が一致しません: " + aProperty.propertyPath);
-                }
-                // SerializedPropertyに期待型の検査を委ね、型不一致で無視された場合もエラーにする
-                aProperty.objectReferenceValue = value;
-                if (aProperty.objectReferenceValue != value) throw new ArgumentException("参照の型が一致しません。");
-            }
-            else MCPArgumentConverter.ApplyToSerializedProperty(aProperty, aValue);
-        }
-
-        private static JObject ReadProperties(SerializedObject aObject)
-        {
-            var result = new JObject();
-            var property = aObject.GetIterator();
-            if (property.NextVisible(true)) do
-            {
-                if (property.name != "m_Script") result[property.name] = ReadValue(property);
-            } while (property.NextVisible(false));
-            return result;
-        }
-
-        private static JToken ReadValue(SerializedProperty aProperty)
-        {
-            if (aProperty.isArray && aProperty.propertyType != SerializedPropertyType.String)
-                return new JArray(Enumerable.Range(0, aProperty.arraySize).Select(aIndex => ReadValue(aProperty.GetArrayElementAtIndex(aIndex))));
-            switch (aProperty.propertyType)
-            {
-                case SerializedPropertyType.String: return aProperty.stringValue;
-                case SerializedPropertyType.Float: return aProperty.floatValue;
-                case SerializedPropertyType.Integer: return aProperty.intValue;
-                case SerializedPropertyType.Boolean: return aProperty.boolValue;
-                case SerializedPropertyType.Enum: return aProperty.intValue;
-                case SerializedPropertyType.ObjectReference: return Reference(aProperty.objectReferenceValue);
-                case SerializedPropertyType.ManagedReference:
-                case SerializedPropertyType.Generic:
-                    if (aProperty.propertyType == SerializedPropertyType.ManagedReference && aProperty.managedReferenceValue == null) return JValue.CreateNull();
-                    var properties = new JObject();
-                    var child = aProperty.Copy();
-                    var end = child.GetEndProperty();
-                    if (child.NextVisible(true)) do
-                    {
-                        if (SerializedProperty.EqualContents(child, end)) break;
-                        properties[child.name] = ReadValue(child);
-                    } while (child.NextVisible(false));
-                    return aProperty.propertyType == SerializedPropertyType.ManagedReference
-                        ? new JObject { ["type"] = aProperty.managedReferenceValue.GetType().FullName, ["properties"] = properties } : properties;
-                default: throw new ArgumentException("取得非対応のスキル項目: " + aProperty.propertyPath + " / " + aProperty.propertyType);
             }
         }
 
@@ -711,7 +578,6 @@ namespace MCPBridgeBindings.Editor
 
         public static void DestroyDraft(PPUnitCreationDraft aDraft)
         {
-            foreach (var skill in aDraft.NewSkills) if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
             if (aDraft.Unit != null) UnityEngine.Object.DestroyImmediate(aDraft.Unit);
             UnityEngine.Object.DestroyImmediate(aDraft);
         }

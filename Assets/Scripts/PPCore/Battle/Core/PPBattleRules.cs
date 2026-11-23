@@ -19,10 +19,8 @@ namespace PPCore
         public IHitResolver HitResolver { get; set; } = new StandardHitResolver();
         // クリティカル判定を行うリゾルバ
         public ICriticalResolver CriticalResolver { get; set; } = new StandardCriticalResolver();
-        // バトル中の乱数供給元。AI を含め乱数は必ずここを経由させる
+        // バトル中の乱数供給元。乱数は必ずここを経由させる
         public IRandomProvider RandomProvider { get; set; } = new DefaultRandomProvider();
-        // スキル発動可否（コスト・クールダウン等）を検証するバリデータ
-        public ICastValidator CastValidator { get; set; } = new DefaultCastValidator();
         // ターゲット候補に対して順に適用される絞り込みフィルタ群
         public List<ITargetFilter> TargetFilters { get; } = new();
         // 対象が死亡していた場合の代替ターゲット決定ポリシー
@@ -37,28 +35,16 @@ namespace PPCore
         public bool ClearStatusEffectsOnDefeat { get; set; } = false;
     }
 
-    // 属性相性のダメージ倍率や AI の危機判定閾値などの調整値を追加したバトルルール
+    // 属性相性のダメージ倍率などの調整値を追加したバトルルール
     // BattleContext.Rules へこの型を差し込むことで有効になる
     public class PPBattleRules : BattleRules
     {
         /* 状態 */
 
-        // AI の低HP判定閾値。HP 割合がこれを下回ると危機的状況として扱う
-        public float CrisisHpRatio = 0.25f;
         // 弱点属性でヒットしたときのダメージ倍率
         public float WeaknessMultiplier = 1.5f;
         // 耐性属性でヒットしたときのダメージ倍率
         public float ResistanceMultiplier = 0.75f;
-        // 通常攻撃（スキル未使用）の基礎AIスコア。スキルは PPSkillDefinition.AIScore 側に個別で持つのに対し、
-        // 通常攻撃はスキル定義を持たないためここで一括して持つ
-        public float NormalAttackAIScore = 1f;
-        // 同時にコインゲージが溜まった行動を実行順に並べるリゾルバ
-        // 優先度と、素早さに 0〜1 の乱数を足した値で並べるのが既定。並べ方を変えたい場合はここを差し替える
-        public IPPActionOrderResolver ActionOrderResolver { get; set; } =
-            new PPDefaultActionOrderResolver { SpeedJitter = 1f };
-        // 通常攻撃 1 回あたりに回復するスキルゲージの基礎量。実際の量は素早さに応じて増える
-        // 通常攻撃を撃ち続けることでスキルへ繋がる導線になるため、ユニットごとではなくルール側で一括して持つ
-        public float NormalAttackSkillGaugeRecover = 10f;
 
         /* 生成 */
 
@@ -69,21 +55,9 @@ namespace PPCore
             CriticalResolver = new PPCriticalResolver();
             ClearStatusEffectsOnDefeat = true;
         }
-
-        /* 評価・判定 */
-
-        // 通常攻撃 1 回で溜まるスキルゲージ量を返す。基礎量 ×(1 + 素早さ / 100) の小数点以下を切り捨てる
-        // 素早さはバフ・デバフ込みの現在値を使い、負の値は 0 として扱う
-        public virtual float ResolveNormalAttackSkillGauge(BattleUnit aUnit)
-        {
-            if (aUnit == null || NormalAttackSkillGaugeRecover <= 0f) return 0f;
-
-            float speed = Math.Max(0f, aUnit.Parameters.Speed.CurrentValue);
-            return (float)Math.Floor(NormalAttackSkillGaugeRecover * (1f + speed / 100f));
-        }
     }
 
-    // バトル中の乱数供給元。命中判定・AI の思考・代替ターゲット選択などの乱数は全てここを経由させる
+    // バトル中の乱数供給元。命中判定・代替ターゲット選択などの乱数は全てここを経由させる
     // 再現性を保つため UnityEngine.Random を直接呼ばないこと
     public interface IRandomProvider
     {

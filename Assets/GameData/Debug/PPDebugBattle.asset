@@ -28,7 +28,6 @@ MonoBehaviour:
       Level: 1
       IsFixedSeed: 0
       Seed: 0
-    mCoinConversionRate: 1
   mEnemy:
     mCenter:
       Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
@@ -45,4 +44,3 @@ MonoBehaviour:
       Level: 1
       IsFixedSeed: 0
       Seed: 0
-    mCoinConversionRate: 1

@@ -62,9 +62,7 @@ namespace PPCore
         // 行動のランダム化。混乱、魅了など
         [InspectorName("行動のランダム化")]
         Confused = 1 << 1,
-        // スキル使用不可。沈黙など
-        [InspectorName("スキル使用不可")]
-        Silenced = 1 << 2,
+        // 1 << 2 はアセットに残った値と衝突させないため欠番にしている
         // 逃走不可
         [InspectorName("逃走不可")]
         CannotEscape = 1 << 3,
@@ -88,8 +86,7 @@ namespace PPCore
         Vulnerable = 1 << 3,
         // 混乱：行動のランダム化
         Confused = 1 << 4,
-        // 封印：スキル使用不可
-        Silenced = 1 << 5,
+        // bit 5 はアセットに残った値と衝突させないため欠番にしている
 
         /* ---- パラメータ変動系 ---- */
         AttackBuff = 1 << 16,
@@ -100,17 +97,15 @@ namespace PPCore
         SpeedDebuff = 1 << 21,
         MaxHpBuff = 1 << 22,
         MaxHpDebuff = 1 << 23,
-        CostBuff = 1 << 24,
-        CostDebuff = 1 << 25,
-        // bit 26・27 は廃止した行動回数上限の増減が使っていた値で、欠番にしている
+        // bit 24〜27 はアセットに残った値と衝突させないため欠番にしている
         // きようさ（会心率の元）の増減。会心率アップ・ダウンはこの分類を使う
         DexterityBuff = 1 << 28,
         DexterityDebuff = 1 << 29,
 
         /* ---- まとめ(解除スキルのマスクとしてそのまま使う) ---- */
-        AllAilment = Poison | Burn | Paralyze | Vulnerable | Confused | Silenced,
-        AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | CostBuff | DexterityBuff,
-        AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | CostDebuff | DexterityDebuff,
+        AllAilment = Poison | Burn | Paralyze | Vulnerable | Confused,
+        AllBuff = AttackBuff | DefenseBuff | SpeedBuff | MaxHpBuff | DexterityBuff,
+        AllDebuff = AttackDebuff | DefenseDebuff | SpeedDebuff | MaxHpDebuff | DexterityDebuff,
     }
 
     // パラメータ種別の日本語表示名を集約した定数群
@@ -121,7 +116,6 @@ namespace PPCore
         public const string NameDefense = "防御";
         public const string NameSpeed = "素早さ";
         public const string NameHp = "HP";
-        public const string NameCost = "コスト";
         public const string NameDexterity = "きようさ";
     }
 }

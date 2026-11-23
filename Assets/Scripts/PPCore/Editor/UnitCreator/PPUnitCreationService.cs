@@ -32,7 +32,7 @@ namespace PPCore
             var validation = PPUnitCreationValidator.Validate(aDraft);
             if (!validation.IsValid) throw new InvalidOperationException(string.Join("\n", validation.Errors));
             var catalogBackups = new Dictionary<ScriptableObject, string>();
-            foreach (var catalog in new ScriptableObject[] { aDraft.UnitCatalog, aDraft.VisualCatalog, aDraft.SkillCatalog }.Where(aCatalog => aCatalog != null))
+            foreach (var catalog in new ScriptableObject[] { aDraft.UnitCatalog, aDraft.VisualCatalog }.Where(aCatalog => aCatalog != null))
             {
                 if (!AssetDatabase.IsOpenForEdit(catalog)) throw new InvalidOperationException("カタログが書き込み可能ではありません: " + catalog.name);
                 catalogBackups.Add(catalog, EditorJsonUtility.ToJson(catalog));
@@ -49,7 +49,6 @@ namespace PPCore
                 var unit = UnityEngine.Object.Instantiate(aDraft.Unit);
                 transient.Add(unit);
                 unit.name = aDraft.Unit.UnitId;
-                if (aDraft.TreeMode == PPUnitTreeAssignMode.None) AssignTree(unit, null);
                 var visual = ScriptableObject.CreateInstance<PPUnitVisualDefinition>();
                 transient.Add(visual);
                 visual.UnitId = unit.UnitId;
@@ -63,26 +62,8 @@ namespace PPCore
                 settings.name = "作成設定";
                 settings.Initialize(aDraft.MaxLevel, aDraft.Scales);
                 AssetDatabase.AddObjectToAsset(settings, unit);
-                var index = 2;
-                if (aDraft.IsNewTree)
-                {
-                    var treePath = paths[index++];
-                    var tree = PPUnitBehaviourTreeTemplateFactory.Create(Path.GetFileNameWithoutExtension(treePath));
-                    transient.Add(tree);
-                    SaveNew(tree, treePath, created);
-                    AssignTree(unit, tree);
-                }
-                foreach (var draftSkill in aDraft.NewSkills)
-                {
-                    var skill = UnityEngine.Object.Instantiate(draftSkill);
-                    transient.Add(skill);
-                    SaveNew(skill, paths[index++], created);
-                    for (var i = 0; i < unit.Skills.Count; i++)
-                        if (unit.Skills[i] == draftSkill) unit.Skills[i] = skill;
-                }
                 AddToCatalog(aDraft.UnitCatalog, unit);
                 AddToCatalog(aDraft.VisualCatalog, visual);
-                foreach (var skill in unit.Skills.OfType<PPSkillDefinition>()) AddToCatalog(aDraft.SkillCatalog, skill);
                 foreach (var obj in transient) EditorUtility.SetDirty(obj);
                 foreach (var path in paths) AssetDatabase.SaveAssetIfDirty(AssetDatabase.LoadMainAssetAtPath(path));
                 foreach (var catalog in catalogBackups.Keys) AssetDatabase.SaveAssetIfDirty(catalog);
@@ -131,7 +112,7 @@ namespace PPCore
 
         /* 操作 */
 
-        // 編集モードの保存。既存アセットは値だけを書き写し、新規に作るのはツリー・スキル・（無ければ）ビジュアルだけ
+        // 編集モードの保存。既存アセットは値だけを書き写し、新規に作るのは（無ければ）ビジュアルだけ
         // 失敗時は作ったものを削除して書き換えた内容を戻す。同じ保存要求 ID の再送は記録済みの結果を返す
         private static string[] Save(PPUnitCreationDraft aDraft, int aRevision, string aRequestId)
         {
@@ -150,38 +131,18 @@ namespace PPCore
             var settings = AssetDatabase.LoadAllAssetsAtPath(plan.UnitPath).OfType<PPUnitCreationSettings>().FirstOrDefault();
             // 書き換える既存アセットは、失敗時に戻すため内容を控える
             var backups = new Dictionary<UnityEngine.Object, string>();
-            foreach (var target in new UnityEngine.Object[] { source, visual, settings, aDraft.UnitCatalog, aDraft.VisualCatalog, aDraft.SkillCatalog }.Where(aTarget => aTarget != null))
+            foreach (var target in new UnityEngine.Object[] { source, visual, settings, aDraft.UnitCatalog, aDraft.VisualCatalog }.Where(aTarget => aTarget != null))
             {
                 if (!AssetDatabase.IsOpenForEdit(target)) throw new InvalidOperationException("アセットが書き込み可能ではありません: " + AssetDatabase.GetAssetPath(target));
                 backups[target] = EditorJsonUtility.ToJson(target);
             }
             var created = new Dictionary<string, string>();
             var transient = new List<UnityEngine.Object>();
-            var savedSkills = new Dictionary<PPSkillDefinition, PPSkillDefinition>();
-            PPUnitBehaviourTree tree = null;
             PPUnitCreationSettings addedSettings = null;
             try
             {
                 var edited = UnityEngine.Object.Instantiate(aDraft.Unit);
                 transient.Add(edited);
-                if (plan.TreePath != null)
-                {
-                    tree = PPUnitBehaviourTreeTemplateFactory.Create(Path.GetFileNameWithoutExtension(plan.TreePath));
-                    transient.Add(tree);
-                    SaveNew(tree, plan.TreePath, created);
-                    AssignTree(edited, tree);
-                }
-                else if (aDraft.TreeMode == PPUnitTreeAssignMode.None) AssignTree(edited, null);
-                for (var i = 0; i < aDraft.NewSkills.Count; i++)
-                {
-                    var draftSkill = aDraft.NewSkills[i];
-                    var skill = UnityEngine.Object.Instantiate(draftSkill);
-                    transient.Add(skill);
-                    SaveNew(skill, plan.SkillPaths[i], created);
-                    savedSkills[draftSkill] = skill;
-                    for (var index = 0; index < edited.Skills.Count; index++)
-                        if (edited.Skills[index] == draftSkill) edited.Skills[index] = skill;
-                }
                 if (plan.NewVisual)
                 {
                     visual = ScriptableObject.CreateInstance<PPUnitVisualDefinition>();
@@ -213,13 +174,12 @@ namespace PPCore
                 }
                 AddToCatalog(aDraft.UnitCatalog, source);
                 if (visual != null) AddToCatalog(aDraft.VisualCatalog, visual);
-                foreach (var skill in source.Skills.OfType<PPSkillDefinition>()) AddToCatalog(aDraft.SkillCatalog, skill);
                 EditorUtility.SetDirty(source);
                 foreach (var obj in transient.Where(EditorUtility.IsPersistent)) EditorUtility.SetDirty(obj);
                 AssetDatabase.SaveAssetIfDirty(source);
                 if (visual != null) AssetDatabase.SaveAssetIfDirty(visual);
                 foreach (var path in created.Keys) AssetDatabase.SaveAssetIfDirty(AssetDatabase.LoadMainAssetAtPath(path));
-                foreach (var catalog in new ScriptableObject[] { aDraft.UnitCatalog, aDraft.VisualCatalog, aDraft.SkillCatalog }.Where(aCatalog => aCatalog != null))
+                foreach (var catalog in new ScriptableObject[] { aDraft.UnitCatalog, aDraft.VisualCatalog }.Where(aCatalog => aCatalog != null))
                     AssetDatabase.SaveAssetIfDirty(catalog);
                 Invalidate(aDraft);
             }
@@ -265,7 +225,7 @@ namespace PPCore
             }
             // 書き戻しの成功後に下書きをそろえる。ここで失敗しても書き戻し済みのアセットは消さない
             var paths = plan.AllPaths.ToArray();
-            aDraft.RecordSave(aRequestId, aRevision, paths, visual, tree, savedSkills);
+            aDraft.RecordSave(aRequestId, aRevision, paths, visual);
             return paths;
         }
 
@@ -278,14 +238,6 @@ namespace PPCore
             for (var enter = true; property.NextVisible(enter); enter = false)
                 if (property.name != "m_Script") to.CopyFromSerializedProperty(property);
             to.ApplyModifiedPropertiesWithoutUndo();
-        }
-
-        // ユニットのビヘイビアツリーを差し替える。null なら個別ツリーなしにする
-        private static void AssignTree(PPUnitDefinition aUnit, PPUnitBehaviourTree aTree)
-        {
-            var so = new SerializedObject(aUnit);
-            so.FindProperty("mBehaviourTree").objectReferenceValue = aTree;
-            so.ApplyModifiedPropertiesWithoutUndo();
         }
 
         private static void SaveNew(ScriptableObject aObject, string aPath, Dictionary<string, string> aCreated)
@@ -314,7 +266,6 @@ namespace PPCore
         {
             aDraft.UnitCatalog?.Invalidate();
             aDraft.VisualCatalog?.Invalidate();
-            aDraft.SkillCatalog?.Invalidate();
         }
     }
 }

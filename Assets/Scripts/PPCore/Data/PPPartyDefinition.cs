@@ -31,7 +31,7 @@ namespace PPCore
         public int Seed = 0;
     }
 
-    // パーティ編成の定義（ScriptableObject）。配置ごとのメンバー・コイン変換設定・AI の駆動設定を持つ
+    // パーティ編成の定義（ScriptableObject）。配置ごとのメンバーを持つ
     // ランタイムの PPBattleParty への変換は PPPartyFactory が担う
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
     public class PPPartyDefinition : ScriptableObject
@@ -43,15 +43,6 @@ namespace PPCore
         [Label("中央")] [SerializeField] private PPPartyMemberEntry mCenter = new();
         [Label("右")] [SerializeField] private PPPartyMemberEntry mRight = new();
         [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
-        [Label("コイン変換レート初期値")] public float BaseResourceConversionRate = 1f;
-
-        // 敵として出たときに、敵のプッシャーへコインを投入する AI の型と段階
-        [Header("コイン投入 AI")]
-        [Label("コイン投入 AI")] [SerializeField] private PPCoinDropAISetting mCoinDropAI = new();
-
-        /* プロパティ */
-
-        public PPCoinDropAISetting CoinDropAI => mCoinDropAI;
 
         /* 問い合わせ */
 

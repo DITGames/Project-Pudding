@@ -80,8 +80,6 @@ namespace PPCore
         public PPStageMapDefinition Definition { get; private set; }
         // null ならマップ定義の設定でシードを決める
         public int? Seed { get; private set; }
-        // null ならマップ定義の初期パーティのレートを使う
-        public float? CoinConversionRate { get; private set; }
 
         /* static 関数 */
 
@@ -96,8 +94,8 @@ namespace PPCore
 
         /* 操作 */
 
-        // 所持ユニットの並びはこの順で編成に入る。レートを省くとマップ定義の初期パーティのレートを使う
-        public void SetInitialUnits(IEnumerable<PPPartySaveUnitEntry> aUnits, float? aCoinConversionRate = null)
+        // 所持ユニットの並びはこの順で編成に入る
+        public void SetInitialUnits(IEnumerable<PPPartySaveUnitEntry> aUnits)
         {
             mInitialUnits.Clear();
             var names = new List<string>();
@@ -107,8 +105,7 @@ namespace PPCore
                 mInitialUnits.Add(entry);
                 names.Add($"{entry.Unit.DisplayName} Lv{entry.Level}");
             }
-            CoinConversionRate = aCoinConversionRate;
-            CustomConsoleLog.Log(LogTag, $"初期ユニットを選択: {string.Join("、", names)} コイン変換レート={(aCoinConversionRate.HasValue ? aCoinConversionRate.Value.ToString() : "マップ定義の設定")}");
+            CustomConsoleLog.Log(LogTag, $"初期ユニットを選択: {string.Join("、", names)}");
         }
 
         public void SetStage(PPStageMapDefinition aDefinition, int? aSeed = null)
@@ -153,7 +150,6 @@ namespace PPCore
         private readonly List<PPStageOwnedUnit> mOwnedUnits = new();
         // 配置ごとの編成。添字は PPPartyPosition の値。空の配置は null
         private readonly PPStageOwnedUnit[] mFormation = new PPStageOwnedUnit[Positions.Length];
-        private readonly float mCoinConversionRate;
 
         /* プロパティ */
 
@@ -171,10 +167,9 @@ namespace PPCore
         /* static 関数 */
 
         // 新しく始める。初期ユニットを渡せばそれを、空ならマップ定義の初期パーティを所持ユニットと編成にする
-        // コイン変換レートを省くと、マップ定義の初期パーティのレートを使う
-        public static PPStageProgress Begin(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null, float? aCoinConversionRate = null)
+        public static PPStageProgress Begin(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null)
         {
-            sCurrent = new PPStageProgress(aDefinition, aSeed, aInitialUnits, aCoinConversionRate);
+            sCurrent = new PPStageProgress(aDefinition, aSeed, aInitialUnits);
             CustomConsoleLog.Log(LogTag, $"ステージ開始: {aDefinition.name} シード={aSeed} 所持ユニット={sCurrent.mOwnedUnits.Count}");
             return sCurrent;
         }
@@ -185,13 +180,12 @@ namespace PPCore
         /* 生成 */
 
         // 渡された初期ユニットは選んだ順に Center → Right → Left へ置き、4 体目からは控えにする
-        private PPStageProgress(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits, float? aCoinConversionRate)
+        private PPStageProgress(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
         {
             Definition = aDefinition;
             Seed = aSeed;
 
             var initial = aDefinition.InitialParty;
-            mCoinConversionRate = aCoinConversionRate ?? (initial != null ? initial.BaseResourceConversionRate : 1f);
             if (aInitialUnits != null && aInitialUnits.Count > 0)
             {
                 foreach (var entry in aInitialUnits)
@@ -251,7 +245,7 @@ namespace PPCore
             {
                 var owned = GetMember(aPosition);
                 return owned == null ? null : new PPPartyMemberEntry { Unit = owned.Unit, Level = owned.Level };
-            }, mCoinConversionRate, BattleSide.Ally);
+            }, BattleSide.Ally);
         }
 
         /* 編成 */

@@ -40,31 +40,20 @@ namespace PPCore
         // 既存のビジュアル定義、または新規作成するパス。アイコン・立ち絵がなく既存もない場合は null（作らない）
         public string VisualPath { get; set; }
         public bool NewVisual { get; set; }
-        // 雛形から新規作成するビヘイビアツリーのパス。作らない場合は null
-        public string TreePath { get; set; }
-        public List<string> SkillPaths { get; } = new();
 
         /* プロパティ */
 
-        public IEnumerable<string> NewPaths => new[] { NewVisual ? VisualPath : null, TreePath }.Concat(SkillPaths).Where(aPath => aPath != null);
-        public IEnumerable<string> AllPaths => new[] { UnitPath, VisualPath, TreePath }.Concat(SkillPaths).Where(aPath => aPath != null);
+        public IEnumerable<string> NewPaths => new[] { NewVisual ? VisualPath : null }.Where(aPath => aPath != null);
+        public IEnumerable<string> AllPaths => new[] { UnitPath, VisualPath }.Where(aPath => aPath != null);
     }
 
     public static class PPUnitCreationValidator
     {
-        /* 定数 */
-
-        // 個別ツリーなしで、ロール既定・全体既定からも解決できないときの警告
-        public const string NoTreeWarning = "個別ツリーなし: ロール既定・全体既定のどちらも未設定のため、このユニットは待機します。PPRuntimeSettings の「ユニットAIの既定」を確認してください。";
-
         /* 操作 */
 
         public static string OutputFolder(PPUnitCreationDraft aDraft) => aDraft.Folder + "/" + aDraft.Unit.UnitId;
 
-        // 雛形から新規作成するビヘイビアツリーのファイル名
-        public static string TreeFileName(string aUnitId) => "PUBT_" + aUnitId + ".asset";
-
-        // 新規のスキル・ビジュアルは元ユニットと同じフォルダーへ「<ユニットID>_〜」の名前で、新規のツリーは「PUBT_<ユニットID>」の名前で作る
+        // 新規のビジュアルは元ユニットと同じフォルダーへ「<ユニットID>_Visual」の名前で作る
         public static PPUnitEditPlan EditPlan(PPUnitCreationDraft aDraft)
         {
             var plan = new PPUnitEditPlan { UnitPath = aDraft.Source != null ? AssetDatabase.GetAssetPath(aDraft.Source) : "" };
@@ -77,8 +66,6 @@ namespace PPCore
                 plan.VisualPath = plan.Folder + "/" + id + "_Visual.asset";
                 plan.NewVisual = true;
             }
-            if (aDraft.IsNewTree) plan.TreePath = plan.Folder + "/" + TreeFileName(id);
-            for (var i = 0; i < aDraft.NewSkills.Count; i++) plan.SkillPaths.Add(plan.Folder + "/" + id + "_Skill_" + i + ".asset");
             return plan;
         }
 
@@ -109,9 +96,6 @@ namespace PPCore
                     if (Directory.Exists(folder) || File.Exists(folder) || File.Exists(folder + ".meta")) result.Errors.Add("生成先が既に存在します: " + folder);
                     result.Paths.Add(folder + "/" + unit.UnitId + ".asset");
                     result.Paths.Add(folder + "/" + unit.UnitId + "_Visual.asset");
-                    if (aDraft.IsNewTree) result.Paths.Add(folder + "/" + TreeFileName(unit.UnitId));
-                    for (var i = 0; i < aDraft.NewSkills.Count; i++)
-                        result.Paths.Add(folder + "/Skill_" + i + ".asset");
                 }
             }
             // 編集モードでは元ユニット・読み込んだビジュアル自身を重複の対象から除く
@@ -121,65 +105,14 @@ namespace PPCore
             if (aDraft.MaxLevel < 1 || aDraft.MaxLevel > 100000 || aDraft.PreviewLevel < 1 || aDraft.PreviewLevel > aDraft.MaxLevel)
                 result.Errors.Add("レベルの範囲が不正です（最大レベル1〜100000）。");
             for (var i = 0; i < PPUnitCreationDraft.StatNames.Length; i++) ValidateCurve(aDraft, i, result);
-            var expand = unit.ExpandStatBlock;
-            if (new[] { expand.AttackCost, expand.SkillGaugeMax }.Any(aValue => !IsFinite(aValue) || aValue < 0))
-                result.Errors.Add("コスト・ゲージ上限は有限の0以上の値が必要です。");
-            if (expand.CarryOverActions < 1) result.Errors.Add("持ち越し上限は1以上です。");
             ValidateReference(aDraft.Icon, "アイコン", result);
             if (aDraft.Icon == null) result.Warnings.Add("アイコンが未設定です。");
             ValidateReference(aDraft.Portrait, "立ち絵", result);
             if (aDraft.Portrait == null) result.Warnings.Add("立ち絵が未設定です。");
-            switch (aDraft.TreeMode)
-            {
-                case PPUnitTreeAssignMode.Template:
-                    result.Warnings.Add("雛形（優先度リスト＋末尾に通常攻撃）からビヘイビアツリーを作成します。生成後にUnit AI Treeで調整してください。");
-                    break;
-                case PPUnitTreeAssignMode.Existing:
-                    if (unit.BehaviourTree == null) result.Errors.Add("ビヘイビアツリーを選択してください。割り当てない場合は「個別ツリーなし」を選びます。");
-                    else
-                    {
-                        ValidateReference(unit.BehaviourTree, "ビヘイビアツリー", result);
-                        if (unit.BehaviourTree.Root == null) result.Warnings.Add("ビヘイビアツリーのルートが未設定です。");
-                    }
-                    break;
-                default:
-                    var effectiveTree = ResolveEffectiveTree(unit, out _);
-                    if (effectiveTree == null) result.Warnings.Add(NoTreeWarning);
-                    else if (effectiveTree.Root == null) result.Warnings.Add("既定ツリー「" + effectiveTree.name + "」のルートが未設定です。");
-                    break;
-            }
             ValidateReference(aDraft.UnitCatalog, "ユニットカタログ", result);
             ValidateReference(aDraft.VisualCatalog, "ビジュアルカタログ", result);
-            ValidateReference(aDraft.SkillCatalog, "スキルカタログ", result);
             if (!aDraft.IsEditing && aDraft.UnitCatalog == null) result.Warnings.Add("ユニットはカタログへ登録されません。");
             if (!aDraft.IsEditing && aDraft.VisualCatalog == null) result.Warnings.Add("ビジュアルはカタログへ登録されません。IDから表示を解決するには登録が必要です。");
-            var skillIds = new HashSet<string>();
-            var existingSkills = LoadAll<SkillDefinition>().ToArray();
-            foreach (var skill in unit.Skills)
-            {
-                if (skill == null) { result.Errors.Add("スキルに未設定・参照切れがあります。"); continue; }
-                if (string.IsNullOrWhiteSpace(skill.SkillId) || !skillIds.Add(skill.SkillId)) result.Errors.Add("スキルIDが空欄または重複しています: " + skill.SkillId);
-                if (string.IsNullOrWhiteSpace(skill.DisplayName)) result.Errors.Add("スキルの表示名が空欄です。");
-                if (skill is PPSkillDefinition ownedSkill && aDraft.NewSkills.Contains(ownedSkill))
-                {
-                    if (existingSkills.Any(aSkill => aSkill.SkillId == skill.SkillId)) result.Errors.Add("新規スキルIDが既存と重複しています: " + skill.SkillId);
-                }
-                else ValidateReference(skill, "スキル", result);
-                var so = new SerializedObject(skill);
-                ValidateMissingReferences(so, result);
-                if (so.FindProperty("mMaxCooldown").floatValue < 0f || so.FindProperty("mMaxUsesPerBattle").intValue < 0)
-                    result.Errors.Add("スキルのクールタイム・最大使用回数は0以上です: " + skill.DisplayName);
-                if (skill is PPSkillDefinition ppSkill)
-                {
-                    var effects = so.FindProperty("mSkillEffects");
-                    if (effects.arraySize == 0) result.Warnings.Add("効果未設定のスキル: " + skill.DisplayName);
-                    for (var index = 0; index < effects.arraySize; index++)
-                        if (effects.GetArrayElementAtIndex(index).managedReferenceValue == null) result.Errors.Add("スキル効果に参照切れがあります: " + skill.DisplayName);
-                    var cost = so.FindProperty("mSkillGaugeCost").floatValue;
-                    if (!IsFinite(cost) || cost < 0 || cost > expand.SkillGaugeMax) result.Errors.Add("スキルコストが不正、またはゲージ上限を超えています: " + skill.DisplayName);
-                }
-            }
-            if (aDraft.NewSkills.Any(aSkill => aSkill == null || !unit.Skills.Contains(aSkill))) result.Errors.Add("新規スキルの下書き一覧と割り当てが一致しません。");
             ValidateMissingReferences(new SerializedObject(aDraft), result);
             ValidateMissingReferences(new SerializedObject(unit), result);
             return result;
@@ -207,8 +140,6 @@ namespace PPCore
             if (aDraft.UnitCatalog != null && !IsRegistered(aDraft.UnitCatalog, source)) aResult.CatalogPaths.Add(AssetDatabase.GetAssetPath(aDraft.UnitCatalog));
             if (aDraft.VisualCatalog != null && (plan.NewVisual || (aDraft.SourceVisual != null && !IsRegistered(aDraft.VisualCatalog, aDraft.SourceVisual))))
                 aResult.CatalogPaths.Add(AssetDatabase.GetAssetPath(aDraft.VisualCatalog));
-            if (aDraft.SkillCatalog != null && (aDraft.NewSkills.Count > 0 || aDraft.Unit.Skills.OfType<PPSkillDefinition>().Any(aSkill => !IsRegistered(aDraft.SkillCatalog, aSkill))))
-                aResult.CatalogPaths.Add(AssetDatabase.GetAssetPath(aDraft.SkillCatalog));
         }
 
         private static void ValidateCurve(PPUnitCreationDraft aDraft, int aIndex, PPUnitCreationValidation aResult)
@@ -268,14 +199,6 @@ namespace PPCore
             && aId == aId.Trim() && aId != "." && aId != ".." && !aId.EndsWith(".")
             && aId.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 && !aId.Contains('/') && !aId.Contains('\\')
             && !new[] { "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9" }.Contains(aId.Split('.')[0].ToUpperInvariant());
-
-        // ユニットが実際に使うツリーを解決する
-        // Edit モードで PPRuntimeSettings.Current を呼ぶと読み込みログや代替インスタンスの生成が起きるため、アセットを直接読む
-        public static PPUnitBehaviourTree ResolveEffectiveTree(PPUnitDefinition aUnit, out PPUnitAITreeSource aSource)
-        {
-            var settings = AssetDatabase.LoadAssetAtPath<PPRuntimeSettings>(PPRuntimeSettings.AssetPath);
-            return PPUnitAIDefaultsDefinition.ResolveTree(aUnit, settings != null ? settings.UnitAIDefaults : null, out aSource);
-        }
 
         // カタログに登録済みか。登録済みなら保存時に何もしない
         public static bool IsRegistered(ScriptableObject aCatalog, UnityEngine.Object aItem)

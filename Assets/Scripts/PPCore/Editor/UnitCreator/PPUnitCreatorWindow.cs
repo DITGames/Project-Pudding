@@ -75,10 +75,8 @@ namespace PPCore
 
         /* 定数 */
 
-        private static readonly string[] TabNames = { "ビジュアル", "パラメータ", "スキル", "ディテイル" };
+        private static readonly string[] TabNames = { "ビジュアル", "パラメータ", "ディテイル" };
         private static readonly string[] ParameterViews = { "編集", "比較", "ランキング" };
-        // ビヘイビアツリーの割り当て方。並びは PPUnitTreeAssignMode の値と揃える
-        private static readonly string[] TreeModeNames = { "個別ツリーなし", "既存を選ぶ", "雛形から新規" };
         private static readonly Color[] SeriesColors = { new(0.4f, 0.8f, 1), new(1, 0.7f, 0.2f), new(0.6f, 1, 0.5f) };
         private static readonly Color[] CompareColors = { new(0.4f, 0.8f, 1), new(1, 0.45f, 0.45f) };
         // 編集ビューの表の列幅と棒グラフの高さ。既定サイズ付近で1画面に収まるよう詰めている
@@ -105,8 +103,6 @@ namespace PPCore
         private readonly Vector2[] mScroll = new Vector2[5];
         private readonly int[] mTemplates = new int[PPUnitCreationDraft.StatNames.Length];
         private readonly bool[] mSeries = { true, true, true };
-        private int mSkillIndex = -1;
-        private UnityEditor.Editor mSkillEditor;
         [NonSerialized] private PPUnitCreationValidation mValidation;
         [NonSerialized] private int mValidatedRevision = -1;
         // ランキングの母集団。再コンパイルやプロジェクト変更で破棄し、次の描画で読み直す
@@ -150,7 +146,6 @@ namespace PPCore
         {
             EditorApplication.projectChanged -= Invalidate;
             Undo.undoRedoPerformed -= OnUndo;
-            if (mSkillEditor != null) DestroyImmediate(mSkillEditor);
         }
 
         private void OnGUI()
@@ -213,7 +208,6 @@ namespace PPCore
                 using (new EditorGUI.DisabledScope(mDraft.IsCreated))
                 {
                     if (mTab == 0) DrawVisual();
-                    else if (mTab == 2) DrawSkills();
                     else DrawDetails();
                 }
             }
@@ -244,7 +238,6 @@ namespace PPCore
                 PPUnitDraftStore.Save(mDraft);
                 mDraftId = mDraft.DraftId;
                 mValidatedRevision = -1;
-                mSkillIndex = -1;
                 mPreviewPending = false;
                 mError = null;
             }
@@ -257,20 +250,9 @@ namespace PPCore
             PPUnitDraftStore.Save(mDraft);
             mDraftId = mDraft.DraftId;
             mValidatedRevision = -1;
-            mSkillIndex = -1;
             mPreviewPending = false;
             mError = null;
         }
-
-        // 割り当て方ごとの説明文を返す
-        private string TreeModeHelp(PPUnitTreeAssignMode aMode, PPUnitBehaviourTree aEffectiveTree, PPUnitAITreeSource aTreeSource) => aMode switch
-        {
-            PPUnitTreeAssignMode.Existing => "既存のビヘイビアツリーを選んで割り当てます。",
-            PPUnitTreeAssignMode.Template => "保存時に雛形（優先度リスト＋末尾に通常攻撃）から " + PPUnitCreationValidator.TreeFileName(mDraft.Unit.UnitId) + " を作成して割り当てます。生成後にUnit AI Treeで調整します。",
-            _ => aEffectiveTree != null
-                ? "個別ツリーなし: 「" + aEffectiveTree.name + "」（" + PPUnitAITreeSourceUtility.ToDisplayString(aTreeSource) + "）で行動します。"
-                : PPUnitCreationValidator.NoTreeWarning,
-        };
 
         // 評価レベルのスライダー。最大Lvが下がった場合もここで 1〜最大Lv に丸める
         private int LevelSlider(int aLevel)
@@ -336,29 +318,10 @@ namespace PPCore
         {
             var so = new SerializedObject(mDraft.Unit);
             EditorGUILayout.PropertyField(so.FindProperty("mTypeAttribute"));
-            EditorGUILayout.PropertyField(so.FindProperty("mRole"));
-            // 選び直した割り当て方は描画後に反映し、同じイベント内で表示内容が切り替わらないようにする
-            var mode = mDraft.TreeMode;
-            var selected = (PPUnitTreeAssignMode)EditorGUILayout.Popup("ビヘイビアツリー", (int)mode, TreeModeNames);
-            using (new EditorGUI.DisabledScope(mode != PPUnitTreeAssignMode.Existing))
-                EditorGUILayout.PropertyField(so.FindProperty("mBehaviourTree"), new GUIContent("使用するツリー"));
-            // 個別ツリーなしのときは実際に使うツリーを示す。どこからも解決できないときだけ警告にする
-            PPUnitBehaviourTree effectiveTree = null;
-            var treeSource = PPUnitAITreeSource.None;
-            if (mode == PPUnitTreeAssignMode.None) effectiveTree = PPUnitCreationValidator.ResolveEffectiveTree(mDraft.Unit, out treeSource);
-            var isUnresolved = mode == PPUnitTreeAssignMode.None && effectiveTree == null;
-            EditorGUILayout.HelpBox(TreeModeHelp(mode, effectiveTree, treeSource), isUnresolved ? MessageType.Warning : MessageType.Info);
-            if (selected != mode)
-            {
-                mDraft.TreeMode = selected;
-                // 既存の選択は「既存を選ぶ」でだけ使う。ほかへ切り替えたら外し、個別ツリーなし・雛形の生成物と食い違わないようにする
-                if (selected != PPUnitTreeAssignMode.Existing) so.FindProperty("mBehaviourTree").objectReferenceValue = null;
-            }
             so.ApplyModifiedPropertiesWithoutUndo();
             GUILayout.Label("カタログ登録（任意）", EditorStyles.boldLabel);
             mDraft.UnitCatalog = (PPUnitCatalog)EditorGUILayout.ObjectField("ユニット", mDraft.UnitCatalog, typeof(PPUnitCatalog), false);
             mDraft.VisualCatalog = (PPUnitVisualCatalog)EditorGUILayout.ObjectField("ビジュアル", mDraft.VisualCatalog, typeof(PPUnitVisualCatalog), false);
-            mDraft.SkillCatalog = (PPSkillCatalog)EditorGUILayout.ObjectField("スキル", mDraft.SkillCatalog, typeof(PPSkillCatalog), false);
         }
 
         private void DrawParameterTab()
@@ -583,46 +546,6 @@ namespace PPCore
             if (overflow) GUI.Label(new Rect(rect.xMax - 300, rect.y, 300, 18), "基準超過あり（赤線の棒は上端で制限）", new GUIStyle(EditorStyles.boldLabel) { alignment = TextAnchor.UpperRight });
         }
 
-        private void DrawSkills()
-        {
-            var added = (PPSkillDefinition)EditorGUILayout.ObjectField("既存スキルを追加", null, typeof(PPSkillDefinition), false);
-            if (added != null) mDraft.Unit.Skills.Add(added);
-            if (GUILayout.Button("新規スキルを下書きへ追加")) { mDraft.AddNewSkill(); mSkillIndex = mDraft.Unit.Skills.Count - 1; GUI.changed = true; }
-            for (var i = 0; i < mDraft.Unit.Skills.Count; i++)
-            {
-                var skill = mDraft.Unit.Skills[i];
-                EditorGUILayout.BeginHorizontal();
-                if (KeepChanged(() => GUILayout.Button(skill != null ? skill.DisplayName + " [" + skill.SkillId + "]" : "未設定"))) mSkillIndex = i;
-                using (new EditorGUI.DisabledScope(i == 0))
-                    if (GUILayout.Button("↑", GUILayout.Width(24))) { (mDraft.Unit.Skills[i - 1], mDraft.Unit.Skills[i]) = (mDraft.Unit.Skills[i], mDraft.Unit.Skills[i - 1]); mSkillIndex = i - 1; GUI.changed = true; }
-                using (new EditorGUI.DisabledScope(i == mDraft.Unit.Skills.Count - 1))
-                    if (GUILayout.Button("↓", GUILayout.Width(24))) { (mDraft.Unit.Skills[i + 1], mDraft.Unit.Skills[i]) = (mDraft.Unit.Skills[i], mDraft.Unit.Skills[i + 1]); mSkillIndex = i + 1; GUI.changed = true; }
-                if (GUILayout.Button("解除", GUILayout.Width(42)))
-                {
-                    mDraft.Unit.Skills.RemoveAt(i);
-                    if (skill is PPSkillDefinition ppSkill && !mDraft.Unit.Skills.Contains(skill)) mDraft.NewSkills.Remove(ppSkill);
-                    mSkillIndex = -1;
-                    GUI.changed = true;
-                    EditorGUILayout.EndHorizontal();
-                    break;
-                }
-                EditorGUILayout.EndHorizontal();
-            }
-            if (mSkillIndex < 0 || mSkillIndex >= mDraft.Unit.Skills.Count) return;
-            var selected = mDraft.Unit.Skills[mSkillIndex];
-            if (selected == null) return;
-            if (selected is PPSkillDefinition newSkill && mDraft.NewSkills.Contains(newSkill))
-            {
-                UnityEditor.Editor.CreateCachedEditor(selected, null, ref mSkillEditor);
-                mSkillEditor.OnInspectorGUI();
-            }
-            else
-            {
-                EditorGUILayout.HelpBox("既存アセット: " + AssetDatabase.GetAssetPath(selected), MessageType.Info);
-                if (KeepChanged(() => GUILayout.Button("既存スキルをInspectorで開く"))) Selection.activeObject = selected;
-            }
-        }
-
         private void DrawFooter(Rect aRect)
         {
             GUILayout.BeginArea(aRect, EditorStyles.helpBox);
@@ -634,8 +557,6 @@ namespace PPCore
                     if (GUILayout.Button(path)) Selection.activeObject = AssetDatabase.LoadMainAssetAtPath(path);
                 KeepChanged(() => EditorGUILayout.EndScrollView());
                 RecordRect("footerScroll");
-                if (mDraft.IsNewTree && GUILayout.Button("生成したツリーをUnit AI Treeで編集"))
-                    GetWindow<PPUnitAITreeWindow>().SetTarget(AssetDatabase.LoadAssetAtPath<PPUnitBehaviourTree>(mDraft.CreatedPaths[2]));
             }
             else
             {

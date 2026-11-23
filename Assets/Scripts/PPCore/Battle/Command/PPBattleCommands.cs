@@ -3,7 +3,7 @@
  * @file PPBattleCommands.cs
  * @author hqrse
  * @date 2026/06/13
- * @brief バトルコマンド（基底・攻撃・スキル・アイテム・入れ替え・逃走）
+ * @brief バトルコマンド（基底・攻撃・アイテム・入れ替え・逃走）
  * =====================================*/
 
 using System;
@@ -51,7 +51,7 @@ namespace PPCore
 
         /* 操作 */
 
-        // コマンドの効果を実行する。派生クラスで具体的な処理（スキル発動・アイテム使用など）を実装する
+        // コマンドの効果を実行する。派生クラスで具体的な処理（攻撃・アイテム使用など）を実装する
         // aContext : 実行時のバトルコンテキスト
         public abstract void Execute(BattleContext aContext);
     }
@@ -105,44 +105,6 @@ namespace PPCore
 
                 target.ApplyDamage(info, aContext);
             }
-        }
-    }
-
-    // スキル使用コマンド
-    public class SkillCommand : BattleCommandBase
-    {
-        // 使用するスキル
-        public BattleSkill Skill { get; }
-
-        public SkillCommand(BattleUnit aSource, BattleSkill aSkill, ITargetResolver aResolverOverride = null)
-            : base(aSource, aResolverOverride ?? aSkill.DefaultTargetResolver)
-        {
-            Skill = aSkill;
-        }
-
-        // 対象解決 → 発動可否検証 → スキル実行 → 使用記録の順に処理し、失敗時は理由付きで通知して中止する
-        // 対象の解決は冒頭の 1 回に統一する（リゾルバを直接呼ぶと ITargetFilter が適用されない）
-        public override void Execute(BattleContext aContext)
-        {
-            // 先にターゲット解決
-            var targets = aContext.ResolveTargets(Source, TargetResolver);
-            if (targets.Count == 0)
-            {
-                aContext.NotifyCastFailed(Source, Skill, CastFailReason.InvalidTarget);
-                return;
-            }
-
-            // 発動可能?
-            var validation = aContext.Rules.CastValidator.Validate(Source, Skill, aContext);
-            if (!validation.CanCast)
-            {
-                aContext.NotifyCastFailed(Source, Skill, validation.Reason);
-                return;
-            }
-
-            // スキル実行
-            Skill.Execute(Source, targets, aContext);
-            Skill.NotifyUsed(aContext);
         }
     }
 
@@ -211,23 +173,9 @@ namespace PPCore
         }
     }
 
-    // ゲージ消費を伴うコマンドであることを示すインターフェース
-    // UI がコマンド実行前に必要量を表示する際、コマンドの具象型を問わずコストを引けるようにする
-    public interface IPPBattleCommand
+    // 通常攻撃コマンド。属性相性を含むダメージ計算（PPDamageUtility）を使う
+    public class PPAttackCommand : AttackCommand
     {
-        // このコマンドの実行に必要なコインゲージ量
-        public float AttackCost { get; }
-    }
-
-    // 通常攻撃コマンド。属性相性を含むダメージ計算（PPDamageUtility）を使い、成立時はスキルゲージを回復する
-    // 行動コスト（コインゲージ）は行動を積む側が支払うため、ここでは消費しない
-    public class PPAttackCommand : AttackCommand, IPPBattleCommand
-    {
-        /* 状態 */
-
-        // この行動に必要なコインゲージ量。生成時点の行動コストで固定される
-        public float AttackCost {get; private set;}
-
         /* 生成 */
 
         // aSource : 攻撃するユニット
@@ -235,16 +183,14 @@ namespace PPCore
         public PPAttackCommand(PPBattleUnit aSource, ITargetResolver aResolver)
             : base(aSource, aResolver)
         {
-            // バフ・デバフ込みでの攻撃コストを適用(時間経過でバフ切れたときに消費できず失敗する可能性がありそう)
-            AttackCost = aSource.ExtraParameters.Get(PPParameterSet.ParameterIdAttackCost).CurrentValue;
         }
 
         /* 操作 */
 
-        // 対象ごとにダメージを算出して適用し、スキルゲージを回復する
+        // 対象ごとにダメージを算出して適用する
         public override void Execute(BattleContext aContext)
         {
-            if (Source is not PPBattleUnit ppSource)
+            if (Source is not PPBattleUnit)
             {
                 CustomConsoleLog.Warning("Battle", $"{Source.DisplayName}の通常攻撃: 発動者がPPBattleUnitではありません。");
                 return;
@@ -256,78 +202,12 @@ namespace PPCore
             foreach (var target in aContext.ResolveTargets(Source, TargetResolver))
             {
                 float raw = PPDamageUtility.ResolveAttackDamage(Source, target);
-                var damageInfo = PPDamageUtility.CreateDamageInfo(Source, target, raw, PPSkillCategory.Physical, sourceAttribute,
+                var damageInfo = PPDamageUtility.CreateDamageInfo(Source, target, raw, sourceAttribute,
                     new AttackDamageReason(this), aContext);
                 damages.Add(damageInfo);
             }
 
             foreach (var damageInfo in damages) damageInfo.Target?.ApplyDamage(damageInfo, aContext);
-
-            RecoverSkillGauge(ppSource, aContext);
-        }
-
-        // 通常攻撃の成立に伴うスキルゲージ回復を行う。回復量は素早さに応じてルール側が決める
-        // 回復量は拡張ルール側にしか無いため、差し込まれている場合のみ回復する
-        protected virtual void RecoverSkillGauge(PPBattleUnit aSource, BattleContext aContext)
-        {
-            if (aContext.Rules is not PPBattleRules rules) return;
-
-            float amount = rules.ResolveNormalAttackSkillGauge(aSource);
-            if (amount <= 0f) return;
-
-            aSource.ExtraParameters.SkillGauge.Recover(amount);
-            CustomConsoleLog.Verbose("Resource",
-                $"{aSource.DisplayName}のスキルゲージが通常攻撃で{amount:0.##}回復しました（残量{aSource.ExtraParameters.SkillGauge.Current:0.##}）。");
-        }
-    }
-
-    // 発動者自身のスキルゲージ消費を伴うスキルコマンド
-    // 対象不在・発動条件不成立・ゲージ不足のいずれかで中止し、理由付きで NotifyCastFailed を通知する
-    public class PPSkillCommand : SkillCommand
-    {
-        // 攻撃系統のスキルのみ「攻撃時」のスタック消費のきっかけとして扱う
-        // 支援・回復は敵にダメージを与える行動ではないため攻撃に含めない
-        public override bool IsAttack
-            => Skill?.SourceDefinition is PPSkillDefinition definition && definition.Group == PPSkillGroup.Attack;
-
-        public PPSkillCommand(BattleUnit aSource, BattleSkill aSkill, ITargetResolver aResolverOverride = null)
-            : base(aSource, aSkill, aResolverOverride)
-        {
-        }
-
-        // スキルを発動する。対象解決 → 発動可否検証 → スキルゲージ支払い → 効果実行 → 使用記録の順に進む
-        // いずれかの段階で失敗した場合はゲージを消費せずに中止する
-        public override void Execute(BattleContext aContext)
-        {
-            // 対象が 1 体も解決できなければ発動しない
-            var targets = aContext.ResolveTargets(Source, TargetResolver);
-            if (targets.Count == 0)
-            {
-                aContext.NotifyCastFailed(Source, Skill, CastFailReason.InvalidTarget);
-                return;
-            }
-
-            // クールダウン・使用回数などの発動条件を検証する
-            var validation = aContext.Rules.CastValidator.Validate(Source, Skill, aContext);
-            if (!validation.CanCast)
-            {
-                aContext.NotifyCastFailed(Source, Skill, validation.Reason);
-                return;
-            }
-
-            // 定義アセットから必要スキルゲージ量を取り、発動者自身のゲージから実際に支払う
-            // 支払いに失敗した場合はこの時点で中止するため、ゲージは減らない
-            float cost = (Skill.SourceDefinition as PPSkillDefinition)?.SkillGaugeCost ?? 0f;
-            if (Source is not PPBattleUnit ppSource ||
-                !PPGaugeUtility.TryPay(ppSource.ExtraParameters.SkillGauge, cost))
-            {
-                aContext.NotifyCastFailed(Source, Skill, CastFailReason.NotEnoughResource);
-                return;
-            }
-
-            Skill.Execute(Source, targets, aContext);
-            Skill.NotifyUsed(aContext);
-            CustomConsoleLog.Log("Battle", $"{Source.DisplayName}が{Skill.DisplayName}を発動しました。");
         }
     }
 }

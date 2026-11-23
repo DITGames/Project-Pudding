@@ -119,7 +119,6 @@ namespace PPCore
             {
                 ActionRestriction.CannotAct => "行動不能",
                 ActionRestriction.Confused => "行動ランダム化",
-                ActionRestriction.Silenced => "スキル使用不可",
                 ActionRestriction.CannotEscape => "逃走不可",
                 ActionRestriction.CannotSwap => "入れ替え不可",
                 _ => aRestriction.ToString(),
@@ -265,10 +264,7 @@ namespace PPCore
         Speed = 2,
         [InspectorName(PPParameterEffectCategoryDefinition.NameHp)]
         Hp = 3,
-        // 行動コスト。追加パラメータ側にある
-        [InspectorName(PPParameterEffectCategoryDefinition.NameCost)]
-        Cost = 4,
-        // きようさ（会心率の元）。追加パラメータ側にある。5 は廃止した行動回数上限が使っていた値で、欠番にしている
+        // きようさ（会心率の元）。追加パラメータ側にある。4・5 はアセットに残った値と衝突させないため欠番にしている
         // シリアライズ済みの整数値を保つため、値は変えず、要素の追加は末尾に行う
         [InspectorName(PPParameterEffectCategoryDefinition.NameDexterity)]
         Dexterity = 6,
@@ -300,7 +296,7 @@ namespace PPCore
         public float Amount => mAmount;
 
         // 対象パラメータに対応するパラメータ ID
-        // コスト・きようさは追加パラメータ側の ID を返す点に注意
+        // きようさは追加パラメータ側の ID を返す点に注意
         protected string ParamId
             => mTargetParam switch
             {
@@ -308,7 +304,6 @@ namespace PPCore
                 PPModifierTargetParam.Defense => ParameterSet.ParamIdDefense,
                 PPModifierTargetParam.Speed => ParameterSet.ParamIdSpeed,
                 PPModifierTargetParam.Hp => ParameterSet.ParamIdMaxHp,
-                PPModifierTargetParam.Cost => PPParameterSet.ParameterIdAttackCost,
                 PPModifierTargetParam.Dexterity => PPParameterSet.ParameterIdDexterity,
                 _ => string.Empty,
             };

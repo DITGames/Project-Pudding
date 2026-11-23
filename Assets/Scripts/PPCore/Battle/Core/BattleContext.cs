@@ -43,28 +43,17 @@ namespace PPCore
         public BattleReward Reward { get; set; } = new();
         // 戦闘環境
         public BattleEnvironment Environment { get; set; } = new();
-        // 命中・クリティカル・乱数・詠唱可否・ターゲットフィルタなどの差し替え可能なルール一式
+        // 命中・クリティカル・乱数・ターゲットフィルタなどの差し替え可能なルール一式
         public BattleRules Rules { get; set; } = new BattleRules();
         // 逃走要求フラグ。DefaultBattleResultChecker がこれを見て逃走終了と判定する
         public bool EscapeRequested { get; set; }
         // バトル専用の時計。BattleManager.AdvanceTime で進み、停止中は進まない
         public PPBattleClock Clock { get; } = new();
-        // バトル専用の時計で発火するタイマー。クールタイムや状態異常など秒で決まる処理を予約する
+        // バトル専用の時計で発火するタイマー。状態異常など秒で決まる処理を予約する
         public PPBattleTimerScheduler Timers { get; } = new();
         // 実行中のコマンド。BattleManager がコマンドの効果を実行している間だけ設定し、それ以外は null
         // リアクション情報の引き継ぎや、発生元コマンドを辿る用途に使う
         public BattleCommandBase ExecutingCommand { get; protected internal set; }
-
-        /* イベント */
-
-        // スキル発動に失敗したとき(発動ユニット, スキル, 失敗理由)
-        public event Action<BattleUnit, BattleSkill, CastFailReason> OnCastFailed;
-
-        /* 操作 */
-
-        // スキル発動失敗を購読側へ通知する。コスト不足やクールダウン中の検出元から呼ばれる
-        protected internal virtual void NotifyCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)
-            => OnCastFailed?.Invoke(aUnit, aSkill, aReason);
 
         /* 問い合わせ */
 

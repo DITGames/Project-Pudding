@@ -42,7 +42,7 @@ namespace PPCore
             for (int i = 0; i < cards.Count; i++)
             {
                 var unit = mCandidates[i];
-                string sub = $"<color={PPStageUnitDisplay.AttributeColorCode(unit.TypeAttribute)}>{PPStageUnitDisplay.AttributeName(unit.TypeAttribute)}属性</color>\n{PPStageUnitDisplay.RoleName(unit)}";
+                string sub = $"<color={PPStageUnitDisplay.AttributeColorCode(unit.TypeAttribute)}>{PPStageUnitDisplay.AttributeName(unit.TypeAttribute)}属性</color>";
                 cards[i].SetUnit(PPStageUnitDisplay.ResolveIcon(UnitVisualCatalog, unit), PPStageUnitDisplay.NameAndLevel(unit, aLevel), sub);
             }
             Focus(0, 0);

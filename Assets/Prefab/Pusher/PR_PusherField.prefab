@@ -174,55 +174,6 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 34, y: 4, z: 0.3}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!1 &2676212690629662253
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1823880170865458149}
-  - component: {fileID: 1892109175568211166}
-  m_Layer: 0
-  m_Name: ChargeItemSpawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1823880170865458149
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2676212690629662253}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 8826687675419239633}
-  m_Father: {fileID: 1021595930660822909}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1892109175568211166
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2676212690629662253}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 27146d227c715e34ba97e189242732a2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPChargeItemSpawner
-  mItemPrefab: {fileID: 3366616247124002180, guid: 11b050a11e8b25942ac90add490f9439, type: 3}
-  mInterval: 12
-  mMaxCount: 3
-  mSpawnArea: {fileID: 8826687675419239633}
 --- !u!1 &4621114725383282897
 GameObject:
   m_ObjectHideFlags: 0
@@ -257,7 +208,6 @@ Transform:
   - {fileID: 7778740662108731537}
   - {fileID: 8787477438610972376}
   - {fileID: 1059671600202073176}
-  - {fileID: 1823880170865458149}
   - {fileID: 1187334203344248411}
   - {fileID: 5461685434443414853}
   m_Father: {fileID: 0}
@@ -277,59 +227,6 @@ MonoBehaviour:
   mDispenser: {fileID: 440332914096124815}
   mPlate: {fileID: 2960229281796266522}
   mStopper: {fileID: 859335628347904589}
---- !u!1 &5936296458869027031
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8826687675419239633}
-  - component: {fileID: 4703966412611549365}
-  m_Layer: 0
-  m_Name: SpawnArea
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8826687675419239633
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5936296458869027031}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: 5}
-  m_LocalScale: {x: 22, y: 2, z: 5}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1823880170865458149}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &4703966412611549365
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5936296458869027031}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 0
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &7218890721691406724
 GameObject:
   m_ObjectHideFlags: 0
@@ -412,23 +309,14 @@ MonoBehaviour:
   mRecoverInterval: 1
   mRecoverAmount: 1
   mStockMax: 10
-  mMode: 0
   mLeftPoint: {fileID: 6322332972969603556}
   mRightPoint: {fileID: 6798435043938170393}
   mDropLeftAction: {fileID: 0}
   mDropRightAction: {fileID: 0}
   mDropAction: {fileID: 9127176969723122772, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mSpread: 3
-  mAutoInterval: 1.5
   mCursorSpeed: 0.8
   mCursorStart: 0.5
-  mSampleArea: {fileID: 0}
-  mSampleColumns: 3
-  mSampleRows: 3
-  mRowWeights:
-  - 3
-  - 2
-  - 1
   mInitialCount: 400
   mInitialArea: {fileID: 2755636174697559776}
   mInitialSpacing: 1.7

@@ -12,7 +12,7 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ユニット定義。属性・ロール・追加ステータス・レベル成長曲線・ビヘイビアツリー・難易度の基本ポイントを持つ
+    // ユニット定義。属性・追加ステータス・レベル成長曲線・難易度の基本ポイントを持つ
     // 成長は AnimationCurve の倍率で表現し、成長後の値は四捨五入で整数に丸める
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
     public class PPUnitDefinition : UnitDefinition
@@ -20,26 +20,17 @@ namespace PPCore
         /* インスペクタ設定 */
 
         [Header("ユニット拡張")]
-        // 構造体はフィールド初期化子を持てないため、新規アセット用の既定値（きようさ・スキルゲージ上限）はここで与える
+        // 構造体はフィールド初期化子を持てないため、新規アセット用の既定値（きようさ）はここで与える
         // 既存アセットはシリアライズ済みの値が優先される
-        [Label("ステータス")] // スキル前提なら消す
+        [Label("ステータス")]
         [SerializeField]protected PPStatBlock mExpandStatBlock = new()
         {
-            SkillGaugeMax = PPStatBlock.DefaultSkillGaugeMax,
             Dexterity = PPStatBlock.DefaultDexterity,
         };
 
         // ユニットの属性。弱点・耐性の判定に使う
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
-        [Label("ロール")]
-        [SerializeField]protected PPUnitRole mRole = PPUnitRole.Balance;
-
-        // このユニットの思考設定。AI はユニット単位で判断するため、ツリーもユニットに紐づく
-        // 未設定のユニットは ロール既定 → 全体既定 の順に解決したツリーで動く（PPUnitAIDefaultsDefinition.ResolveTree）
-        [Header("AI")]
-        [Label("ビヘイビアツリー")]
-        [SerializeField]protected PPUnitBehaviourTree mBehaviourTree;
 
         // 遭遇の難易度ポイントの元になる値。遭遇は編成のユニットのこの値を合計する
         [Header("レベルデザイン")]
@@ -57,8 +48,6 @@ namespace PPCore
 
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
-        public PPUnitRole Role => mRole;
-        public PPUnitBehaviourTree BehaviourTree => mBehaviourTree;
         public int DifficultyPoint => mDifficultyPoint;
 
         /* static 関数 */
@@ -82,22 +71,13 @@ namespace PPCore
         public override BattleUnit CreateRuntimeUnit()
             => CreateRuntimeUnit(1);
 
-        // レベルを指定してランタイムユニットを生成する
-        // 成長後のパラメータと追加パラメータを組み立て、所持スキルもランタイム化して持たせる
+        // レベルを指定してランタイムユニットを生成する。成長後のパラメータと追加パラメータを組み立てる
         public virtual BattleUnit CreateRuntimeUnit(int aLevel)
         {
-            var unit = new PPBattleUnit(mUnitId, DisplayName, CreateParameterSet(aLevel), CreatePPParameterSet(aLevel), mTypeAttribute)
+            return new PPBattleUnit(mUnitId, DisplayName, CreateParameterSet(aLevel), CreatePPParameterSet(aLevel), mTypeAttribute)
             {
                 SourceDefinition = this,
             };
-            foreach (var skill in mSkills)
-            {
-                if (skill != null)
-                {
-                    unit.Skills.Add(skill.CreateRuntimeSkill());
-                }
-            }
-            return unit;
         }
 
         // 基礎ステータスへ成長倍率を掛けてパラメータ一式を組み立てる
@@ -110,20 +90,13 @@ namespace PPCore
                 );
         }
 
-        // 追加パラメータ一式を組み立てる。きようさ以外はレベル成長の対象外
-        // コインゲージの上限は 行動コスト × 持ち越し上限 で決める。持ち越し上限が未設定のアセットは既定値を使う
+        // 追加パラメータ一式を組み立てる
         protected virtual PPParameterSet CreatePPParameterSet(int aLevel)
-        {
-            int carryOver = mExpandStatBlock.CarryOverActions > 0
-                ? mExpandStatBlock.CarryOverActions
-                : PPStatBlock.DefaultCarryOverActions;
-            return new(mExpandStatBlock.AttackCost, mExpandStatBlock.SkillGaugeMax,
-                mExpandStatBlock.AttackCost * carryOver, EvaluateDexterity(aLevel));
-        }
+            => new(EvaluateDexterity(aLevel));
 
         /* 評価・判定 */
 
-        // スキルやランタイムユニットを生成せず、表示と生成で同じ成長値（育成値）を評価する
+        // ランタイムユニットを生成せず、表示と生成で同じ成長値（育成値）を評価する
         // きようさは基底の StatBlock に含まれないため EvaluateDexterity で別に評価する
         public virtual StatBlock EvaluateStats(int aLevel) => new()
         {

@@ -12,10 +12,17 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // プッシャーから落ちたコインとチャージ用アイテムを検出する領域。トリガーの Collider を付けて使う
-    // 落ちたものは通知して消す（コインは置き場へ戻す）。バトル側へはブリッジ（PPCoinResourceBridge / PPChargeItemBridge）経由で伝わる
+    // プッシャー（物理）側がコインの落下を知らせるためのインターフェース。実装は PPPusherDropZone と CoinDropCounter
+    public interface IPPCoinGainNotifier
+    {
+        // コインが落ちたとき(コインの属性, 枚数)
+        event Action<PPTypeAttribute, int> OnCoinGained;
+    }
+
+    // プッシャーから落ちたコインを検出する領域。トリガーの Collider を付けて使う
+    // 落ちたコインは通知して置き場へ戻す
     [RequireComponent(typeof(Collider))]
-    public class PPPusherDropZone : MonoBehaviour, IPPCoinGainNotifier, IPPChargeItemNotifier
+    public class PPPusherDropZone : MonoBehaviour, IPPCoinGainNotifier
     {
         /* 定数 */
 
@@ -40,12 +47,10 @@ namespace PPCore
 
         // コインが落ちたとき(コインの属性, 枚数)
         public event Action<PPTypeAttribute, int> OnCoinGained;
-        // チャージ用アイテムが落ちたとき(アイテムの中身)
-        public event Action<PPChargeItemTicket> OnChargeItemDropped;
 
         /* Unity イベント */
 
-        // 領域へ入ったものを調べ、コインかチャージ用アイテムなら通知して消す
+        // 領域へ入ったものを調べ、コインなら通知して消す
         private void OnTriggerEnter(Collider aOther)
         {
             // 当たり判定は子に付いていることがあるため、Rigidbody を持つ本体で判定する
@@ -53,17 +58,6 @@ namespace PPCore
             if (body == null) return;
 
             var target = body.gameObject;
-            if (target.TryGetComponent<PPPusherChargeItem>(out var item))
-            {
-                // 同じ物理ステップで複数の Collider が入っても、通知は 1 回にする
-                if (item.IsCollected) return;
-
-                item.MarkCollected();
-                Destroy(target);
-                if (mIsNotify) OnChargeItemDropped?.Invoke(item.Ticket);
-                return;
-            }
-
             if (!target.CompareTag(CoinTag)) return;
             // 消える前の同じステップでもう一度入ってきた場合に、二重に数えない
             if (!target.activeSelf) return;
