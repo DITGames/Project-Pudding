@@ -154,6 +154,11 @@ namespace PPCore
         // 規則に合う種類が引けなかったときに引き直す回数
         private const int PickAttemptCount = 30;
 
+        /* 状態 */
+
+        // 欄と遭遇の食い違いを警告し終えたマップ定義
+        private static readonly HashSet<PPStageMapDefinition> sWarnedDefinitions = new();
+
         /* 生成 */
 
         public static PPStageMap Generate(PPStageMapDefinition aDefinition, int aSeed)
@@ -253,21 +258,19 @@ namespace PPCore
             }
         }
 
-        // 通常敵の欄にエリートの遭遇が、エリートの欄にエリートでない遭遇が置かれていたら警告する。候補からは外さない
+        // 欄と遭遇の「エリート」の食い違いを警告する。バトルから戻るたびに生成し直すため、同じ定義では Play 中に 1 回だけ出す
         private static void WarnMismatchedEncounters(PPStageMapDefinition aDefinition)
         {
-            WarnMismatchedEncounters(aDefinition, aDefinition.NormalEncounters, false, "通常敵");
-            WarnMismatchedEncounters(aDefinition, aDefinition.EliteEncounters, true, "エリート");
-        }
-
-        private static void WarnMismatchedEncounters(PPStageMapDefinition aDefinition, IReadOnlyList<PPStageEncounterEntry> aEntries, bool aIsElite, string aListName)
-        {
-            foreach (var entry in aEntries)
+            if (!sWarnedDefinitions.Add(aDefinition)) return;
+            foreach (var message in aDefinition.FindMismatchedEncounters())
             {
-                if (entry == null || entry.Encounter == null || entry.Encounter.IsElite == aIsElite) continue;
-                CustomConsoleLog.Warning(LogTag, $"マップ定義 {aDefinition.name} の「{aListName}」にある遭遇 {entry.Encounter.name} は、エリートの設定が{(aIsElite ? "オフ" : "オン")}です。遭遇の「エリート」か、置く欄を直してください");
+                CustomConsoleLog.Warning(LogTag, message, aDefinition);
             }
         }
+
+        // Play を始めるたびに警告済みの記録を空にする。ドメインの再読み込みを切っているため、前回の Play の記録が残るのを防ぐ
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetWarnedDefinitions() => sWarnedDefinitions.Clear();
 
         // 重みで種類を引き、序盤の特殊なマス・同じ経路での連続・同じ段の隣り合わせを避ける
         private static PPStageNodeType PickType(PPStageMap aMap, PPStageMapNode aNode, PPStageMapDefinition aDefinition, System.Random aRandom)

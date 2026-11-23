@@ -8,6 +8,7 @@
 
 using UnityEngine;
 using AttributeUtility;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -68,6 +69,7 @@ namespace PPCore
         // 難易度ポイントを合計する配置の並び（編成と同じ Center → Right → Left）
         public static readonly PPPartyPosition[] Positions =
             { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
+        private const string LogTag = "StageMap";
 
         /* インスペクタ設定 */
 
@@ -106,6 +108,17 @@ namespace PPCore
                 return total;
             }
         }
+
+        /* Unity イベント */
+
+#if UNITY_EDITOR
+        // 最小の段が最大の段より大きいと、どの段にも出なくなるため警告する。値は書き換えない
+        void OnValidate()
+        {
+            if (mMinFloor <= mMaxFloor) return;
+            CustomConsoleLog.Warning(LogTag, $"遭遇 {name} の最小の段 {mMinFloor} が最大の段 {mMaxFloor} より大きいため、どの段にも出ません。「出てくる段」を直してください", this);
+        }
+#endif
 
         /* 問い合わせ */
 

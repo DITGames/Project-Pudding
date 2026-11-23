@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using AttributeUtility;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -29,6 +30,10 @@ namespace PPCore
     [CreateAssetMenu(fileName = "PPStageMapDefinition", menuName = "Project-Pudding/Definition/PPStageMapDefinition")]
     public class PPStageMapDefinition : ScriptableObject
     {
+        /* 定数 */
+
+        private const string LogTag = "StageMap";
+
         /* インスペクタ設定 */
 
         // ステージ選択の画面に出す内容。表示名が空ならアセット名を出す
@@ -120,9 +125,40 @@ namespace PPCore
         public int RecruitLevel => mRecruitLevel;
         public PPPartyDefinition InitialParty => mInitialParty;
 
+        /* Unity イベント */
+
+#if UNITY_EDITOR
+        // インスペクタで編集した時点で、欄と遭遇の「エリート」の食い違いを警告する
+        void OnValidate()
+        {
+            foreach (var message in FindMismatchedEncounters())
+            {
+                CustomConsoleLog.Warning(LogTag, message, this);
+            }
+        }
+#endif
+
         /* 問い合わせ */
 
         // 新しく始めるときのシードを返す。固定しない場合は毎回違う値になる
         public int ResolveSeed() => mIsFixedSeed ? mSeed : new System.Random().Next();
+
+        // 通常敵の欄にエリートの遭遇が、エリートの欄にエリートでない遭遇が置かれていれば、その警告文を返す。無ければ空
+        public List<string> FindMismatchedEncounters()
+        {
+            var messages = new List<string>();
+            CollectMismatched(mNormalEncounters, false, "通常敵", messages);
+            CollectMismatched(mEliteEncounters, true, "エリート", messages);
+            return messages;
+        }
+
+        private void CollectMismatched(List<PPStageEncounterEntry> aEntries, bool aIsElite, string aListName, List<string> aMessages)
+        {
+            foreach (var entry in aEntries)
+            {
+                if (entry == null || entry.Encounter == null || entry.Encounter.IsElite == aIsElite) continue;
+                aMessages.Add($"マップ定義 {name} の「{aListName}」にある遭遇 {entry.Encounter.name} は、エリートの設定が{(aIsElite ? "オフ" : "オン")}です。遭遇の「エリート」か、置く欄を直してください");
+            }
+        }
     }
 }
