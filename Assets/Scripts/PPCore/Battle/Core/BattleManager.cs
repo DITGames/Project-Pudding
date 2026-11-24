@@ -29,6 +29,10 @@ namespace PPCore
         public Func<float> TimeProvider { get; set; } = () => 0f;
         // 現在のコマンドが誘発したリアクション総数。Rules.MaxReactionPerEvent との比較に使う
         protected int mReactionsThisCommand = 0;
+        // 道の上の攻撃で、間合いで選んだ相手を通常攻撃へ渡す
+        private readonly PPFieldTargetResolver mFieldTargetResolver = new();
+        // 道の攻撃の受け口。毎フレームの割り当てを避けるため、生成時に 1 度だけ作る
+        private readonly Action<PPFieldUnit, List<BattleUnit>> mFieldAttack;
 
         /* 通知 */
 
@@ -71,6 +75,7 @@ namespace PPCore
         public BattleManager()
         {
             StateMachine.OnStateChanged += (_, next) => OnStateChanged?.Invoke(next);
+            mFieldAttack = ExecuteFieldAttack;
         }
 
         /* 開始と終了 */
@@ -223,7 +228,7 @@ namespace PPCore
 
         /* 時間進行 */
 
-        // バトル専用の時計を進め、期限が来たタイマーを発火して道の上のユニットを進める。時計の停止中とバトル終了後は何もしない
+        // バトル専用の時計を進め、期限が来たタイマーを発火して道の上のユニットを進め・戦わせる。時計の停止中とバトル終了後は何もしない
         public virtual void AdvanceTime(float aDeltaTime)
         {
             if (Context == null || StateMachine.Current == BattleState.BattleEnd) return;
@@ -231,10 +236,10 @@ namespace PPCore
             if (advanced <= 0f) return;
 
             Context.Timers.AdvanceTo(Context.Clock.Now);
-            Context.Field?.Advance(advanced);
+            Context.Field?.Advance(advanced, mFieldAttack);
         }
 
-        // 道の上の aPosition(味方拠点からの距離)にユニットを生み出す。道が無いバトルでは何もせず null を返す
+        // 道の上の aPosition(味方拠点からの距離)にユニットを生み出し、ダメージ・撃破の通知と押し戻しを繋ぐ。道が無いバトルでは何もせず null を返す
         public virtual PPFieldUnit SpawnFieldUnit(BattleUnit aUnit, BattleSide aSide, float aPosition)
         {
             if (Context?.Field == null || aUnit == null || StateMachine.Current == BattleState.BattleEnd) return null;
@@ -242,8 +247,33 @@ namespace PPCore
             aUnit.Side = aSide;
             float moveSpeed = aUnit.SourceDefinition is PPUnitDefinition definition ? definition.MoveSpeed : 0f;
             var fieldUnit = Context.Field.Add(aUnit, aSide, aPosition, moveSpeed);
+            SubscribeUnit(aUnit);
+            aUnit.OnDamaged += (u, _) => Context.Field?.NotifyDamaged(u);
+            aUnit.OnDefeated += u => Context.Field?.NotifyDefeated(u);
+            aUnit.OnDamageResolved += HandleFieldDamageResolved;
             OnFieldUnitSpawned?.Invoke(fieldUnit);
             return fieldUnit;
+        }
+
+        // 道の上で攻撃の時機が来たユニットに、選んだ相手への通常攻撃をその場で実行させる
+        protected virtual void ExecuteFieldAttack(PPFieldUnit aAttacker, List<BattleUnit> aTargets)
+        {
+            if (StateMachine.Current == BattleState.BattleEnd || aTargets.Count == 0) return;
+            if (aAttacker.Unit is not PPBattleUnit source) return;
+
+            mFieldTargetResolver.SetTargets(aTargets);
+            ActionQueue.EnqueueFront(new PPAttackCommand(source, mFieldTargetResolver));
+            ExecuteNextCommand();
+        }
+
+        // ノックバック付きの攻撃が当たったら、確率で相手を押し戻す。撃破した相手は撃破時の押し戻しに任せる
+        protected virtual void HandleFieldDamageResolved(DamageInfo aInfo)
+        {
+            if (Context?.Field == null || aInfo.IsMiss || aInfo.IsNullified || aInfo.Amount <= 0f) return;
+            if (aInfo.Reason is not AttackDamageReason || aInfo.Target == null || !aInfo.Target.IsAlive) return;
+            if (aInfo.Source?.SourceDefinition is not PPUnitDefinition definition || !definition.HasAttackKnockback) return;
+
+            if (aInfo.Source.ResolveRandom(Context).NextBool(definition.AttackKnockbackChance)) Context.Field.Knockback(aInfo.Target);
         }
 
         /* リアクション */

@@ -45,6 +45,14 @@ MonoBehaviour:
   mUnitCost: 10
   mWeight: 2
   mMoveSpeed: 3
+  mAttackRange: 1.5
+  mAttackWindup: 0.3
+  mAttackInterval: 1.2
+  mIsAreaAttack: 0
+  mAreaWidth: 3
+  mKnockbackCount: 2
+  mHasAttackKnockback: 0
+  mAttackKnockbackChance: 0.3
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

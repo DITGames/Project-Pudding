@@ -23,6 +23,19 @@ namespace PPCore
         [Label("左右の余白")]
         [Min(0f)]
         [SerializeField] private float mMargin = 8f;
+        // ユニットは相手の拠点の中心からこの距離の手前で止まる。拠点の絵とユニットが重ならないようにするため
+        [Label("拠点の手前で止まる距離")]
+        [Min(0f)]
+        [SerializeField] private float mBaseFrontDistance = 4f;
+        // HP の区切りでも攻撃でも、押し戻す距離と速さはここで決めた共通の値を使う
+        [Header("ノックバック")]
+        [Label("押し戻す距離")]
+        [Min(0f)]
+        [SerializeField] private float mKnockbackDistance = 3f;
+        // 1 秒に押し戻す距離
+        [Label("押し戻す速さ")]
+        [Min(0.01f)]
+        [SerializeField] private float mKnockbackSpeed = 12f;
 
         /* プロパティ */
 
@@ -34,6 +47,9 @@ namespace PPCore
         // ユニットが立つ地面の高さ(ワールド座標の y)
         public float GroundY => transform.position.y;
         public float Margin => mMargin;
+        public float BaseFrontDistance => mBaseFrontDistance;
+        public float KnockbackDistance => mKnockbackDistance;
+        public float KnockbackSpeed => mKnockbackSpeed;
 
         /* Unity イベント */
 
@@ -46,6 +62,10 @@ namespace PPCore
             Gizmos.DrawLine(new Vector3(LeftX, GroundY, z), new Vector3(RightX, GroundY, z));
             Gizmos.DrawLine(new Vector3(LeftX, GroundY, z), new Vector3(LeftX, GroundY + 3f, z));
             Gizmos.DrawLine(new Vector3(RightX, GroundY, z), new Vector3(RightX, GroundY + 3f, z));
+            // ユニットが止まる線
+            Gizmos.color = Color.red;
+            Gizmos.DrawLine(new Vector3(LeftX + mBaseFrontDistance, GroundY, z), new Vector3(LeftX + mBaseFrontDistance, GroundY + 2f, z));
+            Gizmos.DrawLine(new Vector3(RightX - mBaseFrontDistance, GroundY, z), new Vector3(RightX - mBaseFrontDistance, GroundY + 2f, z));
             Gizmos.color = new Color(1f, 1f, 0f, 0.4f);
             Gizmos.DrawLine(new Vector3(LeftX - mMargin, GroundY, z), new Vector3(RightX + mMargin, GroundY, z));
         }

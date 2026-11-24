@@ -43,9 +43,16 @@ namespace PPCore
         private void LateUpdate()
         {
             if (mField == null) return;
-            foreach (var (fieldUnit, view) in mFieldViews)
+            for (int i = mFieldViews.Count - 1; i >= 0; i--)
             {
-                if (view != null) view.transform.position = mField.GetPointAtDistance(fieldUnit.Position);
+                var (fieldUnit, view) = mFieldViews[i];
+                // 撃破後に消した表示は追いかける対象から外す
+                if (view == null)
+                {
+                    mFieldViews.RemoveAt(i);
+                    continue;
+                }
+                view.transform.position = mField.GetPointAtDistance(fieldUnit.Position);
             }
         }
 
@@ -62,7 +69,7 @@ namespace PPCore
             };
             aManager.OnDamageTaken += (u, dmg) => GetView(u)?.PlayDamage(dmg);
             aManager.OnHealed += (u, hp) => GetView(u)?.PlayHeal(hp);
-            aManager.OnUnitDefeated += (u) => GetView(u)?.PlayDefeat();
+            aManager.OnUnitDefeated += HandleDefeated;
             aManager.OnStatsEffectAdded += (u, e) => GetView(u)?.AddStatusIcon(e);
             aManager.OnStatsEffectRemoved += (u, e) => GetView(u)?.RemoveStatusIcon(e);
         }
@@ -86,6 +93,17 @@ namespace PPCore
             return view;
         }
 
+        // 撃破の動きを再生し、道の上のユニットなら動きが終わってから表示を消す
+        private void HandleDefeated(BattleUnit aUnit)
+        {
+            var view = GetView(aUnit);
+            if (view == null) return;
+            view.PlayDefeat();
+            if (!IsFieldView(view)) return;
+            mViews.Remove(aUnit);
+            Destroy(view.gameObject, view.DefeatDuration + 0.1f);
+        }
+
         // 道の上に生まれたユニットの表示を出し、位置を追いかける対象に加える
         private void SpawnFieldView(PPFieldUnit aFieldUnit)
         {
@@ -101,6 +119,15 @@ namespace PPCore
         /* 問い合わせ */
 
         public PPStageUnitView GetView(BattleUnit aUnit) => aUnit != null ? mViews.GetValueOrDefault(aUnit) : null;
+
+        private bool IsFieldView(PPStageUnitView aView)
+        {
+            foreach (var (_, view) in mFieldViews)
+            {
+                if (view == aView) return true;
+            }
+            return false;
+        }
 
         /* ヘルパー */
 

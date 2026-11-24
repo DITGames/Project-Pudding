@@ -7,7 +7,7 @@
 **Project-Pudding**（WabisabiAndons）は Unity 6 製のゲームプロジェクト。
 **コインプッシャー（物理）** と **バトル（リアルタイム進行）** を接続したハイブリッド構成が中核。
 バトルはタワーディフェンス方式へ改修中（PP-00056）。旧方式（コインゲージ・行動コスト・スキル・ユニット AI・コマンド入力・敵のプッシャー）は撤去済みで、
-今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進むところまで。戦闘・ウェーブ・拠点は子チケットで新設する。
+今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進み、敵と出会うと戦うところまで。ウェーブ・拠点は子チケットで新設する。
 
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
@@ -85,8 +85,8 @@ PPCore/
 - `BattleStateMachine` の `BattleState`: `BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd`
 - コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()` で実行（演出は待たない）
 - `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）はこの時計で進む
-- 今はコマンドを積む役がいない（旧方式の行動の積み込みは撤去済み）。ユニットの戦闘はタワーディフェンス方式の子チケットで新設する
-- バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進める。生み出すのは `BattleManager.SpawnFieldUnit()`
+- コマンドを積む役は道の上の戦闘だけ。射程内に敵がいれば止まり、溜め・攻撃間隔ごとに `PPAttackCommand` を対象付きで実行する（ダメージ計算・命中・会心は既存のまま）
+- バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進めて拠点の手前（`PPBattleField` の「拠点の手前で止まる距離」）で止め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
@@ -197,6 +197,7 @@ PPCore/
 - 検証・デバッグ用の一時的なログは、大分類タグの末尾にアンダースコア区切りで `_Verify` を付けて区別する（例: `CustomConsoleLog.Verbose("Battle_Verify", $"...")`）
 - ログレベル（`Verbose` / `Log` / `Warning` / `Error` / `Critical`）はタグ運用と独立した軸であり、状況に応じて自由に選択してよい
 - ログメッセージの言語は日本語・英語どちらでもよい（既存の `BattleManager` のバトルログは英語）
+- バトルログ（攻撃・ダメージごとのログ）は、`PPBattleRunner` の「バトルのログを出す」を入れたときだけ出す。ユニットが多いと当たるたびの出力で重くなるため、既定は出さない
 
 ## Unity 固有の注意点
 
