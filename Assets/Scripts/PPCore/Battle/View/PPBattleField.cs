@@ -26,6 +26,7 @@ namespace PPCore
 
         /* プロパティ */
 
+        public float Length => mLength;
         // 道の左端(味方拠点)のワールド座標の x
         public float LeftX => transform.position.x - mLength * 0.5f;
         // 道の右端(敵拠点)のワールド座標の x
@@ -54,5 +55,8 @@ namespace PPCore
 
         // 道の上の位置を返す。左端 0〜右端 1 の割合で指定する
         public Vector3 GetPoint(float aRatio) => new(Mathf.LerpUnclamped(LeftX, RightX, aRatio), GroundY, transform.position.z);
+
+        // 道の上の位置を返す。左端からの距離で指定する
+        public Vector3 GetPointAtDistance(float aDistance) => new(LeftX + aDistance, GroundY, transform.position.z);
     }
 }

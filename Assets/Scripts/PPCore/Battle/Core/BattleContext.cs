@@ -51,6 +51,8 @@ namespace PPCore
         public PPBattleClock Clock { get; } = new();
         // バトル専用の時計で発火するタイマー。状態異常など秒で決まる処理を予約する
         public PPBattleTimerScheduler Timers { get; } = new();
+        // バトル画面の道と、その上にいるユニット。道を使わないバトルでは null
+        public PPBattleFieldState Field { get; set; }
         // 実行中のコマンド。BattleManager がコマンドの効果を実行している間だけ設定し、それ以外は null
         // リアクション情報の引き継ぎや、発生元コマンドを辿る用途に使う
         public BattleCommandBase ExecutingCommand { get; protected internal set; }

@@ -7,7 +7,7 @@
 **Project-Pudding**（WabisabiAndons）は Unity 6 製のゲームプロジェクト。
 **コインプッシャー（物理）** と **バトル（リアルタイム進行）** を接続したハイブリッド構成が中核。
 バトルはタワーディフェンス方式へ改修中（PP-00056）。旧方式（コインゲージ・行動コスト・スキル・ユニット AI・コマンド入力・敵のプッシャー）は撤去済みで、
-今はプッシャーとバトルを組み立てて時計を進めるだけで、ユニットは行動しない。コインからのユニット生成・ウェーブ・拠点は子チケットで新設する。
+今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進むところまで。戦闘・ウェーブ・拠点は子チケットで新設する。
 
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
@@ -55,6 +55,7 @@ PPCore/
 │   ├── Targeting/     # 対象範囲・ターゲットリゾルバ・死亡対象の代替
 │   ├── Reaction/      # リアクション（反撃等）
 │   ├── Units/         # ユニット・パーティのランタイム、パラメータ、属性の列挙と表示名定数
+│   ├── Integration/   # プッシャーとバトルの橋渡し(コインの中身の抽選・落ちたコインからのユニット生成)
 │   ├── StatusEffect/  # ステータスエフェクト本体・振る舞い・持続条件・スタック消費ルール・インスペクタ用属性
 │   ├── Input/         # キー設定（変更できる操作と既定の割り当て）
 │   └── View/          # バトル UI の View とステータスソース
@@ -84,7 +85,8 @@ PPCore/
 - `BattleStateMachine` の `BattleState`: `BattleStart → CommandInput → ActionExecution → ResultCheck → BattleEnd`
 - コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()` で実行（演出は待たない）
 - `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）はこの時計で進む
-- 今はコマンドを積む役がいない（旧方式の行動の積み込みは撤去済み）。ユニットの行動はタワーディフェンス方式の子チケットで新設する
+- 今はコマンドを積む役がいない（旧方式の行動の積み込みは撤去済み）。ユニットの戦闘はタワーディフェンス方式の子チケットで新設する
+- バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進める。生み出すのは `BattleManager.SpawnFieldUnit()`
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
@@ -108,7 +110,8 @@ PPCore/
 
 - `PPTypeAttribute`: `Normal / Fire / Water / Earth / Shine / Dark`（`TypeCount = 6`、`Normal` は無属性で相性判定では常に等倍 = `BaseIndex`）
 - 属性相性（火 → 土 → 水 → 火 の三すくみ、光 ⇔ 闇）は `PPAttributeAffinity`、倍率は `PPBattleRules` が持つ
-- プッシャーがコインの落下を知らせる口は `IPPCoinGainNotifier`（実装は `PPPusherDropZone`）の `OnCoinGained`。今はバトル側で購読していない。**物理側とバトル側を直接結合させず、間に橋渡しの型を挟む**
+- プッシャーがコインの落下を知らせる口は `PPPusherDropZone` の `OnCoinDropped`（落ちたコイン）と、`IPPCoinGainNotifier` の `OnCoinGained`（属性と枚数。今はバトル側で購読していない）。**物理側とバトル側を直接結合させず、間に橋渡しの型を挟む**
+- 橋渡しは `PPCoinUnitBridge`。台に出たコインの `PPCoinContent` へ、パーティのユニットコストの逆数の比で抽選したユニットを入れ（重さでコインの大きさ・質量が変わる）、落下口に落ちたらそのユニットを味方拠点の近くに生み出す。編成のユニットコストの上限は `PPStageProgress.MaxPartyCost`
 
 ### プッシャー
 

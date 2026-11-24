@@ -20,6 +20,9 @@ namespace PPCore
 
         [Label("ユニット表示のプレハブ")]
         [SerializeField] private PPStageUnitView mUnitViewPrefab;
+        // 道の上に生まれたユニットを置き、移動に合わせて動かす
+        [Label("バトルの道")]
+        [SerializeField] private PPBattleField mField;
         // 未設定なら、このオブジェクトの下に置く
         [Label("ユニット表示を置く親")]
         [SerializeField] private Transform mUnitRoot;
@@ -29,14 +32,29 @@ namespace PPCore
         /* 状態 */
 
         private readonly Dictionary<BattleUnit, PPStageUnitView> mViews = new();
+        // 道の上のユニットと、その表示。位置を毎フレーム表示へ写す
+        private readonly List<(PPFieldUnit FieldUnit, PPStageUnitView View)> mFieldViews = new();
         // これまでに出した表示の数。同じレイヤー優先度どうしの前後に使う
         private int mSpawnCount;
 
+        /* Unity イベント */
+
+        // 道の上のユニットの位置を表示へ写す
+        private void LateUpdate()
+        {
+            if (mField == null) return;
+            foreach (var (fieldUnit, view) in mFieldViews)
+            {
+                if (view != null) view.transform.position = mField.GetPointAtDistance(fieldUnit.Position);
+            }
+        }
+
         /* 初期化・接続 */
 
-        // バトルイベントを購読し、該当する表示の動きへ振り分ける
+        // バトルイベントを購読し、該当する表示の動きへ振り分ける。道の上に生まれたユニットは表示を出す
         public void Bind(BattleManager aManager)
         {
+            aManager.OnFieldUnitSpawned += SpawnFieldView;
             aManager.OnDamageResolved += (d) =>
             {
                 // 攻撃元を持たないダメージ(状態異常など)は攻撃の動きの対象にならない
@@ -66,6 +84,18 @@ namespace PPCore
             mSpawnCount++;
             mViews.Add(aUnit, view);
             return view;
+        }
+
+        // 道の上に生まれたユニットの表示を出し、位置を追いかける対象に加える
+        private void SpawnFieldView(PPFieldUnit aFieldUnit)
+        {
+            if (mField == null)
+            {
+                CustomConsoleLog.Warning("Battle", $"バトルの道が未設定のため {aFieldUnit.Unit.UnitId} を表示できません。PPStageUnitViewBinder の「バトルの道」を割り当ててください", this);
+                return;
+            }
+            var view = SpawnView(aFieldUnit.Unit, aFieldUnit.Side, mField.GetPointAtDistance(aFieldUnit.Position));
+            if (view != null) mFieldViews.Add((aFieldUnit, view));
         }
 
         /* 問い合わせ */

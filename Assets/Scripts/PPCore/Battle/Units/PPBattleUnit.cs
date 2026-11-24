@@ -32,6 +32,8 @@ namespace PPCore
         public List<IBattleReaction> Reactions { get; } = new();
         // 生成元の定義アセットへの参照。定義の値を引けるよう、CreateRuntimeUnit() での設定を省略しない
         public object SourceDefinition { get; set; }
+        // 生成したときのレベル。同じユニットを複製して生み出すときに使う
+        public int Level { get; set; } = 1;
         // このユニット専用の乱数供給元。ユニットごとに列を分けることで、他のユニットの消費に影響されずに挙動を再現できる
         // 未設定なら BattleRules.RandomProvider へフォールバックする
         public IRandomProvider Random { get; set; }

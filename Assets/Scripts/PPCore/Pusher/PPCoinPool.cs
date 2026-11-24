@@ -51,6 +51,11 @@ namespace PPCore
         // 台の上に出ているコインの枚数
         public int ActiveCount => CreatedCount - mIdle.Count;
 
+        /* イベント */
+
+        // コインを台の上へ出したとき(出したコイン)
+        public event Action<GameObject> OnCoinSpawned;
+
         /* 操作 */
 
         // 最初に作る枚数に達するまで、フレームを分けてコインを作る。進み具合(0〜1)を毎フレーム通知する
@@ -85,7 +90,17 @@ namespace PPCore
                 body.linearVelocity = Vector3.zero;
                 body.angularVelocity = Vector3.zero;
             }
+            OnCoinSpawned?.Invoke(coin);
             return coin;
+        }
+
+        // 台の上に出ているコインを aResult へ集める
+        public void CollectActiveCoins(List<GameObject> aResult)
+        {
+            foreach (Transform child in transform)
+            {
+                if (child.gameObject.activeSelf) aResult.Add(child.gameObject);
+            }
         }
 
         // 落ちたコインを非表示にして置き場へ戻す。すでに戻っているものは何もしない

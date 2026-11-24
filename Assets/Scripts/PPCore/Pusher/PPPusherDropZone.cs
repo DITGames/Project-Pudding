@@ -47,6 +47,8 @@ namespace PPCore
 
         // コインが落ちたとき(コインの属性, 枚数)
         public event Action<PPTypeAttribute, int> OnCoinGained;
+        // コインが落ちたとき(落ちたコイン)。置き場へ戻す前に呼ぶので、コインの中身を読める
+        public event Action<GameObject> OnCoinDropped;
 
         /* Unity イベント */
 
@@ -61,6 +63,8 @@ namespace PPCore
             if (!target.CompareTag(CoinTag)) return;
             // 消える前の同じステップでもう一度入ってきた場合に、二重に数えない
             if (!target.activeSelf) return;
+
+            if (mIsNotify) OnCoinDropped?.Invoke(target);
 
             // 置き場から出したコインは置き場へ戻して使い回す
             var pool = target.GetComponentInParent<PPCoinPool>();

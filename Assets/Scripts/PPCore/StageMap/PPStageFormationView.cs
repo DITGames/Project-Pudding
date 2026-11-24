@@ -15,7 +15,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // 上に 3 つの配置、下に所持ユニットの札を並べ、配置へのユニットの出し入れ・入れ替えを行う
-    // 配置とユニットのどちらを先に決定してもよく、もう片方を決定するとその配置へ反映する
+    // 配置とユニットのどちらを先に決定してもよく、もう片方を決定するとその配置へ反映する。ユニットコストの合計が上限を超える編成はできない
     public class PPStageFormationView : PPStageListMenuBase
     {
         /* 定数 */
@@ -26,6 +26,7 @@ namespace PPCore
         private const string RemoveText = "外す";
         private const string RemoveSubText = "配置を空にする";
         private const string BenchText = "控え";
+        private const string OverCostText = "コストの合計が上限を超えるため、編成できません";
         // 上の配置の並び
         private static readonly PPPartyPosition[] Positions =
             { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
@@ -101,7 +102,14 @@ namespace PPCore
             int slot = aGroup == SlotGroup ? aIndex : mPickIndex;
             int unit = aGroup == UnitGroup ? aIndex : mPickIndex;
             // 所持ユニットの札の先頭は「外す」
-            mProgress.SetMember(Positions[slot], unit == 0 ? null : mProgress.OwnedUnits[unit - 1]);
+            var picked = unit == 0 ? null : mProgress.OwnedUnits[unit - 1];
+            if (!mProgress.CanSetMember(Positions[slot], picked))
+            {
+                EndPicking();
+                if (mSummaryInfo != null) mSummaryInfo.text = $"{OverCostText}({CostText()})";
+                return;
+            }
+            mProgress.SetMember(Positions[slot], picked);
             EndPicking();
             Rebuild();
             Focus(SlotGroup, slot);
@@ -161,7 +169,7 @@ namespace PPCore
                 var owned = mProgress.GetMember(Positions[i]);
                 slots[i].SetHeader(ToPositionName(Positions[i]));
                 if (owned == null) slots[i].SetUnit(null, EmptyText, null);
-                else slots[i].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}属性");
+                else slots[i].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}属性   コスト{owned.Unit.UnitCost}");
             }
 
             var cards = PrepareItems(UnitGroup, mUnitCardPrefab, mProgress.OwnedUnits.Count + 1);
@@ -172,7 +180,7 @@ namespace PPCore
                 var position = mProgress.FindPosition(owned);
                 string place = position.HasValue ? ToPositionName(position.Value) : BenchText;
                 cards[i + 1].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level),
-                    $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   {place}");
+                    $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   {place}   コスト{owned.Unit.UnitCost}");
             }
         }
 
@@ -186,11 +194,14 @@ namespace PPCore
                 mSummaryIcon.enabled = icon != null;
             }
             if (mSummaryName != null) mSummaryName.text = aUnit != null ? PPStageUnitDisplay.NameAndLevel(aUnit, aLevel) : string.Empty;
-            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPStageUnitDisplay.ColoredAttribute(aUnit)}属性" : string.Empty;
+            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPStageUnitDisplay.ColoredAttribute(aUnit)}属性   コスト{aUnit.UnitCost}   ({CostText()})" : CostText();
             if (mSummaryStats != null) mSummaryStats.text = aUnit != null ? PPStageUnitDisplay.StatsLine(aUnit, aLevel) : string.Empty;
         }
 
         private Sprite Icon(PPUnitDefinition aUnit) => PPStageUnitDisplay.ResolveIcon(UnitVisualCatalog, aUnit);
+
+        // 編成のコストの合計と上限
+        private string CostText() => mProgress != null ? $"編成コスト {mProgress.GetPartyCost()}/{PPStageProgress.MaxPartyCost}" : string.Empty;
 
         private static string ToPositionName(PPPartyPosition aPosition) => aPosition switch
         {
