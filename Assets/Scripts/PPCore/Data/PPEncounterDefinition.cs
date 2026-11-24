@@ -3,7 +3,7 @@
  * @file PPEncounterDefinition.cs
  * @author hqrse
  * @date 2026/11/23
- * @brief 1 回の戦闘で出てくる敵の組み合わせ（遭遇）の定義
+ * @brief ステージ定義(1 回のバトルの中身。ウェーブ・敵拠点・テーマ・出てくる段)
  * =====================================*/
 
 using UnityEngine;
@@ -60,22 +60,24 @@ namespace PPCore
             };
     }
 
-    // 遭遇の定義。敵の編成は敵パーティ定義を参照し、難易度ポイントは編成から合計する
+    // ステージ定義。1 回のバトルで敵をどう出すか(ウェーブ)と敵拠点を持ち、マップのマスに候補として割り当てる
+    // 難易度ポイントは、ウェーブに出てくるユニットの種類ごとのポイントを合計する
     [CreateAssetMenu(fileName = "PED_New", menuName = "Project-Pudding/Definition/PPEncounterDefinition")]
     public class PPEncounterDefinition : ScriptableObject
     {
         /* 定数 */
 
-        // 難易度ポイントを合計する配置の並び（編成と同じ Center → Right → Left）
-        public static readonly PPPartyPosition[] Positions =
-            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
         private const string LogTag = "StageMap";
 
         /* インスペクタ設定 */
 
-        [Header("敵")]
-        [Label("敵パーティ定義")]
-        [SerializeField] private PPPartyDefinition mParty;
+        [Header("ウェーブ")]
+        [Label("ウェーブ")]
+        [SerializeField] private PPWaveDefinition mWave = new();
+
+        [Header("敵拠点")]
+        [Label("敵の拠点")]
+        [SerializeField] private PPBaseSettings mEnemyBase = new("敵の拠点", 20000f);
 
         [Header("分類")]
         [Label("テーマ")]
@@ -93,18 +95,21 @@ namespace PPCore
 
         /* プロパティ */
 
-        public PPPartyDefinition Party => mParty;
+        public PPWaveDefinition Wave => mWave;
+        public PPBaseSettings EnemyBase => mEnemyBase;
         public PPEncounterTheme Theme => mTheme;
         public bool IsElite => mIsElite;
         public int MinFloor => mMinFloor;
         public int MaxFloor => mMaxFloor;
-        // 編成の各ユニットの難易度ポイントの合計
+        // ウェーブに敵を出す設定が 1 つでもあるか
+        public bool HasEnemies => mWave.CollectUnits().Count > 0;
+        // ウェーブに出てくるユニットの種類ごとの難易度ポイントの合計。レベルは種類ごとの最も高いもの
         public int DifficultyPoints
         {
             get
             {
                 int total = 0;
-                foreach (var position in Positions) total += GetDifficultyPoint(position);
+                foreach (var unit in mWave.CollectUnits()) total += unit.EvaluateDifficultyPoint(mWave.GetMaxLevel(unit));
                 return total;
             }
         }
@@ -116,21 +121,13 @@ namespace PPCore
         void OnValidate()
         {
             if (mMinFloor <= mMaxFloor) return;
-            CustomConsoleLog.Warning(LogTag, $"遭遇 {name} の最小の段 {mMinFloor} が最大の段 {mMaxFloor} より大きいため、どの段にも出ません。「出てくる段」を直してください", this);
+            CustomConsoleLog.Warning(LogTag, $"ステージ定義 {name} の最小の段 {mMinFloor} が最大の段 {mMaxFloor} より大きいため、どの段にも出ません。「出てくる段」を直してください", this);
         }
 #endif
 
         /* 問い合わせ */
 
-        // 指定した段に出てくるか。敵パーティ定義が無ければ出さない
-        public bool IsAvailableOnFloor(int aFloor) => mParty != null && aFloor >= mMinFloor && aFloor <= mMaxFloor;
-
-        // 配置 1 つ分の難易度ポイント。その配置にユニットがいなければ 0
-        public int GetDifficultyPoint(PPPartyPosition aPosition)
-        {
-            var entry = mParty != null ? mParty.GetMember(aPosition) : null;
-            if (entry == null || entry.Unit == null) return 0;
-            return entry.Unit.EvaluateDifficultyPoint(entry.Level);
-        }
+        // 指定した段に出てくるか。ウェーブに敵が無ければ出さない
+        public bool IsAvailableOnFloor(int aFloor) => HasEnemies && aFloor >= mMinFloor && aFloor <= mMaxFloor;
     }
 }

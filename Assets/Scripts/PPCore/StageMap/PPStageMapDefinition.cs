@@ -74,7 +74,7 @@ namespace PPCore
         [Label("最上段のマス")]
         [SerializeField] private PPStageNodeType mTopFloorType = PPStageNodeType.Upgrade;
 
-        // 通常敵にはエリートでない遭遇を、エリートにはエリートの遭遇を置く
+        // 通常敵にはエリートでない遭遇を、エリートにはエリートの遭遇を置く。遭遇はステージ定義(ウェーブと敵拠点を持つ)
         [Header("敵")]
         [Label("通常敵", true)]
         [SerializeField] private List<PPStageEncounterEntry> mNormalEncounters = new();
@@ -82,14 +82,16 @@ namespace PPCore
         [Label("エリート", true)]
         [SerializeField] private List<PPStageEncounterEntry> mEliteEncounters = new();
         [Label("ボス")]
-        [SerializeField] private PPPartyDefinition mBoss;
+        [SerializeField] private PPEncounterDefinition mBoss;
+        // マスが深いほど敵を強くする。割り振れるレベルは (基底レベル - 1) + (深さ - 1) で、ウェーブに出てくる敵の種類へ割り振る
+        [Label("基底レベル")]
+        [Min(1)]
+        [SerializeField] private int mBaseLevel = 1;
 
-        // このステージのバトルで道の両端に置く拠点
+        // このマップのバトルで道の左端に置く拠点。敵の拠点はステージ定義が持つ
         [Header("拠点")]
         [Label("味方の拠点")]
         [SerializeField] private PPBaseSettings mAllyBase = new("味方の拠点", 20000f);
-        [Label("敵の拠点")]
-        [SerializeField] private PPBaseSettings mEnemyBase = new("敵の拠点", 20000f);
 
         [Header("ユニット獲得")]
         [Label("候補", true)]
@@ -126,9 +128,9 @@ namespace PPCore
         public PPStageNodeType TopFloorType => mTopFloorType;
         public IReadOnlyList<PPStageEncounterEntry> NormalEncounters => mNormalEncounters;
         public IReadOnlyList<PPStageEncounterEntry> EliteEncounters => mEliteEncounters;
-        public PPPartyDefinition Boss => mBoss;
+        public PPEncounterDefinition Boss => mBoss;
+        public int BaseLevel => Mathf.Max(1, mBaseLevel);
         public PPBaseSettings AllyBase => mAllyBase;
-        public PPBaseSettings EnemyBase => mEnemyBase;
         public IReadOnlyList<PPUnitDefinition> RecruitCandidates => mRecruitCandidates;
         public int RecruitOfferCount => mRecruitOfferCount;
         public int RecruitLevel => mRecruitLevel;

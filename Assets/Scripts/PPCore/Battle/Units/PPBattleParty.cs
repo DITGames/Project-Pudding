@@ -17,8 +17,10 @@ namespace PPCore
     public enum BattleSide
     {
         // プレイヤー側
+        [InspectorName("味方")]
         Ally,
         // 敵側
+        [InspectorName("敵")]
         Enemy,
     }
 

@@ -3,15 +3,14 @@
  * @file PPEncounterDefinitionEditor.cs
  * @author hqrse
  * @date 2026/11/23
- * @brief 遭遇の定義に、編成から合計した難易度ポイントを表示するインスペクタ
+ * @brief ステージ定義に、ウェーブに出てくるユニットから合計した難易度ポイントを表示するインスペクタ
  * =====================================*/
 
 using UnityEditor;
-using UnityEngine;
 
 namespace PPCore
 {
-    // PPEncounterDefinition のインスペクタ。既定の項目の下に、難易度ポイントの合計と配置ごとの内訳を編集不可で出す
+    // PPEncounterDefinition のインスペクタ。既定の項目の下に、難易度ポイントの合計とユニットの種類ごとの内訳を編集不可で出す
     [CustomEditor(typeof(PPEncounterDefinition), true)]
     public class PPEncounterDefinitionEditor : UnityEditor.Editor
     {
@@ -28,29 +27,15 @@ namespace PPCore
             {
                 EditorGUILayout.IntField("難易度ポイント", encounter.DifficultyPoints);
                 EditorGUI.indentLevel++;
-                foreach (var position in PPEncounterDefinition.Positions)
+                var units = encounter.Wave.CollectUnits();
+                if (units.Count == 0) EditorGUILayout.LabelField("ウェーブに出す敵がありません");
+                foreach (var unit in units)
                 {
-                    EditorGUILayout.TextField(GetPositionName(position), DescribeMember(encounter, position));
+                    int level = encounter.Wave.GetMaxLevel(unit);
+                    EditorGUILayout.TextField(unit.DisplayName, $"Lv{level} : {unit.EvaluateDifficultyPoint(level)}");
                 }
                 EditorGUI.indentLevel--;
             }
         }
-
-        /* 表示 */
-
-        // 配置にいるユニットの名前・レベル・ポイントを 1 行にする。いなければ「なし」
-        private static string DescribeMember(PPEncounterDefinition aEncounter, PPPartyPosition aPosition)
-        {
-            var entry = aEncounter.Party != null ? aEncounter.Party.GetMember(aPosition) : null;
-            if (entry == null || entry.Unit == null) return "なし";
-            return $"{entry.Unit.DisplayName} Lv{entry.Level} : {aEncounter.GetDifficultyPoint(aPosition)}";
-        }
-
-        private static string GetPositionName(PPPartyPosition aPosition) => aPosition switch
-        {
-            PPPartyPosition.Right => "右",
-            PPPartyPosition.Left => "左",
-            _ => "中央",
-        };
     }
 }

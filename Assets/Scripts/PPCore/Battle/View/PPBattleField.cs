@@ -27,6 +27,10 @@ namespace PPCore
         [Label("拠点の手前で止まる距離")]
         [Min(0f)]
         [SerializeField] private float mBaseFrontDistance = 4f;
+        // ウェーブの敵を出す位置。敵拠点の中心(道の右端)からの距離
+        [Label("敵が出る位置")]
+        [Min(0f)]
+        [SerializeField] private float mEnemySpawnDistance = 2f;
         // HP の区切りでも攻撃でも、押し戻す距離と速さはここで決めた共通の値を使う
         [Header("ノックバック")]
         [Label("押し戻す距離")]
@@ -48,6 +52,7 @@ namespace PPCore
         public float GroundY => transform.position.y;
         public float Margin => mMargin;
         public float BaseFrontDistance => mBaseFrontDistance;
+        public float EnemySpawnDistance => mEnemySpawnDistance;
         public float KnockbackDistance => mKnockbackDistance;
         public float KnockbackSpeed => mKnockbackSpeed;
 

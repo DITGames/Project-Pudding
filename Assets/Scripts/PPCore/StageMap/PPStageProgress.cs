@@ -41,15 +41,16 @@ namespace PPCore
     {
         public readonly Vector2Int Node;
         public readonly PPStageNodeType Type;
-        public readonly PPPartyDefinition Enemy;
-        // 敵の元になった遭遇。ボスでは null
+        // 戦うステージ定義(ウェーブと敵拠点)
         public readonly PPEncounterDefinition Encounter;
 
-        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPPartyDefinition aEnemy, PPEncounterDefinition aEncounter = null)
+        // マスの深さ。バトルのマスは 1 段目から始まるため、段の番号をそのまま使う
+        public int Depth => Node.x;
+
+        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPEncounterDefinition aEncounter)
         {
             Node = aNode;
             Type = aType;
-            Enemy = aEnemy;
             Encounter = aEncounter;
         }
     }

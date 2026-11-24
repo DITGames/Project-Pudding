@@ -155,7 +155,7 @@ namespace PPCore
                 return false;
             }
 
-            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} 遭遇={(aNode.Encounter != null ? aNode.Encounter.name : "-")} 敵={(aNode.Enemy != null ? aNode.Enemy.name : "-")}");
+            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} ステージ定義={(aNode.Encounter != null ? aNode.Encounter.name : "-")}");
             SetMessage(null);
             stageEvent.Begin(new PPStageEventContext
             {
