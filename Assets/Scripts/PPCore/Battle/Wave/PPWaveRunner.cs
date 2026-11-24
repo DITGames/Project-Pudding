@@ -31,9 +31,6 @@ namespace PPCore
             }
             return bonus;
         }
-
-        // マップの基底レベルとマスの深さから、割り振れるレベルを求める。深さ 1 のマスでは基底レベル - 1
-        public static int GetPoints(int aBaseLevel, int aDepth) => Mathf.Max(0, aBaseLevel - 1) + Mathf.Max(0, aDepth - 1);
     }
 
     // バトル 1 回分のウェーブの進行。段階を順に待ち、始まった段階から敵拠点の近くへ敵を出す
@@ -113,6 +110,8 @@ namespace PPCore
         // 段階ごとの最新の回。全滅の判定に使う
         private readonly Dictionary<int, StepRun> mLatestRuns = new();
         private readonly PPWaveTriggerContext mTriggerContext;
+        // このバトル中に段階を始めた条件。「1 度だけ」の条件の判定に使う
+        private readonly HashSet<PPWaveTrigger> mFiredTriggers = new();
         // 次に始める段階。-1 なら、もう始める段階は無い
         private int mNextStep;
         private int mAllyBaseDamageCount;
@@ -136,7 +135,7 @@ namespace PPCore
             mManager = aManager;
             mSpawnPosition = aSpawnPosition;
             mLevelBonus = PPWaveLevelAllocator.Allocate(aWave.CollectUnits(), aLevelPoints, aManager.Context.Rules.RandomProvider);
-            mTriggerContext = new PPWaveTriggerContext(IsStepWiped, GetBaseDamageCount, GetBaseHpRatio);
+            mTriggerContext = new PPWaveTriggerContext(IsStepWiped, GetBaseDamageCount, GetBaseHpRatio, mFiredTriggers.Contains);
             mNextStep = aWave.Steps.Count > 0 ? 0 : -1;
             Arm(aManager.Context.Clock.Now);
 
@@ -166,12 +165,13 @@ namespace PPCore
             if (mNextStep < 0) return;
             var step = mWave.Steps[mNextStep];
             mTriggerContext.Now = aNow;
-            if (step == null || !step.CanStart(mTriggerContext)) return;
+            if (step == null || !step.CanStart(mTriggerContext, out var satisfied)) return;
+            if (satisfied != null) mFiredTriggers.Add(satisfied);
 
             var run = new StepRun(mNextStep, step, aNow);
             mRuns.Add(run);
             mLatestRuns[mNextStep] = run;
-            CustomConsoleLog.Log(LogTag, $"ウェーブ: 段階 {mNextStep + 1}「{step.Memo}」を始める(時刻 {aNow:F1})");
+            CustomConsoleLog.Log(LogTag, $"ウェーブ: 段階 {mNextStep + 1}「{step.Memo}」を始める(時刻 {aNow:F1} 条件={(satisfied != null ? satisfied.GetType().Name : "なし")})");
 
             mNextStep = GetFollowingStep(mNextStep);
             Arm(aNow);

@@ -148,7 +148,7 @@ namespace PPCore
             var stage = LoadByGuid<PPEncounterDefinition>(mSettings.StageGuid);
             stage = (PPEncounterDefinition)EditorGUILayout.ObjectField("ステージ定義", stage, typeof(PPEncounterDefinition), false);
             mSettings.StageGuid = GetGuid(stage);
-            mSettings.LevelPoints = Mathf.Max(0, EditorGUILayout.IntField(new GUIContent("割り振るレベル", "マップでは (基底レベル - 1) + (深さ - 1)。出てくる敵の種類へ 1 レベルずつ割り振る"), mSettings.LevelPoints));
+            mSettings.LevelPoints = Mathf.Max(0, EditorGUILayout.IntField(new GUIContent("割り振るレベル", "マップでは (基底レベル - 1) + 深さごとに足すレベル を四捨五入した値。出てくる敵の種類へ 1 レベルずつ割り振る"), mSettings.LevelPoints));
             EditorGUI.indentLevel--;
         }
 

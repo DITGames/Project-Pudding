@@ -110,7 +110,7 @@ namespace PPCore
         }
     }
 
-    // PPPartyDefinition などの生成元から PPBattleParty を組み立てるファクトリ
+    // メンバー枠の並びから PPBattleParty を組み立てるファクトリ
     public static class PPPartyFactory
     {
         /* 定数 */
@@ -120,11 +120,7 @@ namespace PPCore
 
         /* 操作 */
 
-        // PPPartyDefinition からランタイムパーティを生成する。定義が無ければ空のパーティ
-        public static PPBattleParty CreateFromDefinition(PPPartyDefinition aDefinition, BattleSide aSide)
-            => CreateFromMembers(aDefinition != null ? aDefinition.Members : null, aSide);
-
-        // メンバー枠の並びからランタイムパーティを生成する。ステージの編成など、定義アセット以外から作るときにも使う
+        // メンバー枠の並びからランタイムパーティを生成する
         // 枠ごとにユニットを生成し、それぞれへ専用の乱数供給元を割り当てる。空の枠は飛ばし、上限より後ろの枠は使わない
         public static PPBattleParty CreateFromMembers(IReadOnlyList<PPPartyMemberEntry> aMembers, BattleSide aSide)
         {

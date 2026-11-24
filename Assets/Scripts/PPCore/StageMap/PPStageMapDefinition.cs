@@ -83,10 +83,15 @@ namespace PPCore
         [SerializeField] private List<PPStageEncounterEntry> mEliteEncounters = new();
         [Label("ボス")]
         [SerializeField] private PPEncounterDefinition mBoss;
-        // マスが深いほど敵を強くする。割り振れるレベルは (基底レベル - 1) + (深さ - 1) で、ウェーブに出てくる敵の種類へ割り振る
+        // マスが深いほど敵を強くする。割り振れるレベルは (基底レベル - 1) + 深さごとに足すレベル を四捨五入したもので、
+        // ウェーブに出てくる敵の種類へ割り振る
+        [Header("敵の強さ")]
         [Label("基底レベル")]
         [Min(1)]
         [SerializeField] private int mBaseLevel = 1;
+        // 横軸が深さ(バトルのマスは 1 段目から)、縦軸がその深さで足すレベル。既定は深さ 1 で 0、1 段深くなるごとに +1
+        [Label("深さごとに足すレベル")]
+        [SerializeField] private AnimationCurve mDepthLevelCurve = AnimationCurve.Linear(1f, 0f, 30f, 29f);
 
         // このマップのバトルで道の左端に置く拠点。敵の拠点はステージ定義が持つ
         [Header("拠点")]
@@ -102,9 +107,9 @@ namespace PPCore
         [SerializeField] private int mRecruitLevel = 1;
 
         [Header("開始")]
-        // 初回はこの定義にいるユニットを所持ユニットとし、編成もこの配置にする
-        [Label("初期パーティ")]
-        [SerializeField] private PPPartyDefinition mInitialParty;
+        // タイトルで選んだ内容が無いときは、ここに並べたユニットを所持ユニットとし、この順に編成へ入れる
+        [Label("初期パーティ", true)]
+        [SerializeField] private List<PPPartyMemberEntry> mInitialMembers = new();
         [Label("シードを固定する")]
         [SerializeField] private bool mIsFixedSeed = false;
         [Label("シード")]
@@ -130,11 +135,12 @@ namespace PPCore
         public IReadOnlyList<PPStageEncounterEntry> EliteEncounters => mEliteEncounters;
         public PPEncounterDefinition Boss => mBoss;
         public int BaseLevel => Mathf.Max(1, mBaseLevel);
+        public AnimationCurve DepthLevelCurve => mDepthLevelCurve;
         public PPBaseSettings AllyBase => mAllyBase;
         public IReadOnlyList<PPUnitDefinition> RecruitCandidates => mRecruitCandidates;
         public int RecruitOfferCount => mRecruitOfferCount;
         public int RecruitLevel => mRecruitLevel;
-        public PPPartyDefinition InitialParty => mInitialParty;
+        public IReadOnlyList<PPPartyMemberEntry> InitialParty => mInitialMembers;
 
         /* Unity イベント */
 
@@ -146,10 +152,21 @@ namespace PPCore
             {
                 CustomConsoleLog.Warning(LogTag, message, this);
             }
+            if (mInitialMembers.Count > PPPartyFactory.MaxMembers)
+            {
+                CustomConsoleLog.Warning(LogTag, $"マップ定義 {name} の初期パーティが {mInitialMembers.Count} 体あります。{PPPartyFactory.MaxMembers + 1} 体目からは控えになります", this);
+            }
         }
 #endif
 
         /* 問い合わせ */
+
+        // 深さ aDepth のマスで、出てくる敵の種類へ割り振るレベル。(基底レベル - 1) + 深さごとに足すレベル を四捨五入し、0 未満にはしない
+        public int GetLevelPoints(int aDepth)
+        {
+            float add = mDepthLevelCurve != null && mDepthLevelCurve.length > 0 ? mDepthLevelCurve.Evaluate(aDepth) : Mathf.Max(0, aDepth - 1);
+            return Mathf.Max(0, Mathf.RoundToInt(BaseLevel - 1 + add));
+        }
 
         // 新しく始めるときのシードを返す。固定しない場合は毎回違う値になる
         public int ResolveSeed() => mIsFixedSeed ? mSeed : new System.Random().Next();

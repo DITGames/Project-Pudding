@@ -95,13 +95,16 @@ namespace PPCore
 
         /* 評価・判定 */
 
-        // 条件が空ならすぐ始め、そうでなければどれか 1 つを満たしたら始める
-        public bool CanStart(PPWaveTriggerContext aContext)
+        // 条件が空ならすぐ始め、そうでなければどれか 1 つを満たしたら始める。満たした条件を aSatisfied に返す(条件が空なら null)
+        public bool CanStart(PPWaveTriggerContext aContext, out PPWaveTrigger aSatisfied)
         {
+            aSatisfied = null;
             if (mConditions.Count == 0) return true;
             foreach (var condition in mConditions)
             {
-                if (condition != null && condition.IsSatisfied(aContext)) return true;
+                if (condition == null || !condition.IsSatisfied(aContext)) continue;
+                aSatisfied = condition;
+                return true;
             }
             return false;
         }
@@ -190,6 +193,7 @@ namespace PPCore
         private readonly Func<int, bool> mIsStepWiped;
         private readonly Func<BattleSide, int> mGetBaseDamageCount;
         private readonly Func<BattleSide, float> mGetBaseHpRatio;
+        private readonly Func<PPWaveTrigger, bool> mHasFired;
 
         /* プロパティ */
 
@@ -203,11 +207,13 @@ namespace PPCore
 
         /* 生成 */
 
-        public PPWaveTriggerContext(Func<int, bool> aIsStepWiped, Func<BattleSide, int> aGetBaseDamageCount, Func<BattleSide, float> aGetBaseHpRatio)
+        public PPWaveTriggerContext(Func<int, bool> aIsStepWiped, Func<BattleSide, int> aGetBaseDamageCount, Func<BattleSide, float> aGetBaseHpRatio,
+            Func<PPWaveTrigger, bool> aHasFired)
         {
             mIsStepWiped = aIsStepWiped;
             mGetBaseDamageCount = aGetBaseDamageCount;
             mGetBaseHpRatio = aGetBaseHpRatio;
+            mHasFired = aHasFired;
         }
 
         /* 問い合わせ */
@@ -221,6 +227,9 @@ namespace PPCore
 
         // その陣営の拠点の HP の割合(0〜1)。拠点が無ければ 1
         public float GetBaseHpRatio(BattleSide aSide) => mGetBaseHpRatio(aSide);
+
+        // その条件で、このバトル中にすでに段階を始めたことがあるか
+        public bool HasFired(PPWaveTrigger aTrigger) => mHasFired(aTrigger);
     }
 
     // 段階が始まる条件の基底。[SerializeReference] で段階に並べ、インスペクタで種類を選ぶ
@@ -279,6 +288,7 @@ namespace PPCore
     }
 
     // 待ち始めてから、指定した陣営の拠点がダメージを受けたら
+    // 「1 度だけ」にすると、この条件で段階を始めるのはバトル中に 1 回だけになる(繰り返しで戻ってきても、もう満たさない)
     [Serializable]
     [PPTypeMenuName("拠点がダメージを受けたら")]
     public class PPWaveBaseDamagedTrigger : PPWaveTrigger
@@ -287,16 +297,26 @@ namespace PPCore
 
         [Label("拠点")]
         [SerializeField] private BattleSide mSide = BattleSide.Enemy;
+        [Label("1 度だけ")]
+        [SerializeField] private bool mIsOnce = false;
 
         /* 生成 */
 
         public PPWaveBaseDamagedTrigger() { }
 
-        public PPWaveBaseDamagedTrigger(BattleSide aSide) => mSide = aSide;
+        public PPWaveBaseDamagedTrigger(BattleSide aSide, bool aIsOnce = false)
+        {
+            mSide = aSide;
+            mIsOnce = aIsOnce;
+        }
 
         /* 評価・判定 */
 
-        public override bool IsSatisfied(PPWaveTriggerContext aContext) => aContext.GetBaseDamageCountSinceArmed(mSide) > 0;
+        public override bool IsSatisfied(PPWaveTriggerContext aContext)
+        {
+            if (mIsOnce && aContext.HasFired(this)) return false;
+            return aContext.GetBaseDamageCountSinceArmed(mSide) > 0;
+        }
     }
 
     // 指定した陣営の拠点の HP が、指定した割合以下になったら

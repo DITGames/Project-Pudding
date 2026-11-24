@@ -69,6 +69,7 @@ MonoBehaviour:
     mMaxHp: 20000
     mDefense: 0
     mTypeAttribute: 0
+  mFieldLength: 60
   mTheme: 4
   mIsElite: 1
   mMinFloor: 0
@@ -88,6 +89,7 @@ MonoBehaviour:
       type: {class: PPWaveBaseDamagedTrigger, ns: PPCore, asm: Assembly-CSharp}
       data:
         mSide: 1
+        mIsOnce: 1
     - rid: 2919751472399515721
       type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
       data:

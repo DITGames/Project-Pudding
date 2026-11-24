@@ -60,8 +60,9 @@ namespace PPCore
 
         // マップのマスからもデバッグバトルからも来ずに、このシーンを単体で Play したときに使う
         [Header("単体で Play したとき")]
-        [Label("味方パーティ定義")]
-        [SerializeField] private PPPartyDefinition mAllyPartyDefinition;
+        // 並べた順にパーティを作る(最大 PPPartyFactory.MaxMembers 体)
+        [Label("味方パーティ", true)]
+        [SerializeField] private List<PPPartyMemberEntry> mAllyMembers = new();
         [Label("ステージ定義")]
         [SerializeField] private PPEncounterDefinition mStageDefinition;
         // マップのマスの深さの代わりに、出てくる敵の種類へ割り振るレベル
@@ -144,7 +145,7 @@ namespace PPCore
             {
                 context.AllyParty = stage.CreateAllyParty();
                 mStage = stageBattle.Encounter;
-                mBattleLevelPoints = PPWaveLevelAllocator.GetPoints(stage.Definition.BaseLevel, stageBattle.Depth);
+                mBattleLevelPoints = stage.Definition.GetLevelPoints(stageBattle.Depth);
                 mBattleAllyBase = stage.Definition.AllyBase;
             }
             else if (debugBattle != null)
@@ -155,7 +156,7 @@ namespace PPCore
             }
             else
             {
-                context.AllyParty = PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally);
+                context.AllyParty = PPPartyFactory.CreateFromMembers(mAllyMembers, BattleSide.Ally);
                 mStage = mStageDefinition;
                 mBattleLevelPoints = mLevelPoints;
             }

@@ -89,7 +89,7 @@ PPCore/
 - コマンドを積む役は道の上の戦闘だけ。射程内に敵がいれば止まり、溜め・攻撃間隔ごとに `PPAttackCommand` を対象付きで実行する（ダメージ計算・命中・会心は既存のまま）
 - バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進めて拠点の手前（`PPBattleField` の「拠点の手前で止まる距離」）で止め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
 - 道の両端には拠点（`PPFieldBase`。HP・まもり・属性を持つユニット）を `BattleManager.SetFieldBase()` で置く。射程内に敵ユニットがいなければ、相手の拠点の手前の線が射程に入った時点で止まって拠点を攻撃する。設定は `PPBaseSettings` で、敵の拠点はステージ定義、味方の拠点はマップ定義（マップから来なかったときは `PPBattleRunner`）が持つ。勝敗は `PPBaseResultChecker`（拠点の破壊）が決め、拠点の被ダメージと HP の割合の変化は `OnBaseDamaged` / `OnBaseHpRatioChanged` で購読できる
-- 敵はステージ定義（`PPEncounterDefinition`）のウェーブ（`PPWaveDefinition`）で出す。`PPWaveRunner` が段階を上から順に待ち、始まる条件（時間・段階の全滅・拠点の被ダメージ・拠点の HP の割合。`PPWaveTrigger` を `[SerializeReference]` で並べる）のどれかを満たしたら始める。始まった段階は次の段階が始まっても出し続け、繰り返し区間の終わりの次は始まりへ戻る。マップのマスの深さで割り振るレベル（(基底レベル - 1) + (深さ - 1)）は `PPWaveLevelAllocator` が敵の種類へ配る
+- 敵はステージ定義（`PPEncounterDefinition`）のウェーブ（`PPWaveDefinition`）で出す。`PPWaveRunner` が段階を上から順に待ち、始まる条件（時間・段階の全滅・拠点の被ダメージ・拠点の HP の割合。`PPWaveTrigger` を `[SerializeReference]` で並べる）のどれかを満たしたら始める。条件は段階が待ち始めた（前の段階が始まった）時点から数え、拠点の被ダメージは「1 度だけ」にするとバトル中に 1 回しか段階を始めない。始まった段階は次の段階が始まっても出し続け、繰り返し区間の終わりの次は始まりへ戻る。マップのマスの深さで割り振るレベル（(基底レベル - 1) + マップ定義の「深さごとに足すレベル」のカーブの値 を四捨五入。`PPStageMapDefinition.GetLevelPoints`）は `PPWaveLevelAllocator` が敵の種類へ配る
 - バトルの始まり方は 3 通り（マップのマス・Editor のデバッグバトル・シーンの単体 Play）で、`PPBattleRunner.CreateContext()` が味方パーティ・ステージ定義・割り振るレベルを決める。デバッグバトル（`Window > Project-Pudding > デバッグバトル`）の設定はこの PC の EditorPrefs に保存し、Play へは SessionState で渡す
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
@@ -105,7 +105,8 @@ PPCore/
 
 - `UnitDefinition` → `PPUnitDefinition`（属性・きようさ・成長曲線・難易度の基本ポイントを追加。`CreateRuntimeUnit(int aLevel)` でレベル成長）
 - `PPEffectDefinition`（状態異常・バフデバフ。振る舞いのリストで組み立てる）
-- `PPPartyDefinition`（メンバーは編成の順に並べたリストで、最大 `PPPartyFactory.MaxMembers` = 10 体。マップの編成も同じ 10 枠）、`PPUnitVisualDefinition`、ステージマップの定義（`PPStageMapDefinition` など）
+- パーティは定義アセットを持たず、`PPPartyMemberEntry`（ユニットとレベル）の一覧をマップ定義の初期パーティ・`PPBattleRunner` の味方パーティに直接並べる。最大 `PPPartyFactory.MaxMembers` = 10 体で、マップの編成も同じ 10 枠
+- `PPUnitVisualDefinition`、ステージマップの定義（`PPStageMapDefinition` など）
 - `PPEncounterDefinition` はステージ定義（1 回のバトルの中身。ウェーブ・敵拠点・テーマ・出てくる段）。マップ定義の通常敵・エリート・ボスに候補として割り当てる。型名はアセット互換のため変えていない
 - `PPCatalogAsset<T>` 派生（`PPUnitCatalog` 等）が ID → アセットの解決を担う。ID 重複は `Debug.LogError` で検出される
 

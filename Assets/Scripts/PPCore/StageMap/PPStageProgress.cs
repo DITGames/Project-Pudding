@@ -210,13 +210,13 @@ namespace PPCore
                 return;
             }
 
-            if (initial == null)
+            if (initial.Count == 0)
             {
-                CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「初期パーティ」が未設定です。味方のパーティ定義を割り当ててください");
+                CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「初期パーティ」が空です。ユニットを並べてください");
                 return;
             }
 
-            foreach (var entry in initial.Members)
+            foreach (var entry in initial)
             {
                 if (entry == null || entry.Unit == null) continue;
 

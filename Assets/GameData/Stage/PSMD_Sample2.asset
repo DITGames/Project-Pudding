@@ -37,6 +37,30 @@ MonoBehaviour:
     Weight: 1
   mBoss: {fileID: 11400000, guid: 4b774a6ea19e4434cb7444f827d42cad, type: 2}
   mBaseLevel: 1
+  mDepthLevelCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 1
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 30
+      value: 29
+      inSlope: 1
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
   mAllyBase:
     mDisplayName: "\u5473\u65B9\u306E\u62E0\u70B9"
     mMaxHp: 20000
@@ -48,6 +72,18 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
   mRecruitOfferCount: 3
   mRecruitLevel: 1
-  mInitialParty: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+  mInitialMembers:
+  - Unit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  - Unit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  - Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
   mIsFixedSeed: 0
   mSeed: 12345
