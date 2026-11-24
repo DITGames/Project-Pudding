@@ -39,6 +39,7 @@ MonoBehaviour:
     mMaxHp: 20000
     mDefense: 0
     mTypeAttribute: 0
+  mFieldLength: 30
   mTheme: 2
   mIsElite: 0
   mMinFloor: 0
