@@ -95,6 +95,8 @@ namespace PPCore
         private bool mIsRunning;
         // 次の回復までの残り秒数
         private float mRecoverTimer;
+        // 最後にメニューで止まっていたフレーム
+        private int mPausedFrame = -1;
 
         /* プロパティ */
 
@@ -150,7 +152,11 @@ namespace PPCore
 
             UpdateRecover();
             // メニューを開いている間は timeScale が 0 になる。メニューの左右キーでカーソルや投入が動かないよう止める
-            if (Time.timeScale <= 0f) return;
+            if (Time.timeScale <= 0f)
+            {
+                mPausedFrame = Time.frameCount;
+                return;
+            }
 
             UpdatePlayer();
         }
@@ -225,7 +231,9 @@ namespace PPCore
             if (IsPressed(mDropLeftAction)) move -= 1f;
             if (IsPressed(mDropRightAction)) move += 1f;
             if (move != 0f) CursorRatio = Mathf.Clamp01(CursorRatio + move * mCursorSpeed * Time.deltaTime);
-            if (mDropAction != null && mDropAction.action.WasPressedThisFrame()) TryDropAt(CursorRatio);
+            // 投入はメニューの決定と同じボタンのため、メニューを閉じた決定でコインを落とさないよう、止まっていた直後のフレームは見送る
+            bool isJustResumed = Time.frameCount - mPausedFrame <= 1;
+            if (!isJustResumed && mDropAction != null && mDropAction.action.WasPressedThisFrame()) TryDropAt(CursorRatio);
         }
 
         // 間隔ごとに所持コインを回復する。上限に達している間は回復を止め、減ってから間隔分待って回復する

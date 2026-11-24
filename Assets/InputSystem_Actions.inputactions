@@ -1379,7 +1379,7 @@
                 {
                     "name": "",
                     "id": "a3b0f665-e7e9-4a7b-8143-efec23f98c48",
-                    "path": "<Keyboard>/downArrow",
+                    "path": "<Keyboard>/space",
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard&Mouse",
@@ -1401,7 +1401,7 @@
                 {
                     "name": "",
                     "id": "333c4198-519c-49cc-89ff-e383df7f2fb4",
-                    "path": "<Gamepad>/rightTrigger",
+                    "path": "<Gamepad>/buttonSouth",
                     "interactions": "",
                     "processors": "",
                     "groups": "Gamepad",
