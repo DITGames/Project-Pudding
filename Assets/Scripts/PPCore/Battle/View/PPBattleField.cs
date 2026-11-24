@@ -6,12 +6,14 @@
  * @brief バトル画面の 1 本道
  * =====================================*/
 
+using System;
 using AttributeUtility;
 using UnityEngine;
 
 namespace PPCore
 {
     // バトル画面の 1 本道。この Transform の位置を道の中央の足元とし、左端に味方拠点、右端に敵拠点を置く
+    // 道の長さはバトルの始まりにステージ定義から変わることがあり、そのときは地面と拠点の目印も合わせて動かす
     public class PPBattleField : MonoBehaviour
     {
         /* インスペクタ設定 */
@@ -41,6 +43,22 @@ namespace PPCore
         [Min(0.01f)]
         [SerializeField] private float mKnockbackSpeed = 12f;
 
+        // 道の長さが変わったときに合わせる見た目。未設定のものは動かさない
+        [Header("道の見た目")]
+        // 横幅を「道の長さ + 今の余り」に合わせる
+        [Label("地面")]
+        [SerializeField] private Transform mGround;
+        // 道の両端へ置き直す
+        [Label("味方拠点の目印")]
+        [SerializeField] private Transform mAllyBaseMarker;
+        [Label("敵拠点の目印")]
+        [SerializeField] private Transform mEnemyBaseMarker;
+
+        /* 状態 */
+
+        // 地面の横幅のうち、道の長さを超える分。シーンに置いた時点の値を覚えておく
+        private float mGroundExtraWidth;
+
         /* プロパティ */
 
         public float Length => mLength;
@@ -56,7 +74,17 @@ namespace PPCore
         public float KnockbackDistance => mKnockbackDistance;
         public float KnockbackSpeed => mKnockbackSpeed;
 
+        /* イベント */
+
+        // 道の長さが変わったとき。カメラが開始位置を当て直す
+        public event Action OnLengthChanged;
+
         /* Unity イベント */
+
+        private void Awake()
+        {
+            if (mGround != null) mGroundExtraWidth = mGround.localScale.x - mLength;
+        }
 
 #if UNITY_EDITOR
         // 道と、余白を含めたスクロールできる範囲をシーンビューに描く
@@ -76,6 +104,23 @@ namespace PPCore
         }
 #endif
 
+        /* 操作 */
+
+        // 道の長さを変え、地面の幅と拠点の目印の位置を合わせる。道の状態を作る前に呼ぶ
+        public void SetLength(float aLength)
+        {
+            mLength = Mathf.Max(1f, aLength);
+            if (mGround != null)
+            {
+                var scale = mGround.localScale;
+                scale.x = mLength + mGroundExtraWidth;
+                mGround.localScale = scale;
+            }
+            PlaceMarker(mAllyBaseMarker, -mLength * 0.5f);
+            PlaceMarker(mEnemyBaseMarker, mLength * 0.5f);
+            OnLengthChanged?.Invoke();
+        }
+
         /* 問い合わせ */
 
         // 道の上の位置を返す。左端 0〜右端 1 の割合で指定する
@@ -83,5 +128,15 @@ namespace PPCore
 
         // 道の上の位置を返す。左端からの距離で指定する
         public Vector3 GetPointAtDistance(float aDistance) => new(LeftX + aDistance, GroundY, transform.position.z);
+
+        /* ヘルパー */
+
+        private static void PlaceMarker(Transform aMarker, float aLocalX)
+        {
+            if (aMarker == null) return;
+            var position = aMarker.localPosition;
+            position.x = aLocalX;
+            aMarker.localPosition = position;
+        }
     }
 }

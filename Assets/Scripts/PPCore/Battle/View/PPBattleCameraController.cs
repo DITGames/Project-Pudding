@@ -109,6 +109,12 @@ namespace PPCore
             EnableAction(mPointerDeltaAction);
             EnableAction(mWheelZoomAction);
             EnableAction(mStickAction);
+            if (mField != null) mField.OnLengthChanged += ResetToStart;
+        }
+
+        private void OnDisable()
+        {
+            if (mField != null) mField.OnLengthChanged -= ResetToStart;
         }
 
         // 開始位置と大きさを当てる
@@ -121,10 +127,7 @@ namespace PPCore
                 return;
             }
             mCamera.orthographicSize = mStartSize;
-            var position = transform.position;
-            position.x = mField.GetPoint(mStartRatio).x;
-            transform.position = position;
-            ApplyLimits();
+            ResetToStart();
         }
 
         // 入力を反映してから、範囲の制限をかける。メニューで時間を止めている間は操作を受け付けない
@@ -144,6 +147,15 @@ namespace PPCore
         }
 
         /* 操作 */
+
+        // 道の開始位置へ横に動かす。道の長さが変わったときにも当て直す
+        private void ResetToStart()
+        {
+            var position = transform.position;
+            position.x = mField.GetPoint(mStartRatio).x;
+            transform.position = position;
+            ApplyLimits();
+        }
 
         // 右クリックのドラッグで、つかんだ場所がポインタに付いてくるように横へ動かす
         private void UpdateDrag()

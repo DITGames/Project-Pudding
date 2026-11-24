@@ -2181,6 +2181,9 @@ MonoBehaviour:
   mEnemySpawnDistance: 2
   mKnockbackDistance: 3
   mKnockbackSpeed: 12
+  mGround: {fileID: 704159565}
+  mAllyBaseMarker: {fileID: 2017475762}
+  mEnemyBaseMarker: {fileID: 1496508652}
 --- !u!4 &1472255266
 Transform:
   m_ObjectHideFlags: 0

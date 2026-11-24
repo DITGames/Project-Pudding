@@ -79,6 +79,12 @@ namespace PPCore
         [Label("敵の拠点")]
         [SerializeField] private PPBaseSettings mEnemyBase = new("敵の拠点", 20000f);
 
+        // 味方拠点から敵拠点までの距離。バトルの始まりに道の長さとして使う
+        [Header("道")]
+        [Label("道の長さ")]
+        [Min(10f)]
+        [SerializeField] private float mFieldLength = 60f;
+
         [Header("分類")]
         [Label("テーマ")]
         [SerializeField] private PPEncounterTheme mTheme = PPEncounterTheme.None;
@@ -97,6 +103,7 @@ namespace PPCore
 
         public PPWaveDefinition Wave => mWave;
         public PPBaseSettings EnemyBase => mEnemyBase;
+        public float FieldLength => Mathf.Max(10f, mFieldLength);
         public PPEncounterTheme Theme => mTheme;
         public bool IsElite => mIsElite;
         public int MinFloor => mMinFloor;

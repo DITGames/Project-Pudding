@@ -138,7 +138,6 @@ namespace PPCore
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             // 道があるバトルは、拠点の破壊で勝敗を決める
             var context = new BattleContext() { Rules = new PPBattleRules { ResultChecker = new PPBaseResultChecker() } };
-            if (mField != null) context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
             context.EnemyParty = new PPBattleParty(BattleSide.Enemy, new List<BattleUnit>());
             mBattleAllyBase = mAllyBase;
             if (stageBattle != null)
@@ -160,8 +159,14 @@ namespace PPCore
                 mStage = mStageDefinition;
                 mBattleLevelPoints = mLevelPoints;
             }
+            // 道の長さはステージ定義のもの。道の状態と表示は、この長さで作る
+            if (mField != null)
+            {
+                if (mStage != null) mField.SetLength(mStage.FieldLength);
+                context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
+            }
             string source = stageBattle != null ? "マップのマス" : debugBattle != null ? "デバッグバトル" : "単体の Play";
-            CustomConsoleLog.Log("Battle", $"バトル: {source}。ステージ定義={(mStage != null ? mStage.name : "なし")} 割り振るレベル={mBattleLevelPoints}");
+            CustomConsoleLog.Log("Battle", $"バトル: {source}。ステージ定義={(mStage != null ? mStage.name : "なし")} 割り振るレベル={mBattleLevelPoints} 道の長さ={(mField != null ? mField.Length : 0f)}");
             return context;
         }
 

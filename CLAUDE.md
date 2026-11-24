@@ -134,6 +134,7 @@ PPCore/
 - キー設定で変えられる操作と既定の割り当ては `PPInputBindingStore` / `PPDefaultKeyConfigDefinition` が持つ
 - マップでは、編成画面を Tab / パッドの North で開閉する（入力アクション Battle マップの `OpenFormation`。キー設定の対象外）。Esc / Start のメニューには編成を載せない
 - バトル画面は画面の上側に出す。`PPBattleField`（1 本道。左端が味方拠点、右端が敵拠点）を `PPBattleCameraController` が真横から遠近なしで映し、右クリックドラッグ・右スティック左右で横スクロール、ホイール・右スティック上下でズームする（割り当ては固定でキー設定の対象外）。プッシャーのカメラは画面全体を映したまま動かさず、その上側にバトル画面を重ねる
+- 道の長さ（拠点間の距離）はステージ定義の「道の長さ」で決まる。バトルの始まりに `PPBattleRunner` が `PPBattleField.SetLength()` を呼び、地面の幅・拠点の目印の位置・カメラの開始位置も合わせる
 - 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPStageResultView` で、ステージを通さずに Play したときも出す
 - View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付ける。重なったときの前後は `PPUnitVisualDefinition` のレイヤー優先度と出た順で決まる
 
