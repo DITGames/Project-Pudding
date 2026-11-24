@@ -12,7 +12,7 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ユニット定義。属性・追加ステータス・レベル成長曲線・難易度の基本ポイントを持つ
+    // ユニット定義。属性・追加ステータス・レベル成長曲線・難易度の基本ポイント・コインとバトル画面での性質を持つ
     // 成長は AnimationCurve の倍率で表現し、成長後の値は四捨五入で整数に丸める
     [CreateAssetMenu(fileName = "PPBattleUnitDefinition", menuName = "Project-Pudding/Definition/PPUnitDefinition")]
     public class PPUnitDefinition : UnitDefinition
@@ -37,6 +37,17 @@ namespace PPCore
         [Label("難易度の基本ポイント")] [Min(0)]
         [SerializeField]protected int mDifficultyPoint = 10;
 
+        // 編成の上限に数えるコスト。低いほどコインに出やすい
+        [Header("コインとバトル画面")]
+        [Label("ユニットコスト")] [Min(1)]
+        [SerializeField]protected int mUnitCost = 10;
+        // 重いほどコインが大きく重くなり、押しづらく落としづらい
+        [Label("重さ")] [Min(0f)]
+        [SerializeField]protected float mWeight = 1f;
+        // バトル画面の道を 1 秒に進む距離
+        [Label("移動速度")] [Min(0f)]
+        [SerializeField]protected float mMoveSpeed = 3f;
+
         [Header("成長曲線 (X = レベル, Y = 倍率)")]
         [Label(PPUnitAbilityDefinition.NameHp + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mHpGrowth = AnimationCurve.Linear(1, 1, 50, 3);
         [Label(PPUnitAbilityDefinition.NameStrength + PPUnitAbilityDefinition.GrowthCurveSuffix)][SerializeField]protected AnimationCurve mAttackGrowth = AnimationCurve.Linear(1, 1, 50, 3);
@@ -49,6 +60,9 @@ namespace PPCore
         public PPStatBlock ExpandStatBlock => mExpandStatBlock;
         public PPTypeAttribute TypeAttribute => mTypeAttribute;
         public int DifficultyPoint => mDifficultyPoint;
+        public int UnitCost => mUnitCost;
+        public float Weight => mWeight;
+        public float MoveSpeed => mMoveSpeed;
 
         /* static 関数 */
 
@@ -77,6 +91,7 @@ namespace PPCore
             return new PPBattleUnit(mUnitId, DisplayName, CreateParameterSet(aLevel), CreatePPParameterSet(aLevel), mTypeAttribute)
             {
                 SourceDefinition = this,
+                Level = aLevel,
             };
         }
 

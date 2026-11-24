@@ -42,6 +42,9 @@ MonoBehaviour:
     Dexterity: 20
   mTypeAttribute: 1
   mDifficultyPoint: 12
+  mUnitCost: 20
+  mWeight: 5
+  mMoveSpeed: 2.5
   mHpGrowth:
     serializedVersion: 2
     m_Curve:

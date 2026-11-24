@@ -503,6 +503,17 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 21647d539eb6a6a4aa83d791e3e51abf, type: 3}
+--- !u!114 &227295391 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4387805739627420975, guid: 21647d539eb6a6a4aa83d791e3e51abf, type: 3}
+  m_PrefabInstance: {fileID: 227295390}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d179128d268853944b80b036a04c015a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPusherDropZone
 --- !u!114 &227295393 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 565012976133855228, guid: 21647d539eb6a6a4aa83d791e3e51abf, type: 3}
@@ -1550,6 +1561,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleRunner
   mPusherLoader: {fileID: 759475029}
+  mCoinBridge: {fileID: 1628597016}
+  mField: {fileID: 1472255265}
   mBattleUnitViewBinder: {fileID: 2037463420}
   mOpenConfigAction: {fileID: -1142230911242018482, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mPauseMenu: {fileID: 799393110}
@@ -2327,6 +2340,61 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1496508651}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1628597015
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1628597017}
+  - component: {fileID: 1628597016}
+  m_Layer: 0
+  m_Name: CoinUnitBridge
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1628597016
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628597015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66e9465796c5ae84a856779ff310fdbe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPCoinUnitBridge
+  mPool: {fileID: 1018706053}
+  mDropZones:
+  - {fileID: 227295391}
+  mUnitVisualCatalog: {fileID: 11400000, guid: f7175a8729fe38843938b32f92c4f399, type: 2}
+  mMinWeight: 1
+  mMaxWeight: 10
+  mLightScale: 1
+  mHeavyScale: 1.6
+  mLightMass: 2
+  mHeavyMass: 8
+  mSpawnDistance: 2
+--- !u!4 &1628597017
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1628597015}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1633592354
 GameObject:
   m_ObjectHideFlags: 0
@@ -3131,6 +3199,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitViewBinder
   mUnitViewPrefab: {fileID: 5175365898319089147, guid: 2fb0fbee8d3b9ff49890009123859d9d, type: 3}
+  mField: {fileID: 1472255265}
   mUnitRoot: {fileID: 1162709757}
   mUnitVisualCatalog: {fileID: 11400000, guid: f7175a8729fe38843938b32f92c4f399, type: 2}
 --- !u!4 &2037463421
@@ -3166,3 +3235,4 @@ SceneRoots:
   - {fileID: 756004437}
   - {fileID: 1472255266}
   - {fileID: 632327283}
+  - {fileID: 1628597017}

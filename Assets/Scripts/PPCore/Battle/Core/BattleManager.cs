@@ -62,6 +62,8 @@ namespace PPCore
         public event Action<BattleUnit,  StatusEffect> OnStatusEffectStacked;
         // バトル終了時(リザルト)
         public event Action<BattleResult> OnBattleEnded;
+        // 道の上にユニットが生まれたとき(生まれたユニット)
+        public event Action<PPFieldUnit> OnFieldUnitSpawned;
 
         /* 生成 */
 
@@ -221,13 +223,27 @@ namespace PPCore
 
         /* 時間進行 */
 
-        // バトル専用の時計を進め、期限が来たタイマーを発火する。時計の停止中とバトル終了後は何もしない
+        // バトル専用の時計を進め、期限が来たタイマーを発火して道の上のユニットを進める。時計の停止中とバトル終了後は何もしない
         public virtual void AdvanceTime(float aDeltaTime)
         {
             if (Context == null || StateMachine.Current == BattleState.BattleEnd) return;
-            if (Context.Clock.Advance(aDeltaTime) <= 0f) return;
+            float advanced = Context.Clock.Advance(aDeltaTime);
+            if (advanced <= 0f) return;
 
             Context.Timers.AdvanceTo(Context.Clock.Now);
+            Context.Field?.Advance(advanced);
+        }
+
+        // 道の上の aPosition(味方拠点からの距離)にユニットを生み出す。道が無いバトルでは何もせず null を返す
+        public virtual PPFieldUnit SpawnFieldUnit(BattleUnit aUnit, BattleSide aSide, float aPosition)
+        {
+            if (Context?.Field == null || aUnit == null || StateMachine.Current == BattleState.BattleEnd) return null;
+
+            aUnit.Side = aSide;
+            float moveSpeed = aUnit.SourceDefinition is PPUnitDefinition definition ? definition.MoveSpeed : 0f;
+            var fieldUnit = Context.Field.Add(aUnit, aSide, aPosition, moveSpeed);
+            OnFieldUnitSpawned?.Invoke(fieldUnit);
+            return fieldUnit;
         }
 
         /* リアクション */

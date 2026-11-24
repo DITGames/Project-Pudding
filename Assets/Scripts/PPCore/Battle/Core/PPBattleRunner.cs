@@ -24,6 +24,14 @@ namespace PPCore
         [Header("プッシャー")]
         [Label("プッシャーの読み込み")]
         [SerializeField] private PPPusherLoader mPusherLoader;
+        // 未設定なら、コインからユニットが生まれない
+        [Label("コインとバトルの橋渡し")]
+        [SerializeField] private PPCoinUnitBridge mCoinBridge;
+
+        // ユニットが進む道。未設定なら道を使わない
+        [Header("バトル画面")]
+        [Label("バトルの道")]
+        [SerializeField] private PPBattleField mField;
 
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
@@ -69,11 +77,14 @@ namespace PPCore
 
         /* Unity イベント */
 
-        // プッシャーの読み込みを待ってからバトルを組み立てて開始し、最後にプッシャーを動かし始める
+        // パーティを作ってコインの抽選を用意し、プッシャーの読み込みを待ってからバトルを開始して、最後にプッシャーを動かし始める
+        // 開始時に並べるコインへも中身を入れて大きさを決めるため、抽選は読み込みより先に用意する
         IEnumerator Start()
         {
+            var context = CreateContext();
+            if (mCoinBridge != null) mCoinBridge.Prepare(context.AllyParty, context.Rules.RandomProvider);
             if (mPusherLoader != null) yield return mPusherLoader.Load();
-            StartBattle();
+            StartBattle(context);
             if (mPusherLoader != null) mPusherLoader.Begin();
         }
 
@@ -89,18 +100,16 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // バトルを組み立てて開始する。パーティ生成 → コンテキスト構築 → バトル開始 → View の接続、の順に進む
-        private void StartBattle()
+        // 両パーティと道を持つコンテキストを作る
+        // ステージのマスから来たときは持ち越した編成とマスの敵で、Editor のデバッグバトルから始めたときはその設定で、
+        // 単体で Play したときはインスペクタの定義で戦う
+        private BattleContext CreateContext()
         {
-            mBattleManager = new BattleManager { TimeProvider = () => Time.time };
-            if (mOpenConfigAction != null) mOpenConfigAction.action.Enable();
-
-            // ステージのマスから来たときは持ち越した編成とマスの敵で、Editor のデバッグバトルから始めたときはその設定で、
-            // 単体で Play したときはインスペクタの定義で戦う
             var stage = PPStageProgress.Current;
             var stageBattle = stage?.PendingBattle;
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             var context = new BattleContext() { Rules = new PPBattleRules() };
+            if (mField != null) context.Field = new PPBattleFieldState(mField.Length);
             if (stageBattle != null)
             {
                 context.AllyParty = stage.CreateAllyParty();
@@ -117,11 +126,21 @@ namespace PPCore
                 context.AllyParty = PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally);
                 context.EnemyParty = PPPartyFactory.CreateFromDefinition(mEnemyPartyDefinition, BattleSide.Enemy);
             }
+            return context;
+        }
 
-            if (stageBattle != null) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
+        // バトルを開始し、View とコインの橋渡しを接続する
+        private void StartBattle(BattleContext aContext)
+        {
+            mBattleManager = new BattleManager { TimeProvider = () => Time.time };
+            if (mOpenConfigAction != null) mOpenConfigAction.action.Enable();
+
+            var stage = PPStageProgress.Current;
+            if (stage?.PendingBattle != null) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
             PPBattleLogBinder.Bind(mBattleManager);
-            mBattleManager.StartBattle(context);
+            mBattleManager.StartBattle(aContext);
             mBattleUnitViewBinder.Bind(mBattleManager);
+            if (mCoinBridge != null) mCoinBridge.Bind(mBattleManager);
         }
 
         /* 操作 */

@@ -128,6 +128,8 @@ namespace PPCore
     {
         /* 定数 */
 
+        // 編成できるユニットコストの合計の上限
+        public const int MaxPartyCost = 100;
         private const string LogTag = "StageMap";
         // 編成の配置。編成とコイン配布の順番（Center → Right → Left）で並べる
         private static readonly PPPartyPosition[] Positions =
@@ -238,6 +240,23 @@ namespace PPCore
             return list;
         }
 
+        // 今の編成のユニットコストの合計
+        public int GetPartyCost()
+        {
+            int total = 0;
+            foreach (var position in Positions) total += GetCost(mFormation[(int)position]);
+            return total;
+        }
+
+        // 配置にユニットを置いた(入れ替えた)後も、ユニットコストの合計が上限以内に収まるか
+        public bool CanSetMember(PPPartyPosition aPosition, PPStageOwnedUnit aUnit)
+        {
+            // 外すときと、編成済みのユニット同士の入れ替えは合計が増えない
+            if (aUnit == null || FindPosition(aUnit).HasValue) return true;
+            int after = GetPartyCost() - GetCost(mFormation[(int)aPosition]) + GetCost(aUnit);
+            return after <= MaxPartyCost;
+        }
+
         // 今の編成から味方のパーティを作る
         public PPBattleParty CreateAllyParty()
         {
@@ -251,11 +270,17 @@ namespace PPCore
         /* 編成 */
 
         // 配置にユニットを置く。ほかの配置にいたユニットなら、その配置と入れ替える。null を渡すと配置を空にする
+        // ユニットコストの合計が上限を超える置き方はしない
         public void SetMember(PPPartyPosition aPosition, PPStageOwnedUnit aUnit)
         {
             if (aUnit != null && !mOwnedUnits.Contains(aUnit))
             {
                 CustomConsoleLog.Error(LogTag, $"所持していないユニット {aUnit.Unit?.DisplayName} は編成できません");
+                return;
+            }
+            if (!CanSetMember(aPosition, aUnit))
+            {
+                CustomConsoleLog.Warning(LogTag, $"ユニットコストの合計が上限 {MaxPartyCost} を超えるため、{aUnit.Unit?.DisplayName} を編成できません");
                 return;
             }
 
@@ -334,5 +359,7 @@ namespace PPCore
         // Play を始めるたびに空に戻す。ドメインの再読み込みを切っているため、前回の Play の状態が残るのを防ぐ
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetOnPlay() => sCurrent = null;
+
+        private static int GetCost(PPStageOwnedUnit aUnit) => aUnit != null && aUnit.Unit != null ? aUnit.Unit.UnitCost : 0;
     }
 }
