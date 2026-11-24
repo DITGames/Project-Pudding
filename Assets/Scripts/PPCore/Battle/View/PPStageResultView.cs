@@ -13,7 +13,7 @@ using CustomConsole;
 
 namespace PPCore
 {
-    // ステージのバトルで負けたときと、ボスに勝ってクリアしたときに出す結果の画面
+    // ステージのバトルで負けたときと、ボスに勝ってクリアしたときに出す結果の画面。ステージを通さずに Play したバトルでも決着時に出す
     // 項目は「タイトルへ戻る」だけで、決定でタイトルのシーンへ移る。キャンセルでは閉じない
     public class PPStageResultView : PPStageListMenuBase
     {
@@ -49,17 +49,26 @@ namespace PPCore
         public void Open(PPStageBattleOutcome aOutcome, BattleResultType aResult, string aStageName, int aFloor)
         {
             if (IsOpen) return;
-            mIsLeaving = false;
-            if (mTitleText != null) mTitleText.text = GetTitle(aOutcome, aResult);
-            if (mMessageText != null) mMessageText.text = aOutcome == PPStageBattleOutcome.Cleared
+            string message = aOutcome == PPStageBattleOutcome.Cleared
                 ? $"{aStageName} をクリアした"
                 : $"{aStageName} の {aFloor} 段目で力尽きた";
-
-            OpenPanel();
-            var items = PrepareItems(0, mItemPrefab, 1);
-            items[0].SetText(BackText);
-            Focus(0, 0);
+            Show(GetTitle(aOutcome, aResult), message);
             CustomConsoleLog.Log(LogTag, $"結果を表示: {aOutcome} ({aResult}) {aStageName} {aFloor}段");
+        }
+
+        // ステージを通さずに Play したバトルの結果を出す。敵の拠点を壊せばクリア、味方の拠点が壊れたらゲームオーバー
+        public void OpenBattleResult(BattleResultType aResult)
+        {
+            if (IsOpen) return;
+            var (title, message) = aResult switch
+            {
+                BattleResultType.Victory => ("クリア", "敵の拠点を壊した"),
+                BattleResultType.Defeat => ("ゲームオーバー", "味方の拠点が壊された"),
+                BattleResultType.Draw => ("引き分け", "両方の拠点が壊れた"),
+                _ => ("撤退", "バトルから退いた"),
+            };
+            Show(title, message);
+            CustomConsoleLog.Log(LogTag, $"結果を表示: {aResult}");
         }
 
         // タイトルへ戻る。決定の入力と同じ処理で、検証から直接呼ぶこともできる
@@ -77,6 +86,21 @@ namespace PPCore
         }
 
         protected override void OnSubmit(int aGroup, int aIndex) => Select(aIndex);
+
+        /* 表示 */
+
+        // 見出しと文を差し替えて、「タイトルへ戻る」だけの画面を開く
+        private void Show(string aTitle, string aMessage)
+        {
+            mIsLeaving = false;
+            if (mTitleText != null) mTitleText.text = aTitle;
+            if (mMessageText != null) mMessageText.text = aMessage;
+
+            OpenPanel();
+            var items = PrepareItems(0, mItemPrefab, 1);
+            items[0].SetText(BackText);
+            Focus(0, 0);
+        }
 
         // 結果を選ばずに閉じないよう、キャンセルでは何もしない
         protected override void OnCancel() { }

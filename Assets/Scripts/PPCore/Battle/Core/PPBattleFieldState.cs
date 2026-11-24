@@ -67,7 +67,7 @@ namespace PPCore
         public List<BattleUnit> Resolve(BattleUnit aSource, BattleContext aContext) => new(mTargets);
     }
 
-    // バトル画面の 1 本道の状態。生まれたユニットを相手の拠点へ進め、射程内の敵の前で止めて攻撃の時機を知らせる
+    // バトル画面の 1 本道の状態。両端に拠点を持ち、生まれたユニットを相手の拠点へ進め、射程内の敵か拠点の前で止めて攻撃の時機を知らせる
     // 攻撃そのもの(ダメージ計算)は BattleManager が行う
     public class PPBattleFieldState
     {
@@ -81,6 +81,8 @@ namespace PPCore
         private readonly List<PPFieldUnit> mUnits = new();
         private readonly Dictionary<BattleUnit, PPFieldUnit> mByUnit = new();
         private readonly List<BattleUnit> mTargetBuffer = new();
+        private PPFieldBase mAllyBase;
+        private PPFieldBase mEnemyBase;
 
         /* プロパティ */
 
@@ -114,8 +116,18 @@ namespace PPCore
             return fieldUnit;
         }
 
-        // aDeltaTime 秒分進める。押し戻され中のユニットは後ろへ下がり、射程内に敵がいれば止まって溜め・攻撃間隔を数え、
-        // 攻撃の時機が来たら aAttack(攻撃するユニット, 当てる相手)を呼ぶ。敵がいなければ相手の拠点へ進み、拠点の手前で止まる
+        // 拠点を置く。味方拠点は道の左端、敵拠点は右端。拠点は押し戻されず、道のユニットの一覧にも入らない
+        public PPFieldBase SetBase(BattleUnit aUnit, BattleSide aSide)
+        {
+            var fieldBase = new PPFieldBase(aUnit, aSide, aSide == BattleSide.Ally ? 0f : Length);
+            if (aSide == BattleSide.Ally) mAllyBase = fieldBase;
+            else mEnemyBase = fieldBase;
+            return fieldBase;
+        }
+
+        // aDeltaTime 秒分進める。押し戻され中のユニットは後ろへ下がり、射程内に敵か相手の拠点の手前の線があれば止まって
+        // 溜め・攻撃間隔を数え、攻撃の時機が来たら aAttack(攻撃するユニット, 当てる相手)を呼ぶ。敵ユニットを拠点より先に狙う
+        // どちらも射程に無ければ相手の拠点へ進み、拠点の手前で止まる
         public virtual void Advance(float aDeltaTime, Action<PPFieldUnit, List<BattleUnit>> aAttack)
         {
             // 攻撃で撃破や押し戻しが起きても並びは変わらないため、数え回しで回す
@@ -132,7 +144,9 @@ namespace PPCore
                 if (!fieldUnit.Unit.IsAlive) continue;
 
                 var nearest = FindNearestEnemyInRange(fieldUnit, out float nearestDistance);
-                if (nearest == null)
+                // 射程内に敵ユニットがいなければ、相手の拠点を狙う
+                var targetBase = nearest == null ? FindOpposingBaseInRange(fieldUnit) : null;
+                if (nearest == null && targetBase == null)
                 {
                     fieldUnit.IsEngaged = false;
                     // 止まる線の先(拠点の中)で生まれたユニットは、線まで進んでから止まる
@@ -149,7 +163,12 @@ namespace PPCore
                 fieldUnit.AttackTimer -= aDeltaTime;
                 if (fieldUnit.AttackTimer > 0f) continue;
 
-                CollectTargets(fieldUnit, nearest, nearestDistance);
+                if (nearest != null) CollectTargets(fieldUnit, nearest, nearestDistance);
+                else
+                {
+                    mTargetBuffer.Clear();
+                    mTargetBuffer.Add(targetBase.Unit);
+                }
                 float interval = fieldUnit.Definition != null ? fieldUnit.Definition.AttackInterval : 1f;
                 // 1 フレームで何回も当てないよう、遅れは次の 1 回分までにする
                 fieldUnit.AttackTimer = Mathf.Max(fieldUnit.AttackTimer + interval, 0f);
@@ -192,6 +211,18 @@ namespace PPCore
 
         public PPFieldUnit Find(BattleUnit aUnit) => aUnit != null ? mByUnit.GetValueOrDefault(aUnit) : null;
 
+        // その陣営の拠点。置いていなければ null
+        public PPFieldBase GetBase(BattleSide aSide) => aSide == BattleSide.Ally ? mAllyBase : mEnemyBase;
+
+        // 拠点のユニットから拠点を探す。拠点でなければ null を返す
+        public PPFieldBase FindBase(BattleUnit aUnit)
+        {
+            if (aUnit == null) return null;
+            if (mAllyBase != null && mAllyBase.Unit == aUnit) return mAllyBase;
+            if (mEnemyBase != null && mEnemyBase.Unit == aUnit) return mEnemyBase;
+            return null;
+        }
+
         // その陣営のユニットが進んで止まる位置。相手の拠点の手前
         public float GetStopLine(BattleSide aSide) => aSide == BattleSide.Ally ? Length - BaseFrontDistance : BaseFrontDistance;
 
@@ -210,6 +241,16 @@ namespace PPCore
                 aDistance = distance;
             }
             return nearest;
+        }
+
+        // 相手の拠点の手前の線(自分が止まる線)が射程に入っていれば、その拠点を返す。線を越えた位置にいるときも射程内とみなす
+        private PPFieldBase FindOpposingBaseInRange(PPFieldUnit aSelf)
+        {
+            var opposing = GetBase(aSelf.Side == BattleSide.Ally ? BattleSide.Enemy : BattleSide.Ally);
+            if (opposing == null || !opposing.IsAlive) return null;
+            float range = aSelf.Definition != null ? aSelf.Definition.AttackRange : 1f;
+            float distance = (GetStopLine(aSelf.Side) - aSelf.Position) * aSelf.Direction;
+            return distance <= range ? opposing : null;
         }
 
         // 当てる相手を集める。単体なら最も近い敵だけ、範囲なら最も近い敵から奥へ範囲の広さまでにいる敵すべて

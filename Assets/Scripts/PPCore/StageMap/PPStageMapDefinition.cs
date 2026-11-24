@@ -84,6 +84,13 @@ namespace PPCore
         [Label("ボス")]
         [SerializeField] private PPPartyDefinition mBoss;
 
+        // このステージのバトルで道の両端に置く拠点
+        [Header("拠点")]
+        [Label("味方の拠点")]
+        [SerializeField] private PPBaseSettings mAllyBase = new("味方の拠点", 20000f);
+        [Label("敵の拠点")]
+        [SerializeField] private PPBaseSettings mEnemyBase = new("敵の拠点", 20000f);
+
         [Header("ユニット獲得")]
         [Label("候補", true)]
         [SerializeField] private List<PPUnitDefinition> mRecruitCandidates = new();
@@ -120,6 +127,8 @@ namespace PPCore
         public IReadOnlyList<PPStageEncounterEntry> NormalEncounters => mNormalEncounters;
         public IReadOnlyList<PPStageEncounterEntry> EliteEncounters => mEliteEncounters;
         public PPPartyDefinition Boss => mBoss;
+        public PPBaseSettings AllyBase => mAllyBase;
+        public PPBaseSettings EnemyBase => mEnemyBase;
         public IReadOnlyList<PPUnitDefinition> RecruitCandidates => mRecruitCandidates;
         public int RecruitOfferCount => mRecruitOfferCount;
         public int RecruitLevel => mRecruitLevel;

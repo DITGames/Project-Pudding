@@ -68,6 +68,10 @@ namespace PPCore
         public event Action<BattleResult> OnBattleEnded;
         // 道の上にユニットが生まれたとき(生まれたユニット)
         public event Action<PPFieldUnit> OnFieldUnitSpawned;
+        // 拠点が攻撃などで HP を減らしたとき(拠点, 減った HP)
+        public event Action<PPFieldBase, float> OnBaseDamaged;
+        // 拠点の HP の割合が変わったとき(拠点, 変わる前, 変わった後)。どちらも 0〜1
+        public event Action<PPFieldBase, float, float> OnBaseHpRatioChanged;
 
         /* 生成 */
 
@@ -255,6 +259,19 @@ namespace PPCore
             return fieldUnit;
         }
 
+        // 道の端に拠点を置き、ユニットと同じ通知・撃破時の勝敗判定に繋ぐ。道が無いバトルでは何もせず null を返す
+        public virtual PPFieldBase SetFieldBase(BattleUnit aUnit, BattleSide aSide)
+        {
+            if (Context?.Field == null || aUnit == null) return null;
+
+            aUnit.Side = aSide;
+            var fieldBase = Context.Field.SetBase(aUnit, aSide);
+            fieldBase.LastHpRatio = aUnit.Parameters.Hp.Ratio;
+            SubscribeUnit(aUnit);
+            aUnit.OnDamaged += (_, amount) => HandleBaseDamaged(fieldBase, amount);
+            return fieldBase;
+        }
+
         // 道の上で攻撃の時機が来たユニットに、選んだ相手への通常攻撃をその場で実行させる
         protected virtual void ExecuteFieldAttack(PPFieldUnit aAttacker, List<BattleUnit> aTargets)
         {
@@ -274,6 +291,16 @@ namespace PPCore
             if (aInfo.Source?.SourceDefinition is not PPUnitDefinition definition || !definition.HasAttackKnockback) return;
 
             if (aInfo.Source.ResolveRandom(Context).NextBool(definition.AttackKnockbackChance)) Context.Field.Knockback(aInfo.Target);
+        }
+
+        // 拠点のダメージと HP の割合の変化を知らせる
+        protected virtual void HandleBaseDamaged(PPFieldBase aBase, float aAmount)
+        {
+            float before = aBase.LastHpRatio;
+            float after = aBase.Unit.Parameters.Hp.Ratio;
+            aBase.LastHpRatio = after;
+            OnBaseDamaged?.Invoke(aBase, aAmount);
+            if (after != before) OnBaseHpRatioChanged?.Invoke(aBase, before, after);
         }
 
         /* リアクション */

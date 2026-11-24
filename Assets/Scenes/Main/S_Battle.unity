@@ -434,6 +434,58 @@ MonoBehaviour:
   m_ShadowLayerMask: 1
   m_RenderingLayers: 1
   m_ShadowRenderingLayers: 1
+--- !u!1 &122063907
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 122063908}
+  - component: {fileID: 122063909}
+  m_Layer: 0
+  m_Name: AllyBaseHpBar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &122063908
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 122063907}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1472255266}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &122063909
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 122063907}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f3c6f11bbabdec43a23039715bc5319, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleBaseView
+  mField: {fileID: 1472255265}
+  mSide: 0
+  mHeight: 6
+  mWidth: 5
+  mThickness: 0.5
+  mBackgroundColor: {r: 0, g: 0, b: 0, a: 0.6}
+  mAllyColor: {r: 0.3, g: 0.8, b: 1, a: 1}
+  mEnemyColor: {r: 1, g: 0.4, b: 0.35, a: 1}
 --- !u!1001 &227295390
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1563,6 +1615,19 @@ MonoBehaviour:
   mPusherLoader: {fileID: 759475029}
   mCoinBridge: {fileID: 1628597016}
   mField: {fileID: 1472255265}
+  mBaseViews:
+  - {fileID: 122063909}
+  - {fileID: 2127206558}
+  mAllyBase:
+    mDisplayName: "\u5473\u65B9\u306E\u62E0\u70B9"
+    mMaxHp: 20000
+    mDefense: 0
+    mTypeAttribute: 0
+  mEnemyBase:
+    mDisplayName: "\u6575\u306E\u62E0\u70B9"
+    mMaxHp: 20000
+    mDefense: 0
+    mTypeAttribute: 0
   mBattleUnitViewBinder: {fileID: 2037463420}
   mOpenConfigAction: {fileID: -1142230911242018482, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mPauseMenu: {fileID: 799393110}
@@ -1572,6 +1637,7 @@ MonoBehaviour:
   mReturnToStageDelay: 2
   mResultView: {fileID: 27115759}
   mTitleSceneName: S_Title
+  mOutputBattleLog: 0
 --- !u!1 &962164789
 GameObject:
   m_ObjectHideFlags: 0
@@ -2115,6 +2181,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleField
   mLength: 60
   mMargin: 8
+  mBaseFrontDistance: 4
+  mKnockbackDistance: 3
+  mKnockbackSpeed: 12
 --- !u!4 &1472255266
 Transform:
   m_ObjectHideFlags: 0
@@ -2132,6 +2201,8 @@ Transform:
   - {fileID: 2017475762}
   - {fileID: 1496508652}
   - {fileID: 1162709757}
+  - {fileID: 122063908}
+  - {fileID: 2127206557}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1495912089
@@ -3217,6 +3288,58 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2127206556
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2127206557}
+  - component: {fileID: 2127206558}
+  m_Layer: 0
+  m_Name: EnemyBaseHpBar
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2127206557
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2127206556}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1472255266}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2127206558
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2127206556}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f3c6f11bbabdec43a23039715bc5319, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleBaseView
+  mField: {fileID: 1472255265}
+  mSide: 1
+  mHeight: 6
+  mWidth: 5
+  mThickness: 0.5
+  mBackgroundColor: {r: 0, g: 0, b: 0, a: 0.6}
+  mAllyColor: {r: 0.3, g: 0.8, b: 1, a: 1}
+  mEnemyColor: {r: 1, g: 0.4, b: 0.35, a: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

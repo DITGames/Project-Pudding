@@ -32,6 +32,16 @@ namespace PPCore
         [Header("バトル画面")]
         [Label("バトルの道")]
         [SerializeField] private PPBattleField mField;
+        // 味方と敵の拠点の真上に出す HP バー
+        [Label("拠点の HP バー", true)]
+        [SerializeField] private PPBattleBaseView[] mBaseViews = new PPBattleBaseView[0];
+
+        // ステージのマスから来たときは、ステージの定義の拠点を使う
+        [Header("拠点")]
+        [Label("味方の拠点")]
+        [SerializeField] private PPBaseSettings mAllyBase = new("味方の拠点", 20000f);
+        [Label("敵の拠点")]
+        [SerializeField] private PPBaseSettings mEnemyBase = new("敵の拠点", 20000f);
 
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
@@ -58,12 +68,12 @@ namespace PPCore
         [Label("敵パーティ定義")]
         [SerializeField] private PPPartyDefinition mEnemyPartyDefinition;
 
-        // ステージのマスから来たとき、決着してからマップへ戻るまでの秒数。単体で Play したときは戻らない
+        // 決着してから、マップへ戻るか結果画面を出すまでの秒数
         [Header("ステージ")]
         [Label("決着後にマップへ戻るまでの秒数")]
         [Min(0f)]
         [SerializeField] private float mReturnToStageDelay = 2f;
-        // ステージで負けたときと、ボスに勝ったときに出す。未設定なら結果を出さずにタイトルへ戻る
+        // ステージで負けたときと、ボスに勝ったときに出す。単体で Play したときは決着のたびに出す。未設定なら結果を出さずにタイトルへ戻る
         [Label("決着の結果画面")]
         [SerializeField] private PPStageResultView mResultView;
         // 結果画面が未設定のときに戻るシーン。Build Profiles に登録したシーンの名前
@@ -118,7 +128,8 @@ namespace PPCore
             var stage = PPStageProgress.Current;
             var stageBattle = stage?.PendingBattle;
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
-            var context = new BattleContext() { Rules = new PPBattleRules() };
+            // 道があるバトルは、拠点の破壊で勝敗を決める
+            var context = new BattleContext() { Rules = new PPBattleRules { ResultChecker = new PPBaseResultChecker() } };
             if (mField != null) context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
             if (stageBattle != null)
             {
@@ -139,20 +150,37 @@ namespace PPCore
             return context;
         }
 
-        // バトルを開始し、View とコインの橋渡しを接続する
+        // バトルを開始して道の両端に拠点を置き、View とコインの橋渡しを接続する
         private void StartBattle(BattleContext aContext)
         {
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
             if (mOpenConfigAction != null) mOpenConfigAction.action.Enable();
 
             var stage = PPStageProgress.Current;
-            if (stage?.PendingBattle != null) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
+            bool isStageBattle = stage?.PendingBattle != null;
+            if (isStageBattle) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
+            else mBattleManager.OnBattleEnded += r => StartCoroutine(ShowStandaloneResult(r));
             // 出さないときは、履歴を溜め続ける既定のロガーも外す
             if (mOutputBattleLog) PPBattleLogBinder.Bind(mBattleManager);
             else mBattleManager.Logger = null;
             mBattleManager.StartBattle(aContext);
+            PlaceBases(isStageBattle ? stage.Definition : null);
             mBattleUnitViewBinder.Bind(mBattleManager);
             if (mCoinBridge != null) mCoinBridge.Bind(mBattleManager);
+        }
+
+        // 道の両端に拠点を置き、HP バーを繋ぐ。ステージから来たときはステージの定義の拠点、それ以外はインスペクタの拠点を使う
+        private void PlaceBases(PPStageMapDefinition aStage)
+        {
+            if (mBattleManager.Context?.Field == null) return;
+            var allySettings = aStage != null ? aStage.AllyBase : mAllyBase;
+            var enemySettings = aStage != null ? aStage.EnemyBase : mEnemyBase;
+            mBattleManager.SetFieldBase(allySettings.CreateRuntimeUnit("AllyBase"), BattleSide.Ally);
+            mBattleManager.SetFieldBase(enemySettings.CreateRuntimeUnit("EnemyBase"), BattleSide.Enemy);
+            foreach (var view in mBaseViews)
+            {
+                if (view != null) view.Bind(mBattleManager);
+            }
         }
 
         /* 操作 */
@@ -198,6 +226,19 @@ namespace PPCore
             // 次のバトルでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る
             Time.timeScale = 1f;
             PPSceneTransition.Load(returnScene);
+        }
+
+        // ステージを通さずに Play したときの決着。少し待ってから結果画面を出す(決定でタイトルへ戻る)
+        private IEnumerator ShowStandaloneResult(BattleResult aResult)
+        {
+            CustomConsoleLog.Log("Battle", $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に結果を出す");
+            yield return new WaitForSecondsRealtime(mReturnToStageDelay);
+            if (mResultView == null)
+            {
+                CustomConsoleLog.Warning("Battle", "決着の結果画面が未設定のため、結果を出しません。PPBattleRunner の「決着の結果画面」を割り当ててください", this);
+                yield break;
+            }
+            mResultView.OpenBattleResult(aResult.Type);
         }
 
         /* ヘルパー */
