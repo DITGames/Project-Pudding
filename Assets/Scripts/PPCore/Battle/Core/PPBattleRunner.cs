@@ -10,6 +10,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Serialization;
 using AttributeUtility;
 using CustomConsole;
 
@@ -37,7 +38,7 @@ namespace PPCore
         [Label("拠点の HP バー", true)]
         [SerializeField] private PPBattleBaseView[] mBaseViews = new PPBattleBaseView[0];
 
-        // マップのマスから来たときはマップ定義の拠点を使う。敵の拠点はいつもステージ定義のもの
+        // マップのマスから来たときはマップ定義の拠点を使う。敵の拠点はいつもバトル定義のもの
         [Header("拠点")]
         [Label("味方の拠点")]
         [SerializeField] private PPBaseSettings mAllyBase = new("味方の拠点", 20000f);
@@ -63,8 +64,9 @@ namespace PPCore
         // 並べた順にパーティを作る(最大 PPPartyFactory.MaxMembers 体)
         [Label("味方パーティ", true)]
         [SerializeField] private List<PPPartyMemberEntry> mAllyMembers = new();
-        [Label("ステージ定義")]
-        [SerializeField] private PPEncounterDefinition mStageDefinition;
+        [Label("バトル定義")]
+        [FormerlySerializedAs("mStageDefinition")]
+        [SerializeField] private PPBattleDefinition mBattleDefinition;
         // マップのマスの深さの代わりに、出てくる敵の種類へ割り振るレベル
         [Label("割り振るレベル")]
         [Min(0)]
@@ -91,11 +93,11 @@ namespace PPCore
 
         // バトル進行を統括するマネージャ
         private BattleManager mBattleManager = new();
-        // このバトルで戦うステージ定義と、深さで割り振るレベルと、味方の拠点。コンテキストを作るときに決める
-        private PPEncounterDefinition mStage;
+        // このバトルで戦うバトル定義と、深さで割り振るレベルと、味方の拠点。コンテキストを作るときに決める
+        private PPBattleDefinition mBattle;
         private int mBattleLevelPoints;
         private PPBaseSettings mBattleAllyBase;
-        // ウェーブの進行。ステージ定義が無いバトルでは null
+        // ウェーブの進行。バトル定義が無いバトルでは null
         private PPWaveRunner mWaveRunner;
 
         /* プロパティ */
@@ -129,8 +131,8 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // 味方パーティと道を持つコンテキストを作り、戦うステージ定義を決める。敵はウェーブで道に出すため、敵パーティは空にする
-        // マップのマスから来たときは持ち越した編成とマスのステージ定義・深さで、Editor のデバッグバトルから始めたときはその設定で、
+        // 味方パーティと道を持つコンテキストを作り、戦うバトル定義を決める。敵はウェーブで道に出すため、敵パーティは空にする
+        // マップのマスから来たときは持ち越した編成とマスのバトル定義・深さで、Editor のデバッグバトルから始めたときはその設定で、
         // 単体で Play したときはインスペクタの設定で戦う
         private BattleContext CreateContext()
         {
@@ -144,30 +146,30 @@ namespace PPCore
             if (stageBattle != null)
             {
                 context.AllyParty = stage.CreateAllyParty();
-                mStage = stageBattle.Encounter;
+                mBattle = stageBattle.Battle;
                 mBattleLevelPoints = stage.Definition.GetLevelPoints(stageBattle.Depth);
                 mBattleAllyBase = stage.Definition.AllyBase;
             }
             else if (debugBattle != null)
             {
                 context.AllyParty = debugBattle.CreateAllyParty();
-                mStage = debugBattle.Stage;
+                mBattle = debugBattle.Battle;
                 mBattleLevelPoints = debugBattle.LevelPoints;
             }
             else
             {
                 context.AllyParty = PPPartyFactory.CreateFromMembers(mAllyMembers, BattleSide.Ally);
-                mStage = mStageDefinition;
+                mBattle = mBattleDefinition;
                 mBattleLevelPoints = mLevelPoints;
             }
-            // 道の長さはステージ定義のもの。道の状態と表示は、この長さで作る
+            // 道の長さはバトル定義のもの。道の状態と表示は、この長さで作る
             if (mField != null)
             {
-                if (mStage != null) mField.SetLength(mStage.FieldLength);
+                if (mBattle != null) mField.SetLength(mBattle.FieldLength);
                 context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
             }
             string source = stageBattle != null ? "マップのマス" : debugBattle != null ? "デバッグバトル" : "単体の Play";
-            CustomConsoleLog.Log("Battle", $"バトル: {source}。ステージ定義={(mStage != null ? mStage.name : "なし")} 割り振るレベル={mBattleLevelPoints} 道の長さ={(mField != null ? mField.Length : 0f)}");
+            CustomConsoleLog.Log("Battle", $"バトル: {source}。バトル定義={(mBattle != null ? mBattle.name : "なし")} 割り振るレベル={mBattleLevelPoints} 道の長さ={(mField != null ? mField.Length : 0f)}");
             return context;
         }
 
@@ -191,11 +193,11 @@ namespace PPCore
             StartWaves();
         }
 
-        // 道の両端に拠点を置き、HP バーを繋ぐ。敵の拠点はステージ定義のもの
+        // 道の両端に拠点を置き、HP バーを繋ぐ。敵の拠点はバトル定義のもの
         private void PlaceBases()
         {
             if (mBattleManager.Context?.Field == null) return;
-            var enemySettings = mStage != null ? mStage.EnemyBase : new PPBaseSettings("敵の拠点", 20000f);
+            var enemySettings = mBattle != null ? mBattle.EnemyBase : new PPBaseSettings("敵の拠点", 20000f);
             mBattleManager.SetFieldBase(mBattleAllyBase.CreateRuntimeUnit("AllyBase"), BattleSide.Ally);
             mBattleManager.SetFieldBase(enemySettings.CreateRuntimeUnit("EnemyBase"), BattleSide.Enemy);
             foreach (var view in mBaseViews)
@@ -204,18 +206,18 @@ namespace PPCore
             }
         }
 
-        // ステージ定義のウェーブを始める。敵は敵拠点の近くに出すが、拠点の前で止まっている味方より左には出さない
+        // バトル定義のウェーブを始める。敵は敵拠点の近くに出すが、拠点の前で止まっている味方より左には出さない
         private void StartWaves()
         {
             var field = mBattleManager.Context?.Field;
             if (field == null) return;
-            if (mStage == null)
+            if (mBattle == null)
             {
-                CustomConsoleLog.Warning("Battle", "ステージ定義が無いため、敵を出しません。PPBattleRunner の「ステージ定義」を割り当てるか、マップかデバッグバトルから始めてください", this);
+                CustomConsoleLog.Warning("Battle", "バトル定義が無いため、敵を出しません。PPBattleRunner の「バトル定義」を割り当てるか、マップかデバッグバトルから始めてください", this);
                 return;
             }
             float position = Mathf.Max(field.Length - mField.EnemySpawnDistance, field.GetStopLine(BattleSide.Ally));
-            mWaveRunner = new PPWaveRunner(mStage.Wave, mBattleManager, position, mBattleLevelPoints);
+            mWaveRunner = new PPWaveRunner(mBattle.Wave, mBattleManager, position, mBattleLevelPoints);
             foreach (var pair in mWaveRunner.LevelBonus)
             {
                 if (pair.Value > 0) CustomConsoleLog.Log("Battle", $"ウェーブ: {pair.Key.DisplayName} に +{pair.Value} レベル");

@@ -1584,7 +1584,7 @@ MonoBehaviour:
     Level: 1
     IsFixedSeed: 0
     Seed: 0
-  mStageDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
+  mBattleDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
   mLevelPoints: 0
   mReturnToStageDelay: 2
   mResultView: {fileID: 1059745191}

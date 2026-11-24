@@ -57,7 +57,7 @@ namespace PPCore
         public virtual string GetBlockReason(PPStageProgress aProgress, PPStageMapNode aNode)
         {
             if (!aProgress.CanEnterBattle) return "編成にユニットがいないため、バトルのマスは選べません";
-            if (aNode.Encounter == null) return "このマスの敵が設定されていません";
+            if (aNode.Battle == null) return "このマスの敵が設定されていません";
             return null;
         }
 
@@ -66,7 +66,7 @@ namespace PPCore
         {
             var progress = aContext.Progress;
             var node = aContext.Node;
-            progress.BeginBattle(new PPStageBattleRequest(node.Key, node.Type, node.Encounter));
+            progress.BeginBattle(new PPStageBattleRequest(node.Key, node.Type, node.Battle));
             progress.ReturnSceneName = SceneManager.GetActiveScene().name;
             if (!PPSceneTransition.Load(aContext.BattleSceneName)) progress.BeginBattle(null);
         }

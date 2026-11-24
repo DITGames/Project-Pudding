@@ -1,18 +1,18 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPEncounterDefinitionEditor.cs
+ * @file PPBattleDefinitionEditor.cs
  * @author hqrse
  * @date 2026/11/23
- * @brief ステージ定義に、ウェーブに出てくるユニットから合計した難易度ポイントを表示するインスペクタ
+ * @brief バトル定義に、ウェーブに出てくるユニットから合計した難易度ポイントを表示するインスペクタ
  * =====================================*/
 
 using UnityEditor;
 
 namespace PPCore
 {
-    // PPEncounterDefinition のインスペクタ。既定の項目の下に、難易度ポイントの合計とユニットの種類ごとの内訳を編集不可で出す
-    [CustomEditor(typeof(PPEncounterDefinition), true)]
-    public class PPEncounterDefinitionEditor : UnityEditor.Editor
+    // PPBattleDefinition のインスペクタ。既定の項目の下に、難易度ポイントの合計とユニットの種類ごとの内訳を編集不可で出す
+    [CustomEditor(typeof(PPBattleDefinition), true)]
+    public class PPBattleDefinitionEditor : UnityEditor.Editor
     {
         /* Unity イベント */
 
@@ -20,7 +20,7 @@ namespace PPCore
         {
             base.OnInspectorGUI();
 
-            var encounter = (PPEncounterDefinition)target;
+            var encounter = (PPBattleDefinition)target;
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("難易度", EditorStyles.boldLabel);
             using (new EditorGUI.DisabledScope(true))

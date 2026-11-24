@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cadcecbc9b306f4ea7a8466881ba66d, type: 3}
-  m_Name: PED_Water
+  m_Name: PBD_Water
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEncounterDefinition
   mWave:
     mSteps:
@@ -40,7 +40,6 @@ MonoBehaviour:
     mDefense: 0
     mTypeAttribute: 0
   mFieldLength: 30
-  mTheme: 2
   mIsElite: 0
   mMinFloor: 0
   mMaxFloor: 6

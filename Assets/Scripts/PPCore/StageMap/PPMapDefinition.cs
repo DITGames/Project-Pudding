@@ -1,34 +1,36 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMapDefinition.cs
+ * @file PPMapDefinition.cs
  * @author hqrse
  * @date 2026/11/21
- * @brief ステージマップの定義
+ * @brief マップの定義
  * =====================================*/
 
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using AttributeUtility;
 using CustomConsole;
 
 namespace PPCore
 {
-    // マップに出てくる遭遇の候補 1 件分。出てくる段は遭遇が持ち、マップごとの出やすさは重みで決める
+    // マップに出てくるバトル定義の候補 1 件分。出てくる段はバトル定義が持ち、マップごとの出やすさは重みで決める
     [Serializable]
-    public sealed class PPStageEncounterEntry
+    public sealed class PPMapBattleEntry
     {
-        [Label("遭遇")] public PPEncounterDefinition Encounter;
+        [FormerlySerializedAs("Encounter")]
+        [Label("バトル定義")] public PPBattleDefinition Battle;
         [Label("重み")] [Min(0f)] public float Weight = 1f;
 
         // 指定した段に出てくる候補か
-        public bool IsAvailable(int aFloor) => Encounter != null && Weight > 0f && Encounter.IsAvailableOnFloor(aFloor);
+        public bool IsAvailable(int aFloor) => Battle != null && Weight > 0f && Battle.IsAvailableOnFloor(aFloor);
     }
 
     // 1 つのマップの形・マスの出現・敵の分布・ユニット獲得・開始時のパーティをまとめた定義
     // 同じ定義と同じシードからは、いつも同じマップが作られる
-    [CreateAssetMenu(fileName = "PPStageMapDefinition", menuName = "Project-Pudding/Definition/PPStageMapDefinition")]
-    public class PPStageMapDefinition : ScriptableObject
+    [CreateAssetMenu(fileName = "PMD_New", menuName = "Project-Pudding/Definition/PPMapDefinition")]
+    public class PPMapDefinition : ScriptableObject
     {
         /* 定数 */
 
@@ -74,15 +76,17 @@ namespace PPCore
         [Label("最上段のマス")]
         [SerializeField] private PPStageNodeType mTopFloorType = PPStageNodeType.Upgrade;
 
-        // 通常敵にはエリートでない遭遇を、エリートにはエリートの遭遇を置く。遭遇はステージ定義(ウェーブと敵拠点を持つ)
+        // 通常敵にはエリートでないバトル定義を、エリートにはエリートのバトル定義を置く
         [Header("敵")]
         [Label("通常敵", true)]
-        [SerializeField] private List<PPStageEncounterEntry> mNormalEncounters = new();
+        [FormerlySerializedAs("mNormalEncounters")]
+        [SerializeField] private List<PPMapBattleEntry> mNormalBattles = new();
         // 空ならエリートのマスは出さない
         [Label("エリート", true)]
-        [SerializeField] private List<PPStageEncounterEntry> mEliteEncounters = new();
+        [FormerlySerializedAs("mEliteEncounters")]
+        [SerializeField] private List<PPMapBattleEntry> mEliteBattles = new();
         [Label("ボス")]
-        [SerializeField] private PPEncounterDefinition mBoss;
+        [SerializeField] private PPBattleDefinition mBoss;
         // マスが深いほど敵を強くする。割り振れるレベルは (基底レベル - 1) + 深さごとに足すレベル を四捨五入したもので、
         // ウェーブに出てくる敵の種類へ割り振る
         [Header("敵の強さ")]
@@ -93,7 +97,7 @@ namespace PPCore
         [Label("深さごとに足すレベル")]
         [SerializeField] private AnimationCurve mDepthLevelCurve = AnimationCurve.Linear(1f, 0f, 30f, 29f);
 
-        // このマップのバトルで道の左端に置く拠点。敵の拠点はステージ定義が持つ
+        // このマップのバトルで道の左端に置く拠点。敵の拠点はバトル定義が持つ
         [Header("拠点")]
         [Label("味方の拠点")]
         [SerializeField] private PPBaseSettings mAllyBase = new("味方の拠点", 20000f);
@@ -131,9 +135,9 @@ namespace PPCore
         public int SpecialMinFloor => mSpecialMinFloor;
         public int RecruitFloor => mRecruitFloor;
         public PPStageNodeType TopFloorType => mTopFloorType;
-        public IReadOnlyList<PPStageEncounterEntry> NormalEncounters => mNormalEncounters;
-        public IReadOnlyList<PPStageEncounterEntry> EliteEncounters => mEliteEncounters;
-        public PPEncounterDefinition Boss => mBoss;
+        public IReadOnlyList<PPMapBattleEntry> NormalBattles => mNormalBattles;
+        public IReadOnlyList<PPMapBattleEntry> EliteBattles => mEliteBattles;
+        public PPBattleDefinition Boss => mBoss;
         public int BaseLevel => Mathf.Max(1, mBaseLevel);
         public AnimationCurve DepthLevelCurve => mDepthLevelCurve;
         public PPBaseSettings AllyBase => mAllyBase;
@@ -145,10 +149,10 @@ namespace PPCore
         /* Unity イベント */
 
 #if UNITY_EDITOR
-        // インスペクタで編集した時点で、欄と遭遇の「エリート」の食い違いを警告する
+        // インスペクタで編集した時点で、欄とバトル定義の「エリート」の食い違いを警告する
         void OnValidate()
         {
-            foreach (var message in FindMismatchedEncounters())
+            foreach (var message in FindMismatchedBattles())
             {
                 CustomConsoleLog.Warning(LogTag, message, this);
             }
@@ -171,21 +175,21 @@ namespace PPCore
         // 新しく始めるときのシードを返す。固定しない場合は毎回違う値になる
         public int ResolveSeed() => mIsFixedSeed ? mSeed : new System.Random().Next();
 
-        // 通常敵の欄にエリートの遭遇が、エリートの欄にエリートでない遭遇が置かれていれば、その警告文を返す。無ければ空
-        public List<string> FindMismatchedEncounters()
+        // 通常敵の欄にエリートのバトル定義が、エリートの欄にエリートでないバトル定義が置かれていれば、その警告文を返す。無ければ空
+        public List<string> FindMismatchedBattles()
         {
             var messages = new List<string>();
-            CollectMismatched(mNormalEncounters, false, "通常敵", messages);
-            CollectMismatched(mEliteEncounters, true, "エリート", messages);
+            CollectMismatched(mNormalBattles, false, "通常敵", messages);
+            CollectMismatched(mEliteBattles, true, "エリート", messages);
             return messages;
         }
 
-        private void CollectMismatched(List<PPStageEncounterEntry> aEntries, bool aIsElite, string aListName, List<string> aMessages)
+        private void CollectMismatched(List<PPMapBattleEntry> aEntries, bool aIsElite, string aListName, List<string> aMessages)
         {
             foreach (var entry in aEntries)
             {
-                if (entry == null || entry.Encounter == null || entry.Encounter.IsElite == aIsElite) continue;
-                aMessages.Add($"マップ定義 {name} の「{aListName}」にある遭遇 {entry.Encounter.name} は、エリートの設定が{(aIsElite ? "オフ" : "オン")}です。遭遇の「エリート」か、置く欄を直してください");
+                if (entry == null || entry.Battle == null || entry.Battle.IsElite == aIsElite) continue;
+                aMessages.Add($"マップ定義 {name} の「{aListName}」にあるバトル定義 {entry.Battle.name} は、エリートの設定が{(aIsElite ? "オフ" : "オン")}です。バトル定義の「エリート」か、置く欄を直してください");
             }
         }
     }

@@ -157,7 +157,7 @@ namespace PPCore
         }
 
         // 選んだステージとそのシードを入れ物に入れ、次のシーンへ進む
-        private void HandleStagePicked(PPStageMapDefinition aMap)
+        private void HandleStagePicked(PPMapDefinition aMap)
         {
             PPStageStartSelection.Current.SetStage(aMap, aMap.ResolveSeed());
             LoadNewGameScene();

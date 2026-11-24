@@ -10,91 +10,67 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cadcecbc9b306f4ea7a8466881ba66d, type: 3}
-  m_Name: PED_Earth
+  m_Name: PBD_Boss_Fire
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEncounterDefinition
   mWave:
     mSteps:
-    - mMemo: "\u5148\u767A"
+    - mMemo: "\u5E8F\u76E4"
       mConditions: []
       mSpawns:
       - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
         mLevel: 1
-        mCount: 3
-        mInterval: 4
-        mFirstDelay: 0
-    - mMemo: "\u4E3B\u529B"
-      mConditions:
-      - rid: 2919751472399515711
-      - rid: 2919751472399515712
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
-        mLevel: 1
-        mCount: 2
-        mInterval: 5
-        mFirstDelay: 0
-      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-        mLevel: 1
-        mCount: 2
-        mInterval: 3
-        mFirstDelay: 1
-    - mMemo: "\u63F4\u8ECD"
-      mConditions:
-      - rid: 2919751472399515713
-      - rid: 2919751472399515714
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
-        mLevel: 1
         mCount: 2
         mInterval: 4
-        mFirstDelay: 0
-    - mMemo: "\u7E70\u308A\u8FD4\u3057"
-      mConditions:
-      - rid: 2919751472399515715
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-        mLevel: 1
-        mCount: 3
-        mInterval: 3
         mFirstDelay: 0
       - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
         mLevel: 1
         mCount: 1
+        mInterval: 6
+        mFirstDelay: 6
+    - mMemo: "\u9060\u8DDD\u96E2"
+      mConditions:
+      - rid: 2919751472399515723
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+        mLevel: 1
+        mCount: 2
         mInterval: 5
-        mFirstDelay: 2
-    mIsLoop: 1
-    mLoopStart: 3
-    mLoopEnd: 4
+        mFirstDelay: 0
+    - mMemo: "\u7DCF\u653B\u6483"
+      mConditions:
+      - rid: 2919751472399515724
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+        mLevel: 1
+        mCount: 0
+        mInterval: 6
+        mFirstDelay: 0
+      - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+        mLevel: 1
+        mCount: 3
+        mInterval: 4
+        mFirstDelay: 0
+    mIsLoop: 0
+    mLoopStart: 1
+    mLoopEnd: 0
   mEnemyBase:
     mDisplayName: "\u6575\u306E\u62E0\u70B9"
-    mMaxHp: 20000
+    mMaxHp: 30000
     mDefense: 0
     mTypeAttribute: 0
-  mFieldLength: 60
-  mTheme: 4
+  mFieldLength: 80
   mIsElite: 0
-  mMinFloor: 3
+  mMinFloor: 0
   mMaxFloor: 99
   references:
     version: 2
     RefIds:
-    - rid: 2919751472399515711
-      type: {class: PPWaveStepWipedTrigger, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mStepNumber: 1
-    - rid: 2919751472399515712
+    - rid: 2919751472399515723
       type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
       data:
         mSeconds: 20
-    - rid: 2919751472399515713
-      type: {class: PPWaveBaseDamagedTrigger, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 2919751472399515724
+      type: {class: PPWaveBaseHpTrigger, ns: PPCore, asm: Assembly-CSharp}
       data:
         mSide: 1
-        mIsOnce: 1
-    - rid: 2919751472399515714
-      type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mSeconds: 25
-    - rid: 2919751472399515715
-      type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mSeconds: 20
+        mPercent: 50

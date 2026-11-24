@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cadcecbc9b306f4ea7a8466881ba66d, type: 3}
-  m_Name: PED_Elite_Earth
+  m_Name: PBD_Elite_Earth
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEncounterDefinition
   mWave:
     mSteps:
@@ -70,7 +70,6 @@ MonoBehaviour:
     mDefense: 0
     mTypeAttribute: 0
   mFieldLength: 60
-  mTheme: 4
   mIsElite: 1
   mMinFloor: 0
   mMaxFloor: 99

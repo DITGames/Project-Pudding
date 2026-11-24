@@ -30,7 +30,7 @@ namespace PPCore
         [Header("ステージ")]
         // タイトルで選んだ内容が無いとき（このシーンを単体で Play したときなど）に使う
         [Label("マップ定義")]
-        [SerializeField] private PPStageMapDefinition mDefinition;
+        [SerializeField] private PPMapDefinition mDefinition;
         // Build Settings に登録したシーンの名前
         [Label("バトルのシーン名")]
         [SerializeField] private string mBattleSceneName = "S_Battle";
@@ -155,7 +155,7 @@ namespace PPCore
                 return false;
             }
 
-            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} ステージ定義={(aNode.Encounter != null ? aNode.Encounter.name : "-")}");
+            CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} バトル定義={(aNode.Battle != null ? aNode.Battle.name : "-")}");
             SetMessage(null);
             stageEvent.Begin(new PPStageEventContext
             {

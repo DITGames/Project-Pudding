@@ -30,7 +30,7 @@ namespace PPCore
         [Label("行のプレハブ")]
         [SerializeField] private PPStageListItem mItemPrefab;
         [Label("ステージ一覧")]
-        [SerializeField] private PPStageListDefinition mStageList;
+        [SerializeField] private PPMapListDefinition mStageList;
 
         [Header("選んでいるステージ")]
         [Label("表示名")]
@@ -47,14 +47,14 @@ namespace PPCore
 
         /* 状態 */
 
-        private readonly List<PPStageListEntry> mStages = new();
-        private Action<PPStageMapDefinition> mOnPicked;
+        private readonly List<PPMapListEntry> mStages = new();
+        private Action<PPMapDefinition> mOnPicked;
         private Action mOnCanceled;
 
         /* 操作 */
 
         // ステージを並べて開く。ステージが 1 つもなければ開かずに false
-        public bool Open(Action<PPStageMapDefinition> aOnPicked, Action aOnCanceled)
+        public bool Open(Action<PPMapDefinition> aOnPicked, Action aOnCanceled)
         {
             mStages.Clear();
             if (mStageList != null) mStages.AddRange(mStageList.GetValidStages());
@@ -109,7 +109,7 @@ namespace PPCore
 
         /* 問い合わせ */
 
-        public bool IsUnlocked(int aIndex) => aIndex >= 0 && aIndex < mStages.Count && PPStageListDefinition.IsUnlocked(mStages, aIndex);
+        public bool IsUnlocked(int aIndex) => aIndex >= 0 && aIndex < mStages.Count && PPMapListDefinition.IsUnlocked(mStages, aIndex);
 
         /* 表示 */
 

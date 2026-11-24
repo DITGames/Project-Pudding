@@ -3,7 +3,7 @@
  * @file PPDebugBattleWindow.cs
  * @author hqrse
  * @date 2026/11/22
- * @brief 味方パーティを組み、ステージ定義を読み込んで S_Battle を始めるデバッグバトルのウィンドウ
+ * @brief 味方パーティを組み、バトル定義を読み込んで S_Battle を始めるデバッグバトルのウィンドウ
  * =====================================*/
 
 using UnityEditor;
@@ -59,7 +59,7 @@ namespace PPCore
         }
     }
 
-    // 味方を並べ(最大 PPPartyFactory.MaxMembers 体)、ステージ定義を選んで「バトル開始」でその内容の S_Battle を Play する
+    // 味方を並べ(最大 PPPartyFactory.MaxMembers 体)、バトル定義を選んで「バトル開始」でその内容の S_Battle を Play する
     // 設定は ScriptableObject ではなくこの PC だけ(EditorPrefs)に残し、Git の競合を起こさない
     public class PPDebugBattleWindow : EditorWindow
     {
@@ -140,14 +140,14 @@ namespace PPCore
             }
         }
 
-        // 戦うステージ定義と、マスの深さの代わりに割り振るレベルを選ぶ
+        // 戦うバトル定義と、マスの深さの代わりに割り振るレベルを選ぶ
         private void DrawStage()
         {
             EditorGUILayout.LabelField("敵", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
-            var stage = LoadByGuid<PPEncounterDefinition>(mSettings.StageGuid);
-            stage = (PPEncounterDefinition)EditorGUILayout.ObjectField("ステージ定義", stage, typeof(PPEncounterDefinition), false);
-            mSettings.StageGuid = GetGuid(stage);
+            var stage = LoadByGuid<PPBattleDefinition>(mSettings.BattleGuid);
+            stage = (PPBattleDefinition)EditorGUILayout.ObjectField("バトル定義", stage, typeof(PPBattleDefinition), false);
+            mSettings.BattleGuid = GetGuid(stage);
             mSettings.LevelPoints = Mathf.Max(0, EditorGUILayout.IntField(new GUIContent("割り振るレベル", "マップでは (基底レベル - 1) + 深さごとに足すレベル を四捨五入した値。出てくる敵の種類へ 1 レベルずつ割り振る"), mSettings.LevelPoints));
             EditorGUI.indentLevel--;
         }
@@ -163,8 +163,8 @@ namespace PPCore
 
             bool hasAlly = mSettings.Allies.Exists(m => !string.IsNullOrEmpty(m.UnitGuid));
             if (!hasAlly) EditorGUILayout.HelpBox("味方を 1 体以上置いてください", MessageType.Info);
-            if (string.IsNullOrEmpty(mSettings.StageGuid)) EditorGUILayout.HelpBox("ステージ定義を選んでください", MessageType.Info);
-            using (new EditorGUI.DisabledScope(!hasAlly || string.IsNullOrEmpty(mSettings.StageGuid) || mBattleScene == null || EditorApplication.isCompiling))
+            if (string.IsNullOrEmpty(mSettings.BattleGuid)) EditorGUILayout.HelpBox("バトル定義を選んでください", MessageType.Info);
+            using (new EditorGUI.DisabledScope(!hasAlly || string.IsNullOrEmpty(mSettings.BattleGuid) || mBattleScene == null || EditorApplication.isCompiling))
             {
                 if (GUILayout.Button("バトル開始", GUILayout.Height(32f)))
                 {

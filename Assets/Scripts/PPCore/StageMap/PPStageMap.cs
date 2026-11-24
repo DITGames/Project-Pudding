@@ -41,8 +41,8 @@ namespace PPCore
         public readonly List<PPStageMapNode> Prev = new();
 
         public PPStageNodeType Type;
-        // バトルのマスで戦うステージ定義。通常戦・エリートでは引いた遭遇、ボスではボスの定義。バトル以外のマスでは null
-        public PPEncounterDefinition Encounter;
+        // バトルのマスで戦うバトル定義。通常戦・エリートでは候補から引いたもの、ボスではボスのもの。バトル以外のマスでは null
+        public PPBattleDefinition Battle;
         // 表示位置のゆらぎ。-1〜1 で持ち、表示側が間隔を掛ける
         public Vector2 Jitter;
 
@@ -154,12 +154,12 @@ namespace PPCore
 
         /* 状態 */
 
-        // 欄と遭遇の食い違いを警告し終えたマップ定義
-        private static readonly HashSet<PPStageMapDefinition> sWarnedDefinitions = new();
+        // 欄とバトル定義の食い違いを警告し終えたマップ定義
+        private static readonly HashSet<PPMapDefinition> sWarnedDefinitions = new();
 
         /* 生成 */
 
-        public static PPStageMap Generate(PPStageMapDefinition aDefinition, int aSeed)
+        public static PPStageMap Generate(PPMapDefinition aDefinition, int aSeed)
         {
             var random = new System.Random(aSeed);
             var map = new PPStageMap(aDefinition.Width, aDefinition.Height);
@@ -227,10 +227,10 @@ namespace PPCore
 
         /* マスの種類 */
 
-        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスには遭遇と敵も決める
-        private static void AssignTypes(PPStageMap aMap, PPStageMapDefinition aDefinition, System.Random aRandom)
+        // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスにはバトル定義と敵も決める
+        private static void AssignTypes(PPStageMap aMap, PPMapDefinition aDefinition, System.Random aRandom)
         {
-            WarnMismatchedEncounters(aDefinition);
+            WarnMismatchedBattles(aDefinition);
             foreach (var node in aMap.AllNodes())
             {
                 if (node.Floor == 0) node.Type = PPStageNodeType.Start;
@@ -240,14 +240,14 @@ namespace PPCore
 
                 if (node.Type == PPStageNodeType.Elite)
                 {
-                    node.Encounter = PickEncounter(aDefinition.EliteEncounters, node.Floor, aRandom);
+                    node.Battle = PickBattle(aDefinition.EliteBattles, node.Floor, aRandom);
                     // エリートの候補が無い段では通常戦にする
-                    if (node.Encounter == null) node.Type = PPStageNodeType.Battle;
+                    if (node.Battle == null) node.Type = PPStageNodeType.Battle;
                 }
                 if (node.Type == PPStageNodeType.Battle)
                 {
-                    node.Encounter = PickEncounter(aDefinition.NormalEncounters, node.Floor, aRandom);
-                    if (node.Encounter == null)
+                    node.Battle = PickBattle(aDefinition.NormalBattles, node.Floor, aRandom);
+                    if (node.Battle == null)
                     {
                         CustomConsoleLog.Error(LogTag, $"{node.Floor} 段目に出せる通常敵がありません。マップ定義 {aDefinition.name} の「通常敵」に、この段を含む遭遇を足してください");
                     }
@@ -255,11 +255,11 @@ namespace PPCore
             }
         }
 
-        // 欄と遭遇の「エリート」の食い違いを警告する。バトルから戻るたびに生成し直すため、同じ定義では Play 中に 1 回だけ出す
-        private static void WarnMismatchedEncounters(PPStageMapDefinition aDefinition)
+        // 欄とバトル定義の「エリート」の食い違いを警告する。バトルから戻るたびに生成し直すため、同じ定義では Play 中に 1 回だけ出す
+        private static void WarnMismatchedBattles(PPMapDefinition aDefinition)
         {
             if (!sWarnedDefinitions.Add(aDefinition)) return;
-            foreach (var message in aDefinition.FindMismatchedEncounters())
+            foreach (var message in aDefinition.FindMismatchedBattles())
             {
                 CustomConsoleLog.Warning(LogTag, message, aDefinition);
             }
@@ -270,7 +270,7 @@ namespace PPCore
         private static void ResetWarnedDefinitions() => sWarnedDefinitions.Clear();
 
         // 重みで種類を引き、序盤の特殊なマス・同じ経路での連続・同じ段の隣り合わせを避ける
-        private static PPStageNodeType PickType(PPStageMap aMap, PPStageMapNode aNode, PPStageMapDefinition aDefinition, System.Random aRandom)
+        private static PPStageNodeType PickType(PPStageMap aMap, PPStageMapNode aNode, PPMapDefinition aDefinition, System.Random aRandom)
         {
             for (int attempt = 0; attempt < PickAttemptCount; attempt++)
             {
@@ -287,7 +287,7 @@ namespace PPCore
             return PPStageNodeType.Battle;
         }
 
-        private static PPStageNodeType Roll(PPStageMapDefinition aDefinition, System.Random aRandom)
+        private static PPStageNodeType Roll(PPMapDefinition aDefinition, System.Random aRandom)
         {
             float total = aDefinition.BattleWeight + aDefinition.EliteWeight + aDefinition.UpgradeWeight + aDefinition.RecruitWeight;
             if (total <= 0f) return PPStageNodeType.Battle;
@@ -322,7 +322,7 @@ namespace PPCore
         }
 
         // 段に出てくる候補から、重みで 1 つ選ぶ。候補が無ければ null
-        private static PPEncounterDefinition PickEncounter(IReadOnlyList<PPStageEncounterEntry> aEntries, int aFloor, System.Random aRandom)
+        private static PPBattleDefinition PickBattle(IReadOnlyList<PPMapBattleEntry> aEntries, int aFloor, System.Random aRandom)
         {
             float total = 0f;
             foreach (var entry in aEntries)
@@ -332,12 +332,12 @@ namespace PPCore
             if (total <= 0f) return null;
 
             float v = (float)aRandom.NextDouble() * total;
-            PPEncounterDefinition last = null;
+            PPBattleDefinition last = null;
             foreach (var entry in aEntries)
             {
                 if (entry == null || !entry.IsAvailable(aFloor)) continue;
-                last = entry.Encounter;
-                if ((v -= entry.Weight) < 0f) return entry.Encounter;
+                last = entry.Battle;
+                if ((v -= entry.Weight) < 0f) return entry.Battle;
             }
             // 小数の誤差で最後まで引けなかったときは、最後の候補にする
             return last;
@@ -346,17 +346,17 @@ namespace PPCore
         /* ボス */
 
         // 最上段のすべてのマスから、中央の列に置いたボスへつなぐ
-        private static void CreateBoss(PPStageMap aMap, PPStageMapDefinition aDefinition)
+        private static void CreateBoss(PPStageMap aMap, PPMapDefinition aDefinition)
         {
             var boss = new PPStageMapNode(aMap.Height, (aMap.Width - 1) / 2)
             {
                 Type = PPStageNodeType.Boss,
-                Encounter = aDefinition.Boss,
+                Battle = aDefinition.Boss,
             };
             aMap.Boss = boss;
-            if (boss.Encounter == null)
+            if (boss.Battle == null)
             {
-                CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「ボス」が未設定です。ステージ定義を割り当ててください");
+                CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「ボス」が未設定です。バトル定義を割り当ててください");
             }
 
             foreach (var top in aMap.FloorNodes(aMap.Height - 1)) top.Connect(boss);

@@ -41,17 +41,17 @@ namespace PPCore
     {
         public readonly Vector2Int Node;
         public readonly PPStageNodeType Type;
-        // 戦うステージ定義(ウェーブと敵拠点)
-        public readonly PPEncounterDefinition Encounter;
+        // 戦うバトル定義(ウェーブと敵拠点)
+        public readonly PPBattleDefinition Battle;
 
         // マスの深さ。バトルのマスは 1 段目から始まるため、段の番号をそのまま使う
         public int Depth => Node.x;
 
-        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPEncounterDefinition aEncounter)
+        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPBattleDefinition aBattle)
         {
             Node = aNode;
             Type = aType;
-            Encounter = aEncounter;
+            Battle = aBattle;
         }
     }
 
@@ -78,7 +78,7 @@ namespace PPCore
 
         public IReadOnlyList<PPPartySaveUnitEntry> InitialUnits => mInitialUnits;
         // まだ選んでいなければ null。null のままマップのシーンを開くと、そのシーンのマップ定義で始める
-        public PPStageMapDefinition Definition { get; private set; }
+        public PPMapDefinition Definition { get; private set; }
         // null ならマップ定義の設定でシードを決める
         public int? Seed { get; private set; }
 
@@ -109,7 +109,7 @@ namespace PPCore
             CustomConsoleLog.Log(LogTag, $"初期ユニットを選択: {string.Join("、", names)}");
         }
 
-        public void SetStage(PPStageMapDefinition aDefinition, int? aSeed = null)
+        public void SetStage(PPMapDefinition aDefinition, int? aSeed = null)
         {
             Definition = aDefinition;
             Seed = aSeed;
@@ -142,7 +142,7 @@ namespace PPCore
 
         /* 状態 */
 
-        public readonly PPStageMapDefinition Definition;
+        public readonly PPMapDefinition Definition;
         public readonly int Seed;
         // バトルが終わった後に戻るシーンの名前
         public string ReturnSceneName;
@@ -179,7 +179,7 @@ namespace PPCore
         /* static 関数 */
 
         // 新しく始める。初期ユニットを渡せばそれを、空ならマップ定義の初期パーティを所持ユニットと編成にする
-        public static PPStageProgress Begin(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null)
+        public static PPStageProgress Begin(PPMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null)
         {
             sCurrent = new PPStageProgress(aDefinition, aSeed, aInitialUnits);
             CustomConsoleLog.Log(LogTag, $"ステージ開始: {aDefinition.name} シード={aSeed} 所持ユニット={sCurrent.mOwnedUnits.Count}");
@@ -192,7 +192,7 @@ namespace PPCore
         /* 生成 */
 
         // 渡された初期ユニットは選んだ順に枠の前から置き、枠が埋まったら控えにする
-        private PPStageProgress(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
+        private PPStageProgress(PPMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
         {
             Definition = aDefinition;
             Seed = aSeed;

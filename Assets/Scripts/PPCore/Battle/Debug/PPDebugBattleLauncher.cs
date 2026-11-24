@@ -20,7 +20,7 @@ namespace PPCore
         public int Level = 1;
     }
 
-    // デバッグバトルの設定。味方の並び(最大 PPPartyFactory.MaxMembers 体)、読み込むステージ定義、深さで割り振るレベルを持つ
+    // デバッグバトルの設定。味方の並び(最大 PPPartyFactory.MaxMembers 体)、読み込むバトル定義、深さで割り振るレベルを持つ
     // アセットを指す値は GUID で持ち、JSON にしてこの PC だけに保存する(Git に入れず、競合させない)
     [Serializable]
     public class PPDebugBattleSettings
@@ -28,7 +28,7 @@ namespace PPCore
         /* 状態 */
 
         public List<PPDebugBattleMember> Allies = new();
-        public string StageGuid;
+        public string BattleGuid;
         public int LevelPoints;
 
         /* 操作 */
@@ -53,15 +53,15 @@ namespace PPCore
 
         /* プロパティ */
 
-        public PPEncounterDefinition Stage { get; }
+        public PPBattleDefinition Battle { get; }
         public int LevelPoints { get; }
 
         /* 生成 */
 
-        public PPDebugBattleRequest(PPPartyMemberEntry[] aAllyMembers, PPEncounterDefinition aStage, int aLevelPoints)
+        public PPDebugBattleRequest(PPPartyMemberEntry[] aAllyMembers, PPBattleDefinition aBattle, int aLevelPoints)
         {
             mAllyMembers = aAllyMembers;
-            Stage = aStage;
+            Battle = aBattle;
             LevelPoints = aLevelPoints;
         }
 
@@ -96,7 +96,7 @@ namespace PPCore
             {
                 members[i] = new PPPartyMemberEntry { Unit = LoadByGuid<PPUnitDefinition>(settings.Allies[i].UnitGuid), Level = settings.Allies[i].Level };
             }
-            return new PPDebugBattleRequest(members, LoadByGuid<PPEncounterDefinition>(settings.StageGuid), settings.LevelPoints);
+            return new PPDebugBattleRequest(members, LoadByGuid<PPBattleDefinition>(settings.BattleGuid), settings.LevelPoints);
 #else
             return null;
 #endif

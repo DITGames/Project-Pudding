@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageListDefinition.cs
+ * @file PPMapListDefinition.cs
  * @author hqrse
  * @date 2026/11/22
  * @brief ステージ選択に並べるステージの一覧と、クリアの記録
@@ -16,9 +16,9 @@ namespace PPCore
 {
     // 一覧に並べるステージ 1 件分
     [Serializable]
-    public sealed class PPStageListEntry
+    public sealed class PPMapListEntry
     {
-        [Label("マップ定義")] public PPStageMapDefinition Map;
+        [Label("マップ定義")] public PPMapDefinition Map;
         // 前のステージをクリアしていなくても選べる。先頭のステージは印がなくても選べる
         [Label("最初から選べる")] public bool IsUnlockedFromStart;
     }
@@ -32,11 +32,11 @@ namespace PPCore
 
         /* 状態 */
 
-        private static readonly HashSet<PPStageMapDefinition> sCleared = new();
+        private static readonly HashSet<PPMapDefinition> sCleared = new();
 
         /* 操作 */
 
-        public static void MarkCleared(PPStageMapDefinition aMap)
+        public static void MarkCleared(PPMapDefinition aMap)
         {
             if (aMap == null || !sCleared.Add(aMap)) return;
             CustomConsoleLog.Log(LogTag, $"クリアを記録: {aMap.DisplayName}");
@@ -44,7 +44,7 @@ namespace PPCore
 
         /* 問い合わせ */
 
-        public static bool IsCleared(PPStageMapDefinition aMap) => aMap != null && sCleared.Contains(aMap);
+        public static bool IsCleared(PPMapDefinition aMap) => aMap != null && sCleared.Contains(aMap);
 
         /* ヘルパー */
 
@@ -54,20 +54,20 @@ namespace PPCore
     }
 
     // ステージ選択に並べるステージの一覧。上から順に、前のステージをクリアすると次が選べるようになる
-    [CreateAssetMenu(fileName = "PSLD_New", menuName = "Project-Pudding/Definition/PPStageListDefinition")]
-    public class PPStageListDefinition : ScriptableObject
+    [CreateAssetMenu(fileName = "PMLD_New", menuName = "Project-Pudding/Definition/PPMapListDefinition")]
+    public class PPMapListDefinition : ScriptableObject
     {
         /* インスペクタ設定 */
 
         [Label("ステージ", true)]
-        [SerializeField] private List<PPStageListEntry> mStages = new();
+        [SerializeField] private List<PPMapListEntry> mStages = new();
 
         /* 問い合わせ */
 
         // マップ定義が設定されている項目だけを、並べる順に返す
-        public List<PPStageListEntry> GetValidStages()
+        public List<PPMapListEntry> GetValidStages()
         {
-            var list = new List<PPStageListEntry>(mStages.Count);
+            var list = new List<PPMapListEntry>(mStages.Count);
             foreach (var entry in mStages)
             {
                 if (entry != null && entry.Map != null) list.Add(entry);
@@ -76,7 +76,7 @@ namespace PPCore
         }
 
         // 先頭か、最初から選べる印があるか、ひとつ前のステージをクリアしていれば選べる
-        public static bool IsUnlocked(IReadOnlyList<PPStageListEntry> aStages, int aIndex)
+        public static bool IsUnlocked(IReadOnlyList<PPMapListEntry> aStages, int aIndex)
         {
             if (aIndex <= 0) return true;
             return aStages[aIndex].IsUnlockedFromStart || PPStageClearRecord.IsCleared(aStages[aIndex - 1].Map);
