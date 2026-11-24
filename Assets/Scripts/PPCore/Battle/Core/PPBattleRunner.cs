@@ -70,6 +70,11 @@ namespace PPCore
         [Label("結果のあとに戻るシーン名")]
         [SerializeField] private string mTitleSceneName = "S_Title";
 
+        // 攻撃が当たるたびにコンソールへ書き出すため、ユニットが多いと重くなる。調べるときだけ入れる
+        [Header("デバッグ")]
+        [Label("バトルのログを出す")]
+        [SerializeField] private bool mOutputBattleLog = false;
+
         /* 状態 */
 
         // バトル進行を統括するマネージャ
@@ -142,7 +147,9 @@ namespace PPCore
 
             var stage = PPStageProgress.Current;
             if (stage?.PendingBattle != null) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
-            PPBattleLogBinder.Bind(mBattleManager);
+            // 出さないときは、履歴を溜め続ける既定のロガーも外す
+            if (mOutputBattleLog) PPBattleLogBinder.Bind(mBattleManager);
+            else mBattleManager.Logger = null;
             mBattleManager.StartBattle(aContext);
             mBattleUnitViewBinder.Bind(mBattleManager);
             if (mCoinBridge != null) mCoinBridge.Bind(mBattleManager);
