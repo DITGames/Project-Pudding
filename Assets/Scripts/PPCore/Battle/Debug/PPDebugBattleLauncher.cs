@@ -7,40 +7,39 @@
  * =====================================*/
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace PPCore
 {
-    // デバッグバトルの設定。味方の 3 枠とレベル、読み込むステージ定義、深さで割り振るレベルを持つ
+    // デバッグバトルの味方 1 体分。ユニット定義は GUID で持つ
+    [Serializable]
+    public class PPDebugBattleMember
+    {
+        public string UnitGuid;
+        public int Level = 1;
+    }
+
+    // デバッグバトルの設定。味方の並び(最大 PPPartyFactory.MaxMembers 体)、読み込むステージ定義、深さで割り振るレベルを持つ
     // アセットを指す値は GUID で持ち、JSON にしてこの PC だけに保存する(Git に入れず、競合させない)
     [Serializable]
     public class PPDebugBattleSettings
     {
-        /* 定数 */
-
-        // 中央 → 右 → 左 の順に並べる
-        public static readonly PPPartyPosition[] Positions = { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
-
         /* 状態 */
 
-        public string[] AllyUnitGuids = new string[3];
-        public int[] AllyLevels = { 1, 1, 1 };
+        public List<PPDebugBattleMember> Allies = new();
         public string StageGuid;
         public int LevelPoints;
 
-        /* static 関数 */
-
-        // 枠の添字(Positions の並び)。見つからなければ 0
-        public static int IndexOf(PPPartyPosition aPosition) => Mathf.Max(0, Array.IndexOf(Positions, aPosition));
-
         /* 操作 */
 
-        // 足りない要素を埋める。古い保存内容を読んだときの備え
+        // 範囲外の値を直し、上限より後ろの味方を外す。古い保存内容を読んだときの備え
         public void Normalize()
         {
-            if (AllyUnitGuids == null || AllyUnitGuids.Length != 3) Array.Resize(ref AllyUnitGuids, 3);
-            if (AllyLevels == null || AllyLevels.Length != 3) AllyLevels = new[] { 1, 1, 1 };
-            for (int i = 0; i < 3; i++) AllyLevels[i] = Mathf.Max(1, AllyLevels[i]);
+            Allies ??= new List<PPDebugBattleMember>();
+            Allies.RemoveAll(m => m == null);
+            if (Allies.Count > PPPartyFactory.MaxMembers) Allies.RemoveRange(PPPartyFactory.MaxMembers, Allies.Count - PPPartyFactory.MaxMembers);
+            foreach (var member in Allies) member.Level = Mathf.Max(1, member.Level);
             LevelPoints = Mathf.Max(0, LevelPoints);
         }
     }
@@ -68,7 +67,7 @@ namespace PPCore
 
         /* 操作 */
 
-        public PPBattleParty CreateAllyParty() => PPPartyFactory.CreateFromMembers(p => mAllyMembers[PPDebugBattleSettings.IndexOf(p)], BattleSide.Ally);
+        public PPBattleParty CreateAllyParty() => PPPartyFactory.CreateFromMembers(mAllyMembers, BattleSide.Ally);
     }
 
     // Editor のデバッグバトルウィンドウから S_Battle へ、戦う内容を渡す
@@ -92,10 +91,10 @@ namespace PPCore
 
             var settings = JsonUtility.FromJson<PPDebugBattleSettings>(json);
             settings.Normalize();
-            var members = new PPPartyMemberEntry[3];
-            for (int i = 0; i < 3; i++)
+            var members = new PPPartyMemberEntry[settings.Allies.Count];
+            for (int i = 0; i < members.Length; i++)
             {
-                members[i] = new PPPartyMemberEntry { Unit = LoadByGuid<PPUnitDefinition>(settings.AllyUnitGuids[i]), Level = settings.AllyLevels[i] };
+                members[i] = new PPPartyMemberEntry { Unit = LoadByGuid<PPUnitDefinition>(settings.Allies[i].UnitGuid), Level = settings.Allies[i].Level };
             }
             return new PPDebugBattleRequest(members, LoadByGuid<PPEncounterDefinition>(settings.StageGuid), settings.LevelPoints);
 #else

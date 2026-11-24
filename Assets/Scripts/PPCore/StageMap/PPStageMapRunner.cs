@@ -24,9 +24,6 @@ namespace PPCore
         private const string LogTag = "StageMap";
         // スティックをどこまで倒したら 1 回の移動とみなすか(0〜1)
         private const float NavigateThreshold = 0.5f;
-        // 編成の札の並び
-        private static readonly PPPartyPosition[] PartyPositions =
-            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
 
         /* インスペクタ設定 */
 
@@ -244,10 +241,10 @@ namespace PPCore
         private void RefreshParty()
         {
             var progress = PPStageProgress.Current;
-            for (int i = 0; i < mPartyCards.Length && i < PartyPositions.Length; i++)
+            for (int i = 0; i < mPartyCards.Length; i++)
             {
                 if (mPartyCards[i] == null) continue;
-                var owned = progress.GetMember(PartyPositions[i]);
+                var owned = progress.GetMember(i);
                 if (owned == null)
                 {
                     mPartyCards[i].SetUnit(null, "（空き）", null);

@@ -56,7 +56,7 @@ namespace PPCore
     {
         public virtual string GetBlockReason(PPStageProgress aProgress, PPStageMapNode aNode)
         {
-            if (!aProgress.CanEnterBattle) return "中央にユニットがいないため、バトルのマスは選べません";
+            if (!aProgress.CanEnterBattle) return "編成にユニットがいないため、バトルのマスは選べません";
             if (aNode.Encounter == null) return "このマスの敵が設定されていません";
             return null;
         }
@@ -114,10 +114,10 @@ namespace PPCore
             aContext.RecruitView.Open(candidates, level, aUnit =>
             {
                 var owned = progress.AddUnit(aUnit, level);
-                var position = progress.FindPosition(owned);
+                var position = progress.FindSlot(owned);
                 aContext.OnFinished?.Invoke(position.HasValue
                     ? $"{aUnit.DisplayName} が仲間になり、編成に入った"
-                    : $"{aUnit.DisplayName} が仲間になった（編成に空きがないため控え）");
+                    : $"{aUnit.DisplayName} が仲間になった（編成に空きがないか、コストの上限を超えるため控え）");
             });
         }
 

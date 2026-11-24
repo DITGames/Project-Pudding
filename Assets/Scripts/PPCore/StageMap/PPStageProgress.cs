@@ -131,10 +131,9 @@ namespace PPCore
 
         // 編成できるユニットコストの合計の上限
         public const int MaxPartyCost = 100;
+        // 編成の枠の数
+        public const int MaxPartySize = PPPartyFactory.MaxMembers;
         private const string LogTag = "StageMap";
-        // 編成の配置。編成とコイン配布の順番（Center → Right → Left）で並べる
-        private static readonly PPPartyPosition[] Positions =
-            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
 
         /* static 変数 */
 
@@ -151,8 +150,8 @@ namespace PPCore
         // 通過したマスを通った順に持つ。最後が現在地
         private readonly List<Vector2Int> mPath = new();
         private readonly List<PPStageOwnedUnit> mOwnedUnits = new();
-        // 配置ごとの編成。添字は PPPartyPosition の値。空の配置は null
-        private readonly PPStageOwnedUnit[] mFormation = new PPStageOwnedUnit[Positions.Length];
+        // 枠ごとの編成。添字は枠の番号(0 から)。空の枠は null
+        private readonly PPStageOwnedUnit[] mFormation = new PPStageOwnedUnit[MaxPartySize];
 
         /* プロパティ */
 
@@ -164,8 +163,18 @@ namespace PPCore
         public Vector2Int? CurrentNode => mPath.Count > 0 ? mPath[^1] : null;
         // バトルのシーンで戦う内容。バトルのマスを選んでから決着するまでの間だけ null 以外
         public PPStageBattleRequest PendingBattle { get; private set; }
-        // 中央に誰かいないとバトルを始められない
-        public bool CanEnterBattle => GetMember(PPPartyPosition.Center) != null;
+        // 編成に 1 体もいないとバトルを始められない
+        public bool CanEnterBattle
+        {
+            get
+            {
+                foreach (var owned in mFormation)
+                {
+                    if (owned != null) return true;
+                }
+                return false;
+            }
+        }
 
         /* static 関数 */
 
@@ -182,7 +191,7 @@ namespace PPCore
 
         /* 生成 */
 
-        // 渡された初期ユニットは選んだ順に Center → Right → Left へ置き、4 体目からは控えにする
+        // 渡された初期ユニットは選んだ順に枠の前から置き、枠が埋まったら控えにする
         private PPStageProgress(PPStageMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
         {
             Definition = aDefinition;
@@ -207,27 +216,27 @@ namespace PPCore
                 return;
             }
 
-            foreach (var position in Positions)
+            foreach (var entry in initial.Members)
             {
-                var entry = initial.GetMember(position);
                 if (entry == null || entry.Unit == null) continue;
 
                 var owned = new PPStageOwnedUnit(entry.Unit, Mathf.Max(1, entry.Level));
                 mOwnedUnits.Add(owned);
-                mFormation[(int)position] = owned;
+                PlaceInFirstEmpty(owned);
             }
         }
 
         /* 問い合わせ */
 
-        public PPStageOwnedUnit GetMember(PPPartyPosition aPosition) => mFormation[(int)aPosition];
+        // 枠のユニット。空の枠や範囲外なら null
+        public PPStageOwnedUnit GetMember(int aSlot) => aSlot >= 0 && aSlot < MaxPartySize ? mFormation[aSlot] : null;
 
-        // 編成されている配置を返す。編成されていなければ null
-        public PPPartyPosition? FindPosition(PPStageOwnedUnit aUnit)
+        // 編成されている枠の番号(0 から)を返す。編成されていなければ null
+        public int? FindSlot(PPStageOwnedUnit aUnit)
         {
-            foreach (var position in Positions)
+            for (int i = 0; i < MaxPartySize; i++)
             {
-                if (aUnit != null && mFormation[(int)position] == aUnit) return position;
+                if (aUnit != null && mFormation[i] == aUnit) return i;
             }
             return null;
         }
@@ -245,71 +254,74 @@ namespace PPCore
         public int GetPartyCost()
         {
             int total = 0;
-            foreach (var position in Positions) total += GetCost(mFormation[(int)position]);
+            foreach (var owned in mFormation) total += GetCost(owned);
             return total;
         }
 
-        // 配置にユニットを置いた(入れ替えた)後も、ユニットコストの合計が上限以内に収まるか
-        public bool CanSetMember(PPPartyPosition aPosition, PPStageOwnedUnit aUnit)
+        // 枠にユニットを置いた(入れ替えた)後も、ユニットコストの合計が上限以内に収まるか
+        public bool CanSetMember(int aSlot, PPStageOwnedUnit aUnit)
         {
             // 外すときと、編成済みのユニット同士の入れ替えは合計が増えない
-            if (aUnit == null || FindPosition(aUnit).HasValue) return true;
-            int after = GetPartyCost() - GetCost(mFormation[(int)aPosition]) + GetCost(aUnit);
+            if (aUnit == null || FindSlot(aUnit).HasValue) return true;
+            int after = GetPartyCost() - GetCost(GetMember(aSlot)) + GetCost(aUnit);
             return after <= MaxPartyCost;
         }
 
-        // 今の編成から味方のパーティを作る
+        // 今の編成から味方のパーティを作る。枠の順に並べ、空の枠は飛ばす
         public PPBattleParty CreateAllyParty()
         {
-            return PPPartyFactory.CreateFromMembers(aPosition =>
+            var members = new List<PPPartyMemberEntry>(MaxPartySize);
+            foreach (var owned in mFormation)
             {
-                var owned = GetMember(aPosition);
-                return owned == null ? null : new PPPartyMemberEntry { Unit = owned.Unit, Level = owned.Level };
-            }, BattleSide.Ally);
+                if (owned != null) members.Add(new PPPartyMemberEntry { Unit = owned.Unit, Level = owned.Level });
+            }
+            return PPPartyFactory.CreateFromMembers(members, BattleSide.Ally);
         }
 
         /* 編成 */
 
-        // 配置にユニットを置く。ほかの配置にいたユニットなら、その配置と入れ替える。null を渡すと配置を空にする
+        // 枠にユニットを置く。ほかの枠にいたユニットなら、その枠と入れ替える。null を渡すと枠を空にする
         // ユニットコストの合計が上限を超える置き方はしない
-        public void SetMember(PPPartyPosition aPosition, PPStageOwnedUnit aUnit)
+        public void SetMember(int aSlot, PPStageOwnedUnit aUnit)
         {
+            if (aSlot < 0 || aSlot >= MaxPartySize) return;
             if (aUnit != null && !mOwnedUnits.Contains(aUnit))
             {
                 CustomConsoleLog.Error(LogTag, $"所持していないユニット {aUnit.Unit?.DisplayName} は編成できません");
                 return;
             }
-            if (!CanSetMember(aPosition, aUnit))
+            if (!CanSetMember(aSlot, aUnit))
             {
                 CustomConsoleLog.Warning(LogTag, $"ユニットコストの合計が上限 {MaxPartyCost} を超えるため、{aUnit.Unit?.DisplayName} を編成できません");
                 return;
             }
 
-            var previous = mFormation[(int)aPosition];
-            var from = FindPosition(aUnit);
-            if (from.HasValue) mFormation[(int)from.Value] = previous;
-            mFormation[(int)aPosition] = aUnit;
+            var previous = mFormation[aSlot];
+            var from = FindSlot(aUnit);
+            if (from.HasValue) mFormation[from.Value] = previous;
+            mFormation[aSlot] = aUnit;
         }
 
         /* 所持ユニット */
 
-        // 所持ユニットに加え、編成に空きがあれば Center → Right → Left の順で最初の空きに入れる
+        // 所持ユニットに加え、編成に空きがあり、コストの上限にも収まれば前から最初の空きの枠に入れる
         public PPStageOwnedUnit AddUnit(PPUnitDefinition aUnit, int aLevel)
         {
             var owned = new PPStageOwnedUnit(aUnit, Mathf.Max(1, aLevel));
             mOwnedUnits.Add(owned);
             PlaceInFirstEmpty(owned);
-            CustomConsoleLog.Log(LogTag, $"ユニット獲得: {aUnit.DisplayName} Lv{owned.Level} 配置={FindPosition(owned)?.ToString() ?? "控え"}");
+            CustomConsoleLog.Log(LogTag, $"ユニット獲得: {aUnit.DisplayName} Lv{owned.Level} 枠={(FindSlot(owned) is int slot ? (slot + 1).ToString() : "控え")}");
             return owned;
         }
 
-        // 編成の Center → Right → Left のうち最初の空きに置く。空きがなければ控えのまま
+        // 編成の前から最初の空きの枠に置く。空きがないか、置くとユニットコストの合計が上限を超えるなら控えのまま
         private void PlaceInFirstEmpty(PPStageOwnedUnit aUnit)
         {
-            foreach (var position in Positions)
+            if (GetPartyCost() + GetCost(aUnit) > MaxPartyCost) return;
+            for (int i = 0; i < MaxPartySize; i++)
             {
-                if (mFormation[(int)position] != null) continue;
-                mFormation[(int)position] = aUnit;
+                if (mFormation[i] != null) continue;
+                mFormation[i] = aUnit;
                 return;
             }
         }

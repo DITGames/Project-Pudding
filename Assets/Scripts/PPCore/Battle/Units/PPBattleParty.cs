@@ -89,7 +89,7 @@ namespace PPCore
         public virtual bool IsWiped() => ActiveMembers.All(u => !u.IsAlive);
     }
 
-    // パーティ内の配置。定義順（Center → Right → Left）が編成の順番になる
+    // 旧方式のパーティ内の配置。編成はリストになったため、今は使っていない
     public enum PPPartyPosition
     {
         [InspectorName("中央")]
@@ -113,27 +113,29 @@ namespace PPCore
     // PPPartyDefinition などの生成元から PPBattleParty を組み立てるファクトリ
     public static class PPPartyFactory
     {
-        // 配置の一覧。編成の順番（Center → Right → Left）で並べる
-        private static readonly PPPartyPosition[] Positions =
-            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
+        /* 定数 */
 
-        // PPPartyDefinition からランタイムパーティを生成する
-        // 配置の枠ごとにユニットを生成して編成し、それぞれへ専用の乱数供給元を割り当てる。空の枠は飛ばす
+        // 1 つのパーティに編成できるユニットの数
+        public const int MaxMembers = 10;
+
+        /* 操作 */
+
+        // PPPartyDefinition からランタイムパーティを生成する。定義が無ければ空のパーティ
         public static PPBattleParty CreateFromDefinition(PPPartyDefinition aDefinition, BattleSide aSide)
-            => CreateFromMembers(aDefinition.GetMember, aSide);
+            => CreateFromMembers(aDefinition != null ? aDefinition.Members : null, aSide);
 
-        // 配置ごとのメンバー枠からランタイムパーティを生成する。ステージの編成など、定義アセット以外から作るときに使う
-        public static PPBattleParty CreateFromMembers(Func<PPPartyPosition, PPPartyMemberEntry> aGetMember, BattleSide aSide)
+        // メンバー枠の並びからランタイムパーティを生成する。ステージの編成など、定義アセット以外から作るときにも使う
+        // 枠ごとにユニットを生成し、それぞれへ専用の乱数供給元を割り当てる。空の枠は飛ばし、上限より後ろの枠は使わない
+        public static PPBattleParty CreateFromMembers(IReadOnlyList<PPPartyMemberEntry> aMembers, BattleSide aSide)
         {
             var units = new List<BattleUnit>();
-            foreach (var position in Positions)
+            for (int i = 0; aMembers != null && i < aMembers.Count && i < MaxMembers; i++)
             {
-                var entry = aGetMember(position);
-                if(entry == null || entry.Unit == null) continue;
+                var entry = aMembers[i];
+                if (entry == null || entry.Unit == null) continue;
 
                 var unit = (PPBattleUnit)entry.Unit.CreateRuntimeUnit(entry.Level);
-                unit.Random = CreateRandom(entry, aSide, (int)position);
-                unit.Position = position;
+                unit.Random = CreateRandom(entry, aSide, i);
                 units.Add(unit);
             }
 

@@ -59,7 +59,7 @@ namespace PPCore
         }
     }
 
-    // 味方の 3 枠を組み、ステージ定義を選んで「バトル開始」でその内容の S_Battle を Play する
+    // 味方を並べ(最大 PPPartyFactory.MaxMembers 体)、ステージ定義を選んで「バトル開始」でその内容の S_Battle を Play する
     // 設定は ScriptableObject ではなくこの PC だけ(EditorPrefs)に残し、Git の競合を起こさない
     public class PPDebugBattleWindow : EditorWindow
     {
@@ -113,22 +113,31 @@ namespace PPCore
             mBattleScene = (SceneAsset)EditorGUILayout.ObjectField("バトルのシーン", mBattleScene, typeof(SceneAsset), false);
         }
 
-        // 中央・右・左の枠ごとに、ユニットとレベルを選ぶ。ユニットが空の枠には置かない
+        // 味方を 1 行ずつ、ユニットとレベルで並べる。行を足す・外すボタンも出す。ユニットが空の行は使わない
         private void DrawAllyParty()
         {
-            EditorGUILayout.LabelField("味方パーティ", EditorStyles.boldLabel);
-            EditorGUI.indentLevel++;
-            for (int i = 0; i < PPDebugBattleSettings.Positions.Length; i++)
+            var allies = mSettings.Allies;
+            EditorGUILayout.LabelField($"味方パーティ({allies.Count}/{PPPartyFactory.MaxMembers})", EditorStyles.boldLabel);
+            int removeIndex = -1;
+            for (int i = 0; i < allies.Count; i++)
             {
-                EditorGUILayout.LabelField(GetPositionName(PPDebugBattleSettings.Positions[i]));
-                EditorGUI.indentLevel++;
-                var unit = LoadByGuid<PPUnitDefinition>(mSettings.AllyUnitGuids[i]);
-                unit = (PPUnitDefinition)EditorGUILayout.ObjectField("ユニット", unit, typeof(PPUnitDefinition), false);
-                mSettings.AllyUnitGuids[i] = GetGuid(unit);
-                mSettings.AllyLevels[i] = Mathf.Max(1, EditorGUILayout.IntField("レベル", mSettings.AllyLevels[i]));
-                EditorGUI.indentLevel--;
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField($"{i + 1}", GUILayout.Width(24f));
+                    var unit = LoadByGuid<PPUnitDefinition>(allies[i].UnitGuid);
+                    unit = (PPUnitDefinition)EditorGUILayout.ObjectField(unit, typeof(PPUnitDefinition), false);
+                    allies[i].UnitGuid = GetGuid(unit);
+                    EditorGUILayout.LabelField("Lv", GUILayout.Width(20f));
+                    allies[i].Level = Mathf.Max(1, EditorGUILayout.IntField(allies[i].Level, GUILayout.Width(40f)));
+                    if (GUILayout.Button("外す", GUILayout.Width(44f))) removeIndex = i;
+                }
             }
-            EditorGUI.indentLevel--;
+            if (removeIndex >= 0) allies.RemoveAt(removeIndex);
+
+            using (new EditorGUI.DisabledScope(allies.Count >= PPPartyFactory.MaxMembers))
+            {
+                if (GUILayout.Button("味方を足す")) allies.Add(new PPDebugBattleMember());
+            }
         }
 
         // 戦うステージ定義と、マスの深さの代わりに割り振るレベルを選ぶ
@@ -152,8 +161,8 @@ namespace PPCore
                 return;
             }
 
-            bool hasAlly = !string.IsNullOrEmpty(mSettings.AllyUnitGuids[0]);
-            if (!hasAlly) EditorGUILayout.HelpBox("味方の中央にユニットを置いてください", MessageType.Info);
+            bool hasAlly = mSettings.Allies.Exists(m => !string.IsNullOrEmpty(m.UnitGuid));
+            if (!hasAlly) EditorGUILayout.HelpBox("味方を 1 体以上置いてください", MessageType.Info);
             if (string.IsNullOrEmpty(mSettings.StageGuid)) EditorGUILayout.HelpBox("ステージ定義を選んでください", MessageType.Info);
             using (new EditorGUI.DisabledScope(!hasAlly || string.IsNullOrEmpty(mSettings.StageGuid) || mBattleScene == null || EditorApplication.isCompiling))
             {
@@ -183,13 +192,6 @@ namespace PPCore
             EditorPrefs.SetString(GetPrefKey(SettingsPrefKey), JsonUtility.ToJson(mSettings));
             EditorPrefs.SetString(GetPrefKey(ScenePrefKey), GetGuid(mBattleScene));
         }
-
-        private static string GetPositionName(PPPartyPosition aPosition) => aPosition switch
-        {
-            PPPartyPosition.Right => "右",
-            PPPartyPosition.Left => "左",
-            _ => "中央",
-        };
 
         private static T LoadByGuid<T>(string aGuid) where T : Object
         {

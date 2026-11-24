@@ -24,12 +24,11 @@ namespace PPCore
         private const int UnitGroup = 1;
         private const string EmptyText = "（空き）";
         private const string RemoveText = "外す";
-        private const string RemoveSubText = "配置を空にする";
+        private const string RemoveSubText = "枠を空にする";
         private const string BenchText = "控え";
         private const string OverCostText = "コストの合計が上限を超えるため、編成できません";
-        // 上の配置の並び
-        private static readonly PPPartyPosition[] Positions =
-            { PPPartyPosition.Center, PPPartyPosition.Right, PPPartyPosition.Left };
+        // 上の枠の数
+        private const int SlotCount = PPStageProgress.MaxPartySize;
 
         /* インスペクタ設定 */
 
@@ -103,13 +102,13 @@ namespace PPCore
             int unit = aGroup == UnitGroup ? aIndex : mPickIndex;
             // 所持ユニットの札の先頭は「外す」
             var picked = unit == 0 ? null : mProgress.OwnedUnits[unit - 1];
-            if (!mProgress.CanSetMember(Positions[slot], picked))
+            if (!mProgress.CanSetMember(slot, picked))
             {
                 EndPicking();
                 if (mSummaryInfo != null) mSummaryInfo.text = $"{OverCostText}({CostText()})";
                 return;
             }
-            mProgress.SetMember(Positions[slot], picked);
+            mProgress.SetMember(slot, picked);
             EndPicking();
             Rebuild();
             Focus(SlotGroup, slot);
@@ -154,7 +153,7 @@ namespace PPCore
         private PPStageOwnedUnit FocusedOwnedUnit()
         {
             if (mProgress == null) return null;
-            if (FocusGroup == SlotGroup) return FocusIndex < Positions.Length ? mProgress.GetMember(Positions[FocusIndex]) : null;
+            if (FocusGroup == SlotGroup) return mProgress.GetMember(FocusIndex);
             return FocusIndex > 0 && FocusIndex - 1 < mProgress.OwnedUnits.Count ? mProgress.OwnedUnits[FocusIndex - 1] : null;
         }
 
@@ -163,13 +162,14 @@ namespace PPCore
         // 配置と所持ユニットの札を、今の編成で書き直す
         private void Rebuild()
         {
-            var slots = PrepareItems(SlotGroup, mSlotCardPrefab, Positions.Length);
-            for (int i = 0; i < Positions.Length; i++)
+            var slots = PrepareItems(SlotGroup, mSlotCardPrefab, SlotCount);
+            for (int i = 0; i < SlotCount; i++)
             {
-                var owned = mProgress.GetMember(Positions[i]);
-                slots[i].SetHeader(ToPositionName(Positions[i]));
-                if (owned == null) slots[i].SetUnit(null, EmptyText, null);
-                else slots[i].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}属性   コスト{owned.Unit.UnitCost}");
+                var owned = mProgress.GetMember(i);
+                // 見出しの無い札でも何番目の枠か分かるよう、下の行にも番号を出す
+                slots[i].SetHeader(ToSlotName(i));
+                if (owned == null) slots[i].SetUnit(null, EmptyText, ToSlotName(i));
+                else slots[i].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{ToSlotName(i)}   {PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   コスト{owned.Unit.UnitCost}");
             }
 
             var cards = PrepareItems(UnitGroup, mUnitCardPrefab, mProgress.OwnedUnits.Count + 1);
@@ -177,8 +177,8 @@ namespace PPCore
             for (int i = 0; i < mProgress.OwnedUnits.Count; i++)
             {
                 var owned = mProgress.OwnedUnits[i];
-                var position = mProgress.FindPosition(owned);
-                string place = position.HasValue ? ToPositionName(position.Value) : BenchText;
+                var slot = mProgress.FindSlot(owned);
+                string place = slot.HasValue ? ToSlotName(slot.Value) : BenchText;
                 cards[i + 1].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level),
                     $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   {place}   コスト{owned.Unit.UnitCost}");
             }
@@ -203,11 +203,7 @@ namespace PPCore
         // 編成のコストの合計と上限
         private string CostText() => mProgress != null ? $"編成コスト {mProgress.GetPartyCost()}/{PPStageProgress.MaxPartyCost}" : string.Empty;
 
-        private static string ToPositionName(PPPartyPosition aPosition) => aPosition switch
-        {
-            PPPartyPosition.Right => "右",
-            PPPartyPosition.Left => "左",
-            _ => "中央",
-        };
+        // 枠の番号を 1 から数えて出す
+        private static string ToSlotName(int aSlot) => $"{aSlot + 1}番";
     }
 }

@@ -32,7 +32,7 @@ namespace PPCore
         [Label("候補", true)]
         [SerializeField] private List<PPInitialPartyMember> mCandidates = new();
 
-        // 選んだユニットの後に、編成の空き(右 → 左)、さらに控えの順に入る
+        // 選んだユニットの後に、編成の空きの枠へ前から入り、枠が埋まったら控えになる
         [Header("一緒に始めるユニット")]
         [Label("一緒に始めるユニット", true)]
         [SerializeField] private List<PPInitialPartyMember> mCompanions = new();

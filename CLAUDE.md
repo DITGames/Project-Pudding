@@ -105,7 +105,7 @@ PPCore/
 
 - `UnitDefinition` → `PPUnitDefinition`（属性・きようさ・成長曲線・難易度の基本ポイントを追加。`CreateRuntimeUnit(int aLevel)` でレベル成長）
 - `PPEffectDefinition`（状態異常・バフデバフ。振る舞いのリストで組み立てる）
-- `PPPartyDefinition`、`PPUnitVisualDefinition`、ステージマップの定義（`PPStageMapDefinition` など）
+- `PPPartyDefinition`（メンバーは編成の順に並べたリストで、最大 `PPPartyFactory.MaxMembers` = 10 体。マップの編成も同じ 10 枠）、`PPUnitVisualDefinition`、ステージマップの定義（`PPStageMapDefinition` など）
 - `PPEncounterDefinition` はステージ定義（1 回のバトルの中身。ウェーブ・敵拠点・テーマ・出てくる段）。マップ定義の通常敵・エリート・ボスに候補として割り当てる。型名はアセット互換のため変えていない
 - `PPCatalogAsset<T>` 派生（`PPUnitCatalog` 等）が ID → アセットの解決を担う。ID 重複は `Debug.LogError` で検出される
 
