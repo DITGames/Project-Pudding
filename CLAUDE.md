@@ -12,7 +12,7 @@
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
 - 入力: **新 Input System のみ**（`activeInputHandler: 1`。`UnityEngine.Input` の旧 API は使用不可）
-- 主要シーン: `Assets/Scenes/Check/S_BattleCheck.unity`（新しいプッシャーとバトルを組み込んだシーン。CLI 検証もこのシーンで行う）、`Assets/Scenes/Prototype/` 配下（`Prototype_#1.unity` はビルド対象。旧プッシャーの構成のまま変更しない）
+- 主要シーン: `Assets/Scenes/Check/S_BattleCheck.unity`（新しいプッシャーとバトルを組み込んだシーン。CLI 検証もこのシーンで行う）、`Assets/Scenes/Prototype/` 配下（`Prototype_#1.unity` はビルド対象。旧プッシャーの構成のまま変更しない。撤去したスクリプトの外れたコンポーネントだけは外してある）
 
 ## ビルド・実行
 
@@ -214,7 +214,7 @@ PPCore/
 
 作業中に遭遇し得る、既存の未整理箇所。**ついでに直すのではなく、触る必要が生じたときに対処する。**
 
-- `Assets/Scenes/Prototype/` 配下のシーンと、それが使う `Assets/Scripts/*.cs` 直下の旧プッシャーは変更しない。旧コードは命名規約・ヘッダコメント規約の対象外で、namespace も持たない。Prototype のシーンが使っていた旧ランナー（`SamplePusherBattleRunner`）とコインの橋渡しは撤去したため、開くと該当箇所が Missing Script になる
+- `Assets/Scenes/Prototype/` 配下のシーンと、それが使う `Assets/Scripts/*.cs` 直下の旧プッシャーは変更しない。旧コードは命名規約・ヘッダコメント規約の対象外で、namespace も持たない。Prototype のシーンが使っていた旧ランナー（`SamplePusherBattleRunner`）とコインの橋渡しは撤去し、シーンからもそのコンポーネントを外したため、バトルは動かない
 - 物理は一定間隔（FixedUpdate、0.02 秒）で進める設定にしている。描画ごとに進める設定へ戻すと、処理が一瞬止まったときにプッシャーのコインが弾け飛ぶ
 - `PP` プレフィックスを持たない型の改名と、基底・派生ペアの 1 クラス化は未着手（「PPCore の構成」節を参照）
 - 本ファイルの「データ定義」「属性とリソース」「エディタ拡張」節には、現在のコードと合わない記述が残っている。該当領域を触るときはコードを正とする
