@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMapView.cs
+ * @file PPMapView.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップの表示
@@ -16,7 +16,7 @@ namespace PPCore
 {
     // マップのマスと線を並べ、進行状態に合わせて色と選択中のマスを表示する
     // マスの種類ごとの名前・アイコン・色はインスペクタで決める
-    public class PPStageMapView : MonoBehaviour
+    public class PPMapView : MonoBehaviour
     {
         /* 内部型 */
 
@@ -24,7 +24,7 @@ namespace PPCore
         [Serializable]
         public sealed class TypeStyle
         {
-            [Label("種類")] public PPStageNodeType Type;
+            [Label("種類")] public PPMapNodeType Type;
             [Label("名前")] public string Label;
             [Label("アイコン")] public Sprite Icon;
             [Label("色")] public Color Color = Color.white;
@@ -40,9 +40,9 @@ namespace PPCore
         [Label("スクロール")]
         [SerializeField] private ScrollRect mScrollRect;
         [Label("マスのプレハブ")]
-        [SerializeField] private PPStageMapNodeView mNodePrefab;
+        [SerializeField] private PPMapNodeView mNodePrefab;
         [Label("線のプレハブ")]
-        [SerializeField] private PPStageMapLineView mLinePrefab;
+        [SerializeField] private PPMapLineView mLinePrefab;
 
         [Header("配置")]
         [Label("列の間隔")]
@@ -61,19 +61,19 @@ namespace PPCore
 
         /* 状態 */
 
-        private readonly Dictionary<PPStageMapNode, PPStageMapNodeView> mNodeViews = new();
-        private readonly List<PPStageMapLineView> mLineViews = new();
-        private PPStageMap mMap;
+        private readonly Dictionary<PPMapNode, PPMapNodeView> mNodeViews = new();
+        private readonly List<PPMapLineView> mLineViews = new();
+        private PPMap mMap;
 
         /* イベント */
 
         // 選べるマスがクリックされたとき(マス)
-        public event Action<PPStageMapNode> OnNodeClicked;
+        public event Action<PPMapNode> OnNodeClicked;
 
         /* 表示 */
 
         // マップのマスと線を作り直す。線はマスの後ろに出すよう先に作る
-        public void Build(PPStageMap aMap)
+        public void Build(PPMap aMap)
         {
             Clear();
             mMap = aMap;
@@ -102,16 +102,16 @@ namespace PPCore
         }
 
         // 進行状態に合わせて、マスの状態・選択中のマス・線の色を書き直す
-        public void Refresh(PPStageProgress aProgress, Func<PPStageMapNode, bool> aIsSelectable, PPStageMapNode aFocused)
+        public void Refresh(PPMapProgress aProgress, Func<PPMapNode, bool> aIsSelectable, PPMapNode aFocused)
         {
             var current = aProgress.CurrentNode.HasValue ? mMap.Get(aProgress.CurrentNode.Value) : null;
             foreach (var pair in mNodeViews)
             {
                 var node = pair.Key;
-                var state = node == current ? PPStageNodeState.Current
-                    : aIsSelectable(node) ? PPStageNodeState.Selectable
-                    : aProgress.IsVisited(node.Key) ? PPStageNodeState.Visited
-                    : PPStageNodeState.Locked;
+                var state = node == current ? PPMapNodeState.Current
+                    : aIsSelectable(node) ? PPMapNodeState.Selectable
+                    : aProgress.IsVisited(node.Key) ? PPMapNodeState.Visited
+                    : PPMapNodeState.Locked;
                 pair.Value.SetState(state, node == aFocused);
             }
 
@@ -124,7 +124,7 @@ namespace PPCore
         }
 
         // マスが画面の縦の中央に来るようにスクロールする
-        public void ScrollTo(PPStageMapNode aNode)
+        public void ScrollTo(PPMapNode aNode)
         {
             if (mScrollRect == null || aNode == null) return;
 
@@ -152,13 +152,13 @@ namespace PPCore
 
         /* 問い合わせ */
 
-        public PPStageMapNodeView GetNodeView(PPStageMapNode aNode) => mNodeViews.TryGetValue(aNode, out var view) ? view : null;
+        public PPMapNodeView GetNodeView(PPMapNode aNode) => mNodeViews.TryGetValue(aNode, out var view) ? view : null;
 
         // マスの種類の表示名。見た目の設定が無ければ列挙の名前を返す
-        public string GetTypeName(PPStageNodeType aType) => FindStyle(aType)?.Label ?? aType.ToString();
+        public string GetTypeName(PPMapNodeType aType) => FindStyle(aType)?.Label ?? aType.ToString();
 
         // 下端の中央を原点にしたマスの位置。ボスはゆらがせず中央に置く
-        private Vector2 GetPosition(PPStageMapNode aNode)
+        private Vector2 GetPosition(PPMapNode aNode)
         {
             if (aNode == mMap.Boss) return new Vector2(0f, aNode.Floor * mSpacingY + mMargin * 0.5f);
 
@@ -167,7 +167,7 @@ namespace PPCore
                 aNode.Floor * mSpacingY + mMargin * 0.5f + aNode.Jitter.y * mJitter);
         }
 
-        private TypeStyle FindStyle(PPStageNodeType aType)
+        private TypeStyle FindStyle(PPMapNodeType aType)
         {
             foreach (var style in mTypeStyles)
             {

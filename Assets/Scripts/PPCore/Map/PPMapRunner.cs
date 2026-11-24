@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMapRunner.cs
+ * @file PPMapRunner.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップのシーンのエントリポイント
@@ -17,7 +17,7 @@ namespace PPCore
 {
     // 進行状態からマップを作って表示し、マスの選択・メニュー・編成画面・マスのイベントをつなぐ
     // 選んだ内容があればそれで、進行状態も無ければマップ定義から新しく始め、バトルから戻ったときは持ち越した状態でマップを作り直す
-    public class PPStageMapRunner : MonoBehaviour
+    public class PPMapRunner : MonoBehaviour
     {
         /* 定数 */
 
@@ -37,13 +37,13 @@ namespace PPCore
 
         [Header("表示")]
         [Label("マップ")]
-        [SerializeField] private PPStageMapView mMapView;
+        [SerializeField] private PPMapView mMapView;
         [Label("メニュー")]
-        [SerializeField] private PPStageMenuView mMenuView;
+        [SerializeField] private PPMapMenuView mMenuView;
         [Label("編成画面")]
-        [SerializeField] private PPStageFormationView mFormationView;
+        [SerializeField] private PPMapFormationView mFormationView;
         [Label("ユニット獲得画面")]
-        [SerializeField] private PPStageRecruitView mRecruitView;
+        [SerializeField] private PPMapRecruitView mRecruitView;
         // マスに入れなかった理由やイベントの結果を出す。未設定なら出さない
         [Label("お知らせ")]
         [SerializeField] private TMP_Text mMessageText;
@@ -69,15 +69,15 @@ namespace PPCore
 
         /* 状態 */
 
-        private PPStageMap mMap;
+        private PPMap mMap;
         // キーボードやゲームパッドで選んでいるマス
-        private PPStageMapNode mFocused;
+        private PPMapNode mFocused;
         private int mLastNavigate;
 
         /* プロパティ */
 
-        public PPStageMap Map => mMap;
-        public PPStageProgress Progress => PPStageProgress.Current;
+        public PPMap Map => mMap;
+        public PPMapProgress Progress => PPMapProgress.Current;
         // マスのイベントやメニューの途中か、シーンを切り替えている途中なら true
         public bool IsBusy => mMenuView.IsOpen || mFormationView.IsOpen || mRecruitView.IsOpen || PPSceneTransition.IsLoading;
 
@@ -87,17 +87,17 @@ namespace PPCore
         // 選んだ内容にマップが無ければ、インスペクタのマップ定義を使う
         void Start()
         {
-            var progress = PPStageProgress.Current;
-            var selection = PPStageStartSelection.Current;
+            var progress = PPMapProgress.Current;
+            var selection = PPMapStartSelection.Current;
             if (selection != null)
             {
                 var definition = selection.Definition != null ? selection.Definition : mDefinition;
-                progress = PPStageProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits);
-                PPStageStartSelection.Clear();
+                progress = PPMapProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits);
+                PPMapStartSelection.Clear();
             }
             else if (progress == null)
             {
-                progress = PPStageProgress.Begin(mDefinition, mDefinition.ResolveSeed());
+                progress = PPMapProgress.Begin(mDefinition, mDefinition.ResolveSeed());
             }
 
             foreach (var action in new[] { mNavigateAction, mSubmitAction, mMenuAction, mFormationAction })
@@ -105,7 +105,7 @@ namespace PPCore
                 if (action != null) action.action.Enable();
             }
 
-            mMap = PPStageMapGenerator.Generate(progress.Definition, progress.Seed);
+            mMap = PPMapGenerator.Generate(progress.Definition, progress.Seed);
             // 始点は選ばずに到達済みのマスとし、最初からその次の段を選べるようにする
             if (!progress.CurrentNode.HasValue && mMap.Start != null) progress.CompleteNode(mMap.Start.Key);
             mMapView.OnNodeClicked += aNode => SelectNode(aNode);
@@ -142,12 +142,12 @@ namespace PPCore
         public bool SelectNode(int aFloor, int aColumn) => SelectNode(mMap.Get(new Vector2Int(aFloor, aColumn)));
 
         // マスを選び、種類に応じたイベントを始める。選べないマスや、入れない理由があるマスなら false
-        public bool SelectNode(PPStageMapNode aNode)
+        public bool SelectNode(PPMapNode aNode)
         {
             if (aNode == null || IsBusy || !IsSelectable(aNode)) return false;
 
-            var progress = PPStageProgress.Current;
-            var stageEvent = PPStageEvents.Resolve(aNode.Type);
+            var progress = PPMapProgress.Current;
+            var stageEvent = PPMapEvents.Resolve(aNode.Type);
             string reason = stageEvent.GetBlockReason(progress, aNode);
             if (reason != null)
             {
@@ -157,7 +157,7 @@ namespace PPCore
 
             CustomConsoleLog.Log(LogTag, $"マスを選択: {aNode.Floor}段 {aNode.Column}列 {aNode.Type} バトル定義={(aNode.Battle != null ? aNode.Battle.name : "-")}");
             SetMessage(null);
-            stageEvent.Begin(new PPStageEventContext
+            stageEvent.Begin(new PPMapEventContext
             {
                 Progress = progress,
                 Node = aNode,
@@ -168,7 +168,7 @@ namespace PPCore
             return true;
         }
 
-        public void OpenFormation() => mFormationView.Open(PPStageProgress.Current, RefreshMap);
+        public void OpenFormation() => mFormationView.Open(PPMapProgress.Current, RefreshMap);
 
         // 左右の入力で、選べるマスを列の順に切り替える
         private void MoveFocus(int aDirection)
@@ -185,22 +185,22 @@ namespace PPCore
         /* 問い合わせ */
 
         // 現在地の次の段でつながっているマスだけ選べる。現在地が無い(始点の無いマップ)ときは最下段を選べる
-        public bool IsSelectable(PPStageMapNode aNode)
+        public bool IsSelectable(PPMapNode aNode)
         {
             var current = CurrentMapNode();
             if (current == null) return aNode.Floor == 0;
             return current.Next.Contains(aNode);
         }
 
-        private PPStageMapNode CurrentMapNode()
+        private PPMapNode CurrentMapNode()
         {
-            var key = PPStageProgress.Current?.CurrentNode;
+            var key = PPMapProgress.Current?.CurrentNode;
             return key.HasValue ? mMap.Get(key.Value) : null;
         }
 
-        private List<PPStageMapNode> SelectableNodes()
+        private List<PPMapNode> SelectableNodes()
         {
-            var list = new List<PPStageMapNode>();
+            var list = new List<PPMapNode>();
             foreach (var node in mMap.AllNodesWithBoss())
             {
                 if (IsSelectable(node)) list.Add(node);
@@ -209,7 +209,7 @@ namespace PPCore
             return list;
         }
 
-        private PPStageMapNode FirstSelectable()
+        private PPMapNode FirstSelectable()
         {
             var list = SelectableNodes();
             return list.Count > 0 ? list[0] : null;
@@ -236,7 +236,7 @@ namespace PPCore
         // マップの状態に合わせて、マスと選択中のマスの表示を書き直す
         private void RefreshMap()
         {
-            mMapView.Refresh(PPStageProgress.Current, IsSelectable, mFocused);
+            mMapView.Refresh(PPMapProgress.Current, IsSelectable, mFocused);
             RefreshNodeInfo();
         }
 
@@ -247,11 +247,11 @@ namespace PPCore
             if (mNodeInfoBody == null) return;
             mNodeInfoBody.text = mFocused == null ? string.Empty : mFocused.Type switch
             {
-                PPStageNodeType.Battle => "敵と戦う",
-                PPStageNodeType.Elite => "強い敵と戦う",
-                PPStageNodeType.Boss => "ボスと戦う",
-                PPStageNodeType.Upgrade => "所持ユニットのうち、一番レベルの低い 1 体のレベルが 1 上がる",
-                PPStageNodeType.Recruit => "候補から 1 体を選んで仲間にする",
+                PPMapNodeType.Battle => "敵と戦う",
+                PPMapNodeType.Elite => "強い敵と戦う",
+                PPMapNodeType.Boss => "ボスと戦う",
+                PPMapNodeType.Upgrade => "所持ユニットのうち、一番レベルの低い 1 体のレベルが 1 上がる",
+                PPMapNodeType.Recruit => "候補から 1 体を選んで仲間にする",
                 _ => string.Empty,
             };
         }
@@ -264,9 +264,9 @@ namespace PPCore
         /* イベントハンドラ */
 
         // その場で終わるイベントの後に、現在地を進めて次の段のマスを選べるようにする
-        private void HandleEventFinished(PPStageMapNode aNode, string aMessage)
+        private void HandleEventFinished(PPMapNode aNode, string aMessage)
         {
-            PPStageProgress.Current.CompleteNode(aNode.Key);
+            PPMapProgress.Current.CompleteNode(aNode.Key);
             mFocused = FirstSelectable();
             RefreshMap();
             mMapView.ScrollTo(mFocused ?? aNode);

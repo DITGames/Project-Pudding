@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageResultView.cs
+ * @file PPBattleResultView.cs
  * @author hqrse
  * @date 2026/11/23
  * @brief ステージの敗北・クリアを出してタイトルへ戻る画面
@@ -15,7 +15,7 @@ namespace PPCore
 {
     // ステージのバトルで負けたときと、ボスに勝ってクリアしたときに出す結果の画面。ステージを通さずに Play したバトルでも決着時に出す
     // 項目は「タイトルへ戻る」だけで、決定でタイトルのシーンへ移る。キャンセルでは閉じない
-    public class PPStageResultView : PPStageListMenuBase
+    public class PPBattleResultView : PPMenuListBase
     {
         /* 定数 */
 
@@ -26,7 +26,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("行のプレハブ")]
-        [SerializeField] private PPStageListItem mItemPrefab;
+        [SerializeField] private PPMenuListItem mItemPrefab;
         [Label("見出し")]
         [SerializeField] private TMP_Text mTitleText;
         // 見出しの下に出す一文。未設定なら出さない
@@ -46,10 +46,10 @@ namespace PPCore
         /* 操作 */
 
         // 結果を出す。aFloor はバトルのマスの段(最下段の始点が 0)
-        public void Open(PPStageBattleOutcome aOutcome, BattleResultType aResult, string aStageName, int aFloor)
+        public void Open(PPMapBattleOutcome aOutcome, BattleResultType aResult, string aStageName, int aFloor)
         {
             if (IsOpen) return;
-            string message = aOutcome == PPStageBattleOutcome.Cleared
+            string message = aOutcome == PPMapBattleOutcome.Cleared
                 ? $"{aStageName} をクリアした"
                 : $"{aStageName} の {aFloor} 段目で力尽きた";
             Show(GetTitle(aOutcome, aResult), message);
@@ -77,8 +77,8 @@ namespace PPCore
             if (!IsOpen || mIsLeaving) return;
             CustomConsoleLog.Log(LogTag, $"結果の画面から {mTitleSceneName} へ戻る");
             mIsLeaving = true;
-            PPStageProgress.Clear();
-            PPStageStartSelection.Clear();
+            PPMapProgress.Clear();
+            PPMapStartSelection.Clear();
             // 次のシーンでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る
             Time.timeScale = 1f;
             // 切り替えを受け付けられなかったときは、もう一度決定できるようにする
@@ -107,9 +107,9 @@ namespace PPCore
 
         /* 説明文 */
 
-        private static string GetTitle(PPStageBattleOutcome aOutcome, BattleResultType aResult)
+        private static string GetTitle(PPMapBattleOutcome aOutcome, BattleResultType aResult)
         {
-            if (aOutcome == PPStageBattleOutcome.Cleared) return "ステージクリア";
+            if (aOutcome == PPMapBattleOutcome.Cleared) return "ステージクリア";
             return aResult switch
             {
                 BattleResultType.Draw => "引き分け",

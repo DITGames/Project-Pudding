@@ -13,7 +13,7 @@ using CustomConsole;
 namespace PPCore
 {
     // タイトルで開くメニュー。はじめから・つづきから・設定・終了を選ぶ
-    public class PPTitleMenuView : PPStageListMenuBase
+    public class PPTitleMenuView : PPMenuListBase
     {
         /* 定数 */
 
@@ -28,7 +28,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("行のプレハブ")]
-        [SerializeField] private PPStageListItem mItemPrefab;
+        [SerializeField] private PPMenuListItem mItemPrefab;
         [Label("設定画面")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
         // 未設定なら、ユニットを選ばずにマップ定義の初期パーティで始める
@@ -36,7 +36,7 @@ namespace PPCore
         [SerializeField] private PPInitialUnitSelectView mUnitSelect;
         // 未設定なら、ステージを選ばずにマップのシーンに設定されたマップ定義で始める
         [Label("ステージ選択画面")]
-        [SerializeField] private PPStageSelectView mStageSelect;
+        [SerializeField] private PPMapSelectView mStageSelect;
 
         // Build Profiles に登録したシーンの名前
         [Header("シーン")]
@@ -117,7 +117,7 @@ namespace PPCore
         // 選択画面のキャンセルでは 1 つ前の画面へ戻る。未設定の選択画面は飛ばす
         private bool StartNewGame()
         {
-            PPStageStartSelection.Begin();
+            PPMapStartSelection.Begin();
             if (mUnitSelect == null && mStageSelect == null) return LoadNewGameScene();
 
             Close();
@@ -152,14 +152,14 @@ namespace PPCore
         private void HandleUnitPicked(PPInitialPartyMember aPicked)
         {
             var definition = mUnitSelect.Definition;
-            PPStageStartSelection.Current.SetInitialUnits(definition.CreateUnits(aPicked));
+            PPMapStartSelection.Current.SetInitialUnits(definition.CreateUnits(aPicked));
             if (mStageSelect == null || !OpenStageSelect()) LoadNewGameScene();
         }
 
         // 選んだステージとそのシードを入れ物に入れ、次のシーンへ進む
         private void HandleStagePicked(PPMapDefinition aMap)
         {
-            PPStageStartSelection.Current.SetStage(aMap, aMap.ResolveSeed());
+            PPMapStartSelection.Current.SetStage(aMap, aMap.ResolveSeed());
             LoadNewGameScene();
         }
 

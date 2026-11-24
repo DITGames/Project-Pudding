@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageProgress.cs
+ * @file PPMapProgress.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief シーンをまたいで残るステージの進行状態と、始める前に選んだ内容
@@ -13,12 +13,12 @@ using CustomConsole;
 namespace PPCore
 {
     // 所持ユニット 1 体分。同じユニット定義を複数体持てるため、参照で見分ける
-    public sealed class PPStageOwnedUnit
+    public sealed class PPMapOwnedUnit
     {
         public readonly PPUnitDefinition Unit;
         public int Level;
 
-        public PPStageOwnedUnit(PPUnitDefinition aUnit, int aLevel)
+        public PPMapOwnedUnit(PPUnitDefinition aUnit, int aLevel)
         {
             Unit = aUnit;
             Level = aLevel;
@@ -26,7 +26,7 @@ namespace PPCore
     }
 
     // バトルの決着を進行状態へ反映した結果
-    public enum PPStageBattleOutcome
+    public enum PPMapBattleOutcome
     {
         // 勝って、マップに戻って続ける
         Continue,
@@ -37,17 +37,17 @@ namespace PPCore
     }
 
     // マップからバトルのシーンへ渡す、これから戦うバトルの内容
-    public sealed class PPStageBattleRequest
+    public sealed class PPMapBattleRequest
     {
         public readonly Vector2Int Node;
-        public readonly PPStageNodeType Type;
+        public readonly PPMapNodeType Type;
         // 戦うバトル定義(ウェーブと敵拠点)
         public readonly PPBattleDefinition Battle;
 
         // マスの深さ。バトルのマスは 1 段目から始まるため、段の番号をそのまま使う
         public int Depth => Node.x;
 
-        public PPStageBattleRequest(Vector2Int aNode, PPStageNodeType aType, PPBattleDefinition aBattle)
+        public PPMapBattleRequest(Vector2Int aNode, PPMapNodeType aType, PPBattleDefinition aBattle)
         {
             Node = aNode;
             Type = aType;
@@ -56,7 +56,7 @@ namespace PPCore
     }
 
     // タイトルからマップに入るまでの画面で選んだ内容。マップのシーンを開いたときに、これで進行状態を始める
-    public sealed class PPStageStartSelection
+    public sealed class PPMapStartSelection
     {
         /* 定数 */
 
@@ -65,7 +65,7 @@ namespace PPCore
         /* static 変数 */
 
         // 選んでいる途中の内容。null なら選んでいない（マップのシーンを単体で Play したときなど）
-        private static PPStageStartSelection sCurrent;
+        private static PPMapStartSelection sCurrent;
 
         /* 状態 */
 
@@ -74,7 +74,7 @@ namespace PPCore
 
         /* プロパティ */
 
-        public static PPStageStartSelection Current => sCurrent;
+        public static PPMapStartSelection Current => sCurrent;
 
         public IReadOnlyList<PPPartySaveUnitEntry> InitialUnits => mInitialUnits;
         // まだ選んでいなければ null。null のままマップのシーンを開くと、そのシーンのマップ定義で始める
@@ -85,9 +85,9 @@ namespace PPCore
         /* static 関数 */
 
         // 選び直すときは前の内容を捨てて新しく始める
-        public static PPStageStartSelection Begin()
+        public static PPMapStartSelection Begin()
         {
-            sCurrent = new PPStageStartSelection();
+            sCurrent = new PPMapStartSelection();
             return sCurrent;
         }
 
@@ -125,7 +125,7 @@ namespace PPCore
 
     // マップのシード・通過したマス・所持ユニット・編成など、シーンをまたいで残す進行状態
     // メモリ上だけに持ち、Play を始めるたびに空に戻す
-    public sealed class PPStageProgress : IPPPartySaveSource
+    public sealed class PPMapProgress : IPPPartySaveSource
     {
         /* 定数 */
 
@@ -138,7 +138,7 @@ namespace PPCore
         /* static 変数 */
 
         // 進行中の状態。null ならステージに入っていない（バトルのシーンを単体で Play したときなど）
-        private static PPStageProgress sCurrent;
+        private static PPMapProgress sCurrent;
 
         /* 状態 */
 
@@ -149,20 +149,20 @@ namespace PPCore
 
         // 通過したマスを通った順に持つ。最後が現在地
         private readonly List<Vector2Int> mPath = new();
-        private readonly List<PPStageOwnedUnit> mOwnedUnits = new();
+        private readonly List<PPMapOwnedUnit> mOwnedUnits = new();
         // 枠ごとの編成。添字は枠の番号(0 から)。空の枠は null
-        private readonly PPStageOwnedUnit[] mFormation = new PPStageOwnedUnit[MaxPartySize];
+        private readonly PPMapOwnedUnit[] mFormation = new PPMapOwnedUnit[MaxPartySize];
 
         /* プロパティ */
 
-        public static PPStageProgress Current => sCurrent;
+        public static PPMapProgress Current => sCurrent;
 
         public IReadOnlyList<Vector2Int> Path => mPath;
-        public IReadOnlyList<PPStageOwnedUnit> OwnedUnits => mOwnedUnits;
+        public IReadOnlyList<PPMapOwnedUnit> OwnedUnits => mOwnedUnits;
         // まだマスを選んでいなければ null
         public Vector2Int? CurrentNode => mPath.Count > 0 ? mPath[^1] : null;
         // バトルのシーンで戦う内容。バトルのマスを選んでから決着するまでの間だけ null 以外
-        public PPStageBattleRequest PendingBattle { get; private set; }
+        public PPMapBattleRequest PendingBattle { get; private set; }
         // 編成に 1 体もいないとバトルを始められない
         public bool CanEnterBattle
         {
@@ -179,9 +179,9 @@ namespace PPCore
         /* static 関数 */
 
         // 新しく始める。初期ユニットを渡せばそれを、空ならマップ定義の初期パーティを所持ユニットと編成にする
-        public static PPStageProgress Begin(PPMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null)
+        public static PPMapProgress Begin(PPMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits = null)
         {
-            sCurrent = new PPStageProgress(aDefinition, aSeed, aInitialUnits);
+            sCurrent = new PPMapProgress(aDefinition, aSeed, aInitialUnits);
             CustomConsoleLog.Log(LogTag, $"ステージ開始: {aDefinition.name} シード={aSeed} 所持ユニット={sCurrent.mOwnedUnits.Count}");
             return sCurrent;
         }
@@ -192,7 +192,7 @@ namespace PPCore
         /* 生成 */
 
         // 渡された初期ユニットは選んだ順に枠の前から置き、枠が埋まったら控えにする
-        private PPStageProgress(PPMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
+        private PPMapProgress(PPMapDefinition aDefinition, int aSeed, IReadOnlyList<PPPartySaveUnitEntry> aInitialUnits)
         {
             Definition = aDefinition;
             Seed = aSeed;
@@ -203,7 +203,7 @@ namespace PPCore
                 foreach (var entry in aInitialUnits)
                 {
                     if (entry.Unit == null) continue;
-                    var owned = new PPStageOwnedUnit(entry.Unit, Mathf.Max(1, entry.Level));
+                    var owned = new PPMapOwnedUnit(entry.Unit, Mathf.Max(1, entry.Level));
                     mOwnedUnits.Add(owned);
                     PlaceInFirstEmpty(owned);
                 }
@@ -220,7 +220,7 @@ namespace PPCore
             {
                 if (entry == null || entry.Unit == null) continue;
 
-                var owned = new PPStageOwnedUnit(entry.Unit, Mathf.Max(1, entry.Level));
+                var owned = new PPMapOwnedUnit(entry.Unit, Mathf.Max(1, entry.Level));
                 mOwnedUnits.Add(owned);
                 PlaceInFirstEmpty(owned);
             }
@@ -229,10 +229,10 @@ namespace PPCore
         /* 問い合わせ */
 
         // 枠のユニット。空の枠や範囲外なら null
-        public PPStageOwnedUnit GetMember(int aSlot) => aSlot >= 0 && aSlot < MaxPartySize ? mFormation[aSlot] : null;
+        public PPMapOwnedUnit GetMember(int aSlot) => aSlot >= 0 && aSlot < MaxPartySize ? mFormation[aSlot] : null;
 
         // 編成されている枠の番号(0 から)を返す。編成されていなければ null
-        public int? FindSlot(PPStageOwnedUnit aUnit)
+        public int? FindSlot(PPMapOwnedUnit aUnit)
         {
             for (int i = 0; i < MaxPartySize; i++)
             {
@@ -259,7 +259,7 @@ namespace PPCore
         }
 
         // 枠にユニットを置いた(入れ替えた)後も、ユニットコストの合計が上限以内に収まるか
-        public bool CanSetMember(int aSlot, PPStageOwnedUnit aUnit)
+        public bool CanSetMember(int aSlot, PPMapOwnedUnit aUnit)
         {
             // 外すときと、編成済みのユニット同士の入れ替えは合計が増えない
             if (aUnit == null || FindSlot(aUnit).HasValue) return true;
@@ -282,7 +282,7 @@ namespace PPCore
 
         // 枠にユニットを置く。ほかの枠にいたユニットなら、その枠と入れ替える。null を渡すと枠を空にする
         // ユニットコストの合計が上限を超える置き方はしない
-        public void SetMember(int aSlot, PPStageOwnedUnit aUnit)
+        public void SetMember(int aSlot, PPMapOwnedUnit aUnit)
         {
             if (aSlot < 0 || aSlot >= MaxPartySize) return;
             if (aUnit != null && !mOwnedUnits.Contains(aUnit))
@@ -305,9 +305,9 @@ namespace PPCore
         /* 所持ユニット */
 
         // 所持ユニットに加え、編成に空きがあり、コストの上限にも収まれば前から最初の空きの枠に入れる
-        public PPStageOwnedUnit AddUnit(PPUnitDefinition aUnit, int aLevel)
+        public PPMapOwnedUnit AddUnit(PPUnitDefinition aUnit, int aLevel)
         {
-            var owned = new PPStageOwnedUnit(aUnit, Mathf.Max(1, aLevel));
+            var owned = new PPMapOwnedUnit(aUnit, Mathf.Max(1, aLevel));
             mOwnedUnits.Add(owned);
             PlaceInFirstEmpty(owned);
             CustomConsoleLog.Log(LogTag, $"ユニット獲得: {aUnit.DisplayName} Lv{owned.Level} 枠={(FindSlot(owned) is int slot ? (slot + 1).ToString() : "控え")}");
@@ -315,7 +315,7 @@ namespace PPCore
         }
 
         // 編成の前から最初の空きの枠に置く。空きがないか、置くとユニットコストの合計が上限を超えるなら控えのまま
-        private void PlaceInFirstEmpty(PPStageOwnedUnit aUnit)
+        private void PlaceInFirstEmpty(PPMapOwnedUnit aUnit)
         {
             if (GetPartyCost() + GetCost(aUnit) > MaxPartyCost) return;
             for (int i = 0; i < MaxPartySize; i++)
@@ -326,7 +326,7 @@ namespace PPCore
             }
         }
 
-        public void LevelUp(PPStageOwnedUnit aUnit)
+        public void LevelUp(PPMapOwnedUnit aUnit)
         {
             aUnit.Level++;
             CustomConsoleLog.Log(LogTag, $"強化: {aUnit.Unit.DisplayName} Lv{aUnit.Level}");
@@ -341,30 +341,30 @@ namespace PPCore
         }
 
         // バトルのマスに入る。決着するまでは現在地を進めない
-        public void BeginBattle(PPStageBattleRequest aRequest) => PendingBattle = aRequest;
+        public void BeginBattle(PPMapBattleRequest aRequest) => PendingBattle = aRequest;
 
         // バトルの決着を反映する。勝てば現在地を進め、ボスに勝つか負けたら進行状態を捨てる
         // ボスに勝ったときは、このステージのクリアを記録して次のステージを選べるようにする
-        public PPStageBattleOutcome ResolveBattle(BattleResultType aResult)
+        public PPMapBattleOutcome ResolveBattle(BattleResultType aResult)
         {
             var request = PendingBattle;
             PendingBattle = null;
-            if (request == null) return PPStageBattleOutcome.Continue;
+            if (request == null) return PPMapBattleOutcome.Continue;
 
             if (aResult != BattleResultType.Victory)
             {
                 CustomConsoleLog.Log(LogTag, $"敗北: 進行状態を捨てる (結果={aResult})");
                 Clear();
-                return PPStageBattleOutcome.Defeated;
+                return PPMapBattleOutcome.Defeated;
             }
 
             CompleteNode(request.Node);
-            if (request.Type != PPStageNodeType.Boss) return PPStageBattleOutcome.Continue;
+            if (request.Type != PPMapNodeType.Boss) return PPMapBattleOutcome.Continue;
 
-            PPStageClearRecord.MarkCleared(Definition);
+            PPMapClearRecord.MarkCleared(Definition);
             CustomConsoleLog.Log(LogTag, "ステージクリア: 進行状態を捨てる");
             Clear();
-            return PPStageBattleOutcome.Cleared;
+            return PPMapBattleOutcome.Cleared;
         }
 
         /* ヘルパー */
@@ -373,6 +373,6 @@ namespace PPCore
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetOnPlay() => sCurrent = null;
 
-        private static int GetCost(PPStageOwnedUnit aUnit) => aUnit != null && aUnit.Unit != null ? aUnit.Unit.UnitCost : 0;
+        private static int GetCost(PPMapOwnedUnit aUnit) => aUnit != null && aUnit.Unit != null ? aUnit.Unit.UnitCost : 0;
     }
 }

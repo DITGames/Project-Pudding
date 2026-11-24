@@ -86,7 +86,7 @@ GameObject:
   - component: {fileID: 6853160357242759561}
   - component: {fileID: 5983974721393316746}
   m_Layer: 5
-  m_Name: PR_StageMapNode
+  m_Name: PR_MapNode
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -125,7 +125,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: de7d91b78df1fea41adfef15f8b273bf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapNodeView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapNodeView
   mBackground: {fileID: 4199703925990111638}
   mIcon: {fileID: 644046668134415396}
   mRing: {fileID: 6420624017667013937}

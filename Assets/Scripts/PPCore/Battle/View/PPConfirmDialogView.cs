@@ -14,7 +14,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // 文を出し、「はい」「いいえ」を選ばせる。キャンセルは「いいえ」と同じ。最初は「いいえ」を選んでおく
-    public class PPConfirmDialogView : PPStageListMenuBase
+    public class PPConfirmDialogView : PPMenuListBase
     {
         /* 定数 */
 
@@ -26,7 +26,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("行のプレハブ")]
-        [SerializeField] private PPStageListItem mItemPrefab;
+        [SerializeField] private PPMenuListItem mItemPrefab;
         [Label("文")]
         [SerializeField] private TMP_Text mMessageText;
 

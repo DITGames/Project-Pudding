@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageSelectView.cs
+ * @file PPMapSelectView.cs
  * @author hqrse
  * @date 2026/11/22
  * @brief はじめからで、進むステージを選ぶ画面
@@ -18,7 +18,7 @@ namespace PPCore
 {
     // 左にステージの表示名を並べ、右に選んでいるステージの表示名・サムネイル・説明を出す
     // まだ選べないステージも並べて中身を見せるが、決定はできない。キャンセルでは選ばずに閉じる
-    public class PPStageSelectView : PPStageListMenuBase
+    public class PPMapSelectView : PPMenuListBase
     {
         /* 定数 */
 
@@ -28,7 +28,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("行のプレハブ")]
-        [SerializeField] private PPStageListItem mItemPrefab;
+        [SerializeField] private PPMenuListItem mItemPrefab;
         [Label("ステージ一覧")]
         [SerializeField] private PPMapListDefinition mStageList;
 
@@ -60,7 +60,7 @@ namespace PPCore
             if (mStageList != null) mStages.AddRange(mStageList.GetValidStages());
             if (mStages.Count == 0)
             {
-                CustomConsoleLog.Error(LogTag, "ステージ一覧が未設定か、マップ定義が登録されていません。PPStageSelectView の「ステージ一覧」と、その「ステージ」を設定してください");
+                CustomConsoleLog.Error(LogTag, "ステージ一覧が未設定か、マップ定義が登録されていません。PPMapSelectView の「ステージ一覧」と、その「ステージ」を設定してください");
                 return false;
             }
             mOnPicked = aOnPicked;

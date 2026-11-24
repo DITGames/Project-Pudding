@@ -74,7 +74,7 @@ namespace PPCore
         [SerializeField] private int mRecruitFloor = 8;
         // ボスの直前の段のマス
         [Label("最上段のマス")]
-        [SerializeField] private PPStageNodeType mTopFloorType = PPStageNodeType.Upgrade;
+        [SerializeField] private PPMapNodeType mTopFloorType = PPMapNodeType.Upgrade;
 
         // 通常敵にはエリートでないバトル定義を、エリートにはエリートのバトル定義を置く
         [Header("敵")]
@@ -134,7 +134,7 @@ namespace PPCore
         public float RecruitWeight => mRecruitWeight;
         public int SpecialMinFloor => mSpecialMinFloor;
         public int RecruitFloor => mRecruitFloor;
-        public PPStageNodeType TopFloorType => mTopFloorType;
+        public PPMapNodeType TopFloorType => mTopFloorType;
         public IReadOnlyList<PPMapBattleEntry> NormalBattles => mNormalBattles;
         public IReadOnlyList<PPMapBattleEntry> EliteBattles => mEliteBattles;
         public PPBattleDefinition Boss => mBoss;

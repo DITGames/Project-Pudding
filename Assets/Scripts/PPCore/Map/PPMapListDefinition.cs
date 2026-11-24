@@ -24,7 +24,7 @@ namespace PPCore
     }
 
     // クリアしたステージの記録。セーブの仕組みができるまではメモリ上だけに持ち、Play を始めるたびに空に戻す
-    public static class PPStageClearRecord
+    public static class PPMapClearRecord
     {
         /* 定数 */
 
@@ -79,7 +79,7 @@ namespace PPCore
         public static bool IsUnlocked(IReadOnlyList<PPMapListEntry> aStages, int aIndex)
         {
             if (aIndex <= 0) return true;
-            return aStages[aIndex].IsUnlockedFromStart || PPStageClearRecord.IsCleared(aStages[aIndex - 1].Map);
+            return aStages[aIndex].IsUnlockedFromStart || PPMapClearRecord.IsCleared(aStages[aIndex - 1].Map);
         }
     }
 }

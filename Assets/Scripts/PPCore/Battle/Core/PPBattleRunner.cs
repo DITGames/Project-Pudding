@@ -79,7 +79,7 @@ namespace PPCore
         [SerializeField] private float mReturnToStageDelay = 2f;
         // ステージで負けたときと、ボスに勝ったときに出す。単体で Play したときは決着のたびに出す。未設定なら結果を出さずにタイトルへ戻る
         [Label("決着の結果画面")]
-        [SerializeField] private PPStageResultView mResultView;
+        [SerializeField] private PPBattleResultView mResultView;
         // 結果画面が未設定のときに戻るシーン。Build Profiles に登録したシーンの名前
         [Label("結果のあとに戻るシーン名")]
         [SerializeField] private string mTitleSceneName = "S_Title";
@@ -136,7 +136,7 @@ namespace PPCore
         // 単体で Play したときはインスペクタの設定で戦う
         private BattleContext CreateContext()
         {
-            var stage = PPStageProgress.Current;
+            var stage = PPMapProgress.Current;
             var stageBattle = stage?.PendingBattle;
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             // 道があるバトルは、拠点の破壊で勝敗を決める
@@ -179,7 +179,7 @@ namespace PPCore
             mBattleManager = new BattleManager { TimeProvider = () => Time.time };
             if (mOpenConfigAction != null) mOpenConfigAction.action.Enable();
 
-            var stage = PPStageProgress.Current;
+            var stage = PPMapProgress.Current;
             bool isStageBattle = stage?.PendingBattle != null;
             if (isStageBattle) mBattleManager.OnBattleEnded += r => StartCoroutine(ReturnToStage(stage, r));
             else mBattleManager.OnBattleEnded += r => StartCoroutine(ShowStandaloneResult(r));
@@ -242,26 +242,26 @@ namespace PPCore
         // 決着をステージの進行状態へ反映し、少し待ってから次へ進む。勝って続けるならマップのシーンへ戻り、
         // 負けたときとボスに勝ったときは結果画面を出す(決定でタイトルへ戻る)
         // メニューを開いたまま決着して timeScale が 0 のまま残っても待てるよう、待ち時間は timeScale に左右されない時間で数える
-        private IEnumerator ReturnToStage(PPStageProgress aStage, BattleResult aResult)
+        private IEnumerator ReturnToStage(PPMapProgress aStage, BattleResult aResult)
         {
             string returnScene = aStage.ReturnSceneName;
             string stageName = aStage.Definition.DisplayName;
             int floor = aStage.PendingBattle != null ? aStage.PendingBattle.Node.x : 0;
             var outcome = aStage.ResolveBattle(aResult.Type);
-            CustomConsoleLog.Log("Battle", outcome == PPStageBattleOutcome.Continue
+            CustomConsoleLog.Log("Battle", outcome == PPMapBattleOutcome.Continue
                 ? $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に {returnScene} へ戻る"
                 : $"決着: {aResult.Type}。{mReturnToStageDelay} 秒後に結果を出す ({outcome})");
 
             yield return new WaitForSecondsRealtime(mReturnToStageDelay);
-            if (outcome != PPStageBattleOutcome.Continue && mResultView != null)
+            if (outcome != PPMapBattleOutcome.Continue && mResultView != null)
             {
                 mResultView.Open(outcome, aResult.Type, stageName, floor);
                 yield break;
             }
-            if (outcome != PPStageBattleOutcome.Continue)
+            if (outcome != PPMapBattleOutcome.Continue)
             {
                 CustomConsoleLog.Warning("Battle", $"決着の結果画面が未設定のため、結果を出さずに {mTitleSceneName} へ戻ります。PPBattleRunner の「決着の結果画面」を割り当ててください");
-                PPStageStartSelection.Clear();
+                PPMapStartSelection.Clear();
                 returnScene = mTitleSceneName;
             }
             // 次のバトルでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る

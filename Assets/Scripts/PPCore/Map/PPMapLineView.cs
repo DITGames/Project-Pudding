@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMapLineView.cs
+ * @file PPMapLineView.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief マップのマス同士を結ぶ線
@@ -14,7 +14,7 @@ namespace PPCore
 {
     // 2 つのマスを結ぶ線。Image 1 枚を中点に置き、向きと長さを合わせる
     [RequireComponent(typeof(RectTransform))]
-    public class PPStageMapLineView : MonoBehaviour
+    public class PPMapLineView : MonoBehaviour
     {
         /* インスペクタ設定 */
 
@@ -36,12 +36,12 @@ namespace PPCore
 
         /* プロパティ */
 
-        public PPStageMapNode From { get; private set; }
-        public PPStageMapNode To { get; private set; }
+        public PPMapNode From { get; private set; }
+        public PPMapNode To { get; private set; }
 
         /* 表示 */
 
-        public void Setup(PPStageMapNode aFrom, PPStageMapNode aTo, Vector2 aFromPosition, Vector2 aToPosition)
+        public void Setup(PPMapNode aFrom, PPMapNode aTo, Vector2 aFromPosition, Vector2 aToPosition)
         {
             From = aFrom;
             To = aTo;

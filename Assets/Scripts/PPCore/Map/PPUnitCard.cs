@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageUnitCard.cs
+ * @file PPUnitCard.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップの画面に並べる、ユニット 1 体分の札
@@ -15,7 +15,7 @@ namespace PPCore
 {
     // ユニットのアイコン・名前・補足を出す札。選択中と、操作の途中で押さえている札を枠の色で見分ける
     // 編成の配置・所持ユニットの一覧・仲間の候補・マップのパーティ表示で、プレハブを変えて使い回す
-    public class PPStageUnitCard : MonoBehaviour, IPPStageFocusable
+    public class PPUnitCard : MonoBehaviour, IPPMenuFocusable
     {
         /* インスペクタ設定 */
 

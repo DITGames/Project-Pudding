@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMapNodeView.cs
+ * @file PPMapNodeView.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief マップ上の 1 マスの見た目
@@ -15,7 +15,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // マスの進み具合
-    public enum PPStageNodeState
+    public enum PPMapNodeState
     {
         // まだ行けない
         Locked,
@@ -28,7 +28,7 @@ namespace PPCore
     // マップ上の 1 マス。種類の色とアイコンを出し、選べるマスはクリックで選べる
     // 選べるマスはゆっくり脈打ち、キーボードやゲームパッドで選んでいるマスは大きく、現在地と通過したマスは別の色の枠で表示する
     [RequireComponent(typeof(RectTransform))]
-    public class PPStageMapNodeView : MonoBehaviour, IPointerClickHandler
+    public class PPMapNodeView : MonoBehaviour, IPointerClickHandler
     {
         /* インスペクタ設定 */
 
@@ -65,7 +65,7 @@ namespace PPCore
 
         /* 状態 */
 
-        private Action<PPStageMapNodeView> mOnClick;
+        private Action<PPMapNodeView> mOnClick;
         private RectTransform mRect;
         private Color mTypeColor = Color.white;
         // 選んでいるマスの枠の色。Setup の時点で枠の Image に設定されている色
@@ -74,15 +74,15 @@ namespace PPCore
 
         /* プロパティ */
 
-        public PPStageMapNode Node { get; private set; }
-        public PPStageNodeState State { get; private set; } = PPStageNodeState.Locked;
+        public PPMapNode Node { get; private set; }
+        public PPMapNodeState State { get; private set; } = PPMapNodeState.Locked;
 
         /* Unity イベント */
 
         // 選べるマスだけ脈打たせる
         void Update()
         {
-            if (State != PPStageNodeState.Selectable) return;
+            if (State != PPMapNodeState.Selectable) return;
 
             float pulse = 1f + Mathf.Sin(Time.unscaledTime * mPulseSpeed) * mPulseAmount;
             mRect.localScale = Vector3.one * pulse * (mIsFocused ? mFocusScale : 1f);
@@ -90,12 +90,12 @@ namespace PPCore
 
         public void OnPointerClick(PointerEventData aEventData)
         {
-            if (State == PPStageNodeState.Selectable) mOnClick?.Invoke(this);
+            if (State == PPMapNodeState.Selectable) mOnClick?.Invoke(this);
         }
 
         /* 表示 */
 
-        public void Setup(PPStageMapNode aNode, Vector2 aPosition, Sprite aIcon, Color aColor, Action<PPStageMapNodeView> aOnClick)
+        public void Setup(PPMapNode aNode, Vector2 aPosition, Sprite aIcon, Color aColor, Action<PPMapNodeView> aOnClick)
         {
             mRect = (RectTransform)transform;
             Node = aNode;
@@ -110,18 +110,18 @@ namespace PPCore
                 mIcon.sprite = aIcon;
                 mIcon.enabled = aIcon != null;
             }
-            SetState(PPStageNodeState.Locked, false);
+            SetState(PPMapNodeState.Locked, false);
         }
 
-        public void SetState(PPStageNodeState aState, bool aIsFocused)
+        public void SetState(PPMapNodeState aState, bool aIsFocused)
         {
             State = aState;
             mIsFocused = aIsFocused;
 
             float brightness = aState switch
             {
-                PPStageNodeState.Locked => mLockedBrightness,
-                PPStageNodeState.Visited => mVisitedBrightness,
+                PPMapNodeState.Locked => mLockedBrightness,
+                PPMapNodeState.Visited => mVisitedBrightness,
                 _ => 1f,
             };
             if (mBackground != null)
@@ -129,14 +129,14 @@ namespace PPCore
                 mBackground.color = new Color(mTypeColor.r * brightness, mTypeColor.g * brightness, mTypeColor.b * brightness, 1f);
             }
             // アイコンは背景と同じだけ暗くすると見えにくいため、まだ行けないマスだけ薄くする
-            if (mIcon != null) mIcon.color = new Color(1f, 1f, 1f, aState == PPStageNodeState.Locked ? 0.5f : 1f);
+            if (mIcon != null) mIcon.color = new Color(1f, 1f, 1f, aState == PPMapNodeState.Locked ? 0.5f : 1f);
             // 現在地と通過したマスは同じ色の枠にし、選んでいるマスの枠を優先する
             if (mRing != null)
             {
-                mRing.enabled = aIsFocused || aState is PPStageNodeState.Current or PPStageNodeState.Visited;
+                mRing.enabled = aIsFocused || aState is PPMapNodeState.Current or PPMapNodeState.Visited;
                 mRing.color = aIsFocused ? mRingColor : mVisitedRingColor;
             }
-            if (aState != PPStageNodeState.Selectable) mRect.localScale = Vector3.one * (aIsFocused ? mFocusScale : 1f);
+            if (aState != PPMapNodeState.Selectable) mRect.localScale = Vector3.one * (aIsFocused ? mFocusScale : 1f);
         }
     }
 }

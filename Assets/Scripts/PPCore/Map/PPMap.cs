@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMap.cs
+ * @file PPMap.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップの生成
@@ -13,7 +13,7 @@ using CustomConsole;
 namespace PPCore
 {
     // マスの種類。アセットへ数値で保存されるため、値は明示的に振り、追加するときは末尾へ足す
-    public enum PPStageNodeType
+    public enum PPMapNodeType
     {
         [InspectorName("通常戦")]
         Battle = 0,
@@ -31,16 +31,16 @@ namespace PPCore
     }
 
     // マップ上の 1 マス。前後のマスへの参照を持つ有向グラフのノード
-    public class PPStageMapNode
+    public class PPMapNode
     {
         /* 状態 */
 
         // 最下段を 0 とした段と、左から数えた列。ボスは段数と同じ段に置く
         public readonly Vector2Int Key;
-        public readonly List<PPStageMapNode> Next = new();
-        public readonly List<PPStageMapNode> Prev = new();
+        public readonly List<PPMapNode> Next = new();
+        public readonly List<PPMapNode> Prev = new();
 
-        public PPStageNodeType Type;
+        public PPMapNodeType Type;
         // バトルのマスで戦うバトル定義。通常戦・エリートでは候補から引いたもの、ボスではボスのもの。バトル以外のマスでは null
         public PPBattleDefinition Battle;
         // 表示位置のゆらぎ。-1〜1 で持ち、表示側が間隔を掛ける
@@ -50,18 +50,18 @@ namespace PPCore
 
         public int Floor => Key.x;
         public int Column => Key.y;
-        public bool IsBattle => Type is PPStageNodeType.Battle or PPStageNodeType.Elite or PPStageNodeType.Boss;
+        public bool IsBattle => Type is PPMapNodeType.Battle or PPMapNodeType.Elite or PPMapNodeType.Boss;
 
         /* 生成 */
 
-        public PPStageMapNode(int aFloor, int aColumn)
+        public PPMapNode(int aFloor, int aColumn)
         {
             Key = new Vector2Int(aFloor, aColumn);
         }
 
         /* 操作 */
 
-        public void Connect(PPStageMapNode aTo)
+        public void Connect(PPMapNode aTo)
         {
             if (aTo == null || Next.Contains(aTo)) return;
             Next.Add(aTo);
@@ -70,50 +70,50 @@ namespace PPCore
     }
 
     // 生成されたマップ全体。マスは [段, 列] の格子に置き、使わない格子は null
-    public class PPStageMap
+    public class PPMap
     {
         /* 状態 */
 
         public readonly int Width;
         // ボスの段を含まない段数
         public readonly int Height;
-        public PPStageMapNode Boss;
+        public PPMapNode Boss;
         // 最下段の始点の 1 マス
-        public PPStageMapNode Start;
+        public PPMapNode Start;
 
-        private readonly PPStageMapNode[,] mGrid;
+        private readonly PPMapNode[,] mGrid;
 
         /* 生成 */
 
-        public PPStageMap(int aWidth, int aHeight)
+        public PPMap(int aWidth, int aHeight)
         {
             Width = aWidth;
             Height = aHeight;
-            mGrid = new PPStageMapNode[aHeight, aWidth];
+            mGrid = new PPMapNode[aHeight, aWidth];
         }
 
         /* 問い合わせ */
 
         // 段と列からマスを返す。ボスの段も引ける。無ければ null
-        public PPStageMapNode Get(Vector2Int aKey)
+        public PPMapNode Get(Vector2Int aKey)
         {
             if (Boss != null && aKey == Boss.Key) return Boss;
             if (aKey.x < 0 || aKey.x >= Height || aKey.y < 0 || aKey.y >= Width) return null;
             return mGrid[aKey.x, aKey.y];
         }
 
-        public PPStageMapNode GetOrCreate(int aFloor, int aColumn)
+        public PPMapNode GetOrCreate(int aFloor, int aColumn)
         {
             var node = Get(new Vector2Int(aFloor, aColumn));
             if (node != null) return node;
 
-            node = new PPStageMapNode(aFloor, aColumn);
+            node = new PPMapNode(aFloor, aColumn);
             mGrid[aFloor, aColumn] = node;
             return node;
         }
 
         // ボスを除く全マスを、下の段から左の列の順に返す
-        public IEnumerable<PPStageMapNode> AllNodes()
+        public IEnumerable<PPMapNode> AllNodes()
         {
             for (int f = 0; f < Height; f++)
             {
@@ -124,15 +124,15 @@ namespace PPCore
             }
         }
 
-        public IEnumerable<PPStageMapNode> AllNodesWithBoss()
+        public IEnumerable<PPMapNode> AllNodesWithBoss()
         {
             foreach (var node in AllNodes()) yield return node;
             if (Boss != null) yield return Boss;
         }
 
-        public List<PPStageMapNode> FloorNodes(int aFloor)
+        public List<PPMapNode> FloorNodes(int aFloor)
         {
-            var list = new List<PPStageMapNode>();
+            var list = new List<PPMapNode>();
             for (int c = 0; c < Width; c++)
             {
                 var node = Get(new Vector2Int(aFloor, c));
@@ -144,7 +144,7 @@ namespace PPCore
 
     // マップ定義とシードからマップを作る。同じ定義とシードからは同じマップになる
     // 経路は最下段の 1 マスから上へ交差しないように引き、最上段からボスの 1 マスへ集める。マスの種類と敵は段ごとの規則と重みで決める
-    public static class PPStageMapGenerator
+    public static class PPMapGenerator
     {
         /* 定数 */
 
@@ -159,10 +159,10 @@ namespace PPCore
 
         /* 生成 */
 
-        public static PPStageMap Generate(PPMapDefinition aDefinition, int aSeed)
+        public static PPMap Generate(PPMapDefinition aDefinition, int aSeed)
         {
             var random = new System.Random(aSeed);
-            var map = new PPStageMap(aDefinition.Width, aDefinition.Height);
+            var map = new PPMap(aDefinition.Width, aDefinition.Height);
 
             // すべての経路を最下段の中央の 1 マスから始め、そこから枝分かれさせる
             int startColumn = (map.Width - 1) / 2;
@@ -181,7 +181,7 @@ namespace PPCore
 
         /* 経路 */
 
-        private static void CreatePath(PPStageMap aMap, int aStartColumn, System.Random aRandom)
+        private static void CreatePath(PPMap aMap, int aStartColumn, System.Random aRandom)
         {
             int x = aStartColumn;
             var current = aMap.GetOrCreate(0, x);
@@ -197,7 +197,7 @@ namespace PPCore
         }
 
         // 真上と斜め上から、既存の経路と交差しない列を選ぶ。選べなければ真上へ進む
-        private static int ChooseNextColumn(PPStageMap aMap, int aFloor, int aX, System.Random aRandom)
+        private static int ChooseNextColumn(PPMap aMap, int aFloor, int aX, System.Random aRandom)
         {
             var candidates = new List<int>(3);
             for (int d = -1; d <= 1; d++)
@@ -212,7 +212,7 @@ namespace PPCore
         }
 
         // (段, x) → (段+1, nx) は、隣の (段, nx) → (段+1, x) と必ず交差するので弾く
-        private static bool WouldCross(PPStageMap aMap, int aFloor, int aX, int aNx)
+        private static bool WouldCross(PPMap aMap, int aFloor, int aX, int aNx)
         {
             if (aNx == aX) return false;
             var neighbor = aMap.Get(new Vector2Int(aFloor, aNx));
@@ -228,23 +228,23 @@ namespace PPCore
         /* マスの種類 */
 
         // 最下段はスタート、決め打ちの段はその種類、それ以外は重みで引く。バトルのマスにはバトル定義と敵も決める
-        private static void AssignTypes(PPStageMap aMap, PPMapDefinition aDefinition, System.Random aRandom)
+        private static void AssignTypes(PPMap aMap, PPMapDefinition aDefinition, System.Random aRandom)
         {
             WarnMismatchedBattles(aDefinition);
             foreach (var node in aMap.AllNodes())
             {
-                if (node.Floor == 0) node.Type = PPStageNodeType.Start;
+                if (node.Floor == 0) node.Type = PPMapNodeType.Start;
                 else if (node.Floor == aMap.Height - 1) node.Type = aDefinition.TopFloorType;
-                else if (node.Floor == aDefinition.RecruitFloor) node.Type = PPStageNodeType.Recruit;
+                else if (node.Floor == aDefinition.RecruitFloor) node.Type = PPMapNodeType.Recruit;
                 else node.Type = PickType(aMap, node, aDefinition, aRandom);
 
-                if (node.Type == PPStageNodeType.Elite)
+                if (node.Type == PPMapNodeType.Elite)
                 {
                     node.Battle = PickBattle(aDefinition.EliteBattles, node.Floor, aRandom);
                     // エリートの候補が無い段では通常戦にする
-                    if (node.Battle == null) node.Type = PPStageNodeType.Battle;
+                    if (node.Battle == null) node.Type = PPMapNodeType.Battle;
                 }
-                if (node.Type == PPStageNodeType.Battle)
+                if (node.Type == PPMapNodeType.Battle)
                 {
                     node.Battle = PickBattle(aDefinition.NormalBattles, node.Floor, aRandom);
                     if (node.Battle == null)
@@ -270,7 +270,7 @@ namespace PPCore
         private static void ResetWarnedDefinitions() => sWarnedDefinitions.Clear();
 
         // 重みで種類を引き、序盤の特殊なマス・同じ経路での連続・同じ段の隣り合わせを避ける
-        private static PPStageNodeType PickType(PPStageMap aMap, PPStageMapNode aNode, PPMapDefinition aDefinition, System.Random aRandom)
+        private static PPMapNodeType PickType(PPMap aMap, PPMapNode aNode, PPMapDefinition aDefinition, System.Random aRandom)
         {
             for (int attempt = 0; attempt < PickAttemptCount; attempt++)
             {
@@ -284,24 +284,24 @@ namespace PPCore
                 if (HasNeighborOfType(aMap, aNode, type)) continue;
                 return type;
             }
-            return PPStageNodeType.Battle;
+            return PPMapNodeType.Battle;
         }
 
-        private static PPStageNodeType Roll(PPMapDefinition aDefinition, System.Random aRandom)
+        private static PPMapNodeType Roll(PPMapDefinition aDefinition, System.Random aRandom)
         {
             float total = aDefinition.BattleWeight + aDefinition.EliteWeight + aDefinition.UpgradeWeight + aDefinition.RecruitWeight;
-            if (total <= 0f) return PPStageNodeType.Battle;
+            if (total <= 0f) return PPMapNodeType.Battle;
 
             float v = (float)aRandom.NextDouble() * total;
-            if ((v -= aDefinition.BattleWeight) < 0f) return PPStageNodeType.Battle;
-            if ((v -= aDefinition.EliteWeight) < 0f) return PPStageNodeType.Elite;
-            if ((v -= aDefinition.UpgradeWeight) < 0f) return PPStageNodeType.Upgrade;
-            return PPStageNodeType.Recruit;
+            if ((v -= aDefinition.BattleWeight) < 0f) return PPMapNodeType.Battle;
+            if ((v -= aDefinition.EliteWeight) < 0f) return PPMapNodeType.Elite;
+            if ((v -= aDefinition.UpgradeWeight) < 0f) return PPMapNodeType.Upgrade;
+            return PPMapNodeType.Recruit;
         }
 
-        private static bool IsSpecial(PPStageNodeType aType) => aType != PPStageNodeType.Battle;
+        private static bool IsSpecial(PPMapNodeType aType) => aType != PPMapNodeType.Battle;
 
-        private static bool HasParentOfType(PPStageMapNode aNode, PPStageNodeType aType)
+        private static bool HasParentOfType(PPMapNode aNode, PPMapNodeType aType)
         {
             foreach (var prev in aNode.Prev)
             {
@@ -311,7 +311,7 @@ namespace PPCore
         }
 
         // 同じ段の左右のマス。左から順に種類を決めるため、実際に効くのは左隣だけ
-        private static bool HasNeighborOfType(PPStageMap aMap, PPStageMapNode aNode, PPStageNodeType aType)
+        private static bool HasNeighborOfType(PPMap aMap, PPMapNode aNode, PPMapNodeType aType)
         {
             for (int d = -1; d <= 1; d += 2)
             {
@@ -346,11 +346,11 @@ namespace PPCore
         /* ボス */
 
         // 最上段のすべてのマスから、中央の列に置いたボスへつなぐ
-        private static void CreateBoss(PPStageMap aMap, PPMapDefinition aDefinition)
+        private static void CreateBoss(PPMap aMap, PPMapDefinition aDefinition)
         {
-            var boss = new PPStageMapNode(aMap.Height, (aMap.Width - 1) / 2)
+            var boss = new PPMapNode(aMap.Height, (aMap.Width - 1) / 2)
             {
-                Type = PPStageNodeType.Boss,
+                Type = PPMapNodeType.Boss,
                 Battle = aDefinition.Boss,
             };
             aMap.Boss = boss;

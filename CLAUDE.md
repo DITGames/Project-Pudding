@@ -61,6 +61,7 @@ PPCore/
 │   ├── Input/         # キー設定（変更できる操作と既定の割り当て）
 │   └── View/          # バトル UI の View とステータスソース
 ├── Pusher/            # プッシャー（押し出し板・落下検出・コイン投入）
+├── Map/               # マップの周回（マップ定義・生成・進行状態・マスのイベント・マップの画面）と、画面をまたぐ一覧・札の部品
 ├── Catalog/           # ID → アセットの解決
 ├── Settings/          # ランタイム設定
 └── Editor/            # ピッカー・ユニット作成ツール
@@ -107,7 +108,7 @@ PPCore/
 - `PPEffectDefinition`（状態異常・バフデバフ。振る舞いのリストで組み立てる）
 - パーティは定義アセットを持たず、`PPPartyMemberEntry`（ユニットとレベル）の一覧をマップ定義の初期パーティ・`PPBattleRunner` の味方パーティに直接並べる。最大 `PPPartyFactory.MaxMembers` = 10 体で、マップの編成も同じ 10 枠
 - `PPUnitVisualDefinition`、マップの定義（`PPMapDefinition`）、ステージ選択に並べるマップの一覧（`PPMapListDefinition`）
-- `PPBattleDefinition` はバトル定義（1 回のバトルの中身。ウェーブ・敵拠点・道の長さ・エリートか・出てくる段）。マップ定義の通常敵・エリート・ボスに候補（`PPMapBattleEntry`）として割り当てる。コード上の「Stage」はマップの周回（`PPStageProgress` など）の意味で使っているため、1 回のバトルには「Battle」を使う
+- `PPBattleDefinition` はバトル定義（1 回のバトルの中身。ウェーブ・敵拠点・道の長さ・エリートか・出てくる段）。マップ定義の通常敵・エリート・ボスに候補（`PPMapBattleEntry`）として割り当てる。名前は Map（マップの周回。`PPMapDefinition`・`PPMapProgress`・`PPMapRunner`・マスのイベント `IPPMapEvent` など）> Battle（1 回のバトル）> Stage（ユニットが戦う場所。道・拠点・背景。`PPStageUnitView` など）の段階で付ける。画面をまたいで使う一覧・札の部品は `PPMenuListBase`・`PPUnitCard` など
 - `PPCatalogAsset<T>` 派生（`PPUnitCatalog` 等）が ID → アセットの解決を担う。ID 重複は `Debug.LogError` で検出される
 
 `CreateAssetMenu` の menuName は **`Project-Pudding/<カテゴリ>/<型名>`** で統一（`Definition` / `Effect` / `Catalog` / `Battle` / `Settings`）。
@@ -117,7 +118,7 @@ PPCore/
 - `PPTypeAttribute`: `Normal / Fire / Water / Earth / Shine / Dark`（`TypeCount = 6`、`Normal` は無属性で相性判定では常に等倍 = `BaseIndex`）
 - 属性相性（火 → 土 → 水 → 火 の三すくみ、光 ⇔ 闇）は `PPAttributeAffinity`、倍率は `PPBattleRules` が持つ
 - プッシャーがコインの落下を知らせる口は `PPPusherDropZone` の `OnCoinDropped`（落ちたコイン）と、`IPPCoinGainNotifier` の `OnCoinGained`（属性と枚数。今はバトル側で購読していない）。**物理側とバトル側を直接結合させず、間に橋渡しの型を挟む**
-- 橋渡しは `PPCoinUnitBridge`。台に出たコインの `PPCoinContent` へ、パーティのユニットコストの逆数の比で抽選したユニットを入れ（重さでコインの大きさ・質量が変わる）、落下口に落ちたらそのユニットを味方拠点の近くに生み出す。編成のユニットコストの上限は `PPStageProgress.MaxPartyCost`
+- 橋渡しは `PPCoinUnitBridge`。台に出たコインの `PPCoinContent` へ、パーティのユニットコストの逆数の比で抽選したユニットを入れ（重さでコインの大きさ・質量が変わる）、落下口に落ちたらそのユニットを味方拠点の近くに生み出す。編成のユニットコストの上限は `PPMapProgress.MaxPartyCost`
 
 ### プッシャー
 
@@ -136,7 +137,7 @@ PPCore/
 - マップでは、編成画面を Tab / パッドの North で開閉する（入力アクション Battle マップの `OpenFormation`。キー設定の対象外）。Esc / Start のメニューには編成を載せない
 - バトル画面は画面の上側に出す。`PPBattleField`（1 本道。左端が味方拠点、右端が敵拠点）を `PPBattleCameraController` が真横から遠近なしで映し、右クリックドラッグ・右スティック左右で横スクロール、ホイール・右スティック上下でズームする（割り当ては固定でキー設定の対象外）。プッシャーのカメラは画面全体を映したまま動かさず、その上側にバトル画面を重ねる
 - 道の長さ（拠点間の距離）はバトル定義の「道の長さ」で決まる。バトルの始まりに `PPBattleRunner` が `PPBattleField.SetLength()` を呼び、地面の幅・拠点の目印の位置・カメラの開始位置も合わせる
-- 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPStageResultView` で、ステージを通さずに Play したときも出す
+- 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPBattleResultView` で、マップを通さずに Play したときも出す
 - View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付ける。重なったときの前後は `PPUnitVisualDefinition` のレイヤー優先度と出た順で決まる
 
 ### エディタ拡張

@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageListItem.cs
+ * @file PPMenuListItem.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップやタイトルのメニューに並べる 1 行
@@ -15,7 +15,7 @@ namespace PPCore
 {
     // 文字と背景だけの 1 行。選択中は左に印を出し、操作の途中で押さえている行は背景の色で見分ける
     // 印は選択の移動で前の行から滑ってきて、決定で 1 回転する。動きは timeScale に関係なく unscaled の時間で進める
-    public class PPStageListItem : MonoBehaviour, IPPStageFocusable, IPPStageFocusMotion
+    public class PPMenuListItem : MonoBehaviour, IPPMenuFocusable, IPPMenuFocusMotion
     {
         /* インスペクタ設定 */
 
@@ -155,7 +155,7 @@ namespace PPCore
         // 前の行の印の位置から、この行の印の位置へ滑らせる
         public void MoveFocusFrom(Component aPrevious)
         {
-            if (mCursor == null || mMoveDuration <= 0f || aPrevious is not PPStageListItem previous || previous.mCursor == null) return;
+            if (mCursor == null || mMoveDuration <= 0f || aPrevious is not PPMenuListItem previous || previous.mCursor == null) return;
 
             var parent = (RectTransform)mCursor.rectTransform.parent;
             Vector2 from = parent.InverseTransformPoint(previous.mCursor.rectTransform.position);

@@ -15,7 +15,7 @@ using CustomConsole;
 namespace PPCore
 {
     // 初期パーティ定義の候補を札で横に並べ、決定した 1 体を返す。キャンセルでは選ばずに閉じる
-    public class PPInitialUnitSelectView : PPStageListMenuBase
+    public class PPInitialUnitSelectView : PPMenuListBase
     {
         /* 定数 */
 
@@ -25,7 +25,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("候補の札のプレハブ")]
-        [SerializeField] private PPStageUnitCard mCardPrefab;
+        [SerializeField] private PPUnitCard mCardPrefab;
         [Label("初期パーティ定義")]
         [SerializeField] private PPInitialPartyDefinition mDefinition;
 
@@ -60,8 +60,8 @@ namespace PPCore
             {
                 var member = mCandidates[i];
                 var unit = member.Unit;
-                string sub = $"<color={PPStageUnitDisplay.AttributeColorCode(unit.TypeAttribute)}>{PPStageUnitDisplay.AttributeName(unit.TypeAttribute)}属性</color>";
-                cards[i].SetUnit(PPStageUnitDisplay.ResolveIcon(UnitVisualCatalog, unit), PPStageUnitDisplay.NameAndLevel(unit, member.Level), sub);
+                string sub = $"<color={PPUnitDisplay.AttributeColorCode(unit.TypeAttribute)}>{PPUnitDisplay.AttributeName(unit.TypeAttribute)}属性</color>";
+                cards[i].SetUnit(PPUnitDisplay.ResolveIcon(UnitVisualCatalog, unit), PPUnitDisplay.NameAndLevel(unit, member.Level), sub);
             }
             Focus(0, 0);
             return true;

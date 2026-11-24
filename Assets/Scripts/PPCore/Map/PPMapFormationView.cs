@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageFormationView.cs
+ * @file PPMapFormationView.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップのパーティ編成画面
@@ -16,7 +16,7 @@ namespace PPCore
 {
     // 上に 3 つの配置、下に所持ユニットの札を並べ、配置へのユニットの出し入れ・入れ替えを行う
     // 配置とユニットのどちらを先に決定してもよく、もう片方を決定するとその配置へ反映する。ユニットコストの合計が上限を超える編成はできない
-    public class PPStageFormationView : PPStageListMenuBase
+    public class PPMapFormationView : PPMenuListBase
     {
         /* 定数 */
 
@@ -28,15 +28,15 @@ namespace PPCore
         private const string BenchText = "控え";
         private const string OverCostText = "コストの合計が上限を超えるため、編成できません";
         // 上の枠の数
-        private const int SlotCount = PPStageProgress.MaxPartySize;
+        private const int SlotCount = PPMapProgress.MaxPartySize;
 
         /* インスペクタ設定 */
 
         [Header("項目")]
         [Label("配置の札のプレハブ")]
-        [SerializeField] private PPStageUnitCard mSlotCardPrefab;
+        [SerializeField] private PPUnitCard mSlotCardPrefab;
         [Label("所持ユニットの札のプレハブ")]
-        [SerializeField] private PPStageUnitCard mUnitCardPrefab;
+        [SerializeField] private PPUnitCard mUnitCardPrefab;
 
         // 選んでいるユニットの要約。未設定の項目は出さない
         [Header("選択中のユニット")]
@@ -52,7 +52,7 @@ namespace PPCore
 
         /* 状態 */
 
-        private PPStageProgress mProgress;
+        private PPMapProgress mProgress;
         private Action mOnClosed;
         // 先に決定して押さえている札のまとまりと番号。押さえていなければ番号は -1
         private int mPickGroup;
@@ -61,7 +61,7 @@ namespace PPCore
         /* 操作 */
 
         // 編成画面を開く。閉じたら aOnClosed を呼ぶ
-        public void Open(PPStageProgress aProgress, Action aOnClosed)
+        public void Open(PPMapProgress aProgress, Action aOnClosed)
         {
             mProgress = aProgress;
             mOnClosed = aOnClosed;
@@ -150,7 +150,7 @@ namespace PPCore
         /* 問い合わせ */
 
         // 選んでいる札のユニット。空きの配置や「外す」なら null
-        private PPStageOwnedUnit FocusedOwnedUnit()
+        private PPMapOwnedUnit FocusedOwnedUnit()
         {
             if (mProgress == null) return null;
             if (FocusGroup == SlotGroup) return mProgress.GetMember(FocusIndex);
@@ -169,7 +169,7 @@ namespace PPCore
                 // 見出しの無い札でも何番目の枠か分かるよう、下の行にも番号を出す
                 slots[i].SetHeader(ToSlotName(i));
                 if (owned == null) slots[i].SetUnit(null, EmptyText, ToSlotName(i));
-                else slots[i].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{ToSlotName(i)}   {PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   コスト{owned.Unit.UnitCost}");
+                else slots[i].SetUnit(Icon(owned.Unit), PPUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{ToSlotName(i)}   {PPUnitDisplay.ColoredAttribute(owned.Unit)}   コスト{owned.Unit.UnitCost}");
             }
 
             var cards = PrepareItems(UnitGroup, mUnitCardPrefab, mProgress.OwnedUnits.Count + 1);
@@ -179,8 +179,8 @@ namespace PPCore
                 var owned = mProgress.OwnedUnits[i];
                 var slot = mProgress.FindSlot(owned);
                 string place = slot.HasValue ? ToSlotName(slot.Value) : BenchText;
-                cards[i + 1].SetUnit(Icon(owned.Unit), PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level),
-                    $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}   {place}   コスト{owned.Unit.UnitCost}");
+                cards[i + 1].SetUnit(Icon(owned.Unit), PPUnitDisplay.NameAndLevel(owned.Unit, owned.Level),
+                    $"{PPUnitDisplay.ColoredAttribute(owned.Unit)}   {place}   コスト{owned.Unit.UnitCost}");
             }
         }
 
@@ -193,15 +193,15 @@ namespace PPCore
                 mSummaryIcon.sprite = icon;
                 mSummaryIcon.enabled = icon != null;
             }
-            if (mSummaryName != null) mSummaryName.text = aUnit != null ? PPStageUnitDisplay.NameAndLevel(aUnit, aLevel) : string.Empty;
-            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPStageUnitDisplay.ColoredAttribute(aUnit)}属性   コスト{aUnit.UnitCost}   ({CostText()})" : CostText();
-            if (mSummaryStats != null) mSummaryStats.text = aUnit != null ? PPStageUnitDisplay.StatsLine(aUnit, aLevel) : string.Empty;
+            if (mSummaryName != null) mSummaryName.text = aUnit != null ? PPUnitDisplay.NameAndLevel(aUnit, aLevel) : string.Empty;
+            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPUnitDisplay.ColoredAttribute(aUnit)}属性   コスト{aUnit.UnitCost}   ({CostText()})" : CostText();
+            if (mSummaryStats != null) mSummaryStats.text = aUnit != null ? PPUnitDisplay.StatsLine(aUnit, aLevel) : string.Empty;
         }
 
-        private Sprite Icon(PPUnitDefinition aUnit) => PPStageUnitDisplay.ResolveIcon(UnitVisualCatalog, aUnit);
+        private Sprite Icon(PPUnitDefinition aUnit) => PPUnitDisplay.ResolveIcon(UnitVisualCatalog, aUnit);
 
         // 編成のコストの合計と上限
-        private string CostText() => mProgress != null ? $"編成コスト {mProgress.GetPartyCost()}/{PPStageProgress.MaxPartyCost}" : string.Empty;
+        private string CostText() => mProgress != null ? $"編成コスト {mProgress.GetPartyCost()}/{PPMapProgress.MaxPartyCost}" : string.Empty;
 
         // 枠の番号を 1 から数えて出す
         private static string ToSlotName(int aSlot) => $"{aSlot + 1}番";

@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageUnitDetailView.cs
+ * @file PPUnitDetailView.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップのユニット詳細画面
@@ -16,7 +16,7 @@ namespace PPCore
 {
     // ユニットのアイコン・名前・レベル・属性・ステータスを出す画面
     // 編成画面と仲間選択画面から開き、詳細の入力かキャンセルで閉じる
-    public class PPStageUnitDetailView : MonoBehaviour
+    public class PPUnitDetailView : MonoBehaviour
     {
         /* インスペクタ設定 */
 
@@ -100,14 +100,14 @@ namespace PPCore
 
         private void Show(PPUnitDefinition aUnit, int aLevel)
         {
-            var icon = PPStageUnitDisplay.ResolveIcon(mUnitVisualCatalog, aUnit);
+            var icon = PPUnitDisplay.ResolveIcon(mUnitVisualCatalog, aUnit);
             if (mIcon != null)
             {
                 mIcon.sprite = icon;
                 mIcon.enabled = icon != null;
             }
             if (mName != null) mName.text = aUnit.DisplayName;
-            if (mInfo != null) mInfo.text = $"Lv {aLevel}   |   {PPStageUnitDisplay.ColoredAttribute(aUnit)}";
+            if (mInfo != null) mInfo.text = $"Lv {aLevel}   |   {PPUnitDisplay.ColoredAttribute(aUnit)}";
 
             var stats = aUnit.EvaluateStats(aLevel);
             if (mStatNames != null)

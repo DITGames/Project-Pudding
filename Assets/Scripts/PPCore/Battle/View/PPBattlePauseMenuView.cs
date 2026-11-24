@@ -14,7 +14,7 @@ namespace PPCore
 {
     // バトル中に開くメニュー。つづける・設定・リタイア・ゲーム終了を選ぶ
     // 開いている間はバトルの時計と物理を止める。設定やダイアログを開いている間は、メニューの入力を止める
-    public class PPBattlePauseMenuView : PPStageListMenuBase
+    public class PPBattlePauseMenuView : PPMenuListBase
     {
         /* 定数 */
 
@@ -30,7 +30,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("行のプレハブ")]
-        [SerializeField] private PPStageListItem mItemPrefab;
+        [SerializeField] private PPMenuListItem mItemPrefab;
         [Label("設定画面")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
         [Label("確認のダイアログ")]
@@ -125,8 +125,8 @@ namespace PPCore
         private void Retire()
         {
             CustomConsoleLog.Log(LogTag, $"リタイア: {mTitleSceneName} へ戻る");
-            PPStageProgress.Clear();
-            PPStageStartSelection.Clear();
+            PPMapProgress.Clear();
+            PPMapStartSelection.Clear();
             // 次のシーンでプッシャーの物理が止まったままにならないよう、時間の流れを戻してから移る
             mIsLeaving = true;
             Time.timeScale = 1f;

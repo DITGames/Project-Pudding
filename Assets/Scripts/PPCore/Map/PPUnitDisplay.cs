@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageUnitDisplay.cs
+ * @file PPUnitDisplay.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップの画面で使う、ユニットの表示用の文字と色
@@ -11,7 +11,7 @@ using UnityEngine;
 namespace PPCore
 {
     // ユニットの属性・ステータスを、ステージマップの画面に出す文字と色へ変える
-    public static class PPStageUnitDisplay
+    public static class PPUnitDisplay
     {
         /* 問い合わせ */
 

@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 5452499773195662741}
   - component: {fileID: 4317383987634509430}
   m_Layer: 5
-  m_Name: PR_StageUnitCard
+  m_Name: PR_UnitCard
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -91,7 +91,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0e157f27c7f7add46b3d204482938bf1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitCard
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitCard
   mFrame: {fileID: 51697001402123624}
   mIcon: {fileID: 1871414531389425257}
   mHeader: {fileID: 0}

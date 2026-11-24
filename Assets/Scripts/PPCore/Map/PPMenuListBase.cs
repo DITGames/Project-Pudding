@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageListMenuBase.cs
+ * @file PPMenuListBase.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップの、札や行を並べて選ぶ画面の基底
@@ -15,14 +15,14 @@ using AttributeUtility;
 namespace PPCore
 {
     // 選択中と、操作の途中で押さえている状態を表示できる、並べる要素
-    public interface IPPStageFocusable
+    public interface IPPMenuFocusable
     {
         void SetFocused(bool aIsFocused);
         void SetMarked(bool aIsMarked);
     }
 
     // 選択の移動と決定に動きを付けられる要素。動きの間も選択と決定の処理は画面側が受け持つ
-    public interface IPPStageFocusMotion
+    public interface IPPMenuFocusMotion
     {
         // 上下左右の移動で、aPrevious から選択が移ってきたとき
         void MoveFocusFrom(Component aPrevious);
@@ -33,7 +33,7 @@ namespace PPCore
 
     // 要素を並べるまとまり。上から順に置き、まとまりの中は列数で折り返す格子として動く
     [Serializable]
-    public sealed class PPStageListGroup
+    public sealed class PPMenuListGroup
     {
         [Label("並べる場所")] public RectTransform Container;
         [Label("列数")] [Min(1)] public int Columns = 1;
@@ -41,7 +41,7 @@ namespace PPCore
 
     // 要素をまとまりごとに並べ、上下左右の移動・決定・キャンセル・詳細で選ぶ画面の基底
     // 入力は新 Input System で受け、キーボードとゲームパッドの両方で動く。詳細はユニットを選んでいるときだけ開く
-    public abstract class PPStageListMenuBase : MonoBehaviour
+    public abstract class PPMenuListBase : MonoBehaviour
     {
         /* 定数 */
 
@@ -67,10 +67,10 @@ namespace PPCore
         [SerializeField] private GameObject mPanel;
         // 上のまとまりから順に置く
         [Label("まとまり", true)]
-        [SerializeField] private PPStageListGroup[] mGroups = new PPStageListGroup[0];
+        [SerializeField] private PPMenuListGroup[] mGroups = new PPMenuListGroup[0];
         // 未設定なら詳細は開けない
         [Label("ユニット詳細")]
-        [SerializeField] private PPStageUnitDetailView mDetailView;
+        [SerializeField] private PPUnitDetailView mDetailView;
         [Label("ユニットの見た目カタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
 
@@ -92,7 +92,7 @@ namespace PPCore
         public int ClosedFrame { get; private set; } = -1;
         public int FocusGroup { get; private set; }
         public int FocusIndex { get; private set; }
-        public PPStageUnitDetailView DetailView => mDetailView;
+        public PPUnitDetailView DetailView => mDetailView;
 
         protected PPUnitVisualCatalog UnitVisualCatalog => mUnitVisualCatalog;
 
@@ -183,7 +183,7 @@ namespace PPCore
         }
 
         // まとまりの要素を aCount 個にそろえて返す。足りない要素はプレハブから作り、余った要素は隠す
-        protected List<T> PrepareItems<T>(int aGroup, T aPrefab, int aCount) where T : Component, IPPStageFocusable
+        protected List<T> PrepareItems<T>(int aGroup, T aPrefab, int aCount) where T : Component, IPPMenuFocusable
         {
             while (mItems.Count <= aGroup)
             {
@@ -216,7 +216,7 @@ namespace PPCore
             {
                 for (int i = 0; i < mItems[g].Count; i++)
                 {
-                    ((IPPStageFocusable)mItems[g][i]).SetFocused(g == FocusGroup && i == FocusIndex);
+                    ((IPPMenuFocusable)mItems[g][i]).SetFocused(g == FocusGroup && i == FocusIndex);
                 }
             }
             OnFocusChanged();
@@ -231,24 +231,24 @@ namespace PPCore
                 float maxWidth = 0f;
                 for (int i = 0; i < mCounts[g]; i++)
                 {
-                    if (mItems[g][i] is PPStageListItem item && item.IsCursorAligned) maxWidth = Mathf.Max(maxWidth, item.TextWidth);
+                    if (mItems[g][i] is PPMenuListItem item && item.IsCursorAligned) maxWidth = Mathf.Max(maxWidth, item.TextWidth);
                 }
                 for (int i = 0; i < mCounts[g]; i++)
                 {
-                    if (mItems[g][i] is PPStageListItem item) item.AlignCursor(maxWidth);
+                    if (mItems[g][i] is PPMenuListItem item) item.AlignCursor(maxWidth);
                 }
             }
         }
 
         protected void SetMarked(int aGroup, int aIndex, bool aIsMarked)
         {
-            if (aGroup < mItems.Count && aIndex < mItems[aGroup].Count) ((IPPStageFocusable)mItems[aGroup][aIndex]).SetMarked(aIsMarked);
+            if (aGroup < mItems.Count && aIndex < mItems[aGroup].Count) ((IPPMenuFocusable)mItems[aGroup][aIndex]).SetMarked(aIsMarked);
         }
 
         // 決定の動きがある要素なら動きの後に、なければすぐに決定の処理を呼ぶ
         private void BeginSubmit()
         {
-            float delay = GetFocusedItem() is IPPStageFocusMotion motion ? motion.PlaySubmit() : 0f;
+            float delay = GetFocusedItem() is IPPMenuFocusMotion motion ? motion.PlaySubmit() : 0f;
             if (delay > 0f) mSubmitAt = Time.unscaledTime + delay;
             else OnSubmit(FocusGroup, FocusIndex);
         }
@@ -259,7 +259,7 @@ namespace PPCore
             var previous = GetFocusedItem();
             Move(aDirection);
             var next = GetFocusedItem();
-            if (previous != null && next != previous && next is IPPStageFocusMotion motion) motion.MoveFocusFrom(previous);
+            if (previous != null && next != previous && next is IPPMenuFocusMotion motion) motion.MoveFocusFrom(previous);
         }
 
         // 左右はまとまりの行の中で、上下は行をまたいで動かす。まとまりの上下の端からは隣のまとまりへ移る
@@ -301,8 +301,8 @@ namespace PPCore
             if (aGroup >= mItems.Count || aIndex >= mCounts[aGroup]) return null;
             return mItems[aGroup][aIndex] switch
             {
-                PPStageUnitCard card => card.Text,
-                PPStageListItem item => item.Text,
+                PPUnitCard card => card.Text,
+                PPMenuListItem item => item.Text,
                 _ => null,
             };
         }

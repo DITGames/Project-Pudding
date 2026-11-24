@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 2677611315253048229}
   - component: {fileID: 2043717611679513113}
   m_Layer: 0
-  m_Name: PR_StageMapLine
+  m_Name: PR_MapLine
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -87,7 +87,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f974931a5273360428af2cecab5aaecf, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapLineView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapLineView
   mLine: {fileID: 2677611315253048229}
   mThickness: 8
   mPadding: 34

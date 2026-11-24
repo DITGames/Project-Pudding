@@ -2152,7 +2152,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 287bf5d7004d68d45b71c55b273982d0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageResultView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleResultView
 --- !u!224 &1059745192 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 452894350118948979, guid: e9645fa4fadeeef4dbb2e012f6f42745, type: 3}
@@ -2446,7 +2446,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2daab932b1702b84b984dcee8e9ce901, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: '::'
+  m_EditorClassIdentifier: Assembly-CSharp::ConsoleCanvasManager
   applicationVersionText: {fileID: 1854315130}
 --- !u!114 &1495912091
 MonoBehaviour:

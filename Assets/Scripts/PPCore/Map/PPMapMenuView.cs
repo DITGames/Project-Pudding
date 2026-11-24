@@ -1,6 +1,6 @@
 /* =====================================
  * Copyright WabisabiAndons. All rights reserved.
- * @file PPStageMenuView.cs
+ * @file PPMapMenuView.cs
  * @author hqrse
  * @date 2026/11/21
  * @brief ステージマップのメニュー
@@ -12,7 +12,7 @@ using AttributeUtility;
 namespace PPCore
 {
     // マップで開くメニュー。編成は専用の入力(Tab / パッドの North)で開くため、ここには載せない
-    public class PPStageMenuView : PPStageListMenuBase
+    public class PPMapMenuView : PPMenuListBase
     {
         /* 定数 */
 
@@ -22,7 +22,7 @@ namespace PPCore
 
         [Header("項目")]
         [Label("行のプレハブ")]
-        [SerializeField] private PPStageListItem mItemPrefab;
+        [SerializeField] private PPMenuListItem mItemPrefab;
 
         /* 操作 */
 

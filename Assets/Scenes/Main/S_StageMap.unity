@@ -145,7 +145,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e2d33eda837351a48974cfa655523864, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitDetailView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitDetailView
 --- !u!1 &428968643
 GameObject:
   m_ObjectHideFlags: 0
@@ -465,7 +465,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 28576b1b8eb93a3419ab04c9ae10bbd1, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMenuView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapMenuView
 --- !u!224 &1434191883 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 5096531777953535407, guid: 52d18b454645d0b479be2bca381b136a, type: 3}
@@ -481,7 +481,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9ea51bb0e4e58b241891856f10f70138, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageRecruitView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapRecruitView
 --- !u!114 &1577791158 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 5488455642247114362, guid: 3afc1f0360ecc4d489f2bf80203babb0, type: 3}
@@ -492,7 +492,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11a3a451123b2fe4b8eb0a815e1db635, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapView
 --- !u!224 &1727432385 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1342924250700710200, guid: 44bf10ec0df32394b8b6d895832bfab5, type: 3}
@@ -508,7 +508,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a62cf29089924b44a0fd832ab470e1a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageFormationView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapFormationView
 --- !u!1 &2083965986
 GameObject:
   m_ObjectHideFlags: 0
@@ -537,7 +537,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2a61c40220762b4d9d8107545015dbc, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageSelectRunner
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapRunner
   mDefinition: {fileID: 11400000, guid: cdc7a6cdc7038be4383086484c930868, type: 2}
   mBattleSceneName: S_Battle
   mMapView: {fileID: 1577791158}
