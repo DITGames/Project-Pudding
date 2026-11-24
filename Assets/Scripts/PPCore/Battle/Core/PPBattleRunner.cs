@@ -75,6 +75,11 @@ namespace PPCore
         // バトル進行を統括するマネージャ
         private BattleManager mBattleManager = new();
 
+        /* プロパティ */
+
+        // プッシャーの読み込み中はまだバトルを組み立てていないため、Context が null
+        public BattleManager BattleManager => mBattleManager;
+
         /* Unity イベント */
 
         // パーティを作ってコインの抽選を用意し、プッシャーの読み込みを待ってからバトルを開始して、最後にプッシャーを動かし始める
@@ -109,7 +114,7 @@ namespace PPCore
             var stageBattle = stage?.PendingBattle;
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             var context = new BattleContext() { Rules = new PPBattleRules() };
-            if (mField != null) context.Field = new PPBattleFieldState(mField.Length);
+            if (mField != null) context.Field = new PPBattleFieldState(mField.Length, mField.KnockbackDistance, mField.KnockbackSpeed);
             if (stageBattle != null)
             {
                 context.AllyParty = stage.CreateAllyParty();

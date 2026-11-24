@@ -73,6 +73,8 @@ namespace PPCore
         /* プロパティ */
 
         public BattleUnit BattleUnit => mBattleUnit;
+        // 撃破の動きが終わるまでの秒数
+        public float DefeatDuration => mDefeatDuration;
 
         /* static 関数 */
 

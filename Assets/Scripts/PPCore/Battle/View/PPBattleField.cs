@@ -23,6 +23,15 @@ namespace PPCore
         [Label("左右の余白")]
         [Min(0f)]
         [SerializeField] private float mMargin = 8f;
+        // HP の区切りでも攻撃でも、押し戻す距離と速さはここで決めた共通の値を使う
+        [Header("ノックバック")]
+        [Label("押し戻す距離")]
+        [Min(0f)]
+        [SerializeField] private float mKnockbackDistance = 3f;
+        // 1 秒に押し戻す距離
+        [Label("押し戻す速さ")]
+        [Min(0.01f)]
+        [SerializeField] private float mKnockbackSpeed = 12f;
 
         /* プロパティ */
 
@@ -34,6 +43,8 @@ namespace PPCore
         // ユニットが立つ地面の高さ(ワールド座標の y)
         public float GroundY => transform.position.y;
         public float Margin => mMargin;
+        public float KnockbackDistance => mKnockbackDistance;
+        public float KnockbackSpeed => mKnockbackSpeed;
 
         /* Unity イベント */
 
