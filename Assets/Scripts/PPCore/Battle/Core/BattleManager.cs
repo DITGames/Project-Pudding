@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace PPCore
 {
@@ -75,7 +74,7 @@ namespace PPCore
         /* 開始と終了 */
 
         // コンテキストを受け取ってバトルを開始する
-        // 両パーティのイベント購読、全スキルのクールダウン／使用回数リセット、入れ替え通知の接続までを行う
+        // 両パーティのイベント購読と、入れ替え通知の接続までを行う
         public void StartBattle(BattleContext aContext)
         {
             Context = aContext ?? throw new ArgumentNullException(nameof(aContext));
@@ -84,12 +83,6 @@ namespace PPCore
             // 両パーティの全ユニットのイベントを購読する
             SubscribeParty(aContext.AllyParty);
             SubscribeParty(aContext.EnemyParty);
-
-            // 控えも含む全ユニットのスキルを戦闘開始状態へ戻す（クールダウン・使用回数）
-            foreach (var party in new[]{Context.AllyParty, Context.EnemyParty})
-                foreach (var unit in party.ActiveMembers.Concat(party.ReserveMembers))
-                    foreach (var skill in unit.Skills)
-                        skill.ResetForBattle();
 
             aContext.AllyParty.OnSwapped += HandleSwap;
             aContext.EnemyParty.OnSwapped += HandleSwap;
@@ -362,7 +355,7 @@ namespace PPCore
         None = 0,
         // バトル開始処理中
         BattleStart = 1,
-        // コマンド入力待ち。プレイヤー入力および AI の思考を受け付ける
+        // コマンド待ち。次のコマンドを積める
         CommandInput = 2,
         // コマンド実行中
         ActionExecution = 3,

@@ -99,7 +99,7 @@ namespace PPCore
             if (selection != null)
             {
                 var definition = selection.Definition != null ? selection.Definition : mDefinition;
-                progress = PPStageProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits, selection.CoinConversionRate);
+                progress = PPStageProgress.Begin(definition, selection.Seed ?? definition.ResolveSeed(), selection.InitialUnits);
                 PPStageStartSelection.Clear();
             }
             else if (progress == null)

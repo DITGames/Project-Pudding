@@ -23,16 +23,6 @@ MonoBehaviour:
     mKeyboard2: <Mouse>/rightButton
     mGamepad1: <Gamepad>/buttonEast
     mGamepad2: 
-  - mActionName: OpenCommand
-    mKeyboard1: <Keyboard>/c
-    mKeyboard2: 
-    mGamepad1: <Gamepad>/buttonNorth
-    mGamepad2: 
-  - mActionName: AutoBattle
-    mKeyboard1: <Keyboard>/t
-    mKeyboard2: 
-    mGamepad1: 
-    mGamepad2: 
   - mActionName: DropLeft
     mKeyboard1: <Keyboard>/leftArrow
     mKeyboard2: 

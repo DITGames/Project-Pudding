@@ -25,7 +25,7 @@ namespace PPCore
 
         [Label("コインの置き場")]
         [SerializeField] private PPCoinPool mPool;
-        // 準備するプッシャー一式。無効になっているもの（使わない設定の敵のプッシャーなど）は飛ばす
+        // 準備するプッシャー一式。無効になっているものは飛ばす
         [Label("プッシャー", true)]
         [SerializeField] private PPPusherField[] mFields = new PPPusherField[0];
         // 開始時のコインを並べてから、落ち着くまで待つ秒数

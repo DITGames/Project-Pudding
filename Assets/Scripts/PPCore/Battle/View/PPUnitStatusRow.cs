@@ -13,18 +13,16 @@ using UnityEngine.UI;
 
 namespace PPCore
 {
-    // 状態パネルの 1 行。ユニットのアイコン・HP・行動とスキルのゲージ・選択中のスキル・狙う相手を出す
+    // 状態パネルの 1 行。ユニットのアイコン・HP を出す
     public class PPUnitStatusRow : MonoBehaviour
     {
         /* インスペクタ設定 */
 
-        // HP・各ゲージ・選択中のスキル名を出す共通ウィジェット
+        // 名前と HP を出す共通ウィジェット
         [Label("ステータスウィジェット")]
         [SerializeField] private PPUnitStatusWidget mStatusWidget;
         [Label("ユニットのアイコン")]
         [SerializeField] private Image mUnitIcon;
-        [Label("狙う相手のアイコン")]
-        [SerializeField] private Image mTargetIcon;
         // 撃破されたユニットの行を薄くするために使う
         [Label("透明度")]
         [SerializeField] private CanvasGroup mCanvasGroup;
@@ -37,8 +35,6 @@ namespace PPCore
         private BattleUnit mBattleUnit;
         // ウィジェットへ渡した表示ソース。破棄時に購読を解除するため保持する
         private PPBattleUnitStatusSource mStatusSource;
-        // 狙う相手のアイコンを引く関数
-        private Func<BattleUnit, Sprite> mIconResolver;
 
         /* Unity イベント */
 
@@ -51,11 +47,10 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // 表示するユニットを設定し、値が変わるたびに狙う相手と撃破の表示を更新する
+        // 表示するユニットを設定し、値が変わるたびに撃破の表示を更新する
         public void Bind(BattleUnit aUnit, Func<BattleUnit, Sprite> aIconResolver)
         {
             mBattleUnit = aUnit;
-            mIconResolver = aIconResolver;
             var icon = aIconResolver?.Invoke(aUnit);
             mUnitIcon.sprite = icon;
             mUnitIcon.enabled = icon != null;
@@ -78,13 +73,9 @@ namespace PPCore
 
         /* 表示 */
 
-        // 狙う相手のアイコンを今の指定に合わせ、撃破されていれば行を薄くする
+        // 撃破されていれば行を薄くする
         private void Refresh()
         {
-            var target = (mBattleUnit as PPBattleUnit)?.DesignatedTarget;
-            var icon = target != null ? mIconResolver?.Invoke(target) : null;
-            mTargetIcon.sprite = icon;
-            mTargetIcon.gameObject.SetActive(icon != null);
             if (mCanvasGroup != null) mCanvasGroup.alpha = mBattleUnit.IsAlive ? 1f : mDefeatedAlpha;
         }
     }

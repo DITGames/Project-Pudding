@@ -37,15 +37,10 @@ namespace PPCore
         [Label("一緒に始めるユニット", true)]
         [SerializeField] private List<PPInitialPartyMember> mCompanions = new();
 
-        [Header("パーティ")]
-        [Label("コイン変換レート初期値")]
-        [SerializeField] private float mCoinConversionRate = 1f;
-
         /* プロパティ */
 
         public IReadOnlyList<PPInitialPartyMember> Candidates => mCandidates;
         public IReadOnlyList<PPInitialPartyMember> Companions => mCompanions;
-        public float CoinConversionRate => mCoinConversionRate;
 
         /* 問い合わせ */
 

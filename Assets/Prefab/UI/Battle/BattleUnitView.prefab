@@ -967,11 +967,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPBattle.PPUnitStatusWidget
   mHpFill: {fileID: 4353025486537914338}
-  mCoinFill: {fileID: 3399472456174382426}
-  mSkillFill: {fileID: 4359353759167463684}
   mNameLabel: {fileID: 1635080189377512667}
-  mSelectedSkillLabel: {fileID: 7929318376181736543}
-  mTargetLabel: {fileID: 1983950206725461721}
 --- !u!95 &6126246732921339340
 Animator:
   serializedVersion: 7

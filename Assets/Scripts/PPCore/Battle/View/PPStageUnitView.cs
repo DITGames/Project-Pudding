@@ -23,8 +23,6 @@ namespace PPCore
         [Label("絵の高さ")]
         [Min(0.1f)]
         [SerializeField] private float mSpriteHeight = 4f;
-        [Label("選ばれていないときの色")]
-        [SerializeField] private Color mDimColor = new(0.35f, 0.35f, 0.35f, 1f);
 
         [Header("動き")]
         [Label("待機の揺れ幅")]
@@ -56,7 +54,6 @@ namespace PPCore
         private float mFacing = 1f;
         // 絵の足元を立ち位置に合わせるための絵の位置
         private Vector3 mSpriteBasePosition;
-        private bool mIsDimmed;
         // 待機の揺れをユニットごとにずらすための位相
         private float mIdlePhase;
         // 各動きの経過時間。負なら再生していない
@@ -78,7 +75,7 @@ namespace PPCore
             if (cam != null) transform.rotation = cam.transform.rotation;
         }
 
-        // 各動きを進めて、絵の位置と色へ反映する。timeScale に従うので、コマンド入力中は止まる
+        // 各動きを進めて、絵の位置と色へ反映する。timeScale に従うので、メニューを開いている間は止まる
         private void Update()
         {
             if (mBattleUnit == null) return;
@@ -114,8 +111,7 @@ namespace PPCore
             }
 
             mSpriteRenderer.transform.localPosition = mSpriteBasePosition + offset;
-            var baseColor = mIsDimmed ? mDimColor : Color.white;
-            var color = baseColor * tint;
+            var color = Color.white * tint;
             color.a = alpha;
             mSpriteRenderer.color = color;
         }
@@ -152,9 +148,6 @@ namespace PPCore
         }
 
         /* 操作 */
-
-        // 選ばれていない表示(暗い色)にするかを切り替える
-        public void SetDimmed(bool aDimmed) => mIsDimmed = aDimmed;
 
         // 攻撃の動き(相手の方へ踏み込む)を再生する
         public void CommandExecuted(BattleCommandBase aCommand) => mAttackElapsed = 0f;

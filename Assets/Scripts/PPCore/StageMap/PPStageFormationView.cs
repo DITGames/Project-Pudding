@@ -44,7 +44,7 @@ namespace PPCore
         [SerializeField] private Image mSummaryIcon;
         [Label("名前")]
         [SerializeField] private TMP_Text mSummaryName;
-        // 属性とロール
+        // 属性
         [Label("情報")]
         [SerializeField] private TMP_Text mSummaryInfo;
         [Label("ステータス")]
@@ -186,7 +186,7 @@ namespace PPCore
                 mSummaryIcon.enabled = icon != null;
             }
             if (mSummaryName != null) mSummaryName.text = aUnit != null ? PPStageUnitDisplay.NameAndLevel(aUnit, aLevel) : string.Empty;
-            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPStageUnitDisplay.ColoredAttribute(aUnit)}属性   |   {PPStageUnitDisplay.RoleName(aUnit)}" : string.Empty;
+            if (mSummaryInfo != null) mSummaryInfo.text = aUnit != null ? $"{PPStageUnitDisplay.ColoredAttribute(aUnit)}属性" : string.Empty;
             if (mSummaryStats != null) mSummaryStats.text = aUnit != null ? PPStageUnitDisplay.StatsLine(aUnit, aLevel) : string.Empty;
         }
 

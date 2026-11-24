@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ダメージ計算を集約した静的ユーティリティ。通常攻撃・攻撃スキルの双方から呼ばれる
+    // ダメージ計算を集約した静的ユーティリティ。通常攻撃から呼ばれる
     // 属性の解決から命中・クリティカル・属性相性の適用までを CreateDamageInfo が一括で行う
     public static class PPDamageUtility
     {
@@ -22,12 +22,11 @@ namespace PPCore
             BattleUnit aSource,
             BattleUnit aTarget,
             float aRawAmount,
-            PPSkillCategory aCategory,
             PPTypeAttribute aAttribute,
             DamageReasonBase aReason,
             BattleContext aContext)
         {
-            var info = new PPDamageInfo(aSource, aTarget, aRawAmount, aCategory, aAttribute, aReason);
+            var info = new PPDamageInfo(aSource, aTarget, aRawAmount, aAttribute, aReason);
 
             var hit = aContext.ResolveHit(aSource, aTarget, info);
             if (hit.mResult == HitResult.Miss)
@@ -82,19 +81,7 @@ namespace PPCore
             return Mathf.RoundToInt(amount);
         }
 
-        // 攻撃スキルの基礎ダメージ量を求める。通常攻撃の式にスキルの威力を上乗せする
-        public static float ResolveAttackSkillDamage(BattleUnit aSource, BattleUnit aTarget, float aPower, PPSkillCategory aCategory)
-        {
-            // スキルのカテゴリごとに分ける(物理か特殊、その他はエラーで0を返す)
-            return aCategory switch
-            {
-                PPSkillCategory.Physical => Mathf.RoundToInt(Mathf.Max(1f, aSource.Parameters.Attack.CurrentValue * aPower - aTarget.Parameters.Defense.CurrentValue * 0.5f)),
-                PPSkillCategory.Special => Mathf.RoundToInt(Mathf.Max(1f, aSource.Parameters.Attack.CurrentValue * aPower - aTarget.Parameters.Defense.CurrentValue * 0.5f)),
-                _ => 0f
-            };
-        }
-
-        // 攻撃属性を解決する。無属性（Normal）のスキルは使用者自身の属性を継承する
+        // 攻撃属性を解決する。無属性（Normal）を指定したときは使用者自身の属性を継承する
         public static PPTypeAttribute ResolveAttribute(PPTypeAttribute aAttribute, BattleUnit aUnit)
         {
             if(aAttribute != PPTypeAttribute.Normal)
@@ -103,7 +90,7 @@ namespace PPCore
             return (aUnit as PPBattleUnit)?.TypeAttribute ?? PPTypeAttribute.Normal;
         }
 
-        // ユニットの属性をそのまま解決するヘルパー。通常攻撃のようにスキル側の属性指定が無いケースで使う
+        // ユニットの属性をそのまま解決するヘルパー。通常攻撃のように属性の指定が無いケースで使う
         public static PPTypeAttribute ResolveAttribute(BattleUnit aUnit)
         {
             return ResolveAttribute(PPTypeAttribute.Normal, aUnit);

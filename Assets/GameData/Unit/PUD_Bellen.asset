@@ -38,17 +38,9 @@ MonoBehaviour:
     Attack: 30
     Defense: 20
     Speed: 10
-  mSkills:
-  - {fileID: 11400000, guid: edc31c38c7d57374bad411b2c87b320f, type: 2}
-  - {fileID: 11400000, guid: e44c7944da388b0a3e79f511a1f5761d, type: 2}
   mExpandStatBlock:
-    AttackCost: 6
-    SkillGaugeMax: 100
-    CarryOverActions: 10
     Dexterity: 20
   mTypeAttribute: 3
-  mRole: 0
-  mBehaviourTree: {fileID: 11400000, guid: 799d1e84538344eb8ffaaf9eef22c5ed, type: 2}
   mDifficultyPoint: 10
   mHpGrowth:
     serializedVersion: 2

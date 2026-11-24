@@ -152,7 +152,7 @@ namespace PPCore
         private void HandleUnitPicked(PPInitialPartyMember aPicked)
         {
             var definition = mUnitSelect.Definition;
-            PPStageStartSelection.Current.SetInitialUnits(definition.CreateUnits(aPicked), definition.CoinConversionRate);
+            PPStageStartSelection.Current.SetInitialUnits(definition.CreateUnits(aPicked));
             if (mStageSelect == null || !OpenStageSelect()) LoadNewGameScene();
         }
 

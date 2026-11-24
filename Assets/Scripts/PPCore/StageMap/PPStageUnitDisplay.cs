@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ユニットの属性・ロール・ステータスを、ステージマップの画面に出す文字と色へ変える
+    // ユニットの属性・ステータスを、ステージマップの画面に出す文字と色へ変える
     public static class PPStageUnitDisplay
     {
         /* 問い合わせ */
@@ -39,8 +39,6 @@ namespace PPCore
         // 属性名を属性の色で囲んだリッチテキスト
         public static string ColoredAttribute(PPUnitDefinition aUnit)
             => $"<color={AttributeColorCode(aUnit.TypeAttribute)}>{AttributeName(aUnit.TypeAttribute)}</color>";
-
-        public static string RoleName(PPUnitDefinition aUnit) => PPUnitRoleDefinition.ToDisplayString(aUnit.Role);
 
         public static string NameAndLevel(PPUnitDefinition aUnit, int aLevel) => $"{aUnit.DisplayName}  Lv{aLevel}";
 

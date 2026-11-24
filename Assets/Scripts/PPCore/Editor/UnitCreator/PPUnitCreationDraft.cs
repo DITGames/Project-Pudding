@@ -18,21 +18,6 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ユニットへビヘイビアツリーをどう割り当てるか
-    // 値は下書きへ数値のまま保存されるため、明示的に振る
-    public enum PPUnitTreeAssignMode
-    {
-        // 個別ツリーを持たせない。ロール既定 → 全体既定 の順に解決したツリーで動く
-        [InspectorName("個別ツリーなし")]
-        None = 0,
-        // 既存のツリーアセットを選んで割り当てる
-        [InspectorName("既存を選ぶ")]
-        Existing = 1,
-        // 雛形（優先度リスト＋末尾に通常攻撃）から PUBT_<ユニットID>.asset を新規作成して割り当てる
-        [InspectorName("雛形から新規")]
-        Template = 2,
-    }
-
     public sealed class PPUnitCreationDraft : ScriptableObject
     {
         /* 定数 */
@@ -59,11 +44,8 @@ namespace PPCore
         [Label("最大レベル")][SerializeField] private int mMaxLevel = 50;
         [Label("表示レベル")][SerializeField] private int mPreviewLevel = 25;
         [Label("軸基準値")][SerializeField] private float[] mScales = (float[])PPUnitCreationSettings.DefaultScales.Clone();
-        [Label("ビヘイビアツリーの割り当て")][SerializeField] private PPUnitTreeAssignMode mTreeMode;
-        [Label("新規スキル")][SerializeField] private List<PPSkillDefinition> mNewSkills = new();
         [Label("ユニットカタログ")][SerializeField] private PPUnitCatalog mUnitCatalog;
         [Label("ビジュアルカタログ")][SerializeField] private PPUnitVisualCatalog mVisualCatalog;
-        [Label("スキルカタログ")][SerializeField] private PPSkillCatalog mSkillCatalog;
         [Label("生成要求ID")][SerializeField] private string mRequestId;
         [Label("生成時の更新番号")][SerializeField] private int mCreatedRevision = -1;
         [Label("生成結果")][SerializeField] private string[] mCreatedPaths = Array.Empty<string>();
@@ -102,13 +84,8 @@ namespace PPCore
             }
         }
 
-        public PPUnitTreeAssignMode TreeMode { get => mTreeMode; set => mTreeMode = value; }
-        // 生成・保存のときに雛形からツリーを新規作成するか
-        public bool IsNewTree => mTreeMode == PPUnitTreeAssignMode.Template;
-        public List<PPSkillDefinition> NewSkills => mNewSkills;
         public PPUnitCatalog UnitCatalog { get => mUnitCatalog; set => mUnitCatalog = value; }
         public PPUnitVisualCatalog VisualCatalog { get => mVisualCatalog; set => mVisualCatalog = value; }
-        public PPSkillCatalog SkillCatalog { get => mSkillCatalog; set => mSkillCatalog = value; }
         public string RequestId => mRequestId;
         public int CreatedRevision => mCreatedRevision;
         public string[] CreatedPaths => mCreatedPaths;
@@ -141,8 +118,6 @@ namespace PPCore
             so.FindProperty("mBaseStatBlock.Attack").floatValue = 10;
             so.FindProperty("mBaseStatBlock.Defense").floatValue = 10;
             so.FindProperty("mBaseStatBlock.Speed").floatValue = 10;
-            so.FindProperty("mExpandStatBlock.SkillGaugeMax").floatValue = 100;
-            so.FindProperty("mExpandStatBlock.CarryOverActions").intValue = PPStatBlock.DefaultCarryOverActions;
             so.FindProperty("mExpandStatBlock.Dexterity").floatValue = PPStatBlock.DefaultDexterity;
             so.ApplyModifiedPropertiesWithoutUndo();
             return draft;
@@ -160,7 +135,6 @@ namespace PPCore
             draft.mDraftId = Guid.NewGuid().ToString("N");
             draft.mUnit = Instantiate(aSource);
             draft.mUnit.name = aSource.name;
-            draft.mTreeMode = aSource.BehaviourTree != null ? PPUnitTreeAssignMode.Existing : PPUnitTreeAssignMode.None;
             draft.mSource = aSource;
             draft.mSourceGuid = AssetDatabase.AssetPathToGUID(path);
             draft.mSourceHash = HashOf(aSource);
@@ -212,34 +186,14 @@ namespace PPCore
         {
             var copy = Instantiate(this);
             copy.mUnit = Instantiate(Unit);
-            copy.mNewSkills = new List<PPSkillDefinition>();
-            foreach (var skill in mNewSkills)
-            {
-                var cloned = Instantiate(skill);
-                copy.mNewSkills.Add(cloned);
-                for (var i = 0; i < copy.Unit.Skills.Count; i++)
-                    if (copy.Unit.Skills[i] == skill) copy.Unit.Skills[i] = cloned;
-            }
             return copy;
         }
 
         /* 操作 */
 
-        // 編集モードの保存後に、下書きを保存済みの状態へそろえる。新規スキル・新規ツリーは作成したアセットの参照に置き換え、
-        // ハッシュを取り直して続けて編集・再保存できるようにする
-        public void RecordSave(string aRequestId, int aRevision, string[] aPaths, PPUnitVisualDefinition aVisual, PPUnitBehaviourTree aTree, Dictionary<PPSkillDefinition, PPSkillDefinition> aSkills)
+        // 編集モードの保存後に、下書きを保存済みの状態へそろえる。ハッシュを取り直して続けて編集・再保存できるようにする
+        public void RecordSave(string aRequestId, int aRevision, string[] aPaths, PPUnitVisualDefinition aVisual)
         {
-            for (var i = 0; i < Unit.Skills.Count; i++)
-                if (Unit.Skills[i] is PPSkillDefinition skill && aSkills.TryGetValue(skill, out var saved)) Unit.Skills[i] = saved;
-            foreach (var skill in mNewSkills) if (skill != null) DestroyImmediate(skill);
-            mNewSkills.Clear();
-            if (aTree != null)
-            {
-                var so = new SerializedObject(Unit);
-                so.FindProperty("mBehaviourTree").objectReferenceValue = aTree;
-                so.ApplyModifiedPropertiesWithoutUndo();
-                mTreeMode = PPUnitTreeAssignMode.Existing;
-            }
             mSourceVisual = aVisual;
             mSourceHash = HashOf(mSource);
             mSourceVisualHash = HashOf(aVisual);
@@ -320,16 +274,6 @@ namespace PPCore
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        // 新規スキルだけを下書きの所有物として追加する
-        public PPSkillDefinition AddNewSkill()
-        {
-            var skill = CreateInstance<PPSkillDefinition>();
-            skill.name = "新規スキル";
-            mNewSkills.Add(skill);
-            Unit.Skills.Add(skill);
-            return skill;
-        }
-
         /* 問い合わせ */
 
         public AnimationCurve GetCurve(int aIndex) => new SerializedObject(Unit).FindProperty(CurveFields[aIndex]).animationCurveValue;
@@ -360,7 +304,6 @@ namespace PPCore
         {
             Directory.CreateDirectory(DirectoryPath);
             var objects = new List<UnityEngine.Object> { aDraft, aDraft.Unit };
-            objects.AddRange(aDraft.NewSkills.Where(aSkill => aSkill != null));
             var path = GetPath(aDraft.DraftId);
             var temporary = path + ".tmp";
             InternalEditorUtility.SaveToSerializedFileAndForget(objects.ToArray(), temporary, true);
@@ -368,7 +311,6 @@ namespace PPCore
             else File.Move(temporary, path);
             if (mLoaded.TryGetValue(aDraft.DraftId, out var previous) && previous != null && previous != aDraft)
             {
-                foreach (var skill in previous.NewSkills) if (skill != null) UnityEngine.Object.DestroyImmediate(skill);
                 if (previous.Unit != null) UnityEngine.Object.DestroyImmediate(previous.Unit);
                 UnityEngine.Object.DestroyImmediate(previous);
             }

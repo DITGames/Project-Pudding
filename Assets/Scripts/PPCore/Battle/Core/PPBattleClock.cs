@@ -12,7 +12,7 @@ using CustomConsole;
 
 namespace PPCore
 {
-    // バトル専用の時計。停止中は進まず、クールタイムや状態異常など秒で決まる処理の基準になる
+    // バトル専用の時計。停止中は進まず、状態異常など秒で決まる処理の基準になる
     public sealed class PPBattleClock
     {
         /* 状態 */
@@ -76,6 +76,8 @@ namespace PPCore
 
         // 1 回の進行で発火できる上限。遅延 0 の予約を繰り返す処理で固まらないための歯止め
         private const int MaxFiresPerAdvance = 1000;
+        // 発火時刻の比較に使う許容誤差。秒の加算を繰り返した誤差で、ちょうどの時刻の発火が次の進行へずれないようにする
+        private const float CompareEpsilon = 0.0001f;
 
         /* 状態 */
 
@@ -134,7 +136,7 @@ namespace PPCore
         public void AdvanceTo(float aNow)
         {
             int fired = 0;
-            while (mTimers.Count > 0 && mTimers[0].DueTime <= aNow + PPGaugeUtility.CompareEpsilon)
+            while (mTimers.Count > 0 && mTimers[0].DueTime <= aNow + CompareEpsilon)
             {
                 if (++fired > MaxFiresPerAdvance)
                 {

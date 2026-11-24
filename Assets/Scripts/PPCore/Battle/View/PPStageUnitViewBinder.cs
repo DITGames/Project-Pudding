@@ -14,7 +14,6 @@ using UnityEngine;
 namespace PPCore
 {
     // ステージの立ち位置にユニットの表示を並べ、BattleManager のイベントを該当する表示の動きへ振り分ける
-    // 入力中は、選んでいるユニット以外を暗くして目立たせる
     public class PPStageUnitViewBinder : MonoBehaviour
     {
         /* インスペクタ設定 */
@@ -28,7 +27,7 @@ namespace PPCore
         [SerializeField] private Transform[] mEnemyStandPoints = new Transform[0];
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
-        // 画面端に味方の HP・ゲージ・選択中のスキル・狙う相手をまとめて出す。未設定なら出さない
+        // 画面端に味方の HP をまとめて出す。未設定なら出さない
         [Label("味方の状態パネル")]
         [SerializeField] private PPPartyStatusPanel mAllyStatusPanel;
         [Label("敵の状態パネル")]
@@ -77,20 +76,6 @@ namespace PPCore
                 mViews.Add(unit, view);
                 index++;
             }
-        }
-
-        /* 操作 */
-
-        // 指定したユニットだけを元の色にし、ほかを暗くする。null なら全員を暗くする
-        public void SetFocus(BattleUnit aFocused)
-        {
-            foreach (var pair in mViews) pair.Value.SetDimmed(pair.Key != aFocused);
-        }
-
-        // 全員を元の色に戻す
-        public void ClearFocus()
-        {
-            foreach (var view in mViews.Values) view.SetDimmed(false);
         }
 
         /* 問い合わせ */

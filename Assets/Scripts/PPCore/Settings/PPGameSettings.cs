@@ -3,7 +3,7 @@
  * @file PPGameSettings.cs
  * @author hqrse
  * @date 2026/11/23
- * @brief 設定画面で変えるゲームとサウンドの設定の保存
+ * @brief 設定画面で変えるサウンドの設定の保存
  * =====================================*/
 
 using System;
@@ -19,7 +19,7 @@ namespace PPCore
         Se = 2,
     }
 
-    // 設定画面で変えるゲームとサウンドの設定。PlayerPrefs に保存し、最初に読んだときに読み込む
+    // 設定画面で変えるサウンドの設定。PlayerPrefs に保存し、最初に読んだときに読み込む
     // 全体の音量は AudioListener の音量へ反映する。BGM と SE は音を鳴らす仕組みができたらそちらで使う
     public static class PPGameSettings
     {
@@ -27,14 +27,11 @@ namespace PPCore
 
         public const int VolumeMax = 10;
         public const int DefaultVolume = 8;
-        private const string AIStyleKey = "PP.Settings.AIStyle";
         private const string VolumeKeyPrefix = "PP.Settings.Volume.";
 
         /* 状態 */
 
         private static bool sIsLoaded;
-        // オートの AI モード。保存していなければ null(PPRuntimeSettings の既定を使う)
-        private static PPCoinDropStyle? sAIStyle;
         private static readonly int[] sVolumes = new int[3];
 
         /* イベント */
@@ -43,13 +40,6 @@ namespace PPCore
         public static event Action OnChanged;
 
         /* 問い合わせ */
-
-        // オートの AI モード。保存していなければ aDefault
-        public static PPCoinDropStyle GetAIStyle(PPCoinDropStyle aDefault)
-        {
-            EnsureLoaded();
-            return sAIStyle ?? aDefault;
-        }
 
         // 0〜VolumeMax
         public static int GetVolume(PPVolumeKind aKind)
@@ -60,16 +50,6 @@ namespace PPCore
 
         /* 操作 */
 
-        public static void SetAIStyle(PPCoinDropStyle aStyle)
-        {
-            EnsureLoaded();
-            if (sAIStyle == aStyle) return;
-            sAIStyle = aStyle;
-            PlayerPrefs.SetInt(AIStyleKey, (int)aStyle);
-            PlayerPrefs.Save();
-            OnChanged?.Invoke();
-        }
-
         public static void SetVolume(PPVolumeKind aKind, int aVolume)
         {
             EnsureLoaded();
@@ -79,16 +59,6 @@ namespace PPCore
             PlayerPrefs.SetInt(VolumeKeyPrefix + aKind, volume);
             PlayerPrefs.Save();
             ApplyVolume();
-            OnChanged?.Invoke();
-        }
-
-        // ゲームの設定を既定に戻す。AI モードは保存を消し、PPRuntimeSettings の既定に戻す
-        public static void ResetGame()
-        {
-            EnsureLoaded();
-            sAIStyle = null;
-            PlayerPrefs.DeleteKey(AIStyleKey);
-            PlayerPrefs.Save();
             OnChanged?.Invoke();
         }
 
@@ -111,7 +81,6 @@ namespace PPCore
         {
             if (sIsLoaded) return;
             sIsLoaded = true;
-            sAIStyle = PlayerPrefs.HasKey(AIStyleKey) ? (PPCoinDropStyle)PlayerPrefs.GetInt(AIStyleKey) : null;
             foreach (PPVolumeKind kind in Enum.GetValues(typeof(PPVolumeKind)))
             {
                 sVolumes[(int)kind] = Mathf.Clamp(PlayerPrefs.GetInt(VolumeKeyPrefix + kind, DefaultVolume), 0, VolumeMax);

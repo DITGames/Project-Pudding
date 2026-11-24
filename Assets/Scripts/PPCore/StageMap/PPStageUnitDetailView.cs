@@ -6,7 +6,6 @@
  * @brief ステージマップのユニット詳細画面
  * =====================================*/
 
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -15,15 +14,10 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // ユニットのアイコン・名前・レベル・属性・ロール・ステータス・スキルを出す画面
+    // ユニットのアイコン・名前・レベル・属性・ステータスを出す画面
     // 編成画面と仲間選択画面から開き、詳細の入力かキャンセルで閉じる
     public class PPStageUnitDetailView : MonoBehaviour
     {
-        /* 定数 */
-
-        // 消費ゲージの無いスキルに出す文字
-        private const string FreeCostText = "消費なし";
-
         /* インスペクタ設定 */
 
         [Header("入力")]
@@ -39,7 +33,7 @@ namespace PPCore
         [SerializeField] private Image mIcon;
         [Label("名前")]
         [SerializeField] private TMP_Text mName;
-        // レベル・属性・ロール
+        // レベル・属性
         [Label("情報")]
         [SerializeField] private TMP_Text mInfo;
         // ステータスの名前を縦に並べる文字。右の数値と行をそろえる
@@ -47,17 +41,9 @@ namespace PPCore
         [SerializeField] private TMP_Text mStatNames;
         [Label("ステータスの数値")]
         [SerializeField] private TMP_Text mStatValues;
-        [Label("スキルを並べる場所")]
-        [SerializeField] private RectTransform mSkillContainer;
-        [Label("スキルの行のプレハブ")]
-        [SerializeField] private PPStageSkillRow mSkillRowPrefab;
-        // スキルが 1 つも無いときに出す文字。未設定なら出さない
-        [Label("スキルが無いときの文字")]
-        [SerializeField] private TMP_Text mNoSkillText;
 
         /* 状態 */
 
-        private readonly List<PPStageSkillRow> mSkillRows = new();
         private int mOpenedFrame = -1;
 
         /* プロパティ */
@@ -121,7 +107,7 @@ namespace PPCore
                 mIcon.enabled = icon != null;
             }
             if (mName != null) mName.text = aUnit.DisplayName;
-            if (mInfo != null) mInfo.text = $"Lv {aLevel}   |   {PPStageUnitDisplay.ColoredAttribute(aUnit)}   |   {PPStageUnitDisplay.RoleName(aUnit)}";
+            if (mInfo != null) mInfo.text = $"Lv {aLevel}   |   {PPStageUnitDisplay.ColoredAttribute(aUnit)}";
 
             var stats = aUnit.EvaluateStats(aLevel);
             if (mStatNames != null)
@@ -133,31 +119,6 @@ namespace PPCore
             {
                 mStatValues.text = $"{stats.MaxHP:0}\n{stats.Attack:0}\n{stats.Defense:0}\n{stats.Speed:0}\n{aUnit.EvaluateDexterity(aLevel):0}";
             }
-            ShowSkills(aUnit);
         }
-
-        // スキルの行を、ユニットの持つスキルの数にそろえて書き直す
-        private void ShowSkills(PPUnitDefinition aUnit)
-        {
-            var skills = new List<SkillDefinition>();
-            foreach (var skill in aUnit.Skills)
-            {
-                if (skill != null) skills.Add(skill);
-            }
-
-            while (mSkillRows.Count < skills.Count) mSkillRows.Add(Instantiate(mSkillRowPrefab, mSkillContainer));
-            for (int i = 0; i < mSkillRows.Count; i++)
-            {
-                bool isUsed = i < skills.Count;
-                mSkillRows[i].gameObject.SetActive(isUsed);
-                if (isUsed) mSkillRows[i].Set(skills[i].DisplayName, skills[i].Description, FormatCost(skills[i]));
-            }
-            if (mNoSkillText != null) mNoSkillText.gameObject.SetActive(skills.Count == 0);
-        }
-
-        /* ヘルパー */
-
-        private static string FormatCost(SkillDefinition aSkill)
-            => aSkill is PPSkillDefinition ppSkill && !ppSkill.IsFreeCost ? $"ゲージ {ppSkill.SkillGaugeCost:0}" : FreeCostText;
     }
 }

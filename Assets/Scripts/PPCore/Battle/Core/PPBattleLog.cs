@@ -107,7 +107,7 @@ namespace PPCore
         }
     }
 
-    // BattleManager / BattleContext の各種イベントをまとめて購読するヘルパー
+    // BattleManager の各種イベントをまとめて購読するヘルパー
     // バトル組み立て時（StartBattle前後）に1度だけ呼び出す
     public static class PPBattleLogBinder
     {
@@ -117,23 +117,20 @@ namespace PPCore
 
         /* 初期化・接続 */
 
-        // BattleManager.Logger の差し込みと、ダメージ発生源・キャスト失敗の購読をまとめて行う
-        public static void Bind(BattleManager aManager, BattleContext aContext)
+        // BattleManager.Logger の差し込みと、ダメージ発生源の購読をまとめて行う
+        public static void Bind(BattleManager aManager)
         {
             aManager.Logger = new PPBattleCustomConsoleLogger();
             aManager.OnDamageResolved += HandleDamageResolved;
-            aContext.OnCastFailed += HandleCastFailed;
         }
 
         /* 問い合わせ */
 
         // ダメージ理由を解決できる場合だけ文字列を返す。解決できなければ null
-        // スキル由来のダメージは発生元コマンドも持つため、通常攻撃の判定より先にスキルを見る
         private static string ResolveDamageReason(DamageReasonBase aReason) => aReason switch
         {
-            AttackDamageReason { Skill: PPSkillDefinition skill } => skill.DisplayName,
             StatusEffectDamageReason { Effect: { } effect } => effect.DisplayName,
-            AttackDamageReason { Command: IPPBattleCommand } => "通常攻撃",
+            AttackDamageReason { Command: PPAttackCommand } => "通常攻撃",
             _ => null,
         };
 
@@ -151,13 +148,6 @@ namespace PPCore
 
             CustomConsoleLog.Log(BattleTag,
                 $"{aInfo.Target?.DisplayName} took {aInfo.Amount} damage{reasonPart}.");
-        }
-
-        // スキル発動失敗時に理由付きでログを出す
-        private static void HandleCastFailed(BattleUnit aUnit, BattleSkill aSkill, CastFailReason aReason)
-        {
-            CustomConsoleLog.Warning(BattleTag,
-                $"{aUnit?.DisplayName}の{aSkill?.DisplayName}発動失敗: {aReason}");
         }
     }
 }

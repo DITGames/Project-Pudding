@@ -47,7 +47,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitView
   mSpriteRenderer: {fileID: 1373684991415195071}
   mSpriteHeight: 3.2
-  mDimColor: {r: 0.35, g: 0.35, b: 0.35, a: 1}
   mIdleBobHeight: 0.08
   mIdleBobSpeed: 2.5
   mAttackLunge: 0.8

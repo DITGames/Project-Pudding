@@ -17,9 +17,9 @@ namespace PPCore
     // キー設定の操作の分類。同じキーを使えないのは同じ分類の中だけで、分類が違えば同じキーを割り当てられる
     public enum PPRebindCategory
     {
-        // メニューやコマンド選択などの画面の操作
+        // メニューなどの画面の操作
         UI = 0,
-        // バトル中のプッシャーやオートバトルなどの操作
+        // バトル中のプッシャーなどの操作
         Game = 1,
     }
 
@@ -85,9 +85,6 @@ namespace PPCore
         {
             new("Submit", "決定", PPRebindCategory.UI),
             new("Cancel", "キャンセル", PPRebindCategory.UI),
-            new("OpenCommand", "コマンドを開く", PPRebindCategory.Game),
-            new("AutoBattle", "オートバトル", PPRebindCategory.Game),
-            new("SwitchAIMode", "AIモード切り替え", PPRebindCategory.Game),
             new("DropLeft", "投入位置を左へ", PPRebindCategory.Game),
             new("DropRight", "投入位置を右へ", PPRebindCategory.Game),
             new("Drop", "コインを投入", PPRebindCategory.Game),

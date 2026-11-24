@@ -12,7 +12,7 @@ using AttributeUtility;
 
 namespace PPCore
 {
-    // デバッグバトルの片方のパーティ。配置ごとのユニットとレベル、コイン変換レートを持つ
+    // デバッグバトルの片方のパーティ。配置ごとのユニットとレベルを持つ
     [Serializable]
     public sealed class PPDebugBattleParty
     {
@@ -22,13 +22,6 @@ namespace PPCore
         [Label("中央")] [SerializeField] private PPPartyMemberEntry mCenter = new();
         [Label("右")] [SerializeField] private PPPartyMemberEntry mRight = new();
         [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
-        [Label("コイン変換レート初期値")] [SerializeField] private float mCoinConversionRate = 1f;
-        // 敵のときに敵のプッシャーへ投入する AI。味方では使わない(オートバトル中はプレイヤーの既定を使う)
-        [Label("コイン投入 AI")] [SerializeField] private PPCoinDropAISetting mCoinDropAI = new();
-
-        /* プロパティ */
-
-        public PPCoinDropAISetting CoinDropAI => mCoinDropAI;
 
         /* 問い合わせ */
 
@@ -39,7 +32,7 @@ namespace PPCore
             _ => mCenter,
         };
 
-        public PPBattleParty Create(BattleSide aSide) => PPPartyFactory.CreateFromMembers(GetMember, mCoinConversionRate, aSide);
+        public PPBattleParty Create(BattleSide aSide) => PPPartyFactory.CreateFromMembers(GetMember, aSide);
     }
 
     // Editor のデバッグバトルで S_Battle を始めるときの設定。バトル周りの設定項目はここへ足していく

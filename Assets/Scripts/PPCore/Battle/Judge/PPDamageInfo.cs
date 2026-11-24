@@ -37,7 +37,7 @@ namespace PPCore
         public BattleUnit Target { get; }
         // ダメージ量。適用前の介入で書き換えられる
         public float Amount { get; set; }
-        // 何によって発生したダメージか。発生源（コマンド・スキル定義・エフェクトなど）も派生クラスが持つ
+        // 何によって発生したダメージか。発生源（コマンド・エフェクトなど）も派生クラスが持つ
         // 生成時に決まり、リアクション中に発生しても書き換えない。null にはならない
         public DamageReasonBase Reason { get; }
         // リアクション（反撃など）として発生したダメージなら、その深さと発生元。null ならリアクションではない
@@ -73,20 +73,16 @@ namespace PPCore
     {
     }
 
-    // 通常攻撃・攻撃スキルなど、攻撃行動によるダメージ
+    // 通常攻撃など、攻撃行動によるダメージ
     public class AttackDamageReason : DamageReasonBase
     {
         // 発生元のコマンド。コマンド外から発生した場合など、不明なら null
         public BattleCommandBase Command { get; }
-        // 発生元のスキル定義。通常攻撃なら null
-        public SkillDefinition Skill { get; }
 
         // aCommand : 発生元のコマンド。不明なら null
-        // aSkill : 発生元のスキル定義。通常攻撃なら null
-        public AttackDamageReason(BattleCommandBase aCommand, SkillDefinition aSkill = null)
+        public AttackDamageReason(BattleCommandBase aCommand)
         {
             Command = aCommand;
-            Skill = aSkill;
         }
     }
 
@@ -140,14 +136,12 @@ namespace PPCore
             };
     }
 
-    // 属性とスキル種別を持たせたダメージ情報
+    // 属性を持たせたダメージ情報
     // 弱点／耐性フラグは演出側がダメージ表示を出し分けるために使う
     public class PPDamageInfo : DamageInfo
     {
         /* 状態 */
 
-        // スキル種別
-        public PPSkillCategory Category { get; set; }
         // 攻撃属性。相性判定の攻撃側として使われる
         public PPTypeAttribute Attribute { get; set; }
         // 弱点を突いたか。相性判定の結果として設定される
@@ -157,11 +151,10 @@ namespace PPCore
 
         /* 生成 */
 
-        public PPDamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount, PPSkillCategory aCategory,
+        public PPDamageInfo(BattleUnit aSource, BattleUnit aTarget, float aAmount,
             PPTypeAttribute aAttribute, DamageReasonBase aReason)
             : base(aSource, aTarget, aAmount, aReason)
         {
-            Category = aCategory;
             Attribute = aAttribute;
         }
     }
