@@ -588,7 +588,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e2d33eda837351a48974cfa655523864, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitDetailView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitDetailView
 --- !u!1 &1383366973
 GameObject:
   m_ObjectHideFlags: 0
@@ -963,7 +963,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3a60ebbe1a1b5484bbea63ec1b66efe6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageSelectView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapSelectView
 --- !u!1 &133039986227893816
 GameObject:
   m_ObjectHideFlags: 0
@@ -1557,7 +1557,7 @@ MonoBehaviour:
   mConfigMenu: {fileID: 365705444}
   mUnitSelect: {fileID: 1456249245}
   mStageSelect: {fileID: 1509363790}
-  mNewGameSceneName: S_StageMap
+  mNewGameSceneName: S_Map
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

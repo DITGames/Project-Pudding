@@ -41,7 +41,7 @@ namespace PPCore
         // Build Profiles に登録したシーンの名前
         [Header("シーン")]
         [Label("ユニットとステージを選んだ後に開くシーン名")]
-        [SerializeField] private string mNewGameSceneName = "S_StageMap";
+        [SerializeField] private string mNewGameSceneName = "S_Map";
 
         /* 状態 */
 
