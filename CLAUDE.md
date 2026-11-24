@@ -124,7 +124,7 @@ PPCore/
 
 - `PPPusherPlate` … 押し出し板。奥の台の下から手前へ出入りして、床のコインを押し出す
 - `PPPusherDropZone` … 落下検出。床の端を越えたコインを拾って通知する。通知しない設定のものは、台の外へ出たものを消すだけ
-- `PPCoinDispenser` … コインの投入。左右の矢印キーでカーソルを動かして落とす。所持コインは一定時間ごとに上限まで回復する（落ちたコインは戻らない）
+- `PPCoinDispenser` … コインの投入。狙いの左右（既定はキーボードが A/D と左右の矢印、パッドが十字キーの左右と左スティック）でカーソルを動かして落とす。所持コインは一定時間ごとに上限まで回復する（落ちたコインは戻らない）
 - `PPCoinPool` … コインの置き場（シーンに 1 つ）。読み込み時に既定 2000 枚を非表示で作り、表示を切り替えて使い回す。足りなければ追加で作る
 - `PPPusherField` / `PPPusherLoader` … 読み込みの流れ。`PPBattleRunner` が `PPPusherLoader` の読み込み（ロード画面・置き場の生成・開始時のコインの配置）を待ってからバトルを組み立て、最後に各 `PPPusherField` を開始する（落下口のストッパーを外し、押し出し板・投入・回復を動かす）
 
@@ -132,6 +132,7 @@ PPCore/
 
 - バトル中のメニューは `PPBattlePauseMenuView`。開いている間はバトル専用の時計（`BattleContext.Clock`）を止める。設定画面は `PPInputConfigMenuView`（サウンド・キー設定のタブ）
 - キー設定で変えられる操作と既定の割り当ては `PPInputBindingStore` / `PPDefaultKeyConfigDefinition` が持つ
+- マップでは、編成画面を Tab / パッドの North で開閉する（入力アクション Battle マップの `OpenFormation`。キー設定の対象外）。Esc / Start のメニューには編成を載せない
 - バトル画面は画面の上側に出す。`PPBattleField`（1 本道。左端が味方拠点、右端が敵拠点）を `PPBattleCameraController` が真横から遠近なしで映し、右クリックドラッグ・右スティック左右で横スクロール、ホイール・右スティック上下でズームする（割り当ては固定でキー設定の対象外）。プッシャーのカメラは画面全体を映したまま動かさず、その上側にバトル画面を重ねる
 - 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPStageResultView` で、ステージを通さずに Play したときも出す
 - View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付ける。重なったときの前後は `PPUnitVisualDefinition` のレイヤー優先度と出た順で決まる

@@ -67,7 +67,7 @@ MonoBehaviour:
       m_Calls: []
   m_text: "\u2190\u2192\u2191\u2193\uFF1A\u9078\u629E\u3000\u3000\u6C7A\u5B9A\uFF1A\u914D\u7F6E
     / \u5165\u308C\u66FF\u3048\u3000\u3000X\uFF1A\u8A73\u7D30\u3000\u3000\u30AD\u30E3\u30F3\u30BB\u30EB\uFF1A\u623B\u308B
-    / \u9589\u3058\u308B"
+    / \u9589\u3058\u308B\u3000\u3000Tab / Y\uFF1A\u9589\u3058\u308B"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 237988ce1ecea544dbe79397274c6ba6, type: 2}
   m_sharedMaterial: {fileID: -4353124935764758761, guid: 237988ce1ecea544dbe79397274c6ba6, type: 2}

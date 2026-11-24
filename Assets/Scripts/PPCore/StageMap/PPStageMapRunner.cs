@@ -48,13 +48,6 @@ namespace PPCore
         [Label("お知らせ")]
         [SerializeField] private TMP_Text mMessageText;
 
-        // 今の編成を、中央・右・左の順に出す札
-        [Header("パーティ")]
-        [Label("配置の札", true)]
-        [SerializeField] private PPStageUnitCard[] mPartyCards = new PPStageUnitCard[0];
-        [Label("ユニットの見た目カタログ")]
-        [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
-
         // キーボードやゲームパッドで選んでいるマスの種類と中身。未設定なら出さない
         [Header("選択中のマス")]
         [Label("見出し")]
@@ -70,6 +63,9 @@ namespace PPCore
         [SerializeField] private InputActionReference mSubmitAction;
         [Label("メニューを開く入力")]
         [SerializeField] private InputActionReference mMenuAction;
+        // 編成画面を開く。開いている間にもう一度押すと閉じる
+        [Label("編成を開く入力")]
+        [SerializeField] private InputActionReference mFormationAction;
 
         /* 状態 */
 
@@ -104,7 +100,7 @@ namespace PPCore
                 progress = PPStageProgress.Begin(mDefinition, mDefinition.ResolveSeed());
             }
 
-            foreach (var action in new[] { mNavigateAction, mSubmitAction, mMenuAction })
+            foreach (var action in new[] { mNavigateAction, mSubmitAction, mMenuAction, mFormationAction })
             {
                 if (action != null) action.action.Enable();
             }
@@ -121,8 +117,14 @@ namespace PPCore
         }
 
         // メニューや画面を開いている間と、それらを閉じたフレームはマップの入力を受け付けない
+        // 編成画面だけは、開いた入力をもう一度押しても閉じられるようにする
         void Update()
         {
+            if (mFormationView.IsOpen && WasPressed(mFormationAction))
+            {
+                mFormationView.Close();
+                return;
+            }
             if (IsBusy || IsClosedThisFrame()) return;
 
             int navigate = ReadNavigate();
@@ -130,7 +132,8 @@ namespace PPCore
             mLastNavigate = navigate;
 
             if (WasPressed(mSubmitAction) && mFocused != null) SelectNode(mFocused);
-            else if (WasPressed(mMenuAction)) mMenuView.Open(OpenFormation);
+            else if (WasPressed(mFormationAction)) OpenFormation();
+            else if (WasPressed(mMenuAction)) mMenuView.Open();
         }
 
         /* 操作 */
@@ -230,29 +233,11 @@ namespace PPCore
 
         /* 表示 */
 
-        // マップの状態に合わせて、マス・パーティ・選択中のマスの表示を書き直す
+        // マップの状態に合わせて、マスと選択中のマスの表示を書き直す
         private void RefreshMap()
         {
             mMapView.Refresh(PPStageProgress.Current, IsSelectable, mFocused);
-            RefreshParty();
             RefreshNodeInfo();
-        }
-
-        private void RefreshParty()
-        {
-            var progress = PPStageProgress.Current;
-            for (int i = 0; i < mPartyCards.Length; i++)
-            {
-                if (mPartyCards[i] == null) continue;
-                var owned = progress.GetMember(i);
-                if (owned == null)
-                {
-                    mPartyCards[i].SetUnit(null, "（空き）", null);
-                    continue;
-                }
-                mPartyCards[i].SetUnit(PPStageUnitDisplay.ResolveIcon(mUnitVisualCatalog, owned.Unit),
-                    PPStageUnitDisplay.NameAndLevel(owned.Unit, owned.Level), $"{PPStageUnitDisplay.ColoredAttribute(owned.Unit)}属性");
-            }
         }
 
         // 選んでいるマスの種類と、そのマスで起きることを出す。バトルのマスでも敵の中身は見せない

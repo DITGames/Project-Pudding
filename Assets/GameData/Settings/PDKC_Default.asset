@@ -24,12 +24,12 @@ MonoBehaviour:
     mGamepad1: <Gamepad>/buttonEast
     mGamepad2: 
   - mActionName: DropLeft
-    mKeyboard1: <Keyboard>/leftArrow
-    mKeyboard2: 
-    mGamepad1: <Gamepad>/leftShoulder
-    mGamepad2: 
+    mKeyboard1: <Keyboard>/a
+    mKeyboard2: <Keyboard>/leftArrow
+    mGamepad1: <Gamepad>/dpad/left
+    mGamepad2: <Gamepad>/leftStick/left
   - mActionName: DropRight
-    mKeyboard1: <Keyboard>/rightArrow
-    mKeyboard2: 
-    mGamepad1: <Gamepad>/rightShoulder
-    mGamepad2: 
+    mKeyboard1: <Keyboard>/d
+    mKeyboard2: <Keyboard>/rightArrow
+    mGamepad1: <Gamepad>/dpad/right
+    mGamepad2: <Gamepad>/leftStick/right

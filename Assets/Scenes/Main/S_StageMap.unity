@@ -146,17 +146,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e2d33eda837351a48974cfa655523864, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitDetailView
---- !u!114 &406667119 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1039211682012982675, guid: 3afc1f0360ecc4d489f2bf80203babb0, type: 3}
-  m_PrefabInstance: {fileID: 3880345554398873005}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e157f27c7f7add46b3d204482938bf1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitCard
 --- !u!1 &428968643
 GameObject:
   m_ObjectHideFlags: 0
@@ -504,17 +493,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 11a3a451123b2fe4b8eb0a815e1db635, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapView
---- !u!114 &1687641662 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 5790123045542617252, guid: 3afc1f0360ecc4d489f2bf80203babb0, type: 3}
-  m_PrefabInstance: {fileID: 3880345554398873005}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e157f27c7f7add46b3d204482938bf1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitCard
 --- !u!224 &1727432385 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 1342924250700710200, guid: 44bf10ec0df32394b8b6d895832bfab5, type: 3}
@@ -531,17 +509,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3a62cf29089924b44a0fd832ab470e1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageFormationView
---- !u!114 &2026434148 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 6224698699731862687, guid: 3afc1f0360ecc4d489f2bf80203babb0, type: 3}
-  m_PrefabInstance: {fileID: 3880345554398873005}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0e157f27c7f7add46b3d204482938bf1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageUnitCard
 --- !u!1 &2083965986
 GameObject:
   m_ObjectHideFlags: 0
@@ -578,16 +545,12 @@ MonoBehaviour:
   mFormationView: {fileID: 1727432388}
   mRecruitView: {fileID: 1434191886}
   mMessageText: {fileID: 626626772}
-  mPartyCards:
-  - {fileID: 1687641662}
-  - {fileID: 406667119}
-  - {fileID: 2026434148}
-  mUnitVisualCatalog: {fileID: 11400000, guid: f7175a8729fe38843938b32f92c4f399, type: 2}
   mNodeInfoTitle: {fileID: 31364679}
   mNodeInfoBody: {fileID: 1127388729}
   mNavigateAction: {fileID: -8784545083839296357, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mSubmitAction: {fileID: -8557149603262696372, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mMenuAction: {fileID: -1142230911242018482, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  mFormationAction: {fileID: 7631852173759154204, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!4 &2083965988
 Transform:
   m_ObjectHideFlags: 0
