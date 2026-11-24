@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a4cc1c84612a49a4a90d794d6622f57a, type: 3}
   m_Name: PMD_Sample2
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapDefinition
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapDefinition
   mDisplayName: "\u30B5\u30F3\u30D7\u30EB\u30B9\u30C6\u30FC\u30B82"
   mThumbnail: {fileID: 0}
   mDescription: "\u8A66\u3057\u7528\u306E 2 \u3064\u76EE\u306E\u30B9\u30C6\u30FC\u30B8\u3002\u30B5\u30F3\u30D7\u30EB\u30B9\u30C6\u30FC\u30B8\u3088\u308A\u9053\u5E45\u304C\u72ED\u304F\u3001\u6BB5\u6570\u304C\u5C11\u306A\u3044\u3002"

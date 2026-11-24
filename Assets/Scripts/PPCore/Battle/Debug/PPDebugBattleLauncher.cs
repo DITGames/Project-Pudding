@@ -30,12 +30,16 @@ namespace PPCore
         public List<PPDebugBattleMember> Allies = new();
         public string BattleGuid;
         public int LevelPoints;
+        // 改名前の保存内容にある、バトル定義の GUID。読み込んだら BattleGuid へ移す
+        public string StageGuid;
 
         /* 操作 */
 
         // 範囲外の値を直し、上限より後ろの味方を外す。古い保存内容を読んだときの備え
         public void Normalize()
         {
+            if (string.IsNullOrEmpty(BattleGuid) && !string.IsNullOrEmpty(StageGuid)) BattleGuid = StageGuid;
+            StageGuid = null;
             Allies ??= new List<PPDebugBattleMember>();
             Allies.RemoveAll(m => m == null);
             if (Allies.Count > PPPartyFactory.MaxMembers) Allies.RemoveRange(PPPartyFactory.MaxMembers, Allies.Count - PPPartyFactory.MaxMembers);
