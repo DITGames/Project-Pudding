@@ -3,18 +3,24 @@
  * @file PPStageUnitView.cs
  * @author hqrse
  * @date 2026/11/17
- * @brief プッシャーのステージ上に立つユニット 1 体分の表示
+ * @brief バトル画面の道の上に立つユニット 1 体分の表示
  * =====================================*/
 
 using AttributeUtility;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace PPCore
 {
-    // ステージ上に立つユニット 1 体分の表示。板状の絵と、攻撃や被弾の簡単な動きを持つ
-    // 絵は常にカメラの方を向く。HP やゲージは画面端の PPPartyStatusPanel が出す
+    // バトル画面の道の上に立つユニット 1 体分の表示。板状の絵と、攻撃や被弾の簡単な動きを持つ
+    // 重なったときの前後は、見た目の定義のレイヤー優先度と出た順で決める
     public class PPStageUnitView : MonoBehaviour
     {
+        /* 定数 */
+
+        // 同じレイヤー優先度の中で出た順を表す枠の数。これを超えると順が一巡し、古いものより奥に出ることがある
+        private const int SpawnOrderSlots = 1000;
+
         /* インスペクタ設定 */
 
         [Header("絵")]
@@ -50,6 +56,8 @@ namespace PPCore
         /* 状態 */
 
         private BattleUnit mBattleUnit;
+        // ユニット全体の描画の前後をまとめて決める。絵が複数になっても前後が崩れないようにする
+        private SortingGroup mSortingGroup;
         // 向いている向き。右向きなら 1、左向きなら -1
         private float mFacing = 1f;
         // 絵の足元を立ち位置に合わせるための絵の位置
@@ -66,14 +74,18 @@ namespace PPCore
 
         public BattleUnit BattleUnit => mBattleUnit;
 
-        /* Unity イベント */
+        /* static 関数 */
 
-        // 絵をカメラへ向ける
-        private void LateUpdate()
+        // 描画順の値を求める。優先度が大きいほど、同じ優先度なら出た順が後ほど手前になる
+        public static int GetSortingOrder(int aPriority, int aSpawnIndex)
         {
-            var cam = Camera.main;
-            if (cam != null) transform.rotation = cam.transform.rotation;
+            int priority = Mathf.Clamp(aPriority, PPUnitVisualDefinition.MinSortingPriority, PPUnitVisualDefinition.MaxSortingPriority);
+            int slot = aSpawnIndex % SpawnOrderSlots;
+            if (slot < 0) slot += SpawnOrderSlots;
+            return priority * SpawnOrderSlots + slot;
         }
+
+        /* Unity イベント */
 
         // 各動きを進めて、絵の位置と色へ反映する。timeScale に従うので、メニューを開いている間は止まる
         private void Update()
@@ -119,9 +131,12 @@ namespace PPCore
         /* 初期化・接続 */
 
         // 表示するユニットと絵を設定する。味方は右向き、敵は左向きにし、足元を立ち位置に合わせる
-        public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisual, BattleSide aSide)
+        // aSpawnIndex は表示を出した通し番号で、同じレイヤー優先度どうしの前後に使う
+        public void Initialize(BattleUnit aUnit, PPUnitVisualDefinition aVisual, BattleSide aSide, int aSpawnIndex)
         {
             mBattleUnit = aUnit;
+            if (!TryGetComponent(out mSortingGroup)) mSortingGroup = gameObject.AddComponent<SortingGroup>();
+            mSortingGroup.sortingOrder = GetSortingOrder(aVisual != null ? aVisual.SortingPriority : 0, aSpawnIndex);
             mFacing = aSide == BattleSide.Ally ? 1f : -1f;
             mIdlePhase = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
 

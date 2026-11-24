@@ -14,6 +14,9 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "PPUnitVisualDefinition", menuName = "Project-Pudding/Definition/PPUnitVisualDefinition")]
 public class PPUnitVisualDefinition : ScriptableObject
 {
+    public const int MinSortingPriority = -30;
+    public const int MaxSortingPriority = 30;
+
     // 対応するユニット ID。カタログでの解決キー
     [Label("ユニットID")]
     public string UnitId;
@@ -30,4 +33,8 @@ public class PPUnitVisualDefinition : ScriptableObject
     // 配置位置の補正
     [Label("オフセット")]
     public Vector3 SpawnOffset;
+    // 重なったときの前後。大きいほど手前に描く。同じ値なら後から出たユニットが手前
+    [Label("レイヤー優先度")]
+    [Range(MinSortingPriority, MaxSortingPriority)]
+    public int SortingPriority;
 }

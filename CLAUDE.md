@@ -124,7 +124,8 @@ PPCore/
 
 - バトル中のメニューは `PPBattlePauseMenuView`。開いている間はバトル専用の時計（`BattleContext.Clock`）を止める。設定画面は `PPInputConfigMenuView`（サウンド・キー設定のタブ）
 - キー設定で変えられる操作と既定の割り当ては `PPInputBindingStore` / `PPDefaultKeyConfigDefinition` が持つ
-- View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付け、画面端の状態パネル（`PPPartyStatusPanel`）に HP を出す。表示データは `IPPUnitStatusSource` 経由で供給する
+- バトル画面は画面の上側に出す。`PPBattleField`（1 本道。左端が味方拠点、右端が敵拠点）を `PPBattleCameraController` が真横から遠近なしで映し、右クリックドラッグ・右スティック左右で横スクロール、ホイール・右スティック上下でズームする（割り当ては固定でキー設定の対象外）。プッシャーのカメラは画面の下側に固定
+- View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付ける。重なったときの前後は `PPUnitVisualDefinition` のレイヤー優先度と出た順で決まる
 
 ### エディタ拡張
 
