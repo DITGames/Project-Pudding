@@ -86,7 +86,7 @@ PPCore/
 - コマンドは `ActionQueue` に積んで `ExecuteNextCommand()` / `ExecuteAllCommands()` で実行（演出は待たない）
 - `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）はこの時計で進む
 - コマンドを積む役は道の上の戦闘だけ。射程内に敵がいれば止まり、溜め・攻撃間隔ごとに `PPAttackCommand` を対象付きで実行する（ダメージ計算・命中・会心は既存のまま）
-- バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
+- バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進めて拠点の手前（`PPBattleField` の「拠点の手前で止まる距離」）で止め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止

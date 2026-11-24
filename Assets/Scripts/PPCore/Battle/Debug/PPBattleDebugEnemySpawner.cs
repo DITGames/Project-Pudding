@@ -33,7 +33,7 @@ namespace PPCore
         [Label("同時に出す上限")]
         [Min(1)]
         [SerializeField] private int mMaxAlive = 10;
-        // 敵拠点(道の右端)からの距離
+        // 敵拠点(道の右端)からの距離。味方が止まる線より拠点側に収める
         [Label("出す位置")]
         [Min(0f)]
         [SerializeField] private float mSpawnDistance = 2f;
@@ -65,7 +65,9 @@ namespace PPCore
             var definition = mUnits[mSpawnedCount % mUnits.Length];
             mSpawnedCount++;
             if (definition == null) return;
-            manager.SpawnFieldUnit(definition.CreateRuntimeUnit(mLevel), BattleSide.Enemy, field.Length - mSpawnDistance);
+            // 拠点の前で止まっている味方より左に出ないようにする
+            float position = Mathf.Max(field.Length - mSpawnDistance, field.GetStopLine(BattleSide.Ally));
+            manager.SpawnFieldUnit(definition.CreateRuntimeUnit(mLevel), BattleSide.Enemy, position);
         }
 
         /* ヘルパー */

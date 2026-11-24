@@ -114,7 +114,7 @@ namespace PPCore
             var stageBattle = stage?.PendingBattle;
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             var context = new BattleContext() { Rules = new PPBattleRules() };
-            if (mField != null) context.Field = new PPBattleFieldState(mField.Length, mField.KnockbackDistance, mField.KnockbackSpeed);
+            if (mField != null) context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
             if (stageBattle != null)
             {
                 context.AllyParty = stage.CreateAllyParty();

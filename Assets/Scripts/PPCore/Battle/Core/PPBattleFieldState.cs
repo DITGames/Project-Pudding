@@ -86,6 +86,8 @@ namespace PPCore
 
         // 道の長さ。味方拠点(0)から敵拠点まで
         public float Length { get; }
+        // 相手の拠点の中心から、この距離の手前で止まる
+        public float BaseFrontDistance { get; }
         // ノックバックで押し戻す距離と、押し戻される速さ(1 秒に進む距離)
         public float KnockbackDistance { get; }
         public float KnockbackSpeed { get; }
@@ -93,9 +95,10 @@ namespace PPCore
 
         /* 生成 */
 
-        public PPBattleFieldState(float aLength, float aKnockbackDistance = 3f, float aKnockbackSpeed = 12f)
+        public PPBattleFieldState(float aLength, float aBaseFrontDistance = 4f, float aKnockbackDistance = 3f, float aKnockbackSpeed = 12f)
         {
             Length = Mathf.Max(0f, aLength);
+            BaseFrontDistance = Mathf.Clamp(aBaseFrontDistance, 0f, Length * 0.5f);
             KnockbackDistance = Mathf.Max(0f, aKnockbackDistance);
             KnockbackSpeed = Mathf.Max(0.01f, aKnockbackSpeed);
         }
@@ -112,7 +115,7 @@ namespace PPCore
         }
 
         // aDeltaTime 秒分進める。押し戻され中のユニットは後ろへ下がり、射程内に敵がいれば止まって溜め・攻撃間隔を数え、
-        // 攻撃の時機が来たら aAttack(攻撃するユニット, 当てる相手)を呼ぶ。敵がいなければ相手の拠点へ進み、拠点で止まる
+        // 攻撃の時機が来たら aAttack(攻撃するユニット, 当てる相手)を呼ぶ。敵がいなければ相手の拠点へ進み、拠点の手前で止まる
         public virtual void Advance(float aDeltaTime, Action<PPFieldUnit, List<BattleUnit>> aAttack)
         {
             // 攻撃で撃破や押し戻しが起きても並びは変わらないため、数え回しで回す
@@ -132,8 +135,9 @@ namespace PPCore
                 if (nearest == null)
                 {
                     fieldUnit.IsEngaged = false;
-                    float next = fieldUnit.Position + fieldUnit.Direction * fieldUnit.MoveSpeed * aDeltaTime;
-                    fieldUnit.Position = Mathf.Clamp(next, 0f, Length);
+                    // 止まる線の先(拠点の中)で生まれたユニットは、線まで進んでから止まる
+                    float remaining = Mathf.Max(0f, (GetStopLine(fieldUnit.Side) - fieldUnit.Position) * fieldUnit.Direction);
+                    fieldUnit.Position += fieldUnit.Direction * Mathf.Min(remaining, fieldUnit.MoveSpeed * aDeltaTime);
                     continue;
                 }
 
@@ -187,6 +191,9 @@ namespace PPCore
         /* 問い合わせ */
 
         public PPFieldUnit Find(BattleUnit aUnit) => aUnit != null ? mByUnit.GetValueOrDefault(aUnit) : null;
+
+        // その陣営のユニットが進んで止まる位置。相手の拠点の手前
+        public float GetStopLine(BattleSide aSide) => aSide == BattleSide.Ally ? Length - BaseFrontDistance : BaseFrontDistance;
 
         // 進む向きの前方で、射程内にいる最も近い生きた敵を返す。いなければ null
         private PPFieldUnit FindNearestEnemyInRange(PPFieldUnit aSelf, out float aDistance)
