@@ -7,7 +7,7 @@
 **Project-Pudding**（WabisabiAndons）は Unity 6 製のゲームプロジェクト。
 **コインプッシャー（物理）** と **バトル（リアルタイム進行）** を接続したハイブリッド構成が中核。
 バトルはタワーディフェンス方式へ改修中（PP-00056）。旧方式（コインゲージ・行動コスト・スキル・ユニット AI・コマンド入力・敵のプッシャー）は撤去済みで、
-今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進み、敵と出会うと戦うところまで。ウェーブ・拠点は子チケットで新設する。
+今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進み、敵と出会うと戦い、敵の拠点を壊すとクリア、味方の拠点が壊れるとゲームオーバーになるところまで。ウェーブは子チケットで新設する。
 
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
@@ -87,6 +87,7 @@ PPCore/
 - `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）はこの時計で進む
 - コマンドを積む役は道の上の戦闘だけ。射程内に敵がいれば止まり、溜め・攻撃間隔ごとに `PPAttackCommand` を対象付きで実行する（ダメージ計算・命中・会心は既存のまま）
 - バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進めて拠点の手前（`PPBattleField` の「拠点の手前で止まる距離」）で止め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
+- 道の両端には拠点（`PPFieldBase`。HP・まもり・属性を持つユニット）を `BattleManager.SetFieldBase()` で置く。射程内に敵ユニットがいなければ、相手の拠点の手前の線が射程に入った時点で止まって拠点を攻撃する。設定はステージの定義（単体で Play したときは `PPBattleRunner`）の `PPBaseSettings`。勝敗は `PPBaseResultChecker`（拠点の破壊）が決め、拠点の被ダメージと HP の割合の変化は `OnBaseDamaged` / `OnBaseHpRatioChanged` で購読できる
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
@@ -128,6 +129,7 @@ PPCore/
 - バトル中のメニューは `PPBattlePauseMenuView`。開いている間はバトル専用の時計（`BattleContext.Clock`）を止める。設定画面は `PPInputConfigMenuView`（サウンド・キー設定のタブ）
 - キー設定で変えられる操作と既定の割り当ては `PPInputBindingStore` / `PPDefaultKeyConfigDefinition` が持つ
 - バトル画面は画面の上側に出す。`PPBattleField`（1 本道。左端が味方拠点、右端が敵拠点）を `PPBattleCameraController` が真横から遠近なしで映し、右クリックドラッグ・右スティック左右で横スクロール、ホイール・右スティック上下でズームする（割り当ては固定でキー設定の対象外）。プッシャーのカメラは画面全体を映したまま動かさず、その上側にバトル画面を重ねる
+- 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPStageResultView` で、ステージを通さずに Play したときも出す
 - View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付ける。重なったときの前後は `PPUnitVisualDefinition` のレイヤー優先度と出た順で決まる
 
 ### エディタ拡張
