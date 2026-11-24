@@ -1636,7 +1636,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11a3a451123b2fe4b8eb0a815e1db635, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageMapView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPMapView
   mContent: {fileID: 9069826456229179506}
   mScrollRect: {fileID: 5307543860283451074}
   mNodePrefab: {fileID: 5983974721393316746, guid: e70d8cc4a38adf6418c54b3af3736139, type: 3}

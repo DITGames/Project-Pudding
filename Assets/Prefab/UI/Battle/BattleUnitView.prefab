@@ -947,7 +947,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: dcba94e7a271141429e1595b0f74ca79, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPBattle.PPBattleUnitView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleUnitView
   mStatusWidget: {fileID: 5012451881776216736}
   mUnitIcon: {fileID: 6729645728242704138}
   mAnimator: {fileID: 6126246732921339340}
@@ -965,7 +965,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 11e9e4ae16a76514cb9f155c137b534c, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPBattle.PPUnitStatusWidget
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPUnitStatusWidget
   mHpFill: {fileID: 4353025486537914338}
   mNameLabel: {fileID: 1635080189377512667}
 --- !u!95 &6126246732921339340

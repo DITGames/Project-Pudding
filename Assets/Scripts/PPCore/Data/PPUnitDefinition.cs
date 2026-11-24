@@ -32,7 +32,7 @@ namespace PPCore
         [Label("属性")]
         [SerializeField]protected PPTypeAttribute mTypeAttribute = PPTypeAttribute.Normal;
 
-        // 遭遇の難易度ポイントの元になる値。遭遇は編成のユニットのこの値を合計する
+        // バトル定義の難易度ポイントの元になる値。バトル定義はウェーブに出てくるユニットの種類ごとにこの値を合計する
         [Header("レベルデザイン")]
         [Label("難易度の基本ポイント")] [Min(0)]
         [SerializeField]protected int mDifficultyPoint = 10;

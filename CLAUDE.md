@@ -7,7 +7,7 @@
 **Project-Pudding**（WabisabiAndons）は Unity 6 製のゲームプロジェクト。
 **コインプッシャー（物理）** と **バトル（リアルタイム進行）** を接続したハイブリッド構成が中核。
 バトルはタワーディフェンス方式へ改修中（PP-00056）。旧方式（コインゲージ・行動コスト・スキル・ユニット AI・コマンド入力・敵のプッシャー）は撤去済みで、
-今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進み、ステージ定義のウェーブで出てくる敵と戦い、敵の拠点を壊すとクリア、味方の拠点が壊れるとゲームオーバーになる。
+今は、プッシャーで落ちたコインからユニットが生まれてバトル画面の道を右へ進み、バトル定義のウェーブで出てくる敵と戦い、敵の拠点を壊すとクリア、味方の拠点が壊れるとゲームオーバーになる。
 
 - Unity: `6000.3.17f1`（`ProjectSettings/ProjectVersion.txt`）
 - レンダーパイプライン: URP 17.3.0
@@ -61,6 +61,7 @@ PPCore/
 │   ├── Input/         # キー設定（変更できる操作と既定の割り当て）
 │   └── View/          # バトル UI の View とステータスソース
 ├── Pusher/            # プッシャー（押し出し板・落下検出・コイン投入）
+├── Map/               # マップの周回（マップ定義・生成・進行状態・マスのイベント・マップの画面）と、画面をまたぐ一覧・札の部品
 ├── Catalog/           # ID → アセットの解決
 ├── Settings/          # ランタイム設定
 └── Editor/            # ピッカー・ユニット作成ツール
@@ -88,9 +89,9 @@ PPCore/
 - `AdvanceTime()` がバトル専用の時計を進め、期限の来たタイマーを発火する。状態異常（発生間隔 × 回数）はこの時計で進む
 - コマンドを積む役は道の上の戦闘だけ。射程内に敵がいれば止まり、溜め・攻撃間隔ごとに `PPAttackCommand` を対象付きで実行する（ダメージ計算・命中・会心は既存のまま）
 - バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進めて拠点の手前（`PPBattleField` の「拠点の手前で止まる距離」）で止め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
-- 道の両端には拠点（`PPFieldBase`。HP・まもり・属性を持つユニット）を `BattleManager.SetFieldBase()` で置く。射程内に敵ユニットがいなければ、相手の拠点の手前の線が射程に入った時点で止まって拠点を攻撃する。設定は `PPBaseSettings` で、敵の拠点はステージ定義、味方の拠点はマップ定義（マップから来なかったときは `PPBattleRunner`）が持つ。勝敗は `PPBaseResultChecker`（拠点の破壊）が決め、拠点の被ダメージと HP の割合の変化は `OnBaseDamaged` / `OnBaseHpRatioChanged` で購読できる
-- 敵はステージ定義（`PPEncounterDefinition`）のウェーブ（`PPWaveDefinition`）で出す。`PPWaveRunner` が段階を上から順に待ち、始まる条件（時間・段階の全滅・拠点の被ダメージ・拠点の HP の割合。`PPWaveTrigger` を `[SerializeReference]` で並べる）のどれかを満たしたら始める。始まった段階は次の段階が始まっても出し続け、繰り返し区間の終わりの次は始まりへ戻る。マップのマスの深さで割り振るレベル（(基底レベル - 1) + (深さ - 1)）は `PPWaveLevelAllocator` が敵の種類へ配る
-- バトルの始まり方は 3 通り（マップのマス・Editor のデバッグバトル・シーンの単体 Play）で、`PPBattleRunner.CreateContext()` が味方パーティ・ステージ定義・割り振るレベルを決める。デバッグバトル（`Window > Project-Pudding > デバッグバトル`）の設定はこの PC の EditorPrefs に保存し、Play へは SessionState で渡す
+- 道の両端には拠点（`PPFieldBase`。HP・まもり・属性を持つユニット）を `BattleManager.SetFieldBase()` で置く。射程内に敵ユニットがいなければ、相手の拠点の手前の線が射程に入った時点で止まって拠点を攻撃する。設定は `PPBaseSettings` で、敵の拠点はバトル定義、味方の拠点はマップ定義（マップから来なかったときは `PPBattleRunner`）が持つ。勝敗は `PPBaseResultChecker`（拠点の破壊）が決め、拠点の被ダメージと HP の割合の変化は `OnBaseDamaged` / `OnBaseHpRatioChanged` で購読できる
+- 敵はバトル定義（`PPBattleDefinition`）のウェーブ（`PPWaveDefinition`）で出す。`PPWaveRunner` が段階を上から順に待ち、始まる条件（時間・段階の全滅・拠点の被ダメージ・拠点の HP の割合。`PPWaveTrigger` を `[SerializeReference]` で並べる）のどれかを満たしたら始める。条件は段階が待ち始めた（前の段階が始まった）時点から数え、拠点の被ダメージは「1 度だけ」にするとバトル中に 1 回しか段階を始めない。始まった段階は次の段階が始まっても出し続け、繰り返し区間の終わりの次は始まりへ戻る。マップのマスの深さで割り振るレベル（(基底レベル - 1) + マップ定義の「深さごとに足すレベル」のカーブの値 を四捨五入。`PPMapDefinition.GetLevelPoints`）は `PPWaveLevelAllocator` が敵の種類へ配る
+- バトルの始まり方は 3 通り（マップのマス・Editor のデバッグバトル・シーンの単体 Play）で、`PPBattleRunner.CreateContext()` が味方パーティ・バトル定義・割り振るレベルを決める。デバッグバトル（`Window > Project-Pudding > デバッグバトル`）の設定はこの PC の EditorPrefs に保存し、Play へは SessionState で渡す
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
 - リアクション（反撃等）は `IBattleReaction` + `ReactionTrigger` で、`DispatchReactions()` がキュー先頭へ割り込む。`MaxReactionPerEvent` で暴走を抑止
@@ -105,8 +106,9 @@ PPCore/
 
 - `UnitDefinition` → `PPUnitDefinition`（属性・きようさ・成長曲線・難易度の基本ポイントを追加。`CreateRuntimeUnit(int aLevel)` でレベル成長）
 - `PPEffectDefinition`（状態異常・バフデバフ。振る舞いのリストで組み立てる）
-- `PPPartyDefinition`（メンバーは編成の順に並べたリストで、最大 `PPPartyFactory.MaxMembers` = 10 体。マップの編成も同じ 10 枠）、`PPUnitVisualDefinition`、ステージマップの定義（`PPStageMapDefinition` など）
-- `PPEncounterDefinition` はステージ定義（1 回のバトルの中身。ウェーブ・敵拠点・テーマ・出てくる段）。マップ定義の通常敵・エリート・ボスに候補として割り当てる。型名はアセット互換のため変えていない
+- パーティは定義アセットを持たず、`PPPartyMemberEntry`（ユニットとレベル）の一覧をマップ定義の初期パーティ・`PPBattleRunner` の味方パーティに直接並べる。最大 `PPPartyFactory.MaxMembers` = 10 体で、マップの編成も同じ 10 枠
+- `PPUnitVisualDefinition`、マップの定義（`PPMapDefinition`）、ステージ選択に並べるマップの一覧（`PPMapListDefinition`）
+- `PPBattleDefinition` はバトル定義（1 回のバトルの中身。ウェーブ・敵拠点・道の長さ・エリートか・出てくる段）。マップ定義の通常敵・エリート・ボスに候補（`PPMapBattleEntry`）として割り当てる。名前は Map（マップの周回。`PPMapDefinition`・`PPMapProgress`・`PPMapRunner`・マスのイベント `IPPMapEvent` など）> Battle（1 回のバトル）> Stage（ユニットが戦う場所。道・拠点・背景。`PPStageUnitView` など）の段階で付ける。画面をまたいで使う一覧・札の部品は `PPMenuListBase`・`PPUnitCard` など
 - `PPCatalogAsset<T>` 派生（`PPUnitCatalog` 等）が ID → アセットの解決を担う。ID 重複は `Debug.LogError` で検出される
 
 `CreateAssetMenu` の menuName は **`Project-Pudding/<カテゴリ>/<型名>`** で統一（`Definition` / `Effect` / `Catalog` / `Battle` / `Settings`）。
@@ -116,7 +118,7 @@ PPCore/
 - `PPTypeAttribute`: `Normal / Fire / Water / Earth / Shine / Dark`（`TypeCount = 6`、`Normal` は無属性で相性判定では常に等倍 = `BaseIndex`）
 - 属性相性（火 → 土 → 水 → 火 の三すくみ、光 ⇔ 闇）は `PPAttributeAffinity`、倍率は `PPBattleRules` が持つ
 - プッシャーがコインの落下を知らせる口は `PPPusherDropZone` の `OnCoinDropped`（落ちたコイン）と、`IPPCoinGainNotifier` の `OnCoinGained`（属性と枚数。今はバトル側で購読していない）。**物理側とバトル側を直接結合させず、間に橋渡しの型を挟む**
-- 橋渡しは `PPCoinUnitBridge`。台に出たコインの `PPCoinContent` へ、パーティのユニットコストの逆数の比で抽選したユニットを入れ（重さでコインの大きさ・質量が変わる）、落下口に落ちたらそのユニットを味方拠点の近くに生み出す。編成のユニットコストの上限は `PPStageProgress.MaxPartyCost`
+- 橋渡しは `PPCoinUnitBridge`。台に出たコインの `PPCoinContent` へ、パーティのユニットコストの逆数の比で抽選したユニットを入れ（重さでコインの大きさ・質量が変わる）、落下口に落ちたらそのユニットを味方拠点の近くに生み出す。編成のユニットコストの上限は `PPMapProgress.MaxPartyCost`
 
 ### プッシャー
 
@@ -134,8 +136,8 @@ PPCore/
 - キー設定で変えられる操作と既定の割り当ては `PPInputBindingStore` / `PPDefaultKeyConfigDefinition` が持つ
 - マップでは、編成画面を Tab / パッドの North で開閉する（入力アクション Battle マップの `OpenFormation`。キー設定の対象外）。Esc / Start のメニューには編成を載せない
 - バトル画面は画面の上側に出す。`PPBattleField`（1 本道。左端が味方拠点、右端が敵拠点）を `PPBattleCameraController` が真横から遠近なしで映し、右クリックドラッグ・右スティック左右で横スクロール、ホイール・右スティック上下でズームする（割り当ては固定でキー設定の対象外）。プッシャーのカメラは画面全体を映したまま動かさず、その上側にバトル画面を重ねる
-- 道の長さ（拠点間の距離）はステージ定義の「道の長さ」で決まる。バトルの始まりに `PPBattleRunner` が `PPBattleField.SetLength()` を呼び、地面の幅・拠点の目印の位置・カメラの開始位置も合わせる
-- 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPStageResultView` で、ステージを通さずに Play したときも出す
+- 道の長さ（拠点間の距離）はバトル定義の「道の長さ」で決まる。バトルの始まりに `PPBattleRunner` が `PPBattleField.SetLength()` を呼び、地面の幅・拠点の目印の位置・カメラの開始位置も合わせる
+- 拠点の HP バーは `PPBattleBaseView`（拠点の真上）。決着の結果画面は `PPBattleResultView` で、マップを通さずに Play したときも出す
 - View 側は `PPStageUnitViewBinder` が `BattleUnit` ↔ `PPStageUnitView` を対応付ける。重なったときの前後は `PPUnitVisualDefinition` のレイヤー優先度と出た順で決まる
 
 ### エディタ拡張

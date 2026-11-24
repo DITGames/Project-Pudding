@@ -1571,8 +1571,20 @@ MonoBehaviour:
   mOpenConfigAction: {fileID: -1142230911242018482, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mPauseMenu: {fileID: 799393110}
   mConfigMenu: {fileID: 365705444}
-  mAllyPartyDefinition: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
-  mStageDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
+  mAllyMembers:
+  - Unit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  - Unit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  - Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  mBattleDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
   mLevelPoints: 0
   mReturnToStageDelay: 2
   mResultView: {fileID: 1059745191}
@@ -2140,7 +2152,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 287bf5d7004d68d45b71c55b273982d0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageResultView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleResultView
 --- !u!224 &1059745192 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 452894350118948979, guid: e9645fa4fadeeef4dbb2e012f6f42745, type: 3}
@@ -2434,7 +2446,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2daab932b1702b84b984dcee8e9ce901, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: '::'
+  m_EditorClassIdentifier: Assembly-CSharp::ConsoleCanvasManager
   applicationVersionText: {fileID: 1854315130}
 --- !u!114 &1495912091
 MonoBehaviour:

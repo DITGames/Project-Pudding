@@ -306,7 +306,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 287bf5d7004d68d45b71c55b273982d0, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPStageResultView
+  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleResultView
 --- !u!1 &78607436
 GameObject:
   m_ObjectHideFlags: 0
@@ -604,6 +604,50 @@ PrefabInstance:
       propertyPath: m_TextStyleHashCode
       value: -1183493901
       objectReference: {fileID: 0}
+    - target: {fileID: 522584906516099715, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291275678
+      objectReference: {fileID: 0}
+    - target: {fileID: 522584906516099715, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 987046919288395422, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291275678
+      objectReference: {fileID: 0}
+    - target: {fileID: 987046919288395422, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 1052067236625381928, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291275678
+      objectReference: {fileID: 0}
+    - target: {fileID: 1052067236625381928, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 1881061907163739563, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291275678
+      objectReference: {fileID: 0}
+    - target: {fileID: 1881061907163739563, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 2261470754603351112, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_fontColor32.rgba
+      value: 4291275678
+      objectReference: {fileID: 0}
+    - target: {fileID: 2261470754603351112, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 3048993016353684204, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
+      propertyPath: m_TextStyleHashCode
+      value: -1183493901
+      objectReference: {fileID: 0}
     - target: {fileID: 4845316012432296169, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
       propertyPath: m_Pivot.x
       value: 0.5
@@ -686,7 +730,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5112039240132008816, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
       propertyPath: m_SizeDelta.y
-      value: 78
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5190001030273701469, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
       propertyPath: m_Name
@@ -710,7 +754,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8450135776110301805, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 700
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8450135776110301805, guid: e62317f938e65004e9332ae8a55191d4, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -1157,7 +1201,7 @@ PrefabInstance:
       objectReference: {fileID: 227295394}
     - target: {fileID: 7882409232658601717, guid: e004011481e2f884e88e41a98fb93077, type: 3}
       propertyPath: mScreenOffsetY
-      value: -300
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1631,8 +1675,20 @@ MonoBehaviour:
   mOpenConfigAction: {fileID: -1142230911242018482, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mPauseMenu: {fileID: 799393110}
   mConfigMenu: {fileID: 365705444}
-  mAllyPartyDefinition: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
-  mStageDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
+  mAllyMembers:
+  - Unit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  - Unit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  - Unit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+    Level: 1
+    IsFixedSeed: 0
+    Seed: 0
+  mBattleDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
   mLevelPoints: 0
   mReturnToStageDelay: 2
   mResultView: {fileID: 27115759}
@@ -2240,7 +2296,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2daab932b1702b84b984dcee8e9ce901, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: '::'
+  m_EditorClassIdentifier: Assembly-CSharp::ConsoleCanvasManager
   applicationVersionText: {fileID: 1854315130}
 --- !u!114 &1495912091
 MonoBehaviour:
