@@ -7,8 +7,10 @@
  * =====================================*/
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using AttributeUtility;
+using CustomConsole;
 
 namespace PPCore
 {
@@ -31,27 +33,35 @@ namespace PPCore
         public int Seed = 0;
     }
 
-    // パーティ編成の定義（ScriptableObject）。配置ごとのメンバーを持つ
+    // パーティ編成の定義（ScriptableObject）。編成の順にメンバーを並べる(最大 PPPartyFactory.MaxMembers 体)
     // ランタイムの PPBattleParty への変換は PPPartyFactory が担う
     [CreateAssetMenu(fileName = "PPPartyDefinition", menuName = "Project-Pudding/Battle/PPPartyDefinition")]
     public class PPPartyDefinition : ScriptableObject
     {
+        /* 定数 */
+
+        private const string LogTag = "Battle";
+
         /* インスペクタ設定 */
 
-        // 配置ごとのメンバー枠。ユニット定義が空の枠にはユニットを置かない
+        // 編成の順に並べる。ユニット定義が空の枠は飛ばす
         [Header("パーティ")]
-        [Label("中央")] [SerializeField] private PPPartyMemberEntry mCenter = new();
-        [Label("右")] [SerializeField] private PPPartyMemberEntry mRight = new();
-        [Label("左")] [SerializeField] private PPPartyMemberEntry mLeft = new();
+        [Label("メンバー", true)]
+        [SerializeField] private List<PPPartyMemberEntry> mMembers = new();
 
-        /* 問い合わせ */
+        /* プロパティ */
 
-        // 指定した配置のメンバー枠を返す。ユニット定義が空なら、その配置にはユニットを置かない
-        public PPPartyMemberEntry GetMember(PPPartyPosition aPosition) => aPosition switch
+        public IReadOnlyList<PPPartyMemberEntry> Members => mMembers;
+
+        /* Unity イベント */
+
+#if UNITY_EDITOR
+        // 上限を超えた分はバトルに出ないため警告する。値は書き換えない
+        void OnValidate()
         {
-            PPPartyPosition.Right => mRight,
-            PPPartyPosition.Left => mLeft,
-            _ => mCenter,
-        };
+            if (mMembers.Count <= PPPartyFactory.MaxMembers) return;
+            CustomConsoleLog.Warning(LogTag, $"パーティ定義 {name} のメンバーが {mMembers.Count} 体あります。{PPPartyFactory.MaxMembers + 1} 体目からはバトルに出ません", this);
+        }
+#endif
     }
 }

@@ -35,7 +35,13 @@ MonoBehaviour:
     Weight: 1
   - Encounter: {fileID: 11400000, guid: bd4f78f4449a43b409abdf7e09d5b872, type: 2}
     Weight: 1
-  mBoss: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
+  mBoss: {fileID: 11400000, guid: 4b774a6ea19e4434cb7444f827d42cad, type: 2}
+  mBaseLevel: 1
+  mAllyBase:
+    mDisplayName: "\u5473\u65B9\u306E\u62E0\u70B9"
+    mMaxHp: 20000
+    mDefense: 0
+    mTypeAttribute: 0
   mRecruitCandidates:
   - {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
   - {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}

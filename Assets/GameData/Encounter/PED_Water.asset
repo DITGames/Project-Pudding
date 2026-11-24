@@ -12,8 +12,41 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3cadcecbc9b306f4ea7a8466881ba66d, type: 3}
   m_Name: PED_Water
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPEncounterDefinition
-  mParty: {fileID: 11400000, guid: 2f02a597289df244899751ef139fd95f, type: 2}
+  mWave:
+    mSteps:
+    - mMemo: "\u69D8\u5B50\u898B"
+      mConditions: []
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+        mLevel: 1
+        mCount: 2
+        mInterval: 6
+        mFirstDelay: 0
+    - mMemo: "\u7E70\u308A\u8FD4\u3057"
+      mConditions:
+      - rid: 2919751472399515725
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+        mLevel: 1
+        mCount: 3
+        mInterval: 5
+        mFirstDelay: 0
+    mIsLoop: 1
+    mLoopStart: 2
+    mLoopEnd: 2
+  mEnemyBase:
+    mDisplayName: "\u6575\u306E\u62E0\u70B9"
+    mMaxHp: 20000
+    mDefense: 0
+    mTypeAttribute: 0
   mTheme: 2
   mIsElite: 0
   mMinFloor: 0
   mMaxFloor: 6
+  references:
+    version: 2
+    RefIds:
+    - rid: 2919751472399515725
+      type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mSeconds: 20

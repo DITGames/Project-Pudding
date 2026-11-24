@@ -12,18 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2d15b60e3b4af44429563ad7216f1735, type: 3}
   m_Name: PPD_Sample
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPPartyDefinition
-  mCenter:
-    Unit: {fileID: 0}
-    Level: 0
-    IsFixedSeed: 0
-    Seed: 0
-  mRight:
-    Unit: {fileID: 0}
-    Level: 1
-    IsFixedSeed: 0
-    Seed: 0
-  mLeft:
-    Unit: {fileID: 0}
-    Level: 1
-    IsFixedSeed: 0
-    Seed: 0
+  mMembers: []

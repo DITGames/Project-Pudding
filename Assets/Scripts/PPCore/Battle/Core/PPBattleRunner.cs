@@ -7,6 +7,7 @@
  * =====================================*/
 
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using AttributeUtility;
@@ -36,12 +37,10 @@ namespace PPCore
         [Label("拠点の HP バー", true)]
         [SerializeField] private PPBattleBaseView[] mBaseViews = new PPBattleBaseView[0];
 
-        // ステージのマスから来たときは、ステージの定義の拠点を使う
+        // マップのマスから来たときはマップ定義の拠点を使う。敵の拠点はいつもステージ定義のもの
         [Header("拠点")]
         [Label("味方の拠点")]
         [SerializeField] private PPBaseSettings mAllyBase = new("味方の拠点", 20000f);
-        [Label("敵の拠点")]
-        [SerializeField] private PPBaseSettings mEnemyBase = new("敵の拠点", 20000f);
 
         // ユニットとビューを対応付けるバインダー
         [Header("UI")]
@@ -59,14 +58,16 @@ namespace PPCore
         [Label("キー設定")]
         [SerializeField] private PPInputConfigMenuView mConfigMenu;
 
-        // 味方として編成するパーティ定義。デバッグ用にエディタから直接割り当てる
-        [Header("パーティ")]
+        // マップのマスからもデバッグバトルからも来ずに、このシーンを単体で Play したときに使う
+        [Header("単体で Play したとき")]
         [Label("味方パーティ定義")]
         [SerializeField] private PPPartyDefinition mAllyPartyDefinition;
-
-        // 敵として編成するパーティ定義
-        [Label("敵パーティ定義")]
-        [SerializeField] private PPPartyDefinition mEnemyPartyDefinition;
+        [Label("ステージ定義")]
+        [SerializeField] private PPEncounterDefinition mStageDefinition;
+        // マップのマスの深さの代わりに、出てくる敵の種類へ割り振るレベル
+        [Label("割り振るレベル")]
+        [Min(0)]
+        [SerializeField] private int mLevelPoints = 0;
 
         // 決着してから、マップへ戻るか結果画面を出すまでの秒数
         [Header("ステージ")]
@@ -89,6 +90,12 @@ namespace PPCore
 
         // バトル進行を統括するマネージャ
         private BattleManager mBattleManager = new();
+        // このバトルで戦うステージ定義と、深さで割り振るレベルと、味方の拠点。コンテキストを作るときに決める
+        private PPEncounterDefinition mStage;
+        private int mBattleLevelPoints;
+        private PPBaseSettings mBattleAllyBase;
+        // ウェーブの進行。ステージ定義が無いバトルでは null
+        private PPWaveRunner mWaveRunner;
 
         /* プロパティ */
 
@@ -115,14 +122,15 @@ namespace PPCore
             if (mBattleManager.Context == null) return;
 
             mBattleManager.AdvanceTime(Time.deltaTime);
+            mWaveRunner?.Update();
             UpdateMenu();
         }
 
         /* 初期化・接続 */
 
-        // 両パーティと道を持つコンテキストを作る
-        // ステージのマスから来たときは持ち越した編成とマスの敵で、Editor のデバッグバトルから始めたときはその設定で、
-        // 単体で Play したときはインスペクタの定義で戦う
+        // 味方パーティと道を持つコンテキストを作り、戦うステージ定義を決める。敵はウェーブで道に出すため、敵パーティは空にする
+        // マップのマスから来たときは持ち越した編成とマスのステージ定義・深さで、Editor のデバッグバトルから始めたときはその設定で、
+        // 単体で Play したときはインスペクタの設定で戦う
         private BattleContext CreateContext()
         {
             var stage = PPStageProgress.Current;
@@ -130,23 +138,35 @@ namespace PPCore
             var debugBattle = stageBattle == null ? PPDebugBattleLauncher.TakeRequested() : null;
             // 道があるバトルは、拠点の破壊で勝敗を決める
             var context = new BattleContext() { Rules = new PPBattleRules { ResultChecker = new PPBaseResultChecker() } };
-            if (mField != null) context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
+            context.EnemyParty = new PPBattleParty(BattleSide.Enemy, new List<BattleUnit>());
+            mBattleAllyBase = mAllyBase;
             if (stageBattle != null)
             {
                 context.AllyParty = stage.CreateAllyParty();
-                context.EnemyParty = PPPartyFactory.CreateFromDefinition(stageBattle.Enemy, BattleSide.Enemy);
+                mStage = stageBattle.Encounter;
+                mBattleLevelPoints = PPWaveLevelAllocator.GetPoints(stage.Definition.BaseLevel, stageBattle.Depth);
+                mBattleAllyBase = stage.Definition.AllyBase;
             }
             else if (debugBattle != null)
             {
-                CustomConsoleLog.Log("Battle", $"デバッグバトル: {debugBattle.name} の設定で始める");
-                context.AllyParty = debugBattle.Ally.Create(BattleSide.Ally);
-                context.EnemyParty = debugBattle.Enemy.Create(BattleSide.Enemy);
+                context.AllyParty = debugBattle.CreateAllyParty();
+                mStage = debugBattle.Stage;
+                mBattleLevelPoints = debugBattle.LevelPoints;
             }
             else
             {
                 context.AllyParty = PPPartyFactory.CreateFromDefinition(mAllyPartyDefinition, BattleSide.Ally);
-                context.EnemyParty = PPPartyFactory.CreateFromDefinition(mEnemyPartyDefinition, BattleSide.Enemy);
+                mStage = mStageDefinition;
+                mBattleLevelPoints = mLevelPoints;
             }
+            // 道の長さはステージ定義のもの。道の状態と表示は、この長さで作る
+            if (mField != null)
+            {
+                if (mStage != null) mField.SetLength(mStage.FieldLength);
+                context.Field = new PPBattleFieldState(mField.Length, mField.BaseFrontDistance, mField.KnockbackDistance, mField.KnockbackSpeed);
+            }
+            string source = stageBattle != null ? "マップのマス" : debugBattle != null ? "デバッグバトル" : "単体の Play";
+            CustomConsoleLog.Log("Battle", $"バトル: {source}。ステージ定義={(mStage != null ? mStage.name : "なし")} 割り振るレベル={mBattleLevelPoints} 道の長さ={(mField != null ? mField.Length : 0f)}");
             return context;
         }
 
@@ -164,22 +184,40 @@ namespace PPCore
             if (mOutputBattleLog) PPBattleLogBinder.Bind(mBattleManager);
             else mBattleManager.Logger = null;
             mBattleManager.StartBattle(aContext);
-            PlaceBases(isStageBattle ? stage.Definition : null);
+            PlaceBases();
             mBattleUnitViewBinder.Bind(mBattleManager);
             if (mCoinBridge != null) mCoinBridge.Bind(mBattleManager);
+            StartWaves();
         }
 
-        // 道の両端に拠点を置き、HP バーを繋ぐ。ステージから来たときはステージの定義の拠点、それ以外はインスペクタの拠点を使う
-        private void PlaceBases(PPStageMapDefinition aStage)
+        // 道の両端に拠点を置き、HP バーを繋ぐ。敵の拠点はステージ定義のもの
+        private void PlaceBases()
         {
             if (mBattleManager.Context?.Field == null) return;
-            var allySettings = aStage != null ? aStage.AllyBase : mAllyBase;
-            var enemySettings = aStage != null ? aStage.EnemyBase : mEnemyBase;
-            mBattleManager.SetFieldBase(allySettings.CreateRuntimeUnit("AllyBase"), BattleSide.Ally);
+            var enemySettings = mStage != null ? mStage.EnemyBase : new PPBaseSettings("敵の拠点", 20000f);
+            mBattleManager.SetFieldBase(mBattleAllyBase.CreateRuntimeUnit("AllyBase"), BattleSide.Ally);
             mBattleManager.SetFieldBase(enemySettings.CreateRuntimeUnit("EnemyBase"), BattleSide.Enemy);
             foreach (var view in mBaseViews)
             {
                 if (view != null) view.Bind(mBattleManager);
+            }
+        }
+
+        // ステージ定義のウェーブを始める。敵は敵拠点の近くに出すが、拠点の前で止まっている味方より左には出さない
+        private void StartWaves()
+        {
+            var field = mBattleManager.Context?.Field;
+            if (field == null) return;
+            if (mStage == null)
+            {
+                CustomConsoleLog.Warning("Battle", "ステージ定義が無いため、敵を出しません。PPBattleRunner の「ステージ定義」を割り当てるか、マップかデバッグバトルから始めてください", this);
+                return;
+            }
+            float position = Mathf.Max(field.Length - mField.EnemySpawnDistance, field.GetStopLine(BattleSide.Ally));
+            mWaveRunner = new PPWaveRunner(mStage.Wave, mBattleManager, position, mBattleLevelPoints);
+            foreach (var pair in mWaveRunner.LevelBonus)
+            {
+                if (pair.Value > 0) CustomConsoleLog.Log("Battle", $"ウェーブ: {pair.Key.DisplayName} に +{pair.Value} レベル");
             }
         }
 

@@ -41,10 +41,8 @@ namespace PPCore
         public readonly List<PPStageMapNode> Prev = new();
 
         public PPStageNodeType Type;
-        // 通常戦・エリートのマスの遭遇。ボスとバトル以外のマスでは null
+        // バトルのマスで戦うステージ定義。通常戦・エリートでは引いた遭遇、ボスではボスの定義。バトル以外のマスでは null
         public PPEncounterDefinition Encounter;
-        // バトルのマスで戦う敵。通常戦・エリートでは遭遇の敵パーティ、ボスではボスの定義。バトル以外のマスでは null
-        public PPPartyDefinition Enemy;
         // 表示位置のゆらぎ。-1〜1 で持ち、表示側が間隔を掛ける
         public Vector2 Jitter;
 
@@ -254,7 +252,6 @@ namespace PPCore
                         CustomConsoleLog.Error(LogTag, $"{node.Floor} 段目に出せる通常敵がありません。マップ定義 {aDefinition.name} の「通常敵」に、この段を含む遭遇を足してください");
                     }
                 }
-                node.Enemy = node.Encounter != null ? node.Encounter.Party : null;
             }
         }
 
@@ -354,12 +351,12 @@ namespace PPCore
             var boss = new PPStageMapNode(aMap.Height, (aMap.Width - 1) / 2)
             {
                 Type = PPStageNodeType.Boss,
-                Enemy = aDefinition.Boss,
+                Encounter = aDefinition.Boss,
             };
             aMap.Boss = boss;
-            if (boss.Enemy == null)
+            if (boss.Encounter == null)
             {
-                CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「ボス」が未設定です。敵パーティ定義を割り当ててください");
+                CustomConsoleLog.Error(LogTag, $"マップ定義 {aDefinition.name} の「ボス」が未設定です。ステージ定義を割り当ててください");
             }
 
             foreach (var top in aMap.FloorNodes(aMap.Height - 1)) top.Connect(boss);

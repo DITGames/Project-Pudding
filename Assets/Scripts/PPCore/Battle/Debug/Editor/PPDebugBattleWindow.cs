@@ -3,7 +3,7 @@
  * @file PPDebugBattleWindow.cs
  * @author hqrse
  * @date 2026/11/22
- * @brief デバッグバトルの設定を編集し、その設定で S_Battle を始めるウィンドウ
+ * @brief 味方パーティを組み、ステージ定義を読み込んで S_Battle を始めるデバッグバトルのウィンドウ
  * =====================================*/
 
 using UnityEditor;
@@ -34,11 +34,11 @@ namespace PPCore
         /* 操作 */
 
         // 設定を S_Battle へ渡し、開始シーンを差し替えて Play に入る
-        public static void Start(PPDebugBattleDefinition aDefinition, SceneAsset aBattleScene)
+        public static void Start(PPDebugBattleSettings aSettings, SceneAsset aBattleScene)
         {
             var previous = EditorSceneManager.playModeStartScene;
             SessionState.SetString(RestoreKey, previous != null ? AssetDatabase.GetAssetPath(previous) : NoStartScene);
-            SessionState.SetString(PPDebugBattleLauncher.RequestKey, AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(aDefinition)));
+            SessionState.SetString(PPDebugBattleLauncher.RequestKey, JsonUtility.ToJson(aSettings));
             EditorSceneManager.playModeStartScene = aBattleScene;
             EditorApplication.EnterPlaymode();
         }
@@ -59,23 +59,20 @@ namespace PPCore
         }
     }
 
-    // デバッグバトルの設定アセットをその場で編集し、「バトル開始」でその設定の S_Battle を Play する
-    // 設定アセットに項目を足せば、このウィンドウにもそのまま並ぶ
+    // 味方を並べ(最大 PPPartyFactory.MaxMembers 体)、ステージ定義を選んで「バトル開始」でその内容の S_Battle を Play する
+    // 設定は ScriptableObject ではなくこの PC だけ(EditorPrefs)に残し、Git の競合を起こさない
     public class PPDebugBattleWindow : EditorWindow
     {
         /* 定数 */
 
-        private const string DefinitionPrefKey = "PPCore.DebugBattle.DefinitionGuid";
+        private const string SettingsPrefKey = "PPCore.DebugBattle.Settings";
         private const string ScenePrefKey = "PPCore.DebugBattle.SceneGuid";
         private const string DefaultScenePath = "Assets/Scenes/Main/S_Battle.unity";
-        private const string NewAssetPath = "Assets/GameData/Debug/PPDebugBattle.asset";
 
         /* 状態 */
 
-        private PPDebugBattleDefinition mDefinition;
+        private PPDebugBattleSettings mSettings;
         private SceneAsset mBattleScene;
-        // 設定アセットのインスペクタ。設定アセットを変えたら作り直す
-        private Editor mDefinitionEditor;
         private Vector2 mScroll;
 
         /* static 関数 */
@@ -85,45 +82,74 @@ namespace PPCore
 
         /* Unity イベント */
 
-        // 前回選んでいた設定アセットとシーンを戻す。無ければ最初に見つかった設定アセットと S_Battle を使う
+        // 前回の設定とシーンを戻す。無ければ空の設定と S_Battle を使う
         private void OnEnable()
         {
-            mDefinition = LoadByGuid<PPDebugBattleDefinition>(EditorPrefs.GetString(DefinitionPrefKey, string.Empty)) ?? FindFirstDefinition();
-            mBattleScene = LoadByGuid<SceneAsset>(EditorPrefs.GetString(ScenePrefKey, string.Empty))
+            mSettings = LoadSettings();
+            mBattleScene = LoadByGuid<SceneAsset>(EditorPrefs.GetString(GetPrefKey(ScenePrefKey), string.Empty))
                 ?? AssetDatabase.LoadAssetAtPath<SceneAsset>(DefaultScenePath);
-        }
-
-        private void OnDisable()
-        {
-            if (mDefinitionEditor != null) DestroyImmediate(mDefinitionEditor);
         }
 
         private void OnGUI()
         {
-            DrawSelection();
+            mScroll = EditorGUILayout.BeginScrollView(mScroll);
+            EditorGUI.BeginChangeCheck();
+            DrawScene();
+            EditorGUILayout.Space();
+            DrawAllyParty();
+            EditorGUILayout.Space();
+            DrawStage();
+            if (EditorGUI.EndChangeCheck()) SaveSettings();
+            EditorGUILayout.EndScrollView();
+
             EditorGUILayout.Space();
             DrawStartButton();
-            EditorGUILayout.Space();
-            DrawDefinition();
         }
 
         /* 描画 */
 
-        // 設定アセットとシーンを選ぶ欄。設定アセットが無ければ作るボタンを出す
-        private void DrawSelection()
+        private void DrawScene()
         {
-            EditorGUI.BeginChangeCheck();
-            var definition = (PPDebugBattleDefinition)EditorGUILayout.ObjectField("設定", mDefinition, typeof(PPDebugBattleDefinition), false);
-            var scene = (SceneAsset)EditorGUILayout.ObjectField("バトルのシーン", mBattleScene, typeof(SceneAsset), false);
-            if (EditorGUI.EndChangeCheck())
-            {
-                mDefinition = definition;
-                mBattleScene = scene;
-                EditorPrefs.SetString(DefinitionPrefKey, GetGuid(mDefinition));
-                EditorPrefs.SetString(ScenePrefKey, GetGuid(mBattleScene));
-            }
+            mBattleScene = (SceneAsset)EditorGUILayout.ObjectField("バトルのシーン", mBattleScene, typeof(SceneAsset), false);
+        }
 
-            if (mDefinition == null && GUILayout.Button("設定アセットを新しく作る")) CreateDefinition();
+        // 味方を 1 行ずつ、ユニットとレベルで並べる。行を足す・外すボタンも出す。ユニットが空の行は使わない
+        private void DrawAllyParty()
+        {
+            var allies = mSettings.Allies;
+            EditorGUILayout.LabelField($"味方パーティ({allies.Count}/{PPPartyFactory.MaxMembers})", EditorStyles.boldLabel);
+            int removeIndex = -1;
+            for (int i = 0; i < allies.Count; i++)
+            {
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    EditorGUILayout.LabelField($"{i + 1}", GUILayout.Width(24f));
+                    var unit = LoadByGuid<PPUnitDefinition>(allies[i].UnitGuid);
+                    unit = (PPUnitDefinition)EditorGUILayout.ObjectField(unit, typeof(PPUnitDefinition), false);
+                    allies[i].UnitGuid = GetGuid(unit);
+                    EditorGUILayout.LabelField("Lv", GUILayout.Width(20f));
+                    allies[i].Level = Mathf.Max(1, EditorGUILayout.IntField(allies[i].Level, GUILayout.Width(40f)));
+                    if (GUILayout.Button("外す", GUILayout.Width(44f))) removeIndex = i;
+                }
+            }
+            if (removeIndex >= 0) allies.RemoveAt(removeIndex);
+
+            using (new EditorGUI.DisabledScope(allies.Count >= PPPartyFactory.MaxMembers))
+            {
+                if (GUILayout.Button("味方を足す")) allies.Add(new PPDebugBattleMember());
+            }
+        }
+
+        // 戦うステージ定義と、マスの深さの代わりに割り振るレベルを選ぶ
+        private void DrawStage()
+        {
+            EditorGUILayout.LabelField("敵", EditorStyles.boldLabel);
+            EditorGUI.indentLevel++;
+            var stage = LoadByGuid<PPEncounterDefinition>(mSettings.StageGuid);
+            stage = (PPEncounterDefinition)EditorGUILayout.ObjectField("ステージ定義", stage, typeof(PPEncounterDefinition), false);
+            mSettings.StageGuid = GetGuid(stage);
+            mSettings.LevelPoints = Mathf.Max(0, EditorGUILayout.IntField(new GUIContent("割り振るレベル", "マップでは (基底レベル - 1) + (深さ - 1)。出てくる敵の種類へ 1 レベルずつ割り振る"), mSettings.LevelPoints));
+            EditorGUI.indentLevel--;
         }
 
         // Play していなければ「バトル開始」、Play 中なら「停止」を出す
@@ -135,48 +161,36 @@ namespace PPCore
                 return;
             }
 
-            using (new EditorGUI.DisabledScope(mDefinition == null || mBattleScene == null || EditorApplication.isCompiling))
+            bool hasAlly = mSettings.Allies.Exists(m => !string.IsNullOrEmpty(m.UnitGuid));
+            if (!hasAlly) EditorGUILayout.HelpBox("味方を 1 体以上置いてください", MessageType.Info);
+            if (string.IsNullOrEmpty(mSettings.StageGuid)) EditorGUILayout.HelpBox("ステージ定義を選んでください", MessageType.Info);
+            using (new EditorGUI.DisabledScope(!hasAlly || string.IsNullOrEmpty(mSettings.StageGuid) || mBattleScene == null || EditorApplication.isCompiling))
             {
                 if (GUILayout.Button("バトル開始", GUILayout.Height(32f)))
                 {
-                    AssetDatabase.SaveAssetIfDirty(mDefinition);
-                    PPDebugBattleSession.Start(mDefinition, mBattleScene);
+                    SaveSettings();
+                    PPDebugBattleSession.Start(mSettings, mBattleScene);
                 }
             }
         }
 
-        // 設定アセットのインスペクタをそのまま並べる
-        private void DrawDefinition()
-        {
-            if (mDefinition == null) return;
-
-            Editor.CreateCachedEditor(mDefinition, null, ref mDefinitionEditor);
-            mScroll = EditorGUILayout.BeginScrollView(mScroll);
-            mDefinitionEditor.OnInspectorGUI();
-            EditorGUILayout.EndScrollView();
-        }
-
-        /* 操作 */
-
-        private void CreateDefinition()
-        {
-            string folder = System.IO.Path.GetDirectoryName(NewAssetPath).Replace('\\', '/');
-            if (!AssetDatabase.IsValidFolder(folder)) AssetDatabase.CreateFolder("Assets/GameData", "Debug");
-
-            var asset = CreateInstance<PPDebugBattleDefinition>();
-            AssetDatabase.CreateAsset(asset, AssetDatabase.GenerateUniqueAssetPath(NewAssetPath));
-            AssetDatabase.SaveAssets();
-            mDefinition = asset;
-            EditorPrefs.SetString(DefinitionPrefKey, GetGuid(mDefinition));
-            EditorGUIUtility.PingObject(asset);
-        }
-
         /* ヘルパー */
 
-        private static PPDebugBattleDefinition FindFirstDefinition()
+        // 別のプロジェクトの設定と混ざらないよう、キーにプロジェクトの GUID を付ける
+        private static string GetPrefKey(string aKey) => aKey + "." + PlayerSettings.productGUID;
+
+        private static PPDebugBattleSettings LoadSettings()
         {
-            var guids = AssetDatabase.FindAssets($"t:{nameof(PPDebugBattleDefinition)}");
-            return guids.Length > 0 ? LoadByGuid<PPDebugBattleDefinition>(guids[0]) : null;
+            string json = EditorPrefs.GetString(GetPrefKey(SettingsPrefKey), string.Empty);
+            var settings = string.IsNullOrEmpty(json) ? new PPDebugBattleSettings() : JsonUtility.FromJson<PPDebugBattleSettings>(json);
+            settings.Normalize();
+            return settings;
+        }
+
+        private void SaveSettings()
+        {
+            EditorPrefs.SetString(GetPrefKey(SettingsPrefKey), JsonUtility.ToJson(mSettings));
+            EditorPrefs.SetString(GetPrefKey(ScenePrefKey), GetGuid(mBattleScene));
         }
 
         private static T LoadByGuid<T>(string aGuid) where T : Object

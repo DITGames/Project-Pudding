@@ -661,59 +661,6 @@ MonoBehaviour:
   mCoin: {fileID: 348953050}
   mTurnSeconds: 1.2
   mGaugeFill: {fileID: 172905874}
---- !u!1 &221337235
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 221337237}
-  - component: {fileID: 221337236}
-  m_Layer: 0
-  m_Name: DebugEnemySpawner
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &221337236
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 221337235}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 821b75018879a634baa6cae1262f28f7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleDebugEnemySpawner
-  mRunner: {fileID: 829383978}
-  mUnits:
-  - {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-  - {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
-  - {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
-  mLevel: 1
-  mInterval: 3
-  mMaxAlive: 10
-  mSpawnDistance: 2
---- !u!4 &221337237
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 221337235}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &227295390
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1620,17 +1567,13 @@ MonoBehaviour:
     mMaxHp: 20000
     mDefense: 0
     mTypeAttribute: 0
-  mEnemyBase:
-    mDisplayName: "\u6575\u306E\u62E0\u70B9"
-    mMaxHp: 20000
-    mDefense: 0
-    mTypeAttribute: 0
   mBattleUnitViewBinder: {fileID: 2037463420}
   mOpenConfigAction: {fileID: -1142230911242018482, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   mPauseMenu: {fileID: 799393110}
   mConfigMenu: {fileID: 365705444}
   mAllyPartyDefinition: {fileID: 11400000, guid: 9948cf24c6b13bb4abb6a7146dd02212, type: 2}
-  mEnemyPartyDefinition: {fileID: 11400000, guid: 4fe9692510867f846aef56e0ae568c33, type: 2}
+  mStageDefinition: {fileID: 11400000, guid: 1000788115a687b478288654f448e231, type: 2}
+  mLevelPoints: 0
   mReturnToStageDelay: 2
   mResultView: {fileID: 1059745191}
   mTitleSceneName: S_Title
@@ -1950,8 +1893,12 @@ MonoBehaviour:
   mLength: 60
   mMargin: 8
   mBaseFrontDistance: 4
+  mEnemySpawnDistance: 2
   mKnockbackDistance: 3
   mKnockbackSpeed: 12
+  mGround: {fileID: 2762914}
+  mAllyBaseMarker: {fileID: 936045496}
+  mEnemyBaseMarker: {fileID: 1793540194}
 --- !u!4 &964277096
 Transform:
   m_ObjectHideFlags: 0
@@ -3467,4 +3414,3 @@ SceneRoots:
   - {fileID: 1502510262}
   - {fileID: 1490692203}
   - {fileID: 268181052}
-  - {fileID: 221337237}
