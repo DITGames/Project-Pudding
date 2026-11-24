@@ -3,7 +3,7 @@
  * @file PPStageUnitViewBinder.cs
  * @author hqrse
  * @date 2026/11/17
- * @brief ステージ上のユニット表示とバトルユニットの対応付け
+ * @brief バトル画面のユニット表示とバトルユニットの対応付け
  * =====================================*/
 
 using System.Collections.Generic;
@@ -13,40 +13,30 @@ using UnityEngine;
 
 namespace PPCore
 {
-    // ステージの立ち位置にユニットの表示を並べ、BattleManager のイベントを該当する表示の動きへ振り分ける
+    // バトル画面の道の上にユニットの表示を出し、BattleManager のイベントを該当する表示の動きへ振り分ける
     public class PPStageUnitViewBinder : MonoBehaviour
     {
         /* インスペクタ設定 */
 
         [Label("ユニット表示のプレハブ")]
         [SerializeField] private PPStageUnitView mUnitViewPrefab;
-        // 並び順にアクティブメンバーを立たせる
-        [Label("味方の立ち位置", true)]
-        [SerializeField] private Transform[] mAllyStandPoints = new Transform[0];
-        [Label("敵の立ち位置", true)]
-        [SerializeField] private Transform[] mEnemyStandPoints = new Transform[0];
+        // 未設定なら、このオブジェクトの下に置く
+        [Label("ユニット表示を置く親")]
+        [SerializeField] private Transform mUnitRoot;
         [Label("ビジュアルカタログ")]
         [SerializeField] private PPUnitVisualCatalog mUnitVisualCatalog;
-        // 画面端に味方の HP をまとめて出す。未設定なら出さない
-        [Label("味方の状態パネル")]
-        [SerializeField] private PPPartyStatusPanel mAllyStatusPanel;
-        [Label("敵の状態パネル")]
-        [SerializeField] private PPPartyStatusPanel mEnemyStatusPanel;
 
         /* 状態 */
 
         private readonly Dictionary<BattleUnit, PPStageUnitView> mViews = new();
+        // これまでに出した表示の数。同じレイヤー優先度どうしの前後に使う
+        private int mSpawnCount;
 
         /* 初期化・接続 */
 
-        // 両パーティの表示を立ち位置に並べて状態パネルを作り、バトルイベントを購読して動きへ振り分ける
+        // バトルイベントを購読し、該当する表示の動きへ振り分ける
         public void Bind(BattleManager aManager)
         {
-            SpawnViews(aManager.Context.AllyParty, mAllyStandPoints, BattleSide.Ally);
-            SpawnViews(aManager.Context.EnemyParty, mEnemyStandPoints, BattleSide.Enemy);
-            if (mAllyStatusPanel != null) mAllyStatusPanel.Bind(aManager.Context.AllyParty, GetIcon);
-            if (mEnemyStatusPanel != null) mEnemyStatusPanel.Bind(aManager.Context.EnemyParty, GetIcon);
-
             aManager.OnDamageResolved += (d) =>
             {
                 // 攻撃元を持たないダメージ(状態異常など)は攻撃の動きの対象にならない
@@ -59,31 +49,28 @@ namespace PPCore
             aManager.OnStatsEffectRemoved += (u, e) => GetView(u)?.RemoveStatusIcon(e);
         }
 
-        // アクティブメンバーを立ち位置の順に立たせる。立ち位置が足りないメンバーは表示しない
-        private void SpawnViews(BattleParty aParty, Transform[] aStandPoints, BattleSide aSide)
+        /* 操作 */
+
+        // ユニットの表示を道の上の aPosition に出す。既に出ているユニットなら、その表示を返す
+        public PPStageUnitView SpawnView(BattleUnit aUnit, BattleSide aSide, Vector3 aPosition)
         {
-            int index = 0;
-            foreach (var unit in aParty.ActiveMembers)
+            if (mViews.TryGetValue(aUnit, out var existing)) return existing;
+            if (mUnitViewPrefab == null)
             {
-                if (index >= aStandPoints.Length || aStandPoints[index] == null)
-                {
-                    CustomConsoleLog.Warning("Battle", $"{aSide} の立ち位置が足りないため {unit.UnitId} を表示しません。ステージのバインダーに立ち位置を追加してください", this);
-                    index++;
-                    continue;
-                }
-                var view = Instantiate(mUnitViewPrefab, aStandPoints[index].position, Quaternion.identity, aStandPoints[index]);
-                view.Initialize(unit, ResolveVisual(unit), aSide);
-                mViews.Add(unit, view);
-                index++;
+                CustomConsoleLog.Error("Battle", $"ユニット表示のプレハブが未設定のため {aUnit.UnitId} を表示できません。PPStageUnitViewBinder の「ユニット表示のプレハブ」を割り当ててください", this);
+                return null;
             }
+            var parent = mUnitRoot != null ? mUnitRoot : transform;
+            var view = Instantiate(mUnitViewPrefab, aPosition, Quaternion.identity, parent);
+            view.Initialize(aUnit, ResolveVisual(aUnit), aSide, mSpawnCount);
+            mSpawnCount++;
+            mViews.Add(aUnit, view);
+            return view;
         }
 
         /* 問い合わせ */
 
         public PPStageUnitView GetView(BattleUnit aUnit) => aUnit != null ? mViews.GetValueOrDefault(aUnit) : null;
-
-        // ユニットのアイコンを返す。見た目定義が無ければ null
-        public Sprite GetIcon(BattleUnit aUnit) => ResolveVisual(aUnit)?.UnitIcon;
 
         /* ヘルパー */
 

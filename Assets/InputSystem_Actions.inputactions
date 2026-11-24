@@ -1066,6 +1066,51 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "CameraDrag",
+                    "type": "Button",
+                    "id": "b18d2442-8204-4c77-80a1-0f9408be61cb",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "CameraPointer",
+                    "type": "PassThrough",
+                    "id": "ac50b8e9-4562-40cb-b61b-2f70451d4ae4",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "CameraPointerDelta",
+                    "type": "PassThrough",
+                    "id": "9a13ee66-6bd5-4b22-826b-0bf282cbfa4d",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "CameraZoomWheel",
+                    "type": "PassThrough",
+                    "id": "66869af2-7ddc-4f38-b3f1-d94e0175534b",
+                    "expectedControlType": "Axis",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "CameraStick",
+                    "type": "Value",
+                    "id": "c8412aa4-4ad4-4e44-875b-89585beed89a",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
                 }
             ],
             "bindings": [
@@ -1407,6 +1452,61 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "Detail",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "20a6e237-4f12-4adf-9100-eb61b9d17605",
+                    "path": "<Mouse>/rightButton",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "CameraDrag",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "66aca3b4-0bfc-4ab8-b1f0-7eeebd90295a",
+                    "path": "<Mouse>/position",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "CameraPointer",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "60bc2cc3-3ccc-4b63-9a9e-0f654fa5896a",
+                    "path": "<Mouse>/delta",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "CameraPointerDelta",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "31e399f3-18ec-4fea-a94e-a53d4d3ba1f8",
+                    "path": "<Mouse>/scroll/y",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse",
+                    "action": "CameraZoomWheel",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "67d95ccf-bcc4-4e7e-854e-149ebdbe76f6",
+                    "path": "<Gamepad>/rightStick",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Gamepad",
+                    "action": "CameraStick",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

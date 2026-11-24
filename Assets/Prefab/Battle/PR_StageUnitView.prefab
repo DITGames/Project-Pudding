@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4771748714197689956}
   - component: {fileID: 5175365898319089147}
+  - component: {fileID: 6381922225707993100}
   m_Layer: 0
   m_Name: PR_StageUnitView
   m_TagString: Untagged
@@ -56,6 +57,19 @@ MonoBehaviour:
   mDamageColor: {r: 1, g: 0.4, b: 0.4, a: 1}
   mHealColor: {r: 0.5, g: 1, b: 0.6, a: 1}
   mDefeatDuration: 0.6
+--- !u!210 &6381922225707993100
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3688991403611972174}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_SortAtRoot: 0
+  m_Sort3DAs2D: 0
 --- !u!1 &4036487371021318018
 GameObject:
   m_ObjectHideFlags: 0
