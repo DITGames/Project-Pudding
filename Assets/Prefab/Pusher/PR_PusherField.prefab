@@ -317,7 +317,7 @@ MonoBehaviour:
   mSpread: 1
   mCursorSpeed: 0.8
   mCursorStart: 0.5
-  mInitialCount: 275
+  mInitialCount: 200
   mInitialArea: {fileID: 2755636174697559776}
   mInitialSpacing: 1.7
   mStockLabel: {fileID: 0}
