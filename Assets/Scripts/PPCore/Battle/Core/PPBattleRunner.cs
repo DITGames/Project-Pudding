@@ -104,6 +104,8 @@ namespace PPCore
 
         // プッシャーの読み込み中はまだバトルを組み立てていないため、Context が null
         public BattleManager BattleManager => mBattleManager;
+        // ウェーブの進行。ノードの動きを読むのに使う。バトルを組み立てる前と、バトル定義が無いバトルでは null
+        public PPWaveRunner WaveRunner => mWaveRunner;
 
         /* Unity イベント */
 

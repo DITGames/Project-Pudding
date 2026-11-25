@@ -6,13 +6,14 @@
  * @brief バトル定義(1 回のバトルの中身。ウェーブ・敵拠点・道の長さ・出てくる段)
  * =====================================*/
 
+using System.Collections.Generic;
 using UnityEngine;
 using AttributeUtility;
 using CustomConsole;
 
 namespace PPCore
 {
-    // バトル定義。1 回のバトルで敵をどう出すか(ウェーブ)・敵拠点・道の長さを持ち、マップのマスに候補として割り当てる
+    // バトル定義。1 回のバトルで敵をどう出すか(ウェーブのノードと線)・敵拠点・道の長さを持ち、マップのマスに候補として割り当てる
     // 難易度ポイントは、ウェーブに出てくるユニットの種類ごとのポイントを合計する
     [CreateAssetMenu(fileName = "PBD_New", menuName = "Project-Pudding/Definition/PPBattleDefinition")]
     public class PPBattleDefinition : ScriptableObject
@@ -73,11 +74,17 @@ namespace PPCore
         /* Unity イベント */
 
 #if UNITY_EDITOR
-        // 最小の段が最大の段より大きいと、どの段にも出なくなるため警告する。値は書き換えない
+        // 最小の段が最大の段より大きいときと、ウェーブのノードや線に誤りがあるときに警告する。値は書き換えない
         void OnValidate()
         {
-            if (mMinFloor <= mMaxFloor) return;
-            CustomConsoleLog.Warning(LogTag, $"バトル定義 {name} の最小の段 {mMinFloor} が最大の段 {mMaxFloor} より大きいため、どの段にも出ません。「出てくる段」を直してください", this);
+            if (mMinFloor > mMaxFloor)
+            {
+                CustomConsoleLog.Warning(LogTag, $"バトル定義 {name} の最小の段 {mMinFloor} が最大の段 {mMaxFloor} より大きいため、どの段にも出ません。「出てくる段」を直してください", this);
+            }
+            if (mWave == null) return;
+            var problems = new List<string>();
+            mWave.Validate(problems);
+            foreach (var problem in problems) CustomConsoleLog.Warning(LogTag, $"バトル定義 {name} のウェーブ: {problem}", this);
         }
 #endif
 

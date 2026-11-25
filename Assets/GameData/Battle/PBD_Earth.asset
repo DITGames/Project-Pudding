@@ -13,57 +13,57 @@ MonoBehaviour:
   m_Name: PBD_Earth
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleDefinition
   mWave:
-    mSteps:
-    - mMemo: "\u5148\u767A"
-      mConditions: []
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-        mLevel: 1
-        mCount: 3
-        mInterval: 4
-        mFirstDelay: 0
-    - mMemo: "\u4E3B\u529B"
-      mConditions:
-      - rid: 2919751472399515711
-      - rid: 2919751472399515712
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
-        mLevel: 1
-        mCount: 2
-        mInterval: 5
-        mFirstDelay: 0
-      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-        mLevel: 1
-        mCount: 2
-        mInterval: 3
-        mFirstDelay: 1
-    - mMemo: "\u63F4\u8ECD"
-      mConditions:
-      - rid: 2919751472399515713
-      - rid: 2919751472399515714
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
-        mLevel: 1
-        mCount: 2
-        mInterval: 4
-        mFirstDelay: 0
-    - mMemo: "\u7E70\u308A\u8FD4\u3057"
-      mConditions:
-      - rid: 2919751472399515715
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-        mLevel: 1
-        mCount: 3
-        mInterval: 3
-        mFirstDelay: 0
-      - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
-        mLevel: 1
-        mCount: 1
-        mInterval: 5
-        mFirstDelay: 2
-    mIsLoop: 1
-    mLoopStart: 3
-    mLoopEnd: 4
+    mNodes:
+    - rid: 2919751506297356356
+    - rid: 2919751506297356357
+    - rid: 2919751506297356358
+    - rid: 2919751506297356359
+    - rid: 2919751506297356360
+    - rid: 2919751506297356361
+    - rid: 2919751506297356362
+    - rid: 2919751506297356363
+    - rid: 2919751506297356364
+    - rid: 2919751506297356365
+    mLinks:
+    - mFromId: f0a97d968ac246b59e8754d0a3a1df30
+      mFromPort: 0
+      mToId: bdd2322fcea342999f4b88c99850f074
+    - mFromId: d30bec4899f7447ebd24d328a0267986
+      mFromPort: 0
+      mToId: 18baee738fc64151b7f5f2b88bc4879b
+    - mFromId: 660a657635a542ab8a8280cd2a70d54f
+      mFromPort: 0
+      mToId: 18baee738fc64151b7f5f2b88bc4879b
+    - mFromId: bdd2322fcea342999f4b88c99850f074
+      mFromPort: 1
+      mToId: d30bec4899f7447ebd24d328a0267986
+    - mFromId: bdd2322fcea342999f4b88c99850f074
+      mFromPort: 1
+      mToId: 660a657635a542ab8a8280cd2a70d54f
+    - mFromId: 30509ab41066452a81a7761578bdcad0
+      mFromPort: 0
+      mToId: b42750df44144ef3a7d1681418a8809f
+    - mFromId: aa1c13a407e7407c89c072d06681dc03
+      mFromPort: 0
+      mToId: b42750df44144ef3a7d1681418a8809f
+    - mFromId: 18baee738fc64151b7f5f2b88bc4879b
+      mFromPort: 1
+      mToId: 30509ab41066452a81a7761578bdcad0
+    - mFromId: 18baee738fc64151b7f5f2b88bc4879b
+      mFromPort: 1
+      mToId: aa1c13a407e7407c89c072d06681dc03
+    - mFromId: 4ab233993c0b463aa2715e1fad759e39
+      mFromPort: 1
+      mToId: 30509ab41066452a81a7761578bdcad0
+    - mFromId: 4ab233993c0b463aa2715e1fad759e39
+      mFromPort: 1
+      mToId: aa1c13a407e7407c89c072d06681dc03
+    - mFromId: 7b4ccd93431e48dc8b47f6c29e62af0a
+      mFromPort: 0
+      mToId: 4ab233993c0b463aa2715e1fad759e39
+    - mFromId: b42750df44144ef3a7d1681418a8809f
+      mFromPort: 1
+      mToId: 7b4ccd93431e48dc8b47f6c29e62af0a
   mEnemyBase:
     mDisplayName: "\u6575\u306E\u62E0\u70B9"
     mMaxHp: 20000
@@ -76,24 +76,112 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
-    - rid: 2919751472399515711
-      type: {class: PPWaveStepWipedTrigger, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 2919751506297356356
+      type: {class: PPWaveBattleStartTriggerNode, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mStepNumber: 1
-    - rid: 2919751472399515712
-      type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
+        mId: f0a97d968ac246b59e8754d0a3a1df30
+        mMemo: "\u30D0\u30C8\u30EB\u958B\u59CB"
+        mPosition: {x: 0, y: 0}
+    - rid: 2919751506297356357
+      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
       data:
+        mId: bdd2322fcea342999f4b88c99850f074
+        mMemo: "\u5148\u767A"
+        mPosition: {x: 400, y: 0}
+        mSpawns:
+        - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+          mLevel: 1
+          mCount: 3
+          mInterval: 4
+          mFirstDelay: 0
+    - rid: 2919751506297356358
+      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mId: 18baee738fc64151b7f5f2b88bc4879b
+        mMemo: "\u4E3B\u529B"
+        mPosition: {x: 800, y: 0}
+        mSpawns:
+        - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+          mLevel: 1
+          mCount: 2
+          mInterval: 5
+          mFirstDelay: 0
+        - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+          mLevel: 1
+          mCount: 2
+          mInterval: 3
+          mFirstDelay: 1
+    - rid: 2919751506297356359
+      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mId: b42750df44144ef3a7d1681418a8809f
+        mMemo: "\u63F4\u8ECD"
+        mPosition: {x: 1200, y: 0}
+        mSpawns:
+        - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+          mLevel: 1
+          mCount: 2
+          mInterval: 4
+          mFirstDelay: 0
+    - rid: 2919751506297356360
+      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mId: 4ab233993c0b463aa2715e1fad759e39
+        mMemo: "\u7E70\u308A\u8FD4\u3057"
+        mPosition: {x: 1600, y: 0}
+        mSpawns:
+        - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+          mLevel: 1
+          mCount: 3
+          mInterval: 3
+          mFirstDelay: 0
+        - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+          mLevel: 1
+          mCount: 1
+          mInterval: 5
+          mFirstDelay: 2
+    - rid: 2919751506297356361
+      type: {class: PPWaveWipedTriggerNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mId: d30bec4899f7447ebd24d328a0267986
+        mMemo: "\u4E3B\u529B\u306E\u6761\u4EF6: \u5148\u767A\u306E\u5168\u6EC5"
+        mPosition: {x: 600, y: 150}
+        mIsOnce: 0
+        mRaceGroup: "\u6BB5\u968E2"
+        mTargetId: bdd2322fcea342999f4b88c99850f074
+    - rid: 2919751506297356362
+      type: {class: PPWaveElapsedTriggerNode, ns: PPCore, asm: Assembly-CSharp}
+      data:
+        mId: 660a657635a542ab8a8280cd2a70d54f
+        mMemo: "\u4E3B\u529B\u306E\u6761\u4EF6: 20\u79D2"
+        mPosition: {x: 600, y: 300}
+        mIsOnce: 0
+        mRaceGroup: "\u6BB5\u968E2"
         mSeconds: 20
-    - rid: 2919751472399515713
-      type: {class: PPWaveBaseDamagedTrigger, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 2919751506297356363
+      type: {class: PPWaveBaseDamagedTriggerNode, ns: PPCore, asm: Assembly-CSharp}
       data:
-        mSide: 1
+        mId: 30509ab41066452a81a7761578bdcad0
+        mMemo: "\u63F4\u8ECD\u306E\u6761\u4EF6: \u6575\u62E0\u70B9\u306E\u30C0\u30E1\u30FC\u30B8"
+        mPosition: {x: 1000, y: 150}
         mIsOnce: 1
-    - rid: 2919751472399515714
-      type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
+        mRaceGroup: "\u6BB5\u968E3"
+        mSide: 1
+    - rid: 2919751506297356364
+      type: {class: PPWaveElapsedTriggerNode, ns: PPCore, asm: Assembly-CSharp}
       data:
+        mId: aa1c13a407e7407c89c072d06681dc03
+        mMemo: "\u63F4\u8ECD\u306E\u6761\u4EF6: 25\u79D2"
+        mPosition: {x: 1000, y: 300}
+        mIsOnce: 0
+        mRaceGroup: "\u6BB5\u968E3"
         mSeconds: 25
-    - rid: 2919751472399515715
-      type: {class: PPWaveElapsedTrigger, ns: PPCore, asm: Assembly-CSharp}
+    - rid: 2919751506297356365
+      type: {class: PPWaveElapsedTriggerNode, ns: PPCore, asm: Assembly-CSharp}
       data:
+        mId: 7b4ccd93431e48dc8b47f6c29e62af0a
+        mMemo: "\u7E70\u308A\u8FD4\u3057\u306E\u6761\u4EF6: 20\u79D2"
+        mPosition: {x: 1400, y: 150}
+        mIsOnce: 0
+        mRaceGroup: 
         mSeconds: 20
