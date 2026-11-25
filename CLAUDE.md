@@ -146,6 +146,7 @@ PPCore/
 - `EditConditionAttribute` … UE5 の EditCondition/EditConditionHides 相当の条件付き表示
 - `CustomConsoleLog` + `Window > Custom Console` … タグ・拡張ログレベル（Verbose/Critical）・送信元オブジェクト付きログ。バトルのトレースはこれを使う
 - `Window > Recent Assets` … 最近開いたアセット履歴
+- `Window > Project-Pudding > ウェーブのノードエディタ`(バトル定義のインスペクタの「ノードエディタで開く」でも開く)… バトル定義のウェーブをノードと線で組む(`PPBattleWaveEditorWindow`。ノード図は `PPWaveGraphView`)。中身は右の欄で編集し、Undo と保存は通常のアセット編集と同じ。誤りは `PPWaveDefinition.Validate` の結果を下の一覧とノードの赤い枠で出し、開いている間はそのバトル定義の警告をコンソールに出さない。Play 中は表示だけ
 
 ## コーディング規約
 

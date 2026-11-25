@@ -3,7 +3,7 @@
  * @file PPWaveDefinition.cs
  * @author hqrse
  * @date 2026/11/24
- * @brief ウェーブの定義(ノードの一覧と線の一覧・ウェーブノードが出す敵・定義の点検)
+ * @brief ウェーブの定義(ノードの一覧と線の一覧・ウェーブノードが出す敵・定義の点検と誤り)
  * =====================================*/
 
 using System;
@@ -110,6 +110,27 @@ namespace PPCore
         }
     }
 
+    // ウェーブの定義の誤り 1 件。ノードエディタで印を付けられるよう、どのノード・線の誤りかを添える
+    public class PPWaveProblem
+    {
+        /* プロパティ */
+
+        public string Message { get; }
+        // 誤りのあるノードの識別子。ノードに結び付かなければ null
+        public string NodeId { get; }
+        // 誤りのある線の番号(0 から)。線に結び付かなければ -1
+        public int LinkIndex { get; }
+
+        /* 生成 */
+
+        public PPWaveProblem(string aMessage, string aNodeId = null, int aLinkIndex = -1)
+        {
+            Message = aMessage;
+            NodeId = aNodeId;
+            LinkIndex = aLinkIndex;
+        }
+    }
+
     // バトル定義が持つウェーブ。ノードの一覧と、ノードどうしをつなぐ線の一覧で敵の出し方を組む
     [Serializable]
     public class PPWaveDefinition
@@ -209,6 +230,14 @@ namespace PPCore
         // 定義の誤りを文章にして aProblems に足す。値は直さない
         public void Validate(List<string> aProblems)
         {
+            var problems = new List<PPWaveProblem>();
+            Validate(problems);
+            foreach (var problem in problems) aProblems.Add(problem.Message);
+        }
+
+        // 定義の誤りを、どのノード・線の誤りかを添えて aProblems に足す。値は直さない
+        public void Validate(List<PPWaveProblem> aProblems)
+        {
             var ids = new HashSet<string>();
             bool hasTrigger = false;
             for (int i = 0; i < mNodes.Count; i++)
@@ -216,18 +245,18 @@ namespace PPCore
                 var node = mNodes[i];
                 if (node == null)
                 {
-                    aProblems.Add($"ノード {i + 1} の種類が選ばれていません");
+                    aProblems.Add(new PPWaveProblem($"ノード {i + 1} の種類が選ばれていません"));
                     continue;
                 }
                 if (node is PPWaveTriggerNode) hasTrigger = true;
-                if (string.IsNullOrEmpty(node.Id)) aProblems.Add($"ノード {i + 1}「{node.DisplayName}」の識別子が空です");
-                else if (!ids.Add(node.Id)) aProblems.Add($"ノード {i + 1}「{node.DisplayName}」の識別子が他のノードと重なっています。インスペクタの「識別子を振り直す」で直してください");
+                if (string.IsNullOrEmpty(node.Id)) aProblems.Add(new PPWaveProblem($"ノード {i + 1}「{node.DisplayName}」の識別子が空です"));
+                else if (!ids.Add(node.Id)) aProblems.Add(new PPWaveProblem($"ノード {i + 1}「{node.DisplayName}」の識別子が他のノードと重なっています。インスペクタの「識別子を振り直す」で直してください", node.Id));
                 if (node is PPWaveWipedTriggerNode wiped && FindNode(wiped.TargetId) is not PPWaveSpawnNode)
                 {
-                    aProblems.Add($"トリガー「{node.DisplayName}」の対象のウェーブが見つかりません");
+                    aProblems.Add(new PPWaveProblem($"トリガー「{node.DisplayName}」の対象のウェーブが見つかりません", node.Id));
                 }
             }
-            if (mNodes.Count > 0 && !hasTrigger) aProblems.Add("トリガーノードが 1 つもないため、どのノードも動きません");
+            if (mNodes.Count > 0 && !hasTrigger) aProblems.Add(new PPWaveProblem("トリガーノードが 1 つもないため、どのノードも動きません"));
 
             for (int i = 0; i < mLinks.Count; i++)
             {
@@ -237,19 +266,79 @@ namespace PPCore
                 var to = FindNode(link.ToId);
                 if (from == null || to == null)
                 {
-                    aProblems.Add($"線 {i + 1} の{(from == null ? "出口" : "行き先")}のノードが見つかりません");
+                    aProblems.Add(new PPWaveProblem($"線 {i + 1} の{(from == null ? "出口" : "行き先")}のノードが見つかりません", (from ?? to)?.Id, i));
                     continue;
                 }
-                if (!from.HasOutput(link.FromPort)) aProblems.Add($"線 {i + 1}: ノード「{from.DisplayName}」には出口「{GetPortName(link.FromPort)}」がありません");
-                if (to is PPWaveTriggerNode trigger && trigger.IgnoresInput) aProblems.Add($"線 {i + 1}: ノード「{to.DisplayName}」は入口からの線を受け付けません");
+                if (!from.HasOutput(link.FromPort)) aProblems.Add(new PPWaveProblem($"線 {i + 1}: ノード「{from.DisplayName}」には出口「{GetPortName(link.FromPort)}」がありません", from.Id, i));
+                if (to is PPWaveTriggerNode trigger && trigger.IgnoresInput) aProblems.Add(new PPWaveProblem($"線 {i + 1}: ノード「{to.DisplayName}」は入口からの線を受け付けません", to.Id, i));
                 if (from is PPWaveSpawnNode spawnNode && spawnNode.IsInfinite && link.FromPort is PPWaveNodePort.Finished or PPWaveNodePort.Wiped)
                 {
-                    aProblems.Add($"線 {i + 1}: ウェーブ「{from.DisplayName}」は数が無限の敵を出すため、出し終えることも全滅することもありません");
+                    aProblems.Add(new PPWaveProblem($"線 {i + 1}: ウェーブ「{from.DisplayName}」は数が無限の敵を出すため、出し終えることも全滅することもありません", from.Id, i));
+                }
+            }
+
+            foreach (var node in mNodes)
+            {
+                if (node is PPWaveTriggerNode && !HasValidOutgoingLink(node, PPWaveNodePort.Fired))
+                {
+                    aProblems.Add(new PPWaveProblem($"トリガー「{node.DisplayName}」の「{GetPortName(PPWaveNodePort.Fired)}」から線が出ていないため、起動しても何も起きません", node.Id));
+                }
+            }
+            // トリガーが無いときは全部のノードが届かないため、上の 1 件だけにする
+            if (hasTrigger)
+            {
+                var reached = CollectReachableNodes();
+                foreach (var node in mNodes)
+                {
+                    if (node == null || reached.Contains(node)) continue;
+                    aProblems.Add(new PPWaveProblem($"ノード「{node.DisplayName}」は、起点(入口に線の無いトリガー)から線をたどっても届かないため動きません", node.Id));
                 }
             }
 
             var looped = FindInstantLoopNode();
-            if (looped != null) aProblems.Add($"ノード「{looped.DisplayName}」を通る輪に待ちがないため、1 フレームに 1 周ずつ回り続けます。時間などのトリガーを挟んでください");
+            if (looped != null) aProblems.Add(new PPWaveProblem($"ノード「{looped.DisplayName}」を通る輪に待ちがないため、1 フレームに 1 周ずつ回り続けます。時間などのトリガーを挟んでください", looped.Id));
+        }
+
+        // ランナーが使う線か(両端のノードがあり、出口のノードがその出口を持つ)
+        private bool IsValidLink(PPWaveLink aLink, out PPWaveNode aFrom, out PPWaveNode aTo)
+        {
+            aFrom = aLink != null ? FindNode(aLink.FromId) : null;
+            aTo = aLink != null ? FindNode(aLink.ToId) : null;
+            return aFrom != null && aTo != null && aFrom.HasOutput(aLink.FromPort);
+        }
+
+        private bool HasValidOutgoingLink(PPWaveNode aNode, PPWaveNodePort aPort)
+        {
+            foreach (var link in mLinks)
+            {
+                if (link != null && link.FromPort == aPort && IsValidLink(link, out var from, out _) && from == aNode) return true;
+            }
+            return false;
+        }
+
+        // 起点(入口に使える線の無いトリガーと、入口を受け付けないトリガー)から、使える線をたどって届くノード
+        private HashSet<PPWaveNode> CollectReachableNodes()
+        {
+            var hasIncoming = new HashSet<PPWaveNode>();
+            foreach (var link in mLinks)
+            {
+                if (IsValidLink(link, out _, out var to) && to is not PPWaveTriggerNode { IgnoresInput: true }) hasIncoming.Add(to);
+            }
+            var reached = new HashSet<PPWaveNode>();
+            var stack = new Stack<PPWaveNode>();
+            foreach (var node in mNodes)
+            {
+                if (node is PPWaveTriggerNode && !hasIncoming.Contains(node) && reached.Add(node)) stack.Push(node);
+            }
+            while (stack.Count > 0)
+            {
+                var current = stack.Pop();
+                foreach (var link in mLinks)
+                {
+                    if (IsValidLink(link, out var from, out var to) && from == current && reached.Add(to)) stack.Push(to);
+                }
+            }
+            return reached;
         }
 
         // 待ちを含まない線(ウェーブの出し始め・条件の結果・0 秒の時間トリガーの起動)だけでできた輪にあるノードを 1 つ返す。無ければ null

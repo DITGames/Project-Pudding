@@ -22,6 +22,13 @@ namespace PPCore
 
         private const string LogTag = "StageMap";
 
+        /* static 変数 */
+
+#if UNITY_EDITOR
+        // ウェーブの誤りの警告をコンソールに出さないバトル定義かを返す。ノードエディタが、開いている間の組みかけの警告を止めるために設定する
+        public static System.Func<PPBattleDefinition, bool> IsWaveWarningSuppressed { get; set; }
+#endif
+
         /* インスペクタ設定 */
 
         [Header("ウェーブ")]
@@ -75,13 +82,14 @@ namespace PPCore
 
 #if UNITY_EDITOR
         // 最小の段が最大の段より大きいときと、ウェーブのノードや線に誤りがあるときに警告する。値は書き換えない
+        // ノードエディタで開いている間は、ウェーブの誤りはエディタの一覧に出すため警告しない
         void OnValidate()
         {
             if (mMinFloor > mMaxFloor)
             {
                 CustomConsoleLog.Warning(LogTag, $"バトル定義 {name} の最小の段 {mMinFloor} が最大の段 {mMaxFloor} より大きいため、どの段にも出ません。「出てくる段」を直してください", this);
             }
-            if (mWave == null) return;
+            if (mWave == null || (IsWaveWarningSuppressed?.Invoke(this) ?? false)) return;
             var problems = new List<string>();
             mWave.Validate(problems);
             foreach (var problem in problems) CustomConsoleLog.Warning(LogTag, $"バトル定義 {name} のウェーブ: {problem}", this);

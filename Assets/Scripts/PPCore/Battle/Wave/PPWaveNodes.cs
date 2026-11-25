@@ -83,7 +83,7 @@ namespace PPCore
         // インスペクタで見分けるための名前。動きには使わない
         [Label("メモ")]
         [SerializeField] private string mMemo;
-        // グラフエディタで置く位置。今は変換時に並べるだけ
+        // ノードエディタで置く位置。動きには使わない
         [HideInInspector]
         [SerializeField] private Vector2 mPosition;
 

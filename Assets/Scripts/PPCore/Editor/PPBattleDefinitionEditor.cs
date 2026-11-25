@@ -3,14 +3,15 @@
  * @file PPBattleDefinitionEditor.cs
  * @author hqrse
  * @date 2026/11/23
- * @brief バトル定義に、ウェーブに出てくるユニットから合計した難易度ポイントを表示するインスペクタ
+ * @brief バトル定義のインスペクタ。ノードエディタを開くボタンと、ウェーブに出てくるユニットから合計した難易度ポイントを出す
  * =====================================*/
 
 using UnityEditor;
+using UnityEngine;
 
 namespace PPCore
 {
-    // PPBattleDefinition のインスペクタ。既定の項目の下に、難易度ポイントの合計とユニットの種類ごとの内訳を編集不可で出す
+    // PPBattleDefinition のインスペクタ。先頭にウェーブのノードエディタを開くボタン、既定の項目の下に難易度ポイントの合計と内訳を編集不可で出す
     [CustomEditor(typeof(PPBattleDefinition), true)]
     public class PPBattleDefinitionEditor : UnityEditor.Editor
     {
@@ -18,6 +19,8 @@ namespace PPCore
 
         public override void OnInspectorGUI()
         {
+            if (GUILayout.Button("ノードエディタで開く")) PPBattleWaveEditorWindow.Open((PPBattleDefinition)target);
+            EditorGUILayout.Space();
             base.OnInspectorGUI();
 
             var encounter = (PPBattleDefinition)target;
