@@ -71,6 +71,19 @@ namespace PPCore
         }
     }
 
+    // ノードの識別子の文字列に付け、インスペクタで書き換えられない欄にする。書き換えると、その識別子を指す線がすべて切れるため
+    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false, Inherited = false)]
+    public sealed class PPWaveNodeIdAttribute : PropertyAttribute
+    {
+        /* プロパティ */
+
+        public string Text { get; }
+
+        /* 生成 */
+
+        public PPWaveNodeIdAttribute(string aText) => Text = aText;
+    }
+
     // ウェーブのノードの基底。[SerializeReference] で並べ、線は識別子で指す
     // 定義アセットの中で共有されるため、実行中の状態は持たない(ランナーが持つ)
     [Serializable]
@@ -78,7 +91,7 @@ namespace PPCore
     {
         /* インスペクタ設定 */
 
-        [Label("識別子")]
+        [PPWaveNodeId("識別子")]
         [SerializeField] private string mId = NewId();
         // インスペクタで見分けるための名前。動きには使わない
         [Label("メモ")]
@@ -161,8 +174,11 @@ namespace PPCore
 
         /* 評価・判定 */
 
-        // 待っている間に、起動する条件を満たしたか
+        // 待っている間に、起動する条件を満たしたか。状態は読むだけで書き換えない
         public abstract bool IsSatisfied(PPWaveTriggerState aState, IPPWaveGraphContext aContext);
+
+        // 待っている間、判定の前にランナーが毎フレーム呼ぶ。待ち直しの見届けなど、判定に使う状態の更新はここで行う
+        public virtual void Observe(PPWaveTriggerState aState, IPPWaveGraphContext aContext) { }
 
         // 起動したときに、次の判定に要る値を覚える
         public virtual void OnFired(PPWaveTriggerState aState, IPPWaveGraphContext aContext) { }
@@ -300,14 +316,16 @@ namespace PPCore
 
         /* 評価・判定 */
 
-        // 待ち直した後は、割合より上に戻ったのを見届けてから(IsRearmed を下ろしてから)判定する
-        public override bool IsSatisfied(PPWaveTriggerState aState, IPPWaveGraphContext aContext)
+        // 待ち直した後は、割合より上に戻ったのを見届けるまで(IsRearmed が下りるまで)起動しない
+        public override bool IsSatisfied(PPWaveTriggerState aState, IPPWaveGraphContext aContext) => !aState.IsRearmed && IsBelow(aContext);
+
+        // 待ち直した後、割合より上に戻ったら IsRearmed を下ろす
+        public override void Observe(PPWaveTriggerState aState, IPPWaveGraphContext aContext)
         {
-            bool isBelow = aContext.GetBaseHpRatio(mSide) <= Mathf.Clamp(mPercent, 0f, 100f) / 100f + CompareEpsilon;
-            if (!aState.IsRearmed) return isBelow;
-            if (!isBelow) aState.IsRearmed = false;
-            return false;
+            if (aState.IsRearmed && !IsBelow(aContext)) aState.IsRearmed = false;
         }
+
+        private bool IsBelow(IPPWaveGraphContext aContext) => aContext.GetBaseHpRatio(mSide) <= Mathf.Clamp(mPercent, 0f, 100f) / 100f + CompareEpsilon;
     }
 
     // 指定したウェーブノードの最新の回が、出し終えたうえで全滅したら。待ち直した後は、次の回が全滅したら

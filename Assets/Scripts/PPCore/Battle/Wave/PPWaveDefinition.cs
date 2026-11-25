@@ -295,8 +295,17 @@ namespace PPCore
                 }
             }
 
-            var looped = FindInstantLoopNode();
-            if (looped != null) aProblems.Add(new PPWaveProblem($"ノード「{looped.DisplayName}」を通る輪に待ちがないため、1 フレームに 1 周ずつ回り続けます。時間などのトリガーを挟んでください", looped.Id));
+            var looped = FindInstantLoopNode(false);
+            if (looped != null)
+            {
+                aProblems.Add(new PPWaveProblem($"ノード「{looped.DisplayName}」を通る輪に待ちがないため、1 フレームに 1 周ずつ回り続けます。時間などのトリガーを挟んでください", looped.Id));
+                return;
+            }
+            var mayLoop = FindInstantLoopNode(true);
+            if (mayLoop != null)
+            {
+                aProblems.Add(new PPWaveProblem($"ノード「{mayLoop.DisplayName}」を通る輪は、条件によっては待ちがなくなり、1 フレームに 1 周ずつ回り続けます(待ち始めた時点で満たしている拠点の HP・全滅のトリガーや、出す敵の無いウェーブを通るとき)。時間などのトリガーを挟んでください", mayLoop.Id));
+            }
         }
 
         // ランナーが使う線か(両端のノードがあり、出口のノードがその出口を持つ)
@@ -307,6 +316,7 @@ namespace PPCore
             return aFrom != null && aTo != null && aFrom.HasOutput(aLink.FromPort);
         }
 
+        // そのノードのその出口から、ランナーが使う線が出ているか
         private bool HasValidOutgoingLink(PPWaveNode aNode, PPWaveNodePort aPort)
         {
             foreach (var link in mLinks)
@@ -341,33 +351,34 @@ namespace PPCore
             return reached;
         }
 
-        // 待ちを含まない線(ウェーブの出し始め・条件の結果・0 秒の時間トリガーの起動)だけでできた輪にあるノードを 1 つ返す。無ければ null
-        private PPWaveNode FindInstantLoopNode()
+        // 待ちを含まない線だけでできた輪にあるノードを 1 つ返す。無ければ null
+        // aIncludesPossible なら、条件によってはその場で先へ進む出口も待ちの無い線として数える
+        private PPWaveNode FindInstantLoopNode(bool aIncludesPossible)
         {
             // 0 = 未訪問, 1 = たどっている途中, 2 = 調べ終えた
             var marks = new Dictionary<PPWaveNode, int>();
             foreach (var node in mNodes)
             {
                 if (node == null || marks.ContainsKey(node)) continue;
-                var found = VisitInstant(node, marks);
+                var found = VisitInstant(node, marks, aIncludesPossible);
                 if (found != null) return found;
             }
             return null;
         }
 
-        private PPWaveNode VisitInstant(PPWaveNode aNode, Dictionary<PPWaveNode, int> aMarks)
+        private PPWaveNode VisitInstant(PPWaveNode aNode, Dictionary<PPWaveNode, int> aMarks, bool aIncludesPossible)
         {
             aMarks[aNode] = 1;
             foreach (var link in mLinks)
             {
-                if (link == null || link.FromId != aNode.Id || !IsInstantOutput(aNode, link.FromPort)) continue;
+                if (link == null || link.FromId != aNode.Id || !IsInstantOutput(aNode, link.FromPort, aIncludesPossible)) continue;
                 var next = FindNode(link.ToId);
                 if (next == null) continue;
                 int mark = aMarks.GetValueOrDefault(next);
                 if (mark == 1) return next;
                 if (mark == 0)
                 {
-                    var found = VisitInstant(next, aMarks);
+                    var found = VisitInstant(next, aMarks, aIncludesPossible);
                     if (found != null) return found;
                 }
             }
@@ -375,13 +386,36 @@ namespace PPCore
             return null;
         }
 
-        // 動かされたその場で先へ進む出口か
-        private static bool IsInstantOutput(PPWaveNode aNode, PPWaveNodePort aPort) => aNode switch
+        // 動かされたその場で先へ進む出口か。必ず進むのは、ウェーブの出し始め・条件の結果・0 秒の時間トリガーの起動
+        // aIncludesPossible なら、待ち始めた時点で満たし得る HP・全滅のトリガーと、出す敵の無いウェーブの出し終えも数える
+        private bool IsInstantOutput(PPWaveNode aNode, PPWaveNodePort aPort, bool aIncludesPossible) => aNode switch
         {
-            PPWaveSpawnNode => aPort == PPWaveNodePort.Started,
+            PPWaveSpawnNode spawnNode => aPort == PPWaveNodePort.Started || (aIncludesPossible && aPort == PPWaveNodePort.Finished && !HasSpawnUnit(spawnNode)),
             PPWaveConditionNode => true,
             PPWaveElapsedTriggerNode elapsed => elapsed.Seconds <= 0f,
+            PPWaveBaseHpTriggerNode => aIncludesPossible,
+            PPWaveWipedTriggerNode wiped => aIncludesPossible && !IsArmedOnlyByTargetStart(wiped),
             _ => false,
         };
+
+        private static bool HasSpawnUnit(PPWaveSpawnNode aNode)
+        {
+            foreach (var spawn in aNode.Spawns)
+            {
+                if (spawn?.Unit != null) return true;
+            }
+            return false;
+        }
+
+        // 全滅のトリガーが、対象のウェーブの「出し始めたとき」からだけ動かされるか。そのときは始まったばかりの回を待つため、その場では起動しない
+        private bool IsArmedOnlyByTargetStart(PPWaveWipedTriggerNode aNode)
+        {
+            foreach (var link in mLinks)
+            {
+                if (link == null || link.ToId != aNode.Id) continue;
+                if (link.FromId != aNode.TargetId || link.FromPort != PPWaveNodePort.Started) return false;
+            }
+            return true;
+        }
     }
 }

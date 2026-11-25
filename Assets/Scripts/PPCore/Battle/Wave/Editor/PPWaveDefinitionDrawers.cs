@@ -3,7 +3,7 @@
  * @file PPWaveDefinitionDrawers.cs
  * @author hqrse
  * @date 2026/11/25
- * @brief ウェーブのノードの種類選び・線のノードと出口の選び方を、インスペクタで扱いやすくする
+ * @brief ウェーブのノードの種類選び・識別子の読み取り専用の欄・線のノードと出口の選び方を、インスペクタで扱いやすくする
  * =====================================*/
 
 using System;
@@ -85,6 +85,23 @@ namespace PPCore
         {
             var reference = (PPWaveNodeReferenceAttribute)attribute;
             PPWaveNodeEditorUtility.DrawNodePopup(aPosition, aProperty, new GUIContent(reference.Text), reference.IsSpawnNodeOnly);
+        }
+
+        public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel) => EditorGUIUtility.singleLineHeight;
+    }
+
+    // ノードの識別子を、書き換えられない欄で出す
+    [CustomPropertyDrawer(typeof(PPWaveNodeIdAttribute))]
+    public class PPWaveNodeIdDrawer : PropertyDrawer
+    {
+        /* 描画 */
+
+        public override void OnGUI(Rect aPosition, SerializedProperty aProperty, GUIContent aLabel)
+        {
+            using (new EditorGUI.DisabledScope(true))
+            {
+                EditorGUI.TextField(aPosition, ((PPWaveNodeIdAttribute)attribute).Text, aProperty.stringValue);
+            }
         }
 
         public override float GetPropertyHeight(SerializedProperty aProperty, GUIContent aLabel) => EditorGUIUtility.singleLineHeight;

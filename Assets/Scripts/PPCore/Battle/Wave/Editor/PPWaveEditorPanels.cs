@@ -18,15 +18,13 @@ namespace PPCore
     // 選んだノードの中身を、インスペクタと同じドロワーで編集する欄
     public class PPWaveNodeInspectorPanel : VisualElement
     {
-        /* 定数 */
-
-        private const string NodesPath = "mWave.mNodes";
-
         /* 状態 */
 
         private readonly VisualElement mContent;
         private SerializedObject mSerializedObject;
         private string mNodeId;
+        // 出しているノードの、ノードの一覧での番号。欄はこの番号の道筋で結び付く。出していなければ -1
+        private int mNodeIndex = -1;
 
         /* プロパティ */
 
@@ -54,7 +52,8 @@ namespace PPCore
         {
             mSerializedObject = aSerializedObject;
             mContent.Clear();
-            var property = FindNodeProperty(aSerializedObject, aNodeId);
+            mNodeIndex = PPWaveSerializedAccess.FindNodeIndex(aSerializedObject, aNodeId);
+            var property = mNodeIndex >= 0 ? aSerializedObject.FindProperty(PPWaveSerializedAccess.NodesPath).GetArrayElementAtIndex(mNodeIndex) : null;
             mNodeId = property != null ? aNodeId : null;
             if (property == null || property.managedReferenceValue is not PPWaveNode node)
             {
@@ -80,19 +79,10 @@ namespace PPCore
         // 出しているノードを出し直す。ノードが無くなっていれば空にする
         public void Refresh() => SetTarget(mSerializedObject, mNodeId);
 
-        /* ヘルパー */
+        /* 問い合わせ */
 
-        private static SerializedProperty FindNodeProperty(SerializedObject aSerializedObject, string aNodeId)
-        {
-            if (aSerializedObject == null || string.IsNullOrEmpty(aNodeId)) return null;
-            var nodes = aSerializedObject.FindProperty(NodesPath);
-            for (int i = 0; i < nodes.arraySize; i++)
-            {
-                var element = nodes.GetArrayElementAtIndex(i);
-                if (element.FindPropertyRelative("mId")?.stringValue == aNodeId) return element;
-            }
-            return null;
-        }
+        // 出しているノードの一覧での番号が、ウィンドウの外での並べ替えなどで変わったか。変わっていれば欄が別のノードを指している
+        public bool IsTargetMoved() => mNodeId != null && PPWaveSerializedAccess.FindNodeIndex(mSerializedObject, mNodeId) != mNodeIndex;
     }
 
     // 点検の誤りの一覧。行を押すと、そのノードを知らせる

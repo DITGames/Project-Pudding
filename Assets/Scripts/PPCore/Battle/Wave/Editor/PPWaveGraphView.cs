@@ -20,27 +20,8 @@ namespace PPCore
     // 編集できない間(Play 中)は、ノード図の変更をすべて捨てる
     public class PPWaveGraphView : GraphView
     {
-        /* 内部型 */
-
-        // コピーの中身。ノードは型名と中身の JSON で持つ
-        [Serializable]
-        private class ClipboardNode
-        {
-            public string TypeName;
-            public string Json;
-        }
-
-        [Serializable]
-        private class Clipboard
-        {
-            public List<ClipboardNode> Nodes = new();
-            public List<PPWaveLink> Links = new();
-        }
-
         /* 定数 */
 
-        private const string NodesPath = "mWave.mNodes";
-        private const string LinksPath = "mWave.mLinks";
         private const float PositionEpsilon = 0.01f;
         private static readonly Vector2 PasteOffset = new(30f, 30f);
 
@@ -53,8 +34,10 @@ namespace PPCore
         private bool mIsRebuilding;
         // 最後に知らせた、選んでいるノードの識別子。1 つだけ選んでいなければ null
         private string mNotifiedNodeId;
-        // Space のメニューと貼り付けの位置に使う、最後のポインタの位置(パネルの座標)
+        // Space のメニューの位置に使う、最後のポインタの位置(パネルの座標)
         private Vector2 mLastMousePosition;
+        // 1 回の入力の間の書き込みを 1 回の Undo にまとめるための、開いている Undo のグループ。無ければ -1
+        private int mUndoGroup = -1;
 
         /* プロパティ */
 
@@ -86,7 +69,7 @@ namespace PPCore
 
             graphViewChanged = HandleGraphViewChanged;
             serializeGraphElements = SerializeElements;
-            canPasteSerializedData = CanPaste;
+            canPasteSerializedData = aData => mIsEditable && PPWaveClipboard.CanPaste(aData);
             unserializeAndPaste = (aOperationName, aData) => Paste(aData);
             nodeCreationRequest = _ => ShowAddNodeMenu(mLastMousePosition);
             RegisterCallback<MouseMoveEvent>(e => mLastMousePosition = e.mousePosition);
@@ -102,6 +85,7 @@ namespace PPCore
         {
             mIsEditable = aIsEditable;
             foreach (var view in mNodeViews.Values) ApplyCapabilities(view);
+            foreach (var edge in edges.ToList()) ApplyCapabilities(edge);
         }
 
         // バトル定義の今の内容からノード図を組み直す。選んでいたノードと表示の位置は保つ
@@ -131,6 +115,7 @@ namespace PPCore
                 var edge = new PPWaveEdge { output = output, input = input };
                 output.Connect(edge);
                 input.Connect(edge);
+                ApplyCapabilities(edge);
                 AddElement(edge);
             }
             RefreshAllNodes();
@@ -147,7 +132,7 @@ namespace PPCore
         // 各ノードの見出しと要約を、今の値に合わせる
         public void RefreshAllNodes()
         {
-            var properties = CollectNodeProperties();
+            var properties = PPWaveSerializedAccess.CollectNodeProperties(mSerializedObject);
             foreach (var node in mDefinition.Wave.Nodes)
             {
                 if (node == null || string.IsNullOrEmpty(node.Id) || !mNodeViews.TryGetValue(node.Id, out var view)) continue;
@@ -193,13 +178,11 @@ namespace PPCore
         public string AddNode(Type aType, Vector2 aPosition)
         {
             if (!mIsEditable || aType == null || aType.IsAbstract || !typeof(PPWaveNode).IsAssignableFrom(aType)) return null;
+            EndUndoGroup();
             mSerializedObject.Update();
             var node = (PPWaveNode)Activator.CreateInstance(aType);
             node.Position = aPosition;
-            var nodes = mSerializedObject.FindProperty(NodesPath);
-            int index = nodes.arraySize;
-            nodes.arraySize = index + 1;
-            nodes.GetArrayElementAtIndex(index).managedReferenceValue = node;
+            PPWaveSerializedAccess.AddNode(mSerializedObject, node);
             Commit("ノードを追加");
 
             AddNodeView(node.Id);
@@ -217,6 +200,7 @@ namespace PPCore
                 if (mNodeViews.TryGetValue(id, out var view)) views.Add(view);
             }
             if (views.Count == 0) return false;
+            EndUndoGroup();
             DeleteElements(views);
             return true;
         }
@@ -228,6 +212,7 @@ namespace PPCore
             var output = from.GetOutputPort(aPort);
             if (output == null || to.InputPort == null) return false;
 
+            EndUndoGroup();
             var edge = new PPWaveEdge { output = output, input = to.InputPort };
             var created = HandleGraphViewChanged(new GraphViewChange { edgesToCreate = new List<Edge> { edge } }).edgesToCreate;
             if (created == null || !created.Contains(edge)) return false;
@@ -245,6 +230,7 @@ namespace PPCore
             foreach (var edge in edges.ToList())
             {
                 if (!TryGetEdgeKey(edge, out string edgeKey) || edgeKey != key) continue;
+                EndUndoGroup();
                 DeleteElements(new GraphElement[] { edge });
                 return true;
             }
@@ -255,6 +241,7 @@ namespace PPCore
         public bool MoveNode(string aId, Vector2 aPosition)
         {
             if (!mIsEditable || !mNodeViews.TryGetValue(aId ?? string.Empty, out var view)) return false;
+            EndUndoGroup();
             view.SetPosition(new Rect(aPosition, view.GetPosition().size));
             HandleGraphViewChanged(new GraphViewChange { movedElements = new List<GraphElement> { view } });
             return true;
@@ -263,12 +250,9 @@ namespace PPCore
         // 識別子のノードを複製し、複製したノードの識別子を返す。選んだノードどうしの線も写す
         public List<string> DuplicateNodes(IEnumerable<string> aIds)
         {
-            var views = new List<GraphElement>();
-            foreach (string id in aIds)
-            {
-                if (mNodeViews.TryGetValue(id, out var view)) views.Add(view);
-            }
-            return mIsEditable && views.Count > 0 ? Paste(SerializeElements(views)) : new List<string>();
+            if (!mIsEditable) return new List<string>();
+            EndUndoGroup();
+            return Paste(PPWaveClipboard.Serialize(mDefinition.Wave, aIds));
         }
 
         // 中身を変えたノードの見出しと要約を直す
@@ -276,7 +260,7 @@ namespace PPCore
         {
             var node = mDefinition.Wave.FindNode(aId);
             if (node == null || !mNodeViews.TryGetValue(aId, out var view)) return;
-            view.Refresh(node, CollectNodeProperties().GetValueOrDefault(aId), mDefinition.Wave);
+            view.Refresh(node, PPWaveSerializedAccess.FindNodeProperty(mSerializedObject, aId), mDefinition.Wave);
         }
 
         /* 問い合わせ */
@@ -399,9 +383,12 @@ namespace PPCore
         {
             if (!mIsEditable)
             {
+                bool hasChange = aChange.elementsToRemove?.Count > 0 || aChange.edgesToCreate?.Count > 0 || aChange.movedElements?.Count > 0;
                 aChange.elementsToRemove?.Clear();
                 aChange.edgesToCreate?.Clear();
                 aChange.movedElements?.Clear();
+                // 線の端のドラッグなどで見た目だけが変わっていることがあるため、データの通りに描き直す
+                if (hasChange) schedule.Execute(() => Rebuild());
                 return aChange;
             }
 
@@ -429,12 +416,12 @@ namespace PPCore
                 {
                     if (element is not Edge edge || !TryGetEdgeEnds(edge, out string fromId, out var port, out string toId)) continue;
                     if (removedIds.Contains(fromId) || removedIds.Contains(toId)) continue;
-                    RemoveLinkProperty(fromId, port, toId);
+                    PPWaveSerializedAccess.RemoveLink(mSerializedObject, fromId, port, toId);
                     undoName ??= "線を外す";
                 }
                 foreach (string id in removedIds)
                 {
-                    RemoveNodeProperty(id);
+                    PPWaveSerializedAccess.RemoveNode(mSerializedObject, id);
                     mNodeViews.Remove(id);
                 }
                 if (removedIds.Count > 0)
@@ -450,12 +437,13 @@ namespace PPCore
                 {
                     var edge = aChange.edgesToCreate[i];
                     // 同じ線が既にあるか、つなげない組み合わせなら作らない
-                    if (!TryGetEdgeEnds(edge, out string fromId, out var port, out string toId) || FindLinkIndex(fromId, port, toId) >= 0)
+                    if (!TryGetEdgeEnds(edge, out string fromId, out var port, out string toId) || PPWaveSerializedAccess.FindLinkIndex(mSerializedObject, fromId, port, toId) >= 0)
                     {
                         aChange.edgesToCreate.RemoveAt(i);
                         continue;
                     }
-                    AddLinkProperty(fromId, port, toId);
+                    PPWaveSerializedAccess.AddLink(mSerializedObject, fromId, port, toId);
+                    ApplyCapabilities(edge);
                     undoName ??= "線をつなぐ";
                 }
             }
@@ -465,9 +453,7 @@ namespace PPCore
                 foreach (var element in aChange.movedElements)
                 {
                     if (element is not PPWaveNodeView view) continue;
-                    var property = FindNodeProperty(view.NodeId);
-                    if (property == null) continue;
-                    property.FindPropertyRelative("mPosition").vector2Value = view.Position;
+                    PPWaveSerializedAccess.SetNodePosition(mSerializedObject, view.NodeId, view.Position);
                     undoName ??= "ノードを移動";
                 }
             }
@@ -492,78 +478,28 @@ namespace PPCore
         // 選んだノードの中身と、選んだノードどうしの線を文字列にする
         private string SerializeElements(IEnumerable<GraphElement> aElements)
         {
-            var clipboard = new Clipboard();
-            var ids = new HashSet<string>();
+            var ids = new List<string>();
             foreach (var element in aElements)
             {
-                if (element is not PPWaveNodeView view) continue;
-                var node = mDefinition.Wave.FindNode(view.NodeId);
-                if (node == null || !ids.Add(node.Id)) continue;
-                clipboard.Nodes.Add(new ClipboardNode { TypeName = node.GetType().AssemblyQualifiedName, Json = EditorJsonUtility.ToJson(node) });
+                if (element is PPWaveNodeView view) ids.Add(view.NodeId);
             }
-            foreach (var link in mDefinition.Wave.Links)
-            {
-                if (link != null && ids.Contains(link.FromId) && ids.Contains(link.ToId)) clipboard.Links.Add(new PPWaveLink(link.FromId, link.FromPort, link.ToId));
-            }
-            return JsonUtility.ToJson(clipboard);
-        }
-
-        private bool CanPaste(string aData)
-        {
-            if (!mIsEditable || string.IsNullOrEmpty(aData)) return false;
-            try
-            {
-                var clipboard = JsonUtility.FromJson<Clipboard>(aData);
-                return clipboard?.Nodes != null && clipboard.Nodes.Count > 0;
-            }
-            catch (ArgumentException)
-            {
-                // ノード図のコピー以外の文字列は、貼り付けられないものとして扱う
-                return false;
-            }
+            return PPWaveClipboard.Serialize(mDefinition.Wave, ids);
         }
 
         // コピーしたノードを新しい識別子で少しずらして足し、線と全滅トリガーの対象を足したノードへ付け替える。足したノードを選ぶ
         private List<string> Paste(string aData)
         {
-            var pastedIds = new List<string>();
-            if (!CanPaste(aData)) return pastedIds;
-            var clipboard = JsonUtility.FromJson<Clipboard>(aData);
-
+            if (!mIsEditable || !PPWaveClipboard.CanPaste(aData)) return new List<string>();
             mSerializedObject.Update();
             var idMap = new Dictionary<string, string>();
-            var nodes = mSerializedObject.FindProperty(NodesPath);
-            foreach (var entry in clipboard.Nodes)
-            {
-                var type = Type.GetType(entry.TypeName);
-                if (type == null || type.IsAbstract || !typeof(PPWaveNode).IsAssignableFrom(type)) continue;
-                var node = (PPWaveNode)Activator.CreateInstance(type);
-                EditorJsonUtility.FromJsonOverwrite(entry.Json, node);
-                string oldId = node.Id;
-                node.RegenerateId();
-                node.Position += PasteOffset;
-                idMap[oldId] = node.Id;
-                int index = nodes.arraySize;
-                nodes.arraySize = index + 1;
-                nodes.GetArrayElementAtIndex(index).managedReferenceValue = node;
-                pastedIds.Add(node.Id);
-            }
+            var pastedIds = PPWaveClipboard.WriteNodes(mSerializedObject, aData, PasteOffset, idMap);
             if (pastedIds.Count == 0) return pastedIds;
             Commit("ノードを複製");
 
-            // 足したノードの中身を読み直してから、全滅トリガーの対象と線を付け替える。同じ Undo にまとめる
+            // 足したノードの中身を読み直してから付け替える。同じ Undo にまとまる
             mSerializedObject.Update();
-            foreach (string id in pastedIds)
-            {
-                var target = FindNodeProperty(id)?.FindPropertyRelative("mTargetId");
-                if (target != null && idMap.TryGetValue(target.stringValue ?? string.Empty, out string newTarget)) target.stringValue = newTarget;
-            }
-            foreach (var link in clipboard.Links)
-            {
-                if (idMap.TryGetValue(link.FromId ?? string.Empty, out string fromId) && idMap.TryGetValue(link.ToId ?? string.Empty, out string toId)) AddLinkProperty(fromId, link.FromPort, toId);
-            }
-            mSerializedObject.ApplyModifiedProperties();
-            Undo.SetCurrentGroupName("ノードを複製");
+            PPWaveClipboard.WriteLinksAndTargets(mSerializedObject, aData, idMap);
+            Commit("ノードを複製");
 
             Rebuild();
             ClearSelection();
@@ -602,6 +538,7 @@ namespace PPCore
             return result;
         }
 
+        // 足したノードの見た目をノード図に足す
         private void AddNodeView(string aId)
         {
             var node = mDefinition.Wave.FindNode(aId);
@@ -613,11 +550,21 @@ namespace PPCore
             RefreshNode(aId);
         }
 
+        // 編集できるかに合わせて、ノードを動かす・消す・写す能力を付け外しする
         private void ApplyCapabilities(PPWaveNodeView aView)
         {
             const Capabilities editing = Capabilities.Movable | Capabilities.Deletable | Capabilities.Copiable;
             if (mIsEditable) aView.capabilities |= editing;
             else aView.capabilities &= ~editing;
+        }
+
+        // 編集できない間は、線を選べず、端をつかめないようにする
+        private void ApplyCapabilities(Edge aEdge)
+        {
+            const Capabilities editing = Capabilities.Selectable | Capabilities.Deletable;
+            if (mIsEditable) aEdge.capabilities |= editing;
+            else aEdge.capabilities &= ~editing;
+            aEdge.pickingMode = mIsEditable ? PickingMode.Position : PickingMode.Ignore;
         }
 
         // 線の両端のポート。ノード図に出ていないノードか、出口・入口の無い線なら false
@@ -656,92 +603,22 @@ namespace PPCore
             return result;
         }
 
-        // ノードの識別子から、そのノードの SerializedProperty を引く表
-        private Dictionary<string, SerializedProperty> CollectNodeProperties()
-        {
-            var result = new Dictionary<string, SerializedProperty>();
-            var nodes = mSerializedObject.FindProperty(NodesPath);
-            for (int i = 0; i < nodes.arraySize; i++)
-            {
-                var element = nodes.GetArrayElementAtIndex(i);
-                string id = element.FindPropertyRelative("mId")?.stringValue;
-                if (!string.IsNullOrEmpty(id)) result.TryAdd(id, element);
-            }
-            return result;
-        }
-
-        private SerializedProperty FindNodeProperty(string aId)
-        {
-            var nodes = mSerializedObject.FindProperty(NodesPath);
-            for (int i = 0; i < nodes.arraySize; i++)
-            {
-                var element = nodes.GetArrayElementAtIndex(i);
-                if (element.FindPropertyRelative("mId")?.stringValue == aId) return element;
-            }
-            return null;
-        }
-
-        // ノードを一覧から消し、そのノードから出る線と入る線も消す
-        private void RemoveNodeProperty(string aId)
-        {
-            var nodes = mSerializedObject.FindProperty(NodesPath);
-            for (int i = nodes.arraySize - 1; i >= 0; i--)
-            {
-                if (nodes.GetArrayElementAtIndex(i).FindPropertyRelative("mId")?.stringValue == aId) DeleteArrayElement(nodes, i);
-            }
-            var links = mSerializedObject.FindProperty(LinksPath);
-            for (int i = links.arraySize - 1; i >= 0; i--)
-            {
-                var link = links.GetArrayElementAtIndex(i);
-                if (link.FindPropertyRelative("mFromId").stringValue == aId || link.FindPropertyRelative("mToId").stringValue == aId) DeleteArrayElement(links, i);
-            }
-        }
-
-        // 一致する線の番号。無ければ -1
-        private int FindLinkIndex(string aFromId, PPWaveNodePort aPort, string aToId)
-        {
-            var links = mSerializedObject.FindProperty(LinksPath);
-            for (int i = 0; i < links.arraySize; i++)
-            {
-                var link = links.GetArrayElementAtIndex(i);
-                if (link.FindPropertyRelative("mFromId").stringValue == aFromId
-                    && link.FindPropertyRelative("mFromPort").intValue == (int)aPort
-                    && link.FindPropertyRelative("mToId").stringValue == aToId) return i;
-            }
-            return -1;
-        }
-
-        private void AddLinkProperty(string aFromId, PPWaveNodePort aPort, string aToId)
-        {
-            var links = mSerializedObject.FindProperty(LinksPath);
-            int index = links.arraySize;
-            links.arraySize = index + 1;
-            var link = links.GetArrayElementAtIndex(index);
-            link.FindPropertyRelative("mFromId").stringValue = aFromId;
-            link.FindPropertyRelative("mFromPort").intValue = (int)aPort;
-            link.FindPropertyRelative("mToId").stringValue = aToId;
-        }
-
-        private void RemoveLinkProperty(string aFromId, PPWaveNodePort aPort, string aToId)
-        {
-            int index = FindLinkIndex(aFromId, aPort, aToId);
-            if (index >= 0) DeleteArrayElement(mSerializedObject.FindProperty(LinksPath), index);
-        }
-
-        // 要素を消す。1 回で消えない種類の要素(参照を空にするだけのもの)は、もう 1 回消す
-        private static void DeleteArrayElement(SerializedProperty aArray, int aIndex)
-        {
-            int size = aArray.arraySize;
-            aArray.DeleteArrayElementAtIndex(aIndex);
-            if (aArray.arraySize == size) aArray.DeleteArrayElementAtIndex(aIndex);
-        }
-
-        // 書き込んだ変更をバトル定義へ反映し、1 回の Undo にする
+        // 書き込んだ変更をバトル定義へ反映する。同じ入力の間の書き込み(線のつなぎ替えの、古い線の削除と新しい線の作成など)は 1 回の Undo にまとめる
         private void Commit(string aUndoName)
         {
-            Undo.IncrementCurrentGroup();
+            if (mUndoGroup < 0)
+            {
+                Undo.IncrementCurrentGroup();
+                mUndoGroup = Undo.GetCurrentGroup();
+                // 次の更新で閉じる。それまでの書き込みは同じ Undo にまとまる
+                schedule.Execute(() => EndUndoGroup());
+            }
             mSerializedObject.ApplyModifiedProperties();
+            Undo.CollapseUndoOperations(mUndoGroup);
             Undo.SetCurrentGroupName(aUndoName);
         }
+
+        // 開いている Undo のグループを閉じる。public の操作は、それぞれを 1 回の Undo にするため最初に呼ぶ
+        private void EndUndoGroup() => mUndoGroup = -1;
     }
 }

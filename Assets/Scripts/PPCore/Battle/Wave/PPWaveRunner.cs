@@ -56,6 +56,8 @@ namespace PPCore
             public int RunCount;
             public SpawnRun LatestRun;
             public int RunningCount;
+            // 入口から待ち始めたばかりで、まだ判定していないか(トリガーだけ)
+            public bool IsArmCheckPending;
             // 次のフレームへ回し続けたフレーム数。上限の警告に使う
             public int DeferredStreak;
             public int LastDeferredFrame = -1;
@@ -144,6 +146,8 @@ namespace PPCore
                 Source = aSource;
                 Port = aPort;
             }
+
+            public bool IsSame(in Activation aOther) => Target == aOther.Target && Source == aOther.Source && Port == aOther.Port;
         }
 
         /* 定数 */
@@ -168,8 +172,10 @@ namespace PPCore
         // 出している最中か、まだ全滅し得る回
         private readonly List<SpawnRun> mRuns = new();
         private readonly Queue<Activation> mQueue = new();
-        // 1 フレームの上限を超えて、次のフレームへ回した分
+        // 1 フレームの上限を超えて、次のフレームへ回した分。同じノード・同じきっかけの分は 1 件にまとめる
         private readonly List<Activation> mDeferred = new();
+        // 入口から待ち始めて、まだ判定していないトリガーがあるか
+        private bool mHasArmCheckPending;
         private int mFrame;
         private int mActivationsThisFrame;
         private int mAllyBaseDamageCount;
@@ -184,7 +190,8 @@ namespace PPCore
 
         /* イベント */
 
-        // ノードが入口から動かされたとき(トリガーが待ち始めた・ウェーブが回を始めた・条件を判定した)(動かされたノード)
+        // ノードが入口から動かされて動いたとき(トリガーが待ち始めた・ウェーブが回を始めた・条件を判定した)(動いたノード)
+        // 入口を受け付けないトリガーと、起動済みの「1 度だけ」のトリガーは、動かないため知らせない
         public event Action<PPWaveNode> OnNodeActivated;
         // ノードの出口から先へ進んだとき(ノード, 出口)
         public event Action<PPWaveNode, PPWaveNodePort> OnNodeOutput;
@@ -221,13 +228,19 @@ namespace PPCore
             foreach (var node in mWave.Nodes)
             {
                 if (node == null) continue;
-                if (mStatesByNode.ContainsKey(node) || mStatesById.ContainsKey(node.Id ?? string.Empty))
+                // 識別子が空のノードは、未選択の線とつながってしまうため使わない
+                if (string.IsNullOrEmpty(node.Id))
+                {
+                    CustomConsoleLog.Warning(LogTag, $"ウェーブ: ノード「{node.DisplayName}」の識別子が空のため、使いません。ノードエディタで消して足し直してください");
+                    continue;
+                }
+                if (mStatesByNode.ContainsKey(node) || mStatesById.ContainsKey(node.Id))
                 {
                     CustomConsoleLog.Warning(LogTag, $"ウェーブ: ノード「{node.DisplayName}」の識別子が他と重なっているため、使いません。バトル定義のインスペクタで識別子を振り直してください");
                     continue;
                 }
                 var state = new NodeState(node);
-                mStatesById[node.Id ?? string.Empty] = state;
+                mStatesById[node.Id] = state;
                 mStatesByNode[node] = state;
                 if (state.Trigger != null) mTriggers.Add(state);
             }
@@ -261,11 +274,29 @@ namespace PPCore
 
             foreach (var state in mTriggers)
             {
-                if (state.Trigger.IsWaiting && ((PPWaveTriggerNode)state.Node).IsSatisfied(state.Trigger, this)) Fire(state, now);
+                if (state.Trigger.IsWaiting && IsTriggerSatisfied(state)) Fire(state, now);
             }
-            Drain(now);
+            DrainAll(now);
             UpdateRuns(now);
-            Drain(now);
+            DrainAll(now);
+        }
+
+        // 動かす予定を処理し、その間に入口から待ち始めたトリガーを定義の並び順に判定する。起動して増えた予定も続けて処理する
+        // 同じきっかけで待ち始めた同じグループのトリガーは、全部が待ち始めてから判定するため、線の並び順に関係なく 1 つだけが起動する
+        private void DrainAll(float aNow)
+        {
+            Drain(aNow);
+            while (mHasArmCheckPending)
+            {
+                mHasArmCheckPending = false;
+                foreach (var state in mTriggers)
+                {
+                    if (!state.IsArmCheckPending) continue;
+                    state.IsArmCheckPending = false;
+                    if (state.Trigger.IsWaiting && IsTriggerSatisfied(state)) Fire(state, aNow);
+                }
+                Drain(aNow);
+            }
         }
 
         // 動かす予定を順に処理する。同じノードは 1 フレームに 1 回までにし、超えた分は次のフレームへ回す
@@ -288,7 +319,8 @@ namespace PPCore
         private void Defer(Activation aActivation)
         {
             var target = aActivation.Target;
-            mDeferred.Add(aActivation);
+            // 待ちのない輪で同じ予定が毎フレーム増え続けないよう、同じノード・同じきっかけの予定は 1 件にまとめる
+            if (!ContainsDeferred(aActivation)) mDeferred.Add(aActivation);
             if (target.LastDeferredFrame == mFrame) return;
             target.DeferredStreak = target.LastDeferredFrame == mFrame - 1 ? target.DeferredStreak + 1 : 1;
             target.LastDeferredFrame = mFrame;
@@ -297,21 +329,31 @@ namespace PPCore
             CustomConsoleLog.Warning(LogTag, $"ウェーブ: ノード「{target.Node.DisplayName}」が 1 フレームに 1 回ずつ動き続けています。待ちのない輪になっていないか、バトル定義の線を確かめてください");
         }
 
-        // ノードを入口から動かす。トリガーは待ち始め、ウェーブは回を始め、条件はその場で判定して先へ進む
+        private bool ContainsDeferred(in Activation aActivation)
+        {
+            foreach (var deferred in mDeferred)
+            {
+                if (deferred.IsSame(aActivation)) return true;
+            }
+            return false;
+        }
+
+        // ノードを入口から動かす。トリガーは待ち始め(判定は DrainAll がまとめて行う)、ウェーブは回を始め、条件はその場で判定して先へ進む
         private void Activate(Activation aActivation, float aNow)
         {
             var state = aActivation.Target;
             state.ActivatedFrame = mFrame;
-            state.ActivationCount++;
             mActivationsThisFrame++;
+            if (state.Node is PPWaveTriggerNode ignored && (ignored.IgnoresInput || (ignored.IsOnce && state.Trigger.FireCount > 0))) return;
+            state.ActivationCount++;
             OnNodeActivated?.Invoke(state.Node);
 
             switch (state.Node)
             {
-                case PPWaveTriggerNode trigger:
-                    if (trigger.IgnoresInput || (trigger.IsOnce && state.Trigger.FireCount > 0)) return;
+                case PPWaveTriggerNode:
                     Arm(state, false);
-                    if (trigger.IsSatisfied(state.Trigger, this)) Fire(state, aNow);
+                    state.IsArmCheckPending = true;
+                    mHasArmCheckPending = true;
                     break;
                 case PPWaveSpawnNode spawnNode:
                     StartRun(state, spawnNode, aActivation, aNow);
@@ -415,6 +457,14 @@ namespace PPCore
             foreach (var target in aState.Outgoing[(int)aPort]) mQueue.Enqueue(new Activation(target, aState, aPort));
         }
 
+        // 待っているトリガーの状態を今のバトルの様子で更新してから、起動する条件を満たしたかを判定する
+        private bool IsTriggerSatisfied(NodeState aState)
+        {
+            var trigger = (PPWaveTriggerNode)aState.Node;
+            trigger.Observe(aState.Trigger, this);
+            return trigger.IsSatisfied(aState.Trigger, this);
+        }
+
         /* 問い合わせ */
 
         // そのトリガーが今待っているか
@@ -423,7 +473,7 @@ namespace PPCore
         // そのトリガーが起動した回数
         public int GetFireCount(PPWaveTriggerNode aNode) => aNode != null && mStatesByNode.TryGetValue(aNode, out var state) ? state.Trigger.FireCount : 0;
 
-        // そのノードが入口から動かされた回数
+        // そのノードが入口から動かされて動いた回数
         public int GetActivationCount(PPWaveNode aNode) => aNode != null && mStatesByNode.TryGetValue(aNode, out var state) ? state.ActivationCount : 0;
 
         // そのウェーブノードが出している最中の回の数

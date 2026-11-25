@@ -189,6 +189,7 @@ namespace PPCore
         }
 
         // 値が変わったとき。ノード図と食い違えば組み直し、そうでなければ見出しと要約だけを直す
+        // ノードの並べ替えでは図は変わらないが、右の欄は番号で結び付いているため、番号が変わったら出し直す
         private void HandleSerializedObjectChanged(SerializedObject aSerializedObject)
         {
             if (mGraphView == null || mTarget == null) return;
@@ -201,6 +202,7 @@ namespace PPCore
             else
             {
                 mGraphView.RefreshAllNodes();
+                if (mInspectorPanel != null && mInspectorPanel.IsTargetMoved()) mInspectorPanel.Refresh();
             }
             RefreshProblems();
         }
