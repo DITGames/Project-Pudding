@@ -19,37 +19,33 @@ MonoBehaviour:
       mWaitsFromBattleStart: 1
       mSpawns:
       - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
-        mCount: 2
-        mInterval: 6
-        mFirstDelay: 0
-      mStartConditions: []
-      mNexts:
-      - mTargetId: c50fc86e2ff94c0286837157a6d41e6a
-        mTiming: 0
-        mCondition: 0
-        mSide: 1
-        mPercent: 50
-    - mId: c50fc86e2ff94c0286837157a6d41e6a
-      mName: "\u7E70\u308A\u8FD4\u3057"
-      mWaitsFromBattleStart: 0
-      mSpawns:
-      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
-        mCount: 3
-        mInterval: 5
+        mCount: 5
+        mInterval: 3
         mFirstDelay: 0
       mStartConditions:
-      - mKind: 0
+      - mKind: 2
         mSeconds: 20
         mStageId: 
         mSide: 1
         mPercent: 50
-        mIsOnce: 0
-      mNexts:
-      - mTargetId: c50fc86e2ff94c0286837157a6d41e6a
-        mTiming: 0
-        mCondition: 0
-        mSide: 1
+        mIsOnce: 1
+      mNexts: []
+    - mId: c50fc86e2ff94c0286837157a6d41e6a
+      mName: "\u7E70\u308A\u8FD4\u3057"
+      mWaitsFromBattleStart: 1
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+        mCount: 0
+        mInterval: 5
+        mFirstDelay: 0
+      mStartConditions:
+      - mKind: 2
+        mSeconds: 20
+        mStageId: e2140df7f0694f2595b4bff018555949
+        mSide: 0
         mPercent: 50
+        mIsOnce: 1
+      mNexts: []
   mEnemyBase:
     mDisplayName: "\u6575\u306E\u62E0\u70B9"
     mMaxHp: 20000
