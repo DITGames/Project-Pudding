@@ -60,6 +60,7 @@ namespace PPCore
     }
 
     // ウェーブエディタの中央の欄を描く。値はすべて SerializedProperty で読み書きし、変更は呼び出し元がまとめて確定させる
+    // 数値の欄は打つたびに値を書く(確定待ちにしない)。プルダウンやピッカーで別のウィンドウに焦点が移ると、確定待ちの値は捨てられるため
     public static class PPWaveStageEditorGUI
     {
         /* 定数 */
@@ -162,7 +163,7 @@ namespace PPCore
 
             var count = aSpawn.FindPropertyRelative("mCount");
             EditorGUI.BeginChangeCheck();
-            int countValue = EditorGUI.DelayedIntField(countRect, count.intValue);
+            int countValue = EditorGUI.IntField(countRect, count.intValue);
             if (EditorGUI.EndChangeCheck()) count.intValue = Mathf.Max(0, countValue);
             DrawFloatCell(intervalRect, aSpawn.FindPropertyRelative("mInterval"), 0.1f);
             DrawFloatCell(delayRect, aSpawn.FindPropertyRelative("mFirstDelay"), 0f);
@@ -186,7 +187,7 @@ namespace PPCore
             }
             if (EditorGUILayout.DropdownButton(new GUIContent("+ 条件"), FocusType.Passive, GUILayout.Width(70f)))
             {
-                // 条件の行が増えると後ろの欄の位置がずれるため、入力中の数値をメニューを出す前に確定させる
+                // 条件の行が増えると後ろの欄の位置がずれるため、メニューを出す前に入力中の欄を閉じる
                 GUI.FocusControl(null);
                 var menu = new GenericMenu();
                 for (int k = 0; k < KindMenuNames.Length; k++)
@@ -322,14 +323,14 @@ namespace PPCore
         private static void DrawFloatField(SerializedProperty aValue, float aMin, float aWidth)
         {
             EditorGUI.BeginChangeCheck();
-            float value = EditorGUILayout.DelayedFloatField(aValue.floatValue, GUILayout.Width(aWidth));
+            float value = EditorGUILayout.FloatField(aValue.floatValue, GUILayout.Width(aWidth));
             if (EditorGUI.EndChangeCheck()) aValue.floatValue = Mathf.Max(aMin, value);
         }
 
         private static void DrawFloatCell(Rect aRect, SerializedProperty aValue, float aMin)
         {
             EditorGUI.BeginChangeCheck();
-            float value = EditorGUI.DelayedFloatField(aRect, aValue.floatValue);
+            float value = EditorGUI.FloatField(aRect, aValue.floatValue);
             if (EditorGUI.EndChangeCheck()) aValue.floatValue = Mathf.Max(aMin, value);
         }
 

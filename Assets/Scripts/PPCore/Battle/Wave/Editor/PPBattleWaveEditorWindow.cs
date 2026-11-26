@@ -49,6 +49,9 @@ namespace PPCore
         private Vector2 mCenterScroll;
         private Vector2 mProblemScroll;
         private int mLastDirtyCount = -1;
+        // 文字の欄を打っている間の変更を 1 回の Undo にまとめるための、打っている欄のコントロールの ID と Undo のグループ。打っていなければ -1
+        private int mTypingControl = -1;
+        private int mTypingUndoGroup = -1;
 
         /* プロパティ */
 
@@ -128,7 +131,7 @@ namespace PPCore
             DrawProblems();
             DrawFlow();
 
-            mSerializedObject.ApplyModifiedProperties();
+            ApplyEdits();
         }
 
         /* 操作 */
@@ -153,8 +156,8 @@ namespace PPCore
             Repaint();
         }
 
-        // 入力中の数値の欄を今の段階へ確定させてから、次の更新で aAction を行う。画面の操作で選択や並びを変えるときに使う
-        // 確定の命令は同じ回の描画のうちに同じ位置の欄へ届くため、先に選択や並びを変えると、確定した値が別の段階へ入る
+        // 入力中の欄を閉じてから、次の更新で aAction を行う。画面の操作で選択や並びを変えるときに使う
+        // 欄は描く位置(コントロールの ID)で入力中の文字と結び付くため、閉じずに選択や並びを変えると、入力中の文字が別の段階の欄に出る
         public void RunAfterCommit(Action aAction)
         {
             GUI.FocusControl(null);
@@ -168,7 +171,7 @@ namespace PPCore
             };
         }
 
-        // 画面の操作で段階を選ぶ。入力中の数値を確定させてから選ぶ(選んでいる段階なら確定だけ)
+        // 画面の操作で段階を選ぶ。入力中の欄を閉じてから選ぶ(選んでいる段階なら閉じるだけ)
         private void RequestSelectStage(string aStageId)
         {
             if (string.IsNullOrEmpty(aStageId)) return;
@@ -332,6 +335,35 @@ namespace PPCore
             mSerializedObject.ApplyModifiedProperties();
             Undo.SetCurrentGroupName(aUndoName);
             Repaint();
+        }
+
+        // 欄の変更を書き込む。文字の欄を打っている間の変更は、打ち始めからまとめて 1 回の Undo にする
+        private void ApplyEdits()
+        {
+            bool isTyping = EditorGUIUtility.editingTextField;
+            int control = GUIUtility.keyboardControl;
+            if (!isTyping || control != mTypingControl)
+            {
+                mTypingControl = -1;
+                mTypingUndoGroup = -1;
+            }
+            if (!mSerializedObject.hasModifiedProperties) return;
+            if (!isTyping)
+            {
+                mSerializedObject.ApplyModifiedProperties();
+                return;
+            }
+            if (mTypingUndoGroup < 0)
+            {
+                Undo.IncrementCurrentGroup();
+                mTypingControl = control;
+                mTypingUndoGroup = Undo.GetCurrentGroup();
+                mSerializedObject.ApplyModifiedProperties();
+                Undo.SetCurrentGroupName("値を打つ");
+                return;
+            }
+            mSerializedObject.ApplyModifiedProperties();
+            Undo.CollapseUndoOperations(mTypingUndoGroup);
         }
 
         /* 描画 */
