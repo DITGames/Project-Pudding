@@ -15,7 +15,7 @@ namespace PPCore
     // ウェーブエディタの色と文字の形。暗い画面と明るい画面で色を変える
     public static class PPWaveEditorStyles
     {
-        /* static 変数 */
+        /* 状態 */
 
         private static GUIStyle sPill;
         private static GUIStyle sProblemRow;
@@ -122,18 +122,18 @@ namespace PPCore
             for (int i = 0; i < aSpawns.arraySize; i++)
             {
                 var rect = GUILayoutUtility.GetRect(0f, RowHeight + 2f, GUILayout.ExpandWidth(true));
-                if (DrawTableRow(rect, aSpawns.GetArrayElementAtIndex(i), i, aWindow)) GUIUtility.ExitGUI();
+                DrawTableRow(rect, aSpawns.GetArrayElementAtIndex(i), i, aWindow);
             }
             if (aSpawns.arraySize == 0) GUILayout.Label("出す敵がありません。この段階は敵を出さずに出し終えます", PPWaveEditorStyles.SubLabel);
             using (new EditorGUILayout.HorizontalScope())
             {
-                if (GUILayout.Button("+ 敵を足す", GUILayout.Width(90f)) && aWindow.AddSpawnRow()) GUIUtility.ExitGUI();
+                if (GUILayout.Button("+ 敵を足す", GUILayout.Width(90f))) aWindow.RunAfterCommit(() => aWindow.AddSpawnRow());
                 GUILayout.FlexibleSpace();
             }
         }
 
-        // 表の 1 行を描く。aSpawn が null なら見出し。行を消したら true
-        private static bool DrawTableRow(Rect aRect, SerializedProperty aSpawn, int aRow, PPBattleWaveEditorWindow aWindow)
+        // 表の 1 行を描く。aSpawn が null なら見出し
+        private static void DrawTableRow(Rect aRect, SerializedProperty aSpawn, int aRow, PPBattleWaveEditorWindow aWindow)
         {
             float unitWidth = Mathf.Max(120f, aRect.width - CountWidth - IntervalWidth - DelayWidth - RemoveWidth - ColumnGap * 4f);
             var unitRect = new Rect(aRect.x, aRect.y + 1f, unitWidth, RowHeight - 2f);
@@ -148,7 +148,7 @@ namespace PPCore
                 GUI.Label(countRect, "数(0 で無限)", PPWaveEditorStyles.Section);
                 GUI.Label(intervalRect, "間隔(秒)", PPWaveEditorStyles.Section);
                 GUI.Label(delayRect, "最初の待ち(秒)", PPWaveEditorStyles.Section);
-                return false;
+                return;
             }
 
             var unit = aSpawn.FindPropertyRelative("mUnit");
@@ -166,7 +166,7 @@ namespace PPCore
             if (EditorGUI.EndChangeCheck()) count.intValue = Mathf.Max(0, countValue);
             DrawFloatCell(intervalRect, aSpawn.FindPropertyRelative("mInterval"), 0.1f);
             DrawFloatCell(delayRect, aSpawn.FindPropertyRelative("mFirstDelay"), 0f);
-            return GUI.Button(removeRect, new GUIContent("×", "この行を消す"), EditorStyles.miniButton) && aWindow.RemoveSpawnRow(aRow);
+            if (GUI.Button(removeRect, new GUIContent("×", "この行を消す"), EditorStyles.miniButton)) aWindow.RunAfterCommit(() => aWindow.RemoveSpawnRow(aRow));
         }
 
         // 始まる条件(どれか 1 つ)。「バトル開始から待つ」と条件の行
@@ -182,10 +182,12 @@ namespace PPCore
             if (conditions.arraySize == 0) GUILayout.Label(aStage.WaitsFromBattleStart && !aWave.HasIncoming(aStage) ? "条件なし: バトル開始ですぐ始まる" : "条件なし: 待ち始めたらすぐ始まる", PPWaveEditorStyles.SubLabel);
             for (int i = 0; i < conditions.arraySize; i++)
             {
-                if (DrawCondition(aWindow, aWave, aStage, conditions.GetArrayElementAtIndex(i), i)) GUIUtility.ExitGUI();
+                DrawCondition(aWindow, aWave, aStage, conditions.GetArrayElementAtIndex(i), i);
             }
             if (EditorGUILayout.DropdownButton(new GUIContent("+ 条件"), FocusType.Passive, GUILayout.Width(70f)))
             {
+                // 条件の行が増えると後ろの欄の位置がずれるため、入力中の数値をメニューを出す前に確定させる
+                GUI.FocusControl(null);
                 var menu = new GenericMenu();
                 for (int k = 0; k < KindMenuNames.Length; k++)
                 {
@@ -196,8 +198,8 @@ namespace PPCore
             }
         }
 
-        // 条件 1 行。種類・種類ごとの欄・1 度だけ・消すボタン。消したら true
-        private static bool DrawCondition(PPBattleWaveEditorWindow aWindow, PPWaveDefinition aWave, PPWaveStage aStage, SerializedProperty aCondition, int aIndex)
+        // 条件 1 行。種類・種類ごとの欄・1 度だけ・消すボタン
+        private static void DrawCondition(PPBattleWaveEditorWindow aWindow, PPWaveDefinition aWave, PPWaveStage aStage, SerializedProperty aCondition, int aIndex)
         {
             using (new EditorGUILayout.HorizontalScope(PPWaveEditorStyles.RowBox))
             {
@@ -233,7 +235,7 @@ namespace PPCore
                 EditorGUI.BeginChangeCheck();
                 bool onceValue = GUILayout.Toggle(once.boolValue, new GUIContent("1 度だけ", "この条件で 1 度始まったら、以降は待ち直してもこの条件では始まりません"), GUILayout.ExpandWidth(false));
                 if (EditorGUI.EndChangeCheck()) once.boolValue = onceValue;
-                return GUILayout.Button(new GUIContent("×", "この条件を消す"), EditorStyles.miniButton, GUILayout.Width(RemoveWidth)) && aWindow.RemoveCondition(aIndex);
+                if (GUILayout.Button(new GUIContent("×", "この条件を消す"), EditorStyles.miniButton, GUILayout.Width(RemoveWidth))) aWindow.RunAfterCommit(() => aWindow.RemoveCondition(aIndex));
             }
         }
 
@@ -244,16 +246,16 @@ namespace PPCore
             if (aNexts.arraySize == 0) GUILayout.Label("行き先なし: この段階のあとは何も待ち始めない", PPWaveEditorStyles.SubLabel);
             for (int i = 0; i < aNexts.arraySize; i++)
             {
-                if (DrawNext(aWindow, aWave, aNexts.GetArrayElementAtIndex(i), i)) GUIUtility.ExitGUI();
+                DrawNext(aWindow, aWave, aNexts.GetArrayElementAtIndex(i), i);
             }
             using (new EditorGUI.DisabledScope(aWave.Stages.Count == 0))
             {
-                if (GUILayout.Button("+ 行き先", GUILayout.Width(70f)) && aWindow.AddNext()) GUIUtility.ExitGUI();
+                if (GUILayout.Button("+ 行き先", GUILayout.Width(70f))) aWindow.RunAfterCommit(() => aWindow.AddNext());
             }
         }
 
-        // 行き先 1 つ。1 行目にいつ・行き先・札・消すボタン、2 行目に進むときの条件。消したら true
-        private static bool DrawNext(PPBattleWaveEditorWindow aWindow, PPWaveDefinition aWave, SerializedProperty aNext, int aIndex)
+        // 行き先 1 つ。1 行目にいつ・行き先・札・消すボタン、2 行目に進むときの条件
+        private static void DrawNext(PPBattleWaveEditorWindow aWindow, PPWaveDefinition aWave, SerializedProperty aNext, int aIndex)
         {
             bool isRemoved;
             using (new EditorGUILayout.VerticalScope(PPWaveEditorStyles.RowBox))
@@ -286,7 +288,7 @@ namespace PPCore
                     GUILayout.FlexibleSpace();
                 }
             }
-            return isRemoved && aWindow.RemoveNext(aIndex);
+            if (isRemoved) aWindow.RunAfterCommit(() => aWindow.RemoveNext(aIndex));
         }
 
         /* ヘルパー */

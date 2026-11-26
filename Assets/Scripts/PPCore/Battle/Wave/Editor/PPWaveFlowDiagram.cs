@@ -27,7 +27,7 @@ namespace PPCore
         private const float ArrowSize = 7f;
         private const int CurveSegments = 24;
 
-        /* static 変数 */
+        /* 状態 */
 
         private static Vector2 sScroll;
         private static GUIStyle sBoxLabel;

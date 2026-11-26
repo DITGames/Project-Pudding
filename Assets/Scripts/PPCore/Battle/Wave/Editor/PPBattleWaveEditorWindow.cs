@@ -6,6 +6,7 @@
  * @brief バトル定義のウェーブを、段階の一覧・出す敵の表・見るだけの流れの図で編集するウィンドウ。Play 中は表示だけ
  * =====================================*/
 
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditorInternal;
@@ -144,12 +145,37 @@ namespace PPCore
             Repaint();
         }
 
-        // 番号(0 から)の段階を選ぶ
+        // 番号(0 から)の段階をすぐに選ぶ。画面の操作からは RequestSelectStage を使う
         public void SelectStage(int aIndex)
         {
             if (mTarget == null || aIndex < 0 || aIndex >= mTarget.Wave.Stages.Count) return;
             mSelectedStageId = mTarget.Wave.Stages[aIndex].Id;
             Repaint();
+        }
+
+        // 入力中の数値の欄を今の段階へ確定させてから、次の更新で aAction を行う。画面の操作で選択や並びを変えるときに使う
+        // 確定の命令は同じ回の描画のうちに同じ位置の欄へ届くため、先に選択や並びを変えると、確定した値が別の段階へ入る
+        public void RunAfterCommit(Action aAction)
+        {
+            GUI.FocusControl(null);
+            var target = mTarget;
+            EditorApplication.delayCall += () =>
+            {
+                // 次の更新までにウィンドウが閉じられたか、対象が替わっていたら何もしない
+                if (this == null || mTarget != target) return;
+                aAction();
+                Repaint();
+            };
+        }
+
+        // 画面の操作で段階を選ぶ。入力中の数値を確定させてから選ぶ
+        private void RequestSelectStage(string aStageId)
+        {
+            if (string.IsNullOrEmpty(aStageId) || aStageId == mSelectedStageId) return;
+            RunAfterCommit(() =>
+            {
+                if (mTarget != null && mTarget.Wave.IndexOf(aStageId) >= 0) mSelectedStageId = aStageId;
+            });
         }
 
         // 選んでいる段階の後ろに段階を足して選ぶ。選んでいる段階に行き先が無ければ、新しい段階への行き先も足す
@@ -345,11 +371,7 @@ namespace PPCore
             mProblemScroll = EditorGUILayout.BeginScrollView(mProblemScroll, GUILayout.MaxHeight(80f));
             foreach (var problem in mProblems)
             {
-                if (GUILayout.Button(problem.Message, PPWaveEditorStyles.ProblemRow) && problem.StageId != null)
-                {
-                    mSelectedStageId = problem.StageId;
-                    GUI.FocusControl(null);
-                }
+                if (GUILayout.Button(problem.Message, PPWaveEditorStyles.ProblemRow)) RequestSelectStage(problem.StageId);
             }
             EditorGUILayout.EndScrollView();
         }
@@ -370,11 +392,11 @@ namespace PPCore
                 using (new EditorGUI.DisabledScope(!IsEditable))
                 using (new EditorGUILayout.HorizontalScope())
                 {
-                    if (GUILayout.Button("+ 追加")) Finish(AddStage());
+                    if (GUILayout.Button("+ 追加")) RunAfterCommit(() => AddStage());
                     using (new EditorGUI.DisabledScope(SelectedIndex < 0))
                     {
-                        if (GUILayout.Button("複製")) Finish(DuplicateStage());
-                        if (GUILayout.Button("削除")) Finish(DeleteStage());
+                        if (GUILayout.Button("複製")) RunAfterCommit(() => DuplicateStage());
+                        if (GUILayout.Button("削除")) RunAfterCommit(() => DeleteStage());
                     }
                 }
                 GUILayout.Label("ドラッグで並べ替え", EditorStyles.miniLabel);
@@ -398,7 +420,11 @@ namespace PPCore
                 EditorGUI.DrawRect(new Rect(aRect.x, aRect.yMax - 1f, aRect.width, 1f), PPWaveEditorStyles.BorderColor);
             };
             list.drawElementCallback = (aRect, aIndex, aIsActive, aIsFocused) => DrawStageRow(aRect, aIndex);
-            list.onSelectCallback = aList => SelectStage(aList.index);
+            // 一覧が持つ番号は次の描画で選択に合わせて戻すため、ここでは選択の予約だけをする
+            list.onSelectCallback = aList =>
+            {
+                if (aList.index >= 0 && aList.index < mTarget.Wave.Stages.Count) RequestSelectStage(mTarget.Wave.Stages[aList.index].Id);
+            };
             return list;
         }
 
@@ -439,11 +465,7 @@ namespace PPCore
         {
             var rect = GUILayoutUtility.GetRect(0f, FlowHeight, GUILayout.ExpandWidth(true));
             int clicked = PPWaveFlowDiagram.Draw(rect, mTarget.Wave, SelectedIndex);
-            if (clicked >= 0)
-            {
-                SelectStage(clicked);
-                GUI.FocusControl(null);
-            }
+            if (clicked >= 0) RequestSelectStage(mTarget.Wave.Stages[clicked].Id);
         }
 
         /* イベントハンドラ */
@@ -474,12 +496,6 @@ namespace PPCore
                 if (window != null && window.mTarget == aDefinition) return true;
             }
             return false;
-        }
-
-        // 構造を変えるボタンのあとは、古い番号で描き続けないよう、この回の描画を打ち切る
-        private static void Finish(bool aIsChanged)
-        {
-            if (aIsChanged) GUIUtility.ExitGUI();
         }
 
         private bool PrepareSerializedObject()

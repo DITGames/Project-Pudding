@@ -34,6 +34,11 @@ namespace PPCore
     [System.Serializable]
     public class PPWaveDefinition
     {
+        /* 定数 */
+
+        // 出し終えるまでの秒数をすぐ(0 秒)とみなす幅
+        private const float InstantEpsilon = 0.0001f;
+
         /* インスペクタ設定 */
 
         [Label("段階", true)]
@@ -298,7 +303,7 @@ namespace PPCore
             var mayLoop = FindInstantLoopStage(true);
             if (mayLoop != null)
             {
-                aProblems.Add(new PPWaveProblem($"段階「{GetStageName(mayLoop.Id)}」を通る繰り返しは、条件によっては待ちがなくなり、1 フレームに 1 回ずつ始まり続けます(待ち始めた時点で満たしている拠点の HP の条件や、出す敵の無い段階を通るとき)。時間の条件などを足してください", mayLoop.Id));
+                aProblems.Add(new PPWaveProblem($"段階「{GetStageName(mayLoop.Id)}」を通る繰り返しは、条件によっては待ちがなくなり、1 フレームに 1 回ずつ始まり続けます(待ち始めた時点で満たしている拠点の HP の条件や、すぐ出し終える段階を通るとき)。時間の条件などを足してください", mayLoop.Id));
             }
         }
 
@@ -357,10 +362,11 @@ namespace PPCore
         }
 
         // 段階が始まったその場で進む行き先か。必ず進むのは条件の無い「出し始めたら」
-        // aIncludesPossible なら、条件付きの行き先と、出す敵の無い段階の「出し終えたら」も数える
+        // aIncludesPossible なら、条件付きの行き先と、始まったフレームのうちに出し終える段階(敵が無いか、どの行も 1 体・最初の待ち 0)の「出し終えたら」も数える
         private static bool IsInstantNext(PPWaveStage aStage, PPWaveNext aNext, bool aIncludesPossible)
         {
-            bool isInstantTiming = aNext.Timing == PPWaveNextTiming.Started || (aIncludesPossible && aNext.Timing == PPWaveNextTiming.Finished && !aStage.HasSpawnUnit);
+            bool isInstantFinish = aNext.Timing == PPWaveNextTiming.Finished && !aStage.IsInfinite && aStage.SpawnDuration <= InstantEpsilon;
+            bool isInstantTiming = aNext.Timing == PPWaveNextTiming.Started || (aIncludesPossible && isInstantFinish);
             return isInstantTiming && (aNext.Condition == PPWaveNextCondition.None || aIncludesPossible);
         }
 

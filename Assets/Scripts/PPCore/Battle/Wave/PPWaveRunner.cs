@@ -78,7 +78,7 @@ namespace PPCore
             public int EnemyDamageCountAtArm;
             // 条件ごとの「1 度だけ」を使ったか
             public readonly bool[] IsConditionUsed;
-            // 条件ごとの、最後に始めるきっかけにした全滅の回の番号。同じ全滅では 2 度始めない
+            // 条件ごとの、段階が始まった時点ですでに全滅していた対象の回の番号。同じ全滅では 2 度始めない
             public readonly int[] LastWipedRunNumber;
             public int StartCount;
             public int RunningCount;
@@ -183,6 +183,10 @@ namespace PPCore
         private readonly Dictionary<string, StageState> mStatesById = new();
         // 出している最中か、まだ全滅し得る回
         private readonly List<SpawnRun> mRuns = new();
+        // 1 回の判定で始める段階と、満たした条件の番号
+        private readonly List<(StageState State, int Condition)> mStartBatch = new();
+        // 行き先にされて、まだ待ち始めさせていない段階と、行き先にした段階。始まりや出し終えをまとめて処理したあとに待ち始めさせる
+        private readonly List<(StageState Target, StageState Source)> mPendingArms = new();
         private int mFrame;
         private int mAllyBaseDamageCount;
         private int mEnemyBaseDamageCount;
@@ -262,24 +266,24 @@ namespace PPCore
             StartSatisfiedStages(now);
         }
 
-        // 待っている段階を定義の並び順に判定し、条件を満たしたものを始める。始めた段階が待ち始めさせた段階も、同じフレームのうちに判定する
+        // 待っている全段階の条件を先に判定してから、満たした段階をまとめて始め、そのあとで行き先を待ち始めさせる
+        // 判定・始まり・待ち始めを分けるため、同じフレームの結果は段階の並び順に左右されない。待ち始めた段階は同じフレームのうちにもう一度判定する
         // 1 つの段階は 1 フレームに 1 回までしか始めないため、待ちのない繰り返しでも止まる
         private void StartSatisfiedStages(float aNow)
         {
-            bool isStarted;
             do
             {
-                isStarted = false;
+                mStartBatch.Clear();
                 foreach (var state in mStates)
                 {
                     if (!state.IsWaiting || state.StartedFrame == mFrame) continue;
                     int condition = FindSatisfiedCondition(state);
-                    if (condition == NotStarted) continue;
-                    Start(state, condition, aNow);
-                    isStarted = true;
+                    if (condition != NotStarted) mStartBatch.Add((state, condition));
                 }
+                foreach (var (state, condition) in mStartBatch) Start(state, condition, aNow);
+                FlushPendingArms();
             }
-            while (isStarted);
+            while (mStartBatch.Count > 0);
         }
 
         // 段階を待ち始めさせ、待ち始めた時刻と拠点の被ダメージ回数を覚える。待っている途中なら、待ち始めをやり直す
@@ -292,19 +296,12 @@ namespace PPCore
             OnStageArmed?.Invoke(aState.Stage, aSource?.Stage);
         }
 
-        // 段階の新しい回を始め、「出し始めたら」の行き先へ進む
+        // 段階の新しい回を始め、「出し始めたら」の行き先を待ち始めさせる予定に入れる
         private void Start(StageState aState, int aConditionIndex, float aNow)
         {
             aState.IsWaiting = false;
-            if (aConditionIndex >= 0)
-            {
-                var condition = aState.Stage.StartConditions[aConditionIndex];
-                if (condition.IsOnce) aState.IsConditionUsed[aConditionIndex] = true;
-                if (condition.Kind == PPWaveStartKind.StageWiped && mStatesById.TryGetValue(condition.StageId ?? string.Empty, out var target) && target.LatestRun != null)
-                {
-                    aState.LastWipedRunNumber[aConditionIndex] = target.LatestRun.Number;
-                }
-            }
+            if (aConditionIndex >= 0 && aState.Stage.StartConditions[aConditionIndex].IsOnce) aState.IsConditionUsed[aConditionIndex] = true;
+            RememberSeenWipes(aState);
             WarnIfLooping(aState);
             aState.StartedFrame = mFrame;
             aState.StartCount++;
@@ -318,6 +315,20 @@ namespace PPCore
             CustomConsoleLog.Log(LogTag, $"ウェーブ: 「{GetName(aState)}」を出し始める(時刻 {aNow:F1} {run.Number} 回目 きっかけ={cause})");
             OnStageStarted?.Invoke(aState.Stage, aConditionIndex, run.Number);
             ApplyNexts(aState, PPWaveNextTiming.Started);
+        }
+
+        // 全滅の条件ごとに、始まった時点ですでに全滅していた対象の回を覚える。どの条件で始めても、同じ全滅ではもう始めない
+        private void RememberSeenWipes(StageState aState)
+        {
+            var conditions = aState.Stage.StartConditions;
+            for (int i = 0; i < conditions.Count; i++)
+            {
+                if (conditions[i].Kind != PPWaveStartKind.StageWiped) continue;
+                if (mStatesById.TryGetValue(conditions[i].StageId ?? string.Empty, out var target) && target.LatestRun != null && target.LatestRun.IsWiped)
+                {
+                    aState.LastWipedRunNumber[i] = target.LatestRun.Number;
+                }
+            }
         }
 
         // 同じ段階が続けてフレームごとに始まっていたら、待ちのない繰り返しとして 1 度だけ警告する
@@ -369,9 +380,10 @@ namespace PPCore
                 mRuns[kept++] = run;
             }
             mRuns.RemoveRange(kept, mRuns.Count - kept);
+            FlushPendingArms();
         }
 
-        // 段階のそのときの行き先のうち、条件が成り立つものを待ち始めさせる
+        // 段階のそのときの行き先のうち、条件が成り立つものを、待ち始めさせる予定に入れる。条件はこの時点で判定する
         private void ApplyNexts(StageState aState, PPWaveNextTiming aTiming)
         {
             foreach (var next in aState.Stage.Nexts)
@@ -383,8 +395,15 @@ namespace PPCore
                     CustomConsoleLog.Verbose(LogTag, $"ウェーブ: 「{GetName(aState)}」の行き先「{GetName(target)}」は条件が成り立たないため進まない(時刻 {Now:F1})");
                     continue;
                 }
-                Arm(target, aState);
+                mPendingArms.Add((target, aState));
             }
+        }
+
+        // 予定に入れた段階を、入れた順に待ち始めさせる
+        private void FlushPendingArms()
+        {
+            foreach (var (target, source) in mPendingArms) Arm(target, source);
+            mPendingArms.Clear();
         }
 
         /* 評価・判定 */
