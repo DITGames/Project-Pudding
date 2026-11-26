@@ -13,29 +13,67 @@ MonoBehaviour:
   m_Name: PBD_Elite_Fire
   m_EditorClassIdentifier: Assembly-CSharp::PPCore.PPBattleDefinition
   mWave:
-    mNodes:
-    - rid: 2919751506297356376
-    - rid: 2919751506297356377
-    - rid: 2919751506297356378
-    - rid: 2919751506297356379
-    - rid: 2919751506297356380
-    - rid: 2919751506297356381
-    mLinks:
-    - mFromId: 8dfaee0d85714523b9df8d8acb9049e9
-      mFromPort: 0
-      mToId: 2c41ed77c7874499af33512a6774e794
-    - mFromId: 86c7817c0ca84056a4aacc3fa83c4684
-      mFromPort: 0
-      mToId: 7ebf3dbb836b4b15ab665de8e04b4ac5
-    - mFromId: 2c41ed77c7874499af33512a6774e794
-      mFromPort: 1
-      mToId: 86c7817c0ca84056a4aacc3fa83c4684
-    - mFromId: 7a87068df68d4ff891ee778531240f63
-      mFromPort: 0
-      mToId: f85ad0576cc1473a880b55fed7c8adf4
-    - mFromId: 7ebf3dbb836b4b15ab665de8e04b4ac5
-      mFromPort: 1
-      mToId: 7a87068df68d4ff891ee778531240f63
+    mStages:
+    - mId: 2c41ed77c7874499af33512a6774e794
+      mName: "\u5E8F\u76E4"
+      mWaitsFromBattleStart: 1
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+        mCount: 2
+        mInterval: 4
+        mFirstDelay: 0
+      - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+        mCount: 1
+        mInterval: 6
+        mFirstDelay: 6
+      mStartConditions: []
+      mNexts:
+      - mTargetId: 7ebf3dbb836b4b15ab665de8e04b4ac5
+        mTiming: 0
+        mCondition: 0
+        mSide: 1
+        mPercent: 50
+    - mId: 7ebf3dbb836b4b15ab665de8e04b4ac5
+      mName: "\u9060\u8DDD\u96E2"
+      mWaitsFromBattleStart: 0
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
+        mCount: 2
+        mInterval: 5
+        mFirstDelay: 0
+      mStartConditions:
+      - mKind: 0
+        mSeconds: 20
+        mStageId: 
+        mSide: 1
+        mPercent: 50
+        mIsOnce: 0
+      mNexts:
+      - mTargetId: f85ad0576cc1473a880b55fed7c8adf4
+        mTiming: 0
+        mCondition: 0
+        mSide: 1
+        mPercent: 50
+    - mId: f85ad0576cc1473a880b55fed7c8adf4
+      mName: "\u7DCF\u653B\u6483"
+      mWaitsFromBattleStart: 0
+      mSpawns:
+      - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
+        mCount: 0
+        mInterval: 6
+        mFirstDelay: 0
+      - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
+        mCount: 3
+        mInterval: 4
+        mFirstDelay: 0
+      mStartConditions:
+      - mKind: 3
+        mSeconds: 20
+        mStageId: 
+        mSide: 1
+        mPercent: 50
+        mIsOnce: 0
+      mNexts: []
   mEnemyBase:
     mDisplayName: "\u6575\u306E\u62E0\u70B9"
     mMaxHp: 20000
@@ -45,78 +83,3 @@ MonoBehaviour:
   mIsElite: 1
   mMinFloor: 8
   mMaxFloor: 99
-  references:
-    version: 2
-    RefIds:
-    - rid: 2919751506297356376
-      type: {class: PPWaveBattleStartTriggerNode, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mId: 8dfaee0d85714523b9df8d8acb9049e9
-        mMemo: "\u30D0\u30C8\u30EB\u958B\u59CB"
-        mPosition: {x: 0, y: 0}
-    - rid: 2919751506297356377
-      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mId: 2c41ed77c7874499af33512a6774e794
-        mMemo: "\u5E8F\u76E4"
-        mPosition: {x: 400, y: 0}
-        mSpawns:
-        - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-          mLevel: 1
-          mCount: 2
-          mInterval: 4
-          mFirstDelay: 0
-        - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
-          mLevel: 1
-          mCount: 1
-          mInterval: 6
-          mFirstDelay: 6
-    - rid: 2919751506297356378
-      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mId: 7ebf3dbb836b4b15ab665de8e04b4ac5
-        mMemo: "\u9060\u8DDD\u96E2"
-        mPosition: {x: 800, y: 0}
-        mSpawns:
-        - mUnit: {fileID: 11400000, guid: c10e14ab21b964d49808e9eb4271d6fb, type: 2}
-          mLevel: 1
-          mCount: 2
-          mInterval: 5
-          mFirstDelay: 0
-    - rid: 2919751506297356379
-      type: {class: PPWaveSpawnNode, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mId: f85ad0576cc1473a880b55fed7c8adf4
-        mMemo: "\u7DCF\u653B\u6483"
-        mPosition: {x: 1200, y: 0}
-        mSpawns:
-        - mUnit: {fileID: 11400000, guid: 0fccdb0168393df458063bd94ca1c944, type: 2}
-          mLevel: 1
-          mCount: 0
-          mInterval: 6
-          mFirstDelay: 0
-        - mUnit: {fileID: 11400000, guid: 6ff49f69e09e1dc4b82628e637680515, type: 2}
-          mLevel: 1
-          mCount: 3
-          mInterval: 4
-          mFirstDelay: 0
-    - rid: 2919751506297356380
-      type: {class: PPWaveElapsedTriggerNode, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mId: 86c7817c0ca84056a4aacc3fa83c4684
-        mMemo: "\u9060\u8DDD\u96E2\u306E\u6761\u4EF6: 20\u79D2"
-        mPosition: {x: 600, y: 150}
-        mIsOnce: 0
-        mRaceGroup: 
-        mSeconds: 20
-    - rid: 2919751506297356381
-      type: {class: PPWaveBaseHpTriggerNode, ns: PPCore, asm: Assembly-CSharp}
-      data:
-        mId: 7a87068df68d4ff891ee778531240f63
-        mMemo: "\u7DCF\u653B\u6483\u306E\u6761\u4EF6: \u6575\u62E0\u70B9\u306E HP
-          50% \u4EE5\u4E0B"
-        mPosition: {x: 1000, y: 150}
-        mIsOnce: 0
-        mRaceGroup: 
-        mSide: 1
-        mPercent: 50
