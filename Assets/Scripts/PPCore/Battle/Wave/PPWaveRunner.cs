@@ -3,7 +3,7 @@
  * @file PPWaveRunner.cs
  * @author hqrse
  * @date 2026/11/24
- * @brief ウェーブの進行(ノードのつながりに沿った敵の出現)と、マスの深さによるレベルの割り振り
+ * @brief ウェーブの進行(段階の待ち・始まり・行き先に沿った敵の出現)と、マスの深さによるレベルの割り振り
  * =====================================*/
 
 using System;
@@ -34,60 +34,87 @@ namespace PPCore
         }
     }
 
-    // バトル 1 回分のウェーブの進行。トリガーを起点に、線でつながったノードを順に動かして敵拠点の近くへ敵を出す
+    // 段階 1 つの、今の実行の様子。実行中の表示や検証で読む
+    public readonly struct PPWaveStageStatus
+    {
+        /* プロパティ */
+
+        public bool IsWaiting { get; }
+        // 始めた回数
+        public int StartCount { get; }
+        // 出している最中の回の数
+        public int RunningCount { get; }
+        // これまでに出した敵の数(すべての回の合計)
+        public int SpawnedCount { get; }
+        // 最後に始めたときに満たした条件の番号(0 から)。条件なしで始めたら -1、まだ始めていなければ -2
+        public int LastConditionIndex { get; }
+
+        /* 生成 */
+
+        public PPWaveStageStatus(bool aIsWaiting, int aStartCount, int aRunningCount, int aSpawnedCount, int aLastConditionIndex)
+        {
+            IsWaiting = aIsWaiting;
+            StartCount = aStartCount;
+            RunningCount = aRunningCount;
+            SpawnedCount = aSpawnedCount;
+            LastConditionIndex = aLastConditionIndex;
+        }
+    }
+
+    // バトル 1 回分のウェーブの進行。待っている段階を条件で始め、出し始め・出し終え・全滅で行き先の段階を待ち始めさせる
     // バトル専用の時計で進めるため、メニューを開いている間は止まる
-    public class PPWaveRunner : IPPWaveGraphContext
+    public class PPWaveRunner
     {
         /* 内部型 */
 
-        // ノード 1 つ分の実行中の状態
-        private class NodeState
+        // 段階 1 つ分の実行中の状態
+        private class StageState
         {
-            public readonly PPWaveNode Node;
-            // 出口ごとの行き先。添字は PPWaveNodePort
-            public readonly List<NodeState>[] Outgoing;
-            // 入口に線があるか(入口を受け付けないトリガーでは常に false)
-            public bool HasIncoming;
-            // トリガーでなければ null
-            public readonly PPWaveTriggerState Trigger;
-            public int ActivationCount;
-            public int ActivatedFrame = -1;
-            // ウェーブノードの回の数と、最新の回と、出している最中の回の数
-            public int RunCount;
-            public SpawnRun LatestRun;
+            public readonly PPWaveStage Stage;
+            public bool IsWaiting;
+            // 待ち始めた時刻と、待ち始めた時点で各拠点がダメージを受けていた回数
+            public float ArmedTime;
+            public int AllyDamageCountAtArm;
+            public int EnemyDamageCountAtArm;
+            // 条件ごとの「1 度だけ」を使ったか
+            public readonly bool[] IsConditionUsed;
+            // 条件ごとの、最後に始めるきっかけにした全滅の回の番号。同じ全滅では 2 度始めない
+            public readonly int[] LastWipedRunNumber;
+            public int StartCount;
             public int RunningCount;
-            // 入口から待ち始めたばかりで、まだ判定していないか(トリガーだけ)
-            public bool IsArmCheckPending;
-            // 次のフレームへ回し続けたフレーム数。上限の警告に使う
-            public int DeferredStreak;
-            public int LastDeferredFrame = -1;
-            public bool IsDeferWarned;
+            public int SpawnedCount;
+            public int LastConditionIndex = NotStarted;
+            public SpawnRun LatestRun;
+            public int StartedFrame = -1;
+            // 続けて始めたフレーム数。待ちのない繰り返しの警告に使う
+            public int StartStreak;
+            public bool IsLoopWarned;
 
-            public NodeState(PPWaveNode aNode)
+            public StageState(PPWaveStage aStage)
             {
-                Node = aNode;
-                Outgoing = new List<NodeState>[PortCount];
-                for (int i = 0; i < PortCount; i++) Outgoing[i] = new List<NodeState>();
-                if (aNode is PPWaveTriggerNode) Trigger = new PPWaveTriggerState();
+                Stage = aStage;
+                IsConditionUsed = new bool[aStage.StartConditions.Count];
+                LastWipedRunNumber = new int[aStage.StartConditions.Count];
             }
         }
 
-        // ウェーブノードの 1 回分。同じノードがまた動かされたら、別の回として作る
+        // 段階の 1 回分。同じ段階がまた始まったら、別の回として作る
         private class SpawnRun
         {
-            public readonly NodeState Owner;
+            public readonly StageState Owner;
             public readonly int Number;
             public readonly SpawnEntry[] Spawns;
             public readonly List<BattleUnit> SpawnedUnits = new();
             public bool IsFinishedNotified;
             public bool IsWipedNotified;
 
-            public SpawnRun(NodeState aOwner, int aNumber, PPWaveSpawnNode aNode, float aStartTime)
+            public SpawnRun(StageState aOwner, int aNumber, float aStartTime)
             {
                 Owner = aOwner;
                 Number = aNumber;
-                Spawns = new SpawnEntry[aNode.Spawns.Count];
-                for (int i = 0; i < Spawns.Length; i++) Spawns[i] = new SpawnEntry(aNode.Spawns[i], aStartTime);
+                var spawns = aOwner.Stage.Spawns;
+                Spawns = new SpawnEntry[spawns.Count];
+                for (int i = 0; i < Spawns.Length; i++) Spawns[i] = new SpawnEntry(spawns[i], i, aStartTime);
             }
 
             public bool IsFinished
@@ -117,47 +144,33 @@ namespace PPCore
             }
         }
 
-        // 1 種類の敵を出す進み具合
+        // 表の 1 行の敵を出す進み具合
         private class SpawnEntry
         {
             public readonly PPWaveSpawn Spawn;
+            public readonly int Row;
             public float NextTime;
             public int SpawnedCount;
 
-            public SpawnEntry(PPWaveSpawn aSpawn, float aStartTime)
+            public SpawnEntry(PPWaveSpawn aSpawn, int aRow, float aStartTime)
             {
                 Spawn = aSpawn;
+                Row = aRow;
                 NextTime = aStartTime + (aSpawn?.FirstDelay ?? 0f);
             }
 
             public bool IsFinished => Spawn?.Unit == null || (!Spawn.IsInfinite && SpawnedCount >= Spawn.Count);
         }
 
-        // 動かす予定 1 件。どのノードのどの出口から来たか(バトル開始の起点なら Source が null)
-        private readonly struct Activation
-        {
-            public readonly NodeState Target;
-            public readonly NodeState Source;
-            public readonly PPWaveNodePort Port;
-
-            public Activation(NodeState aTarget, NodeState aSource, PPWaveNodePort aPort)
-            {
-                Target = aTarget;
-                Source = aSource;
-                Port = aPort;
-            }
-
-            public bool IsSame(in Activation aOther) => Target == aOther.Target && Source == aOther.Source && Port == aOther.Port;
-        }
-
         /* 定数 */
 
+        // LastConditionIndex の値。条件なしで始めた / まだ始めていない
+        public const int StartedWithoutCondition = -1;
+        public const int NotStarted = -2;
         private const string LogTag = "Battle";
-        private static readonly int PortCount = Enum.GetValues(typeof(PPWaveNodePort)).Length;
-        // 1 フレームに動かすノードの総数の上限。超えた分は次のフレームへ回す
-        private const int MaxActivationsPerFrame = 256;
-        // 同じノードを続けてこのフレーム数だけ次へ回したら、待ちのない輪として警告する
-        private const int DeferWarnFrames = 10;
+        private const float CompareEpsilon = 0.0001f;
+        // 同じ段階が続けてこのフレーム数だけ始まったら、待ちのない繰り返しとして警告する
+        private const int LoopWarnFrames = 10;
 
         /* 状態 */
 
@@ -165,19 +178,12 @@ namespace PPCore
         private readonly BattleManager mManager;
         private readonly float mSpawnPosition;
         private readonly Dictionary<PPUnitDefinition, int> mLevelBonus;
-        private readonly Dictionary<string, NodeState> mStatesById = new();
-        private readonly Dictionary<PPWaveNode, NodeState> mStatesByNode = new();
-        // トリガーのノードの状態。定義の並び順
-        private readonly List<NodeState> mTriggers = new();
+        // 段階の状態。定義の並び順
+        private readonly List<StageState> mStates = new();
+        private readonly Dictionary<string, StageState> mStatesById = new();
         // 出している最中か、まだ全滅し得る回
         private readonly List<SpawnRun> mRuns = new();
-        private readonly Queue<Activation> mQueue = new();
-        // 1 フレームの上限を超えて、次のフレームへ回した分。同じノード・同じきっかけの分は 1 件にまとめる
-        private readonly List<Activation> mDeferred = new();
-        // 入口から待ち始めて、まだ判定していないトリガーがあるか
-        private bool mHasArmCheckPending;
         private int mFrame;
-        private int mActivationsThisFrame;
         private int mAllyBaseDamageCount;
         private int mEnemyBaseDamageCount;
 
@@ -190,13 +196,16 @@ namespace PPCore
 
         /* イベント */
 
-        // ノードが入口から動かされて動いたとき(トリガーが待ち始めた・ウェーブが回を始めた・条件を判定した)(動いたノード)
-        // 入口を受け付けないトリガーと、起動済みの「1 度だけ」のトリガーは、動かないため知らせない
-        public event Action<PPWaveNode> OnNodeActivated;
-        // ノードの出口から先へ進んだとき(ノード, 出口)
-        public event Action<PPWaveNode, PPWaveNodePort> OnNodeOutput;
-        // トリガーが起動したとき(起動したトリガー)
-        public event Action<PPWaveTriggerNode> OnTriggerFired;
+        // 段階が待ち始めたとき(段階, 行き先にした段階。バトル開始なら null)
+        public event Action<PPWaveStage, PPWaveStage> OnStageArmed;
+        // 段階が始まったとき(段階, 満たした条件の番号。条件なしなら -1, 回の番号)
+        public event Action<PPWaveStage, int, int> OnStageStarted;
+        // 段階の回が出し終えたとき(段階, 回の番号)
+        public event Action<PPWaveStage, int> OnStageFinished;
+        // 段階の回が出し終えたうえで全滅したとき(段階, 回の番号)
+        public event Action<PPWaveStage, int> OnStageWiped;
+        // 段階が敵を出したとき(段階, 表の行の番号, 出したユニット)
+        public event Action<PPWaveStage, int, BattleUnit> OnEnemySpawned;
 
         /* 生成 */
 
@@ -209,10 +218,9 @@ namespace PPCore
             mLevelBonus = PPWaveLevelAllocator.Allocate(aWave.CollectUnits(), aLevelPoints, aManager.Context.Rules.RandomProvider);
             BuildStates();
 
-            // 入口に線の無いトリガーは、バトル開始の時刻から待つ
-            foreach (var state in mTriggers)
+            foreach (var state in mStates)
             {
-                if (!state.HasIncoming) Arm(state, false);
+                if (state.Stage.WaitsFromBattleStart) Arm(state, null);
             }
 
             aManager.OnBaseDamaged += (fieldBase, _) =>
@@ -222,198 +230,107 @@ namespace PPCore
             };
         }
 
-        // ノードの状態と、出口ごとの行き先の表を作る。毎フレーム線を探さないよう、ここで引いておく
         private void BuildStates()
         {
-            foreach (var node in mWave.Nodes)
+            var stages = mWave.Stages;
+            for (int i = 0; i < stages.Count; i++)
             {
-                if (node == null) continue;
-                // 識別子が空のノードは、未選択の線とつながってしまうため使わない
-                if (string.IsNullOrEmpty(node.Id))
+                var stage = stages[i];
+                if (stage == null) continue;
+                // 識別子が空・重なった段階は、行き先が取り違えられるため使わない
+                if (string.IsNullOrEmpty(stage.Id) || mStatesById.ContainsKey(stage.Id))
                 {
-                    CustomConsoleLog.Warning(LogTag, $"ウェーブ: ノード「{node.DisplayName}」の識別子が空のため、使いません。ノードエディタで消して足し直してください");
+                    CustomConsoleLog.Warning(LogTag, $"ウェーブ: 段階 {i + 1}「{stage.Name}」の識別子が空か他と重なっているため、使いません。ウェーブエディタで段階を複製し直してください");
                     continue;
                 }
-                if (mStatesByNode.ContainsKey(node) || mStatesById.ContainsKey(node.Id))
-                {
-                    CustomConsoleLog.Warning(LogTag, $"ウェーブ: ノード「{node.DisplayName}」の識別子が他と重なっているため、使いません。バトル定義のインスペクタで識別子を振り直してください");
-                    continue;
-                }
-                var state = new NodeState(node);
-                mStatesById[node.Id] = state;
-                mStatesByNode[node] = state;
-                if (state.Trigger != null) mTriggers.Add(state);
-            }
-
-            foreach (var link in mWave.Links)
-            {
-                if (link == null) continue;
-                if (!mStatesById.TryGetValue(link.FromId ?? string.Empty, out var from) || !mStatesById.TryGetValue(link.ToId ?? string.Empty, out var to))
-                {
-                    CustomConsoleLog.Warning(LogTag, "ウェーブ: 出口か行き先のノードが見つからない線があるため、その線を使いません。バトル定義の「線」を直してください");
-                    continue;
-                }
-                if (!from.Node.HasOutput(link.FromPort)) continue;
-                from.Outgoing[(int)link.FromPort].Add(to);
-                if (to.Node is not PPWaveTriggerNode { IgnoresInput: true }) to.HasIncoming = true;
+                var state = new StageState(stage);
+                mStates.Add(state);
+                mStatesById[stage.Id] = state;
             }
         }
 
         /* 操作 */
 
-        // 待っているトリガーを判定し、線に沿ってノードを動かし、始まっている回から時刻の来た敵を出す。決着後は何もしない
+        // 待っている段階を条件で始め、始まっている回から時刻の来た敵を出し、行き先を待ち始めさせる。決着後は何もしない
         public void Update()
         {
             if (mManager.Context == null || mManager.StateMachine.Current == BattleState.BattleEnd) return;
             mFrame++;
-            mActivationsThisFrame = 0;
             float now = Now;
-
-            foreach (var activation in mDeferred) mQueue.Enqueue(activation);
-            mDeferred.Clear();
-
-            foreach (var state in mTriggers)
-            {
-                if (state.Trigger.IsWaiting && IsTriggerSatisfied(state)) Fire(state, now);
-            }
-            DrainAll(now);
+            StartSatisfiedStages(now);
             UpdateRuns(now);
-            DrainAll(now);
+            StartSatisfiedStages(now);
         }
 
-        // 動かす予定を処理し、その間に入口から待ち始めたトリガーを定義の並び順に判定する。起動して増えた予定も続けて処理する
-        // 同じきっかけで待ち始めた同じグループのトリガーは、全部が待ち始めてから判定するため、線の並び順に関係なく 1 つだけが起動する
-        private void DrainAll(float aNow)
+        // 待っている段階を定義の並び順に判定し、条件を満たしたものを始める。始めた段階が待ち始めさせた段階も、同じフレームのうちに判定する
+        // 1 つの段階は 1 フレームに 1 回までしか始めないため、待ちのない繰り返しでも止まる
+        private void StartSatisfiedStages(float aNow)
         {
-            Drain(aNow);
-            while (mHasArmCheckPending)
+            bool isStarted;
+            do
             {
-                mHasArmCheckPending = false;
-                foreach (var state in mTriggers)
+                isStarted = false;
+                foreach (var state in mStates)
                 {
-                    if (!state.IsArmCheckPending) continue;
-                    state.IsArmCheckPending = false;
-                    if (state.Trigger.IsWaiting && IsTriggerSatisfied(state)) Fire(state, aNow);
-                }
-                Drain(aNow);
-            }
-        }
-
-        // 動かす予定を順に処理する。同じノードは 1 フレームに 1 回までにし、超えた分は次のフレームへ回す
-        private void Drain(float aNow)
-        {
-            while (mQueue.Count > 0)
-            {
-                var activation = mQueue.Dequeue();
-                var target = activation.Target;
-                if (target.ActivatedFrame == mFrame || mActivationsThisFrame >= MaxActivationsPerFrame)
-                {
-                    Defer(activation);
-                    continue;
-                }
-                Activate(activation, aNow);
-            }
-        }
-
-        // 動かす予定を次のフレームへ回す。同じノードを回し続けていたら、待ちのない輪として 1 度だけ警告する
-        private void Defer(Activation aActivation)
-        {
-            var target = aActivation.Target;
-            // 待ちのない輪で同じ予定が毎フレーム増え続けないよう、同じノード・同じきっかけの予定は 1 件にまとめる
-            if (!ContainsDeferred(aActivation)) mDeferred.Add(aActivation);
-            if (target.LastDeferredFrame == mFrame) return;
-            target.DeferredStreak = target.LastDeferredFrame == mFrame - 1 ? target.DeferredStreak + 1 : 1;
-            target.LastDeferredFrame = mFrame;
-            if (target.IsDeferWarned || target.DeferredStreak < DeferWarnFrames) return;
-            target.IsDeferWarned = true;
-            CustomConsoleLog.Warning(LogTag, $"ウェーブ: ノード「{target.Node.DisplayName}」が 1 フレームに 1 回ずつ動き続けています。待ちのない輪になっていないか、バトル定義の線を確かめてください");
-        }
-
-        private bool ContainsDeferred(in Activation aActivation)
-        {
-            foreach (var deferred in mDeferred)
-            {
-                if (deferred.IsSame(aActivation)) return true;
-            }
-            return false;
-        }
-
-        // ノードを入口から動かす。トリガーは待ち始め(判定は DrainAll がまとめて行う)、ウェーブは回を始め、条件はその場で判定して先へ進む
-        private void Activate(Activation aActivation, float aNow)
-        {
-            var state = aActivation.Target;
-            state.ActivatedFrame = mFrame;
-            mActivationsThisFrame++;
-            if (state.Node is PPWaveTriggerNode ignored && (ignored.IgnoresInput || (ignored.IsOnce && state.Trigger.FireCount > 0))) return;
-            state.ActivationCount++;
-            OnNodeActivated?.Invoke(state.Node);
-
-            switch (state.Node)
-            {
-                case PPWaveTriggerNode:
-                    Arm(state, false);
-                    state.IsArmCheckPending = true;
-                    mHasArmCheckPending = true;
-                    break;
-                case PPWaveSpawnNode spawnNode:
-                    StartRun(state, spawnNode, aActivation, aNow);
-                    break;
-                case PPWaveConditionNode condition:
-                    bool result = condition.Evaluate(this);
-                    CustomConsoleLog.Verbose(LogTag, $"ウェーブ: 条件「{condition.DisplayName}」は{(result ? "成り立つ" : "成り立たない")}(時刻 {aNow:F1})");
-                    Emit(state, result ? PPWaveNodePort.True : PPWaveNodePort.False);
-                    break;
-            }
-        }
-
-        // トリガーを待ち始めさせ、待ち始めた時刻と拠点の被ダメージ回数を覚える。aIsRearm は起動したその場で待ち直すとき
-        private void Arm(NodeState aState, bool aIsRearm)
-        {
-            var trigger = aState.Trigger;
-            trigger.IsWaiting = true;
-            trigger.ArmedTime = Now;
-            trigger.AllyDamageCountAtArm = mAllyBaseDamageCount;
-            trigger.EnemyDamageCountAtArm = mEnemyBaseDamageCount;
-            trigger.IsRearmed = aIsRearm;
-        }
-
-        // トリガーを起動する。同じグループの他のトリガーは待つのをやめ、何度でも・入口に線なしならその場で待ち直す
-        private void Fire(NodeState aState, float aNow)
-        {
-            var trigger = (PPWaveTriggerNode)aState.Node;
-            aState.Trigger.FireCount++;
-            aState.Trigger.IsWaiting = false;
-            trigger.OnFired(aState.Trigger, this);
-            CustomConsoleLog.Verbose(LogTag, $"ウェーブ: トリガー「{trigger.DisplayName}」が起動した(時刻 {aNow:F1} {aState.Trigger.FireCount} 回目)");
-
-            if (!string.IsNullOrEmpty(trigger.RaceGroup))
-            {
-                foreach (var other in mTriggers)
-                {
-                    if (other != aState && ((PPWaveTriggerNode)other.Node).RaceGroup == trigger.RaceGroup) other.Trigger.IsWaiting = false;
+                    if (!state.IsWaiting || state.StartedFrame == mFrame) continue;
+                    int condition = FindSatisfiedCondition(state);
+                    if (condition == NotStarted) continue;
+                    Start(state, condition, aNow);
+                    isStarted = true;
                 }
             }
-            if (!trigger.IsOnce && !aState.HasIncoming) Arm(aState, true);
-
-            OnTriggerFired?.Invoke(trigger);
-            Emit(aState, PPWaveNodePort.Fired);
+            while (isStarted);
         }
 
-        // ウェーブノードの新しい回を始め、「出し始めたとき」の先へ進む
-        private void StartRun(NodeState aState, PPWaveSpawnNode aNode, Activation aActivation, float aNow)
+        // 段階を待ち始めさせ、待ち始めた時刻と拠点の被ダメージ回数を覚える。待っている途中なら、待ち始めをやり直す
+        private void Arm(StageState aState, StageState aSource)
         {
-            aState.RunCount++;
+            aState.IsWaiting = true;
+            aState.ArmedTime = Now;
+            aState.AllyDamageCountAtArm = mAllyBaseDamageCount;
+            aState.EnemyDamageCountAtArm = mEnemyBaseDamageCount;
+            OnStageArmed?.Invoke(aState.Stage, aSource?.Stage);
+        }
+
+        // 段階の新しい回を始め、「出し始めたら」の行き先へ進む
+        private void Start(StageState aState, int aConditionIndex, float aNow)
+        {
+            aState.IsWaiting = false;
+            if (aConditionIndex >= 0)
+            {
+                var condition = aState.Stage.StartConditions[aConditionIndex];
+                if (condition.IsOnce) aState.IsConditionUsed[aConditionIndex] = true;
+                if (condition.Kind == PPWaveStartKind.StageWiped && mStatesById.TryGetValue(condition.StageId ?? string.Empty, out var target) && target.LatestRun != null)
+                {
+                    aState.LastWipedRunNumber[aConditionIndex] = target.LatestRun.Number;
+                }
+            }
+            WarnIfLooping(aState);
+            aState.StartedFrame = mFrame;
+            aState.StartCount++;
             aState.RunningCount++;
-            var run = new SpawnRun(aState, aState.RunCount, aNode, aNow);
+            aState.LastConditionIndex = aConditionIndex;
+            var run = new SpawnRun(aState, aState.StartCount, aNow);
             aState.LatestRun = run;
             mRuns.Add(run);
-            string cause = aActivation.Source != null ? $"{aActivation.Source.Node.DisplayName}.{PPWaveDefinition.GetPortName(aActivation.Port)}" : "なし";
-            CustomConsoleLog.Log(LogTag, $"ウェーブ: 「{aNode.DisplayName}」を出し始める(時刻 {aNow:F1} {run.Number} 回目 きっかけ={cause})");
-            Emit(aState, PPWaveNodePort.Started);
+
+            string cause = aConditionIndex >= 0 ? aState.Stage.StartConditions[aConditionIndex].Describe(mWave, aState.Stage, false) : "条件なし";
+            CustomConsoleLog.Log(LogTag, $"ウェーブ: 「{GetName(aState)}」を出し始める(時刻 {aNow:F1} {run.Number} 回目 きっかけ={cause})");
+            OnStageStarted?.Invoke(aState.Stage, aConditionIndex, run.Number);
+            ApplyNexts(aState, PPWaveNextTiming.Started);
         }
 
-        // 始まっている回から時刻の来た敵を出し、出し終えた・全滅した回の出口から先へ進む
-        // 1 フレームの遅れでまとめて出さないよう、出すのは 1 種類につき 1 フレームに 1 体まで
+        // 同じ段階が続けてフレームごとに始まっていたら、待ちのない繰り返しとして 1 度だけ警告する
+        private void WarnIfLooping(StageState aState)
+        {
+            aState.StartStreak = aState.StartedFrame == mFrame - 1 ? aState.StartStreak + 1 : 1;
+            if (aState.IsLoopWarned || aState.StartStreak < LoopWarnFrames) return;
+            aState.IsLoopWarned = true;
+            CustomConsoleLog.Warning(LogTag, $"ウェーブ: 段階「{GetName(aState)}」が 1 フレームに 1 回ずつ始まり続けています。待ちのない繰り返しになっていないか、バトル定義のウェーブを確かめてください");
+        }
+
+        // 始まっている回から時刻の来た敵を出し、出し終えた・全滅した回の行き先へ進む
+        // 1 フレームの遅れでまとめて出さないよう、出すのは 1 行につき 1 フレームに 1 体まで
         private void UpdateRuns(float aNow)
         {
             int kept = 0;
@@ -425,23 +342,27 @@ namespace PPCore
                     if (spawn.IsFinished || aNow < spawn.NextTime) continue;
 
                     var definition = spawn.Spawn.Unit;
-                    int level = spawn.Spawn.Level + mLevelBonus.GetValueOrDefault(definition);
-                    var unit = definition.CreateRuntimeUnit(level);
+                    var unit = definition.CreateRuntimeUnit(1 + mLevelBonus.GetValueOrDefault(definition));
                     spawn.SpawnedCount++;
                     spawn.NextTime = Mathf.Max(spawn.NextTime + spawn.Spawn.Interval, aNow);
-                    if (mManager.SpawnFieldUnit(unit, BattleSide.Enemy, mSpawnPosition) != null) run.SpawnedUnits.Add(unit);
+                    if (mManager.SpawnFieldUnit(unit, BattleSide.Enemy, mSpawnPosition) == null) continue;
+                    run.SpawnedUnits.Add(unit);
+                    run.Owner.SpawnedCount++;
+                    OnEnemySpawned?.Invoke(run.Owner.Stage, spawn.Row, unit);
                 }
 
                 if (!run.IsFinishedNotified && run.IsFinished)
                 {
                     run.IsFinishedNotified = true;
                     run.Owner.RunningCount--;
-                    Emit(run.Owner, PPWaveNodePort.Finished);
+                    OnStageFinished?.Invoke(run.Owner.Stage, run.Number);
+                    ApplyNexts(run.Owner, PPWaveNextTiming.Finished);
                 }
                 if (!run.IsWipedNotified && run.IsWiped)
                 {
                     run.IsWipedNotified = true;
-                    Emit(run.Owner, PPWaveNodePort.Wiped);
+                    OnStageWiped?.Invoke(run.Owner.Stage, run.Number);
+                    ApplyNexts(run.Owner, PPWaveNextTiming.Wiped);
                 }
                 // 全滅を知らせた回と、1 体も出さずに出し終えた回は、もう見る必要がない
                 if (run.IsWipedNotified || (run.IsFinishedNotified && run.SpawnedUnits.Count == 0)) continue;
@@ -450,49 +371,88 @@ namespace PPCore
             mRuns.RemoveRange(kept, mRuns.Count - kept);
         }
 
-        // ノードの出口から先へ進み、その出口につながったノードを動かす予定に入れる
-        private void Emit(NodeState aState, PPWaveNodePort aPort)
+        // 段階のそのときの行き先のうち、条件が成り立つものを待ち始めさせる
+        private void ApplyNexts(StageState aState, PPWaveNextTiming aTiming)
         {
-            OnNodeOutput?.Invoke(aState.Node, aPort);
-            foreach (var target in aState.Outgoing[(int)aPort]) mQueue.Enqueue(new Activation(target, aState, aPort));
+            foreach (var next in aState.Stage.Nexts)
+            {
+                if (next == null || next.Timing != aTiming) continue;
+                if (!mStatesById.TryGetValue(next.TargetId ?? string.Empty, out var target)) continue;
+                if (!next.IsConditionMet(GetBaseHpRatio(next.Side)))
+                {
+                    CustomConsoleLog.Verbose(LogTag, $"ウェーブ: 「{GetName(aState)}」の行き先「{GetName(target)}」は条件が成り立たないため進まない(時刻 {Now:F1})");
+                    continue;
+                }
+                Arm(target, aState);
+            }
         }
 
-        // 待っているトリガーの状態を今のバトルの様子で更新してから、起動する条件を満たしたかを判定する
-        private bool IsTriggerSatisfied(NodeState aState)
+        /* 評価・判定 */
+
+        // 満たした条件の番号を返す。条件が無ければ StartedWithoutCondition、どれも満たさなければ NotStarted
+        private int FindSatisfiedCondition(StageState aState)
         {
-            var trigger = (PPWaveTriggerNode)aState.Node;
-            trigger.Observe(aState.Trigger, this);
-            return trigger.IsSatisfied(aState.Trigger, this);
+            var conditions = aState.Stage.StartConditions;
+            if (conditions.Count == 0) return StartedWithoutCondition;
+            for (int i = 0; i < conditions.Count; i++)
+            {
+                if (IsConditionSatisfied(aState, i)) return i;
+            }
+            return NotStarted;
+        }
+
+        // 待っている段階の条件 1 つが、今成り立つか。「1 度だけ」を使った条件は成り立たない
+        protected virtual bool IsConditionSatisfied(PPWaveStartCondition aCondition, float aArmedTime, int aDamageCountSinceArmed, int aLastWipedRunNumber)
+        {
+            switch (aCondition.Kind)
+            {
+                case PPWaveStartKind.Elapsed:
+                    return Now - aArmedTime >= aCondition.Seconds - CompareEpsilon;
+                case PPWaveStartKind.StageWiped:
+                    return mStatesById.TryGetValue(aCondition.StageId ?? string.Empty, out var target) && target.LatestRun != null
+                        && target.LatestRun.IsWiped && target.LatestRun.Number != aLastWipedRunNumber;
+                case PPWaveStartKind.BaseDamaged:
+                    return aDamageCountSinceArmed > 0;
+                case PPWaveStartKind.BaseHp:
+                    return GetBaseHpRatio(aCondition.Side) <= aCondition.Percent / 100f + CompareEpsilon;
+                default:
+                    return false;
+            }
+        }
+
+        private bool IsConditionSatisfied(StageState aState, int aIndex)
+        {
+            if (aState.IsConditionUsed[aIndex]) return false;
+            var condition = aState.Stage.StartConditions[aIndex];
+            int damageCount = condition.Side == BattleSide.Ally ? mAllyBaseDamageCount - aState.AllyDamageCountAtArm : mEnemyBaseDamageCount - aState.EnemyDamageCountAtArm;
+            return IsConditionSatisfied(condition, aState.ArmedTime, damageCount, aState.LastWipedRunNumber[aIndex]);
         }
 
         /* 問い合わせ */
 
-        // そのトリガーが今待っているか
-        public bool IsWaiting(PPWaveTriggerNode aNode) => aNode != null && mStatesByNode.TryGetValue(aNode, out var state) && state.Trigger.IsWaiting;
+        // 識別子の段階の今の様子。見つからなければ、待っていない・始めていない様子
+        public PPWaveStageStatus GetStatus(string aStageId)
+        {
+            if (string.IsNullOrEmpty(aStageId) || !mStatesById.TryGetValue(aStageId, out var state)) return new PPWaveStageStatus(false, 0, 0, 0, NotStarted);
+            return new PPWaveStageStatus(state.IsWaiting, state.StartCount, state.RunningCount, state.SpawnedCount, state.LastConditionIndex);
+        }
 
-        // そのトリガーが起動した回数
-        public int GetFireCount(PPWaveTriggerNode aNode) => aNode != null && mStatesByNode.TryGetValue(aNode, out var state) ? state.Trigger.FireCount : 0;
+        // 識別子の段階の条件(番号は 0 から)が、最後に待ち始めた時点から見て今成り立つか
+        public bool IsConditionSatisfied(string aStageId, int aIndex)
+        {
+            if (string.IsNullOrEmpty(aStageId) || !mStatesById.TryGetValue(aStageId, out var state)) return false;
+            return aIndex >= 0 && aIndex < state.Stage.StartConditions.Count && IsConditionSatisfied(state, aIndex);
+        }
 
-        // そのノードが入口から動かされて動いた回数
-        public int GetActivationCount(PPWaveNode aNode) => aNode != null && mStatesByNode.TryGetValue(aNode, out var state) ? state.ActivationCount : 0;
-
-        // そのウェーブノードが出している最中の回の数
-        public int GetRunningCount(PPWaveSpawnNode aNode) => aNode != null && mStatesByNode.TryGetValue(aNode, out var state) ? state.RunningCount : 0;
-
-        public int GetBaseDamageCount(BattleSide aSide) => aSide == BattleSide.Ally ? mAllyBaseDamageCount : mEnemyBaseDamageCount;
-
+        // その陣営の拠点の HP の割合(0〜1)。拠点が無ければ 1
         public float GetBaseHpRatio(BattleSide aSide)
         {
             var fieldBase = mManager.Context?.Field?.GetBase(aSide);
             return fieldBase != null ? fieldBase.Unit.Parameters.Hp.Ratio : 1f;
         }
 
-        public bool IsLatestRunWiped(string aNodeId, out int aRunNumber)
-        {
-            aRunNumber = 0;
-            if (string.IsNullOrEmpty(aNodeId) || !mStatesById.TryGetValue(aNodeId, out var state) || state.LatestRun == null) return false;
-            aRunNumber = state.LatestRun.Number;
-            return state.LatestRun.IsWiped;
-        }
+        /* ヘルパー */
+
+        private string GetName(StageState aState) => mWave.GetStageName(aState.Stage.Id);
     }
 }

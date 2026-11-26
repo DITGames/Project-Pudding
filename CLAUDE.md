@@ -56,7 +56,7 @@ PPCore/
 │   ├── Reaction/      # リアクション（反撃等）
 │   ├── Units/         # ユニット・パーティのランタイム、パラメータ、属性の列挙と表示名定数
 │   ├── Integration/   # プッシャーとバトルの橋渡し(コインの中身の抽選・落ちたコインからのユニット生成)
-│   ├── Wave/          # ウェーブの定義(ノード・線・敵の出し方)と進行・深さによるレベルの割り振り
+│   ├── Wave/          # ウェーブの定義(段階・出す敵・始まる条件・行き先)と進行・深さによるレベルの割り振り
 │   ├── StatusEffect/  # ステータスエフェクト本体・振る舞い・持続条件・スタック消費ルール・インスペクタ用属性
 │   ├── Input/         # キー設定（変更できる操作と既定の割り当て）
 │   └── View/          # バトル UI の View とステータスソース
@@ -90,7 +90,7 @@ PPCore/
 - コマンドを積む役は道の上の戦闘だけ。射程内に敵がいれば止まり、溜め・攻撃間隔ごとに `PPAttackCommand` を対象付きで実行する（ダメージ計算・命中・会心は既存のまま）
 - バトル画面の道の上のユニットは `BattleContext.Field`（`PPBattleFieldState`）が位置（味方拠点からの距離）で持ち、`AdvanceTime()` が相手の拠点へ向けて進めて拠点の手前（`PPBattleField` の「拠点の手前で止まる距離」）で止め、射程内の敵との戦闘とノックバック（HP の区切り・攻撃の確率。押し戻す距離は `PPBattleField` の共通値）を進める。生み出すのは `BattleManager.SpawnFieldUnit()`
 - 道の両端には拠点（`PPFieldBase`。HP・まもり・属性を持つユニット）を `BattleManager.SetFieldBase()` で置く。射程内に敵ユニットがいなければ、相手の拠点の手前の線が射程に入った時点で止まって拠点を攻撃する。設定は `PPBaseSettings` で、敵の拠点はバトル定義、味方の拠点はマップ定義（マップから来なかったときは `PPBattleRunner`）が持つ。勝敗は `PPBaseResultChecker`（拠点の破壊）が決め、拠点の被ダメージと HP の割合の変化は `OnBaseDamaged` / `OnBaseHpRatioChanged` で購読できる
-- 敵はバトル定義（`PPBattleDefinition`）のウェーブ（`PPWaveDefinition`）で出す。ウェーブは「ノードの一覧（`[SerializeReference] List<PPWaveNode>`）+ 線の一覧（`PPWaveLink`。出口のノードの識別子・出口・行き先のノードの識別子）」で、ノードはトリガー（バトル開始・時間・拠点の被ダメージ・拠点の HP の割合・ウェーブの全滅）・ウェーブ（`PPWaveSpawnNode`。`PPWaveSpawn` を並べる）・条件（拠点の HP の割合）の 3 種類。`PPWaveRunner` はトリガーを起点に、線でつながったノードを順に動かす。入口に線の無いトリガーはバトル開始から待ち、線があれば入口から動かされたときから待つ。「1 度だけ」はバトル中に 1 回だけ起動し、何度でもは、線が無ければ起動したその場で待ち直し、線があれば動かされるたびに 1 回起動する。同じ「早い者勝ちのグループ」のトリガーはどれかが起動したら他は待つのをやめる。ウェーブノードは動かされるたびに回を重ねて始め、出口（出し始め・出し終え・全滅）から先へ進む。数が無限の敵を含むと出し終えも全滅も起こらない。前のノードへ線を戻すと繰り返しになり、1 フレームに同じノードを動かすのは 1 回まで（超えた分は次のフレーム）。ノードの動き・トリガーの起動は `PPWaveRunner` の `OnNodeActivated` / `OnNodeOutput` / `OnTriggerFired` で購読でき、`PPBattleRunner.WaveRunner` から読める。定義の誤り（識別子の重なり・行き先の無い線・待ちの無い輪など）は `PPBattleDefinition.OnValidate` が警告する。マップのマスの深さで割り振るレベル（(基底レベル - 1) + マップ定義の「深さごとに足すレベル」のカーブの値 を四捨五入。`PPMapDefinition.GetLevelPoints`）は `PPWaveLevelAllocator` が敵の種類へ配る
+- 敵はバトル定義（`PPBattleDefinition`）のウェーブ（`PPWaveDefinition`）で出す。ウェーブは段階（`PPWaveStage`）の一覧で、段階ごとに「出す敵の表（`PPWaveSpawn`。ユニット・数（0 で無限）・間隔・最初の待ち）」「始まる条件（`PPWaveStartCondition`。時間・段階の全滅・拠点の被ダメージ・拠点の HP の割合。どれか 1 つ）」「この段階のあと（`PPWaveNext`。行き先の段階・いつ（出し始め・出し終え・全滅）・進むときにその場で判定する拠点の HP の条件）」を持つ。`[SerializeReference]` は使っていない。段階は待ち始めてから条件のどれか 1 つを満たしたら始まり（条件が無ければすぐ）、1 回分の敵を出して行き先の段階を待ち始めさせる。待ち始めるのは「バトル開始から待つ」を入れた段階のバトル開始と、行き先にされたとき（待っている途中ならやり直す）。「1 度だけ」の条件はバトル中に 1 回だけ使え、全滅の条件は同じ全滅で 2 度は始めない。同時に満たしても 1 回だけ始まる。数が無限の行を含むと出し終えも全滅も起こらない。前の段階を行き先にすると繰り返しになり、同じ段階は 1 フレームに 1 回までしか始まらない。敵のレベルは 1 + 深さで割り振った分。段階の待ち始め・始まり・出し終え・全滅・敵を出したことは `PPWaveRunner` の `OnStageArmed` / `OnStageStarted` / `OnStageFinished` / `OnStageWiped` / `OnEnemySpawned` で購読でき、今の様子は `GetStatus`・`IsConditionSatisfied` で読める（`PPBattleRunner.WaveRunner` から）。定義の誤り（識別子の重なり・見つからない行き先・始まらない段階・待ちの無い繰り返しなど）は `PPBattleDefinition.OnValidate` が警告する。マップのマスの深さで割り振るレベル（(基底レベル - 1) + マップ定義の「深さごとに足すレベル」のカーブの値 を四捨五入。`PPMapDefinition.GetLevelPoints`）は `PPWaveLevelAllocator` が敵の種類へ配る
 - バトルの始まり方は 3 通り（マップのマス・Editor のデバッグバトル・シーンの単体 Play）で、`PPBattleRunner.CreateContext()` が味方パーティ・バトル定義・割り振るレベルを決める。デバッグバトル（`Window > Project-Pudding > デバッグバトル`）の設定はこの PC の EditorPrefs に保存し、Play へは SessionState で渡す
 - **拡張ポイントはすべて差し替え可能なインターフェース**として `BattleRules` / `BattleManager` に生えている：
   `IHitResolver`, `ICriticalResolver`, `IRandomProvider`, `ITargetFilter`, `IDeadTargetPolicy`, `IBattleResultChecker`, `IBattleLogger`
@@ -146,7 +146,7 @@ PPCore/
 - `EditConditionAttribute` … UE5 の EditCondition/EditConditionHides 相当の条件付き表示
 - `CustomConsoleLog` + `Window > Custom Console` … タグ・拡張ログレベル（Verbose/Critical）・送信元オブジェクト付きログ。バトルのトレースはこれを使う
 - `Window > Recent Assets` … 最近開いたアセット履歴
-- `Window > Project-Pudding > ウェーブのノードエディタ`(バトル定義のインスペクタの「ノードエディタで開く」でも開く)… バトル定義のウェーブをノードと線で組む(`PPBattleWaveEditorWindow`。ノード図は `PPWaveGraphView`)。中身は右の欄で編集し、Undo と保存は通常のアセット編集と同じ。誤りは `PPWaveDefinition.Validate` の結果を下の一覧とノードの赤い枠で出し、開いている間はそのバトル定義の警告をコンソールに出さない。Play 中は表示だけ
+- `Window > Project-Pudding > ウェーブエディタ`(バトル定義のインスペクタの「ウェーブエディタで開く」でも開く)… バトル定義のウェーブを編集する(`PPBattleWaveEditorWindow`。IMGUI)。上の帯に目安(敵の数・長さ・無限・誤りの数)、左に段階の一覧(ドラッグで並べ替え・追加・複製・削除)、中央に選んだ段階の出す敵の表・始まる条件・行き先(`PPWaveStageEditorGUI`)、下に見るだけの流れの図(`PPWaveFlowDiagram`。押すとその段階を選ぶ)。Undo と保存は通常のアセット編集と同じ。誤りは `PPWaveDefinition.Validate` の結果を帯の下の一覧と段階の印で出し、開いている間はそのバトル定義の警告をコンソールに出さない。Play 中は表示だけ。バトル定義のインスペクタにはウェーブの生の一覧を出さない
 
 ## コーディング規約
 

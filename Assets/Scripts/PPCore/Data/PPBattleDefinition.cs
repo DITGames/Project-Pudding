@@ -13,8 +13,8 @@ using CustomConsole;
 
 namespace PPCore
 {
-    // バトル定義。1 回のバトルで敵をどう出すか(ウェーブのノードと線)・敵拠点・道の長さを持ち、マップのマスに候補として割り当てる
-    // 難易度ポイントは、ウェーブに出てくるユニットの種類ごとのポイントを合計する
+    // バトル定義。1 回のバトルで敵をどう出すか(ウェーブの段階)・敵拠点・道の長さを持ち、マップのマスに候補として割り当てる
+    // 難易度ポイントは、ウェーブに出てくるユニットの種類ごとのポイント(レベル 1)を合計する
     [CreateAssetMenu(fileName = "PBD_New", menuName = "Project-Pudding/Definition/PPBattleDefinition")]
     public class PPBattleDefinition : ScriptableObject
     {
@@ -25,7 +25,7 @@ namespace PPCore
         /* static 変数 */
 
 #if UNITY_EDITOR
-        // ウェーブの誤りの警告をコンソールに出さないバトル定義かを返す。ノードエディタが、開いている間の組みかけの警告を止めるために設定する
+        // ウェーブの誤りの警告をコンソールに出さないバトル定義かを返す。ウェーブエディタが、開いている間の組みかけの警告を止めるために設定する
         public static System.Func<PPBattleDefinition, bool> IsWaveWarningSuppressed { get; set; }
 #endif
 
@@ -67,13 +67,13 @@ namespace PPCore
         public int MaxFloor => mMaxFloor;
         // ウェーブに敵を出す設定が 1 つでもあるか
         public bool HasEnemies => mWave.CollectUnits().Count > 0;
-        // ウェーブに出てくるユニットの種類ごとの難易度ポイントの合計。レベルは種類ごとの最も高いもの
+        // ウェーブに出てくるユニットの種類ごとの難易度ポイントの合計。敵の基本のレベルは 1 のため、レベル 1 で数える
         public int DifficultyPoints
         {
             get
             {
                 int total = 0;
-                foreach (var unit in mWave.CollectUnits()) total += unit.EvaluateDifficultyPoint(mWave.GetMaxLevel(unit));
+                foreach (var unit in mWave.CollectUnits()) total += unit.EvaluateDifficultyPoint(1);
                 return total;
             }
         }
@@ -81,8 +81,8 @@ namespace PPCore
         /* Unity イベント */
 
 #if UNITY_EDITOR
-        // 最小の段が最大の段より大きいときと、ウェーブのノードや線に誤りがあるときに警告する。値は書き換えない
-        // ノードエディタで開いている間は、ウェーブの誤りはエディタの一覧に出すため警告しない
+        // 最小の段が最大の段より大きいときと、ウェーブの段階に誤りがあるときに警告する。値は書き換えない
+        // ウェーブエディタで開いている間は、ウェーブの誤りはエディタの帯に出すため警告しない
         void OnValidate()
         {
             if (mMinFloor > mMaxFloor)

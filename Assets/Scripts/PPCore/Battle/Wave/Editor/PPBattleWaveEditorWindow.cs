@@ -3,26 +3,30 @@
  * @file PPBattleWaveEditorWindow.cs
  * @author hqrse
  * @date 2026/11/25
- * @brief バトル定義のウェーブをノード図で組むウィンドウ。Play していない間は編集モード、Play 中は表示モード
+ * @brief バトル定義のウェーブを、段階の一覧・出す敵の表・見るだけの流れの図で編集するウィンドウ。Play 中は表示だけ
  * =====================================*/
 
 using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.UIElements;
+using UnityEditorInternal;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 namespace PPCore
 {
-    // ウェーブのノードエディタ。ノード図・右の欄・点検の一覧を並べ、Undo とウィンドウの外での変更に追従させる
-    // Play 中はバトル定義を書き換えないよう、表示だけにする(実行中の情報は後から重ねる)
+    // ウェーブエディタ。上の帯(目安と誤り)・左の段階の一覧・中央の段階の中身・下の流れの図を並べる
+    // 表示は毎回バトル定義から描き直すため、Undo やウィンドウの外での変更にそのまま追従する
     public class PPBattleWaveEditorWindow : EditorWindow
     {
         /* 定数 */
 
         private const string LastTargetKey = "PPCore.WaveEditor.LastTargetGuid";
-        private const float PanelWidth = 320f;
-        private static readonly Vector2 MinWindowSize = new(720f, 420f);
+        private const string StagesPath = "mWave.mStages";
+        private const float ListWidth = 230f;
+        private const float StageRowHeight = 40f;
+        private const float FlowHeight = 130f;
+        private const float DefaultSeconds = 20f;
+        private const float DefaultPercent = 50f;
+        private static readonly Vector2 MinWindowSize = new(820f, 560f);
 
         /* static 変数 */
 
@@ -33,26 +37,32 @@ namespace PPCore
 
         // 編集の対象。ドメインを読み直しても保つ
         [SerializeField] private PPBattleDefinition mTarget;
+        // 選んでいる段階の識別子。並べ替えや Undo で番号が変わっても同じ段階を選び続ける
+        [SerializeField] private string mSelectedStageId;
+        [SerializeField] private bool mShowsProblems = true;
         private SerializedObject mSerializedObject;
-        private PPWaveGraphView mGraphView;
-        private PPWaveNodeInspectorPanel mInspectorPanel;
-        private PPWaveProblemListView mProblemList;
-        private HelpBox mPlayModeBox;
+        private ReorderableList mStageList;
         private readonly List<PPWaveProblem> mProblems = new();
-        private string mSelectedNodeId;
+        private readonly HashSet<string> mProblemStageIds = new();
+        private Vector2 mListScroll;
+        private Vector2 mCenterScroll;
+        private Vector2 mProblemScroll;
+        private int mLastDirtyCount = -1;
 
         /* プロパティ */
 
         public PPBattleDefinition Target => mTarget;
-        // ノード図。対象が無ければ null
-        public PPWaveGraphView GraphView => mGraphView;
-        public bool IsEditMode => mGraphView != null && mGraphView.IsEditable;
+        // Play 中(と Play に入る途中)は編集できない
+        public bool IsEditable => mTarget != null && !EditorApplication.isPlayingOrWillChangePlaymode;
+        // 選んでいる段階の番号(0 から)。選んでいなければ -1
+        public int SelectedIndex => mTarget != null ? mTarget.Wave.IndexOf(mSelectedStageId) : -1;
+        public string SelectedStageId => mSelectedStageId;
         // 最後に点検したときの誤り
         public IReadOnlyList<PPWaveProblem> Problems => mProblems;
 
         /* static 関数 */
 
-        [MenuItem("Window/Project-Pudding/ウェーブのノードエディタ")]
+        [MenuItem("Window/Project-Pudding/ウェーブエディタ")]
         public static void ShowWindow() => GetOrCreate().Show();
 
         // バトル定義を対象にしてウィンドウを開く
@@ -71,153 +81,380 @@ namespace PPCore
         {
             sOpenWindows.Add(this);
             PPBattleDefinition.IsWaveWarningSuppressed = IsOpenInWindow;
-            Undo.undoRedoEvent += HandleUndoRedo;
+            Undo.undoRedoPerformed += HandleUndoRedo;
             EditorApplication.playModeStateChanged += HandlePlayModeChanged;
             if (mTarget == null) mTarget = LoadLastTarget();
-            BuildUI();
         }
 
         private void OnDisable()
         {
             sOpenWindows.Remove(this);
-            Undo.undoRedoEvent -= HandleUndoRedo;
+            Undo.undoRedoPerformed -= HandleUndoRedo;
             EditorApplication.playModeStateChanged -= HandlePlayModeChanged;
             SaveLastTarget();
         }
 
-        /* 操作 */
-
-        // 編集の対象を切り替え、画面を組み直す
-        public void SetTarget(PPBattleDefinition aTarget)
+        // ウィンドウの外(インスペクタなど)での変更を、変更の回数で見つけて描き直す
+        private void OnInspectorUpdate()
         {
-            if (mTarget == aTarget && mGraphView != null) return;
-            mTarget = aTarget;
-            mSelectedNodeId = null;
-            SaveLastTarget();
-            BuildUI();
+            int dirtyCount = mTarget != null ? EditorUtility.GetDirtyCount(mTarget) : -1;
+            if (dirtyCount == mLastDirtyCount) return;
+            mLastDirtyCount = dirtyCount;
+            Repaint();
         }
 
-        // バトル定義を点検し直し、ノード図の印と一覧に出す
-        public void RefreshProblems()
+        private void OnGUI()
         {
-            mProblems.Clear();
-            if (mTarget != null) mTarget.Wave.Validate(mProblems);
-            mGraphView?.SetProblems(mProblems);
-            mProblemList?.SetProblems(mProblems);
-        }
-
-        /* 表示 */
-
-        private void BuildUI()
-        {
-            rootVisualElement.Clear();
-            mGraphView = null;
-            mInspectorPanel = null;
-            mProblemList = null;
-            mSerializedObject = null;
-            mProblems.Clear();
-
-            rootVisualElement.Add(BuildToolbar());
-            mPlayModeBox = new HelpBox("Play 中は編集できません(表示だけです)。Play を止めると編集できます", HelpBoxMessageType.Info);
-            rootVisualElement.Add(mPlayModeBox);
-
+            DrawToolbar();
             if (mTarget == null)
             {
-                mPlayModeBox.style.display = DisplayStyle.None;
-                rootVisualElement.Add(new Label("「対象」でバトル定義を選ぶか、バトル定義のインスペクタの「ノードエディタで開く」で開いてください")
-                {
-                    style = { flexGrow = 1, unityTextAlign = TextAnchor.MiddleCenter, whiteSpace = WhiteSpace.Normal },
-                });
+                EditorGUILayout.HelpBox("「対象」でバトル定義を選ぶか、バトル定義のインスペクタの「ウェーブエディタで開く」で開いてください", MessageType.Info);
                 return;
             }
+            if (!PrepareSerializedObject()) return;
+            mSerializedObject.Update();
+            if (Event.current.type == EventType.Layout) RefreshProblems();
 
-            mSerializedObject = new SerializedObject(mTarget);
-            mGraphView = new PPWaveGraphView(mSerializedObject, mTarget) { style = { flexGrow = 1 } };
-            mGraphView.OnNodeSelected += HandleNodeSelected;
-            mGraphView.OnEdited += HandleGraphEdited;
-            mInspectorPanel = new PPWaveNodeInspectorPanel();
-            mProblemList = new PPWaveProblemListView();
-            mProblemList.OnProblemSelected += aId => mGraphView?.SelectNode(aId, true);
+            if (!IsEditable) EditorGUILayout.HelpBox("Play 中は編集できません(表示だけです)。Play を止めると編集できます", MessageType.Info);
+            DrawProblems();
 
-            var split = new TwoPaneSplitView(1, PanelWidth, TwoPaneSplitViewOrientation.Horizontal) { style = { flexGrow = 1 } };
-            split.Add(mGraphView);
-            split.Add(mInspectorPanel);
-            // ウィンドウの外での変更(インスペクタなど)を見張る。組み直すたびに作るこの要素に付け、古い見張りを残さない
-            var body = new VisualElement { style = { flexGrow = 1 } };
-            body.Add(split);
-            body.Add(mProblemList);
-            body.TrackSerializedObjectValue(mSerializedObject, HandleSerializedObjectChanged);
-            rootVisualElement.Add(body);
+            var stages = mSerializedObject.FindProperty(StagesPath);
+            EnsureSelection(stages);
+            using (new EditorGUILayout.HorizontalScope(GUILayout.ExpandHeight(true)))
+            {
+                DrawStageList(stages);
+                DrawCenter(stages);
+            }
+            DrawFlow();
 
-            ApplyMode();
-            RefreshProblems();
+            mSerializedObject.ApplyModifiedProperties();
         }
 
-        private VisualElement BuildToolbar()
+        /* 操作 */
+
+        // 編集の対象を切り替え、先頭の段階を選ぶ
+        public void SetTarget(PPBattleDefinition aTarget)
         {
-            var toolbar = new Toolbar();
-            var targetField = new ObjectField("対象") { objectType = typeof(PPBattleDefinition), allowSceneObjects = false, value = mTarget };
-            targetField.style.flexGrow = 1;
-            targetField.RegisterValueChangedCallback(e => SetTarget(e.newValue as PPBattleDefinition));
-            toolbar.Add(targetField);
-            toolbar.Add(new ToolbarButton(() => mGraphView?.FrameAll()) { text = "全体を表示" });
-            return toolbar;
+            if (mTarget == aTarget) return;
+            mTarget = aTarget;
+            mSelectedStageId = aTarget != null && aTarget.Wave.Stages.Count > 0 ? aTarget.Wave.Stages[0].Id : null;
+            mSerializedObject = null;
+            mStageList = null;
+            SaveLastTarget();
+            Repaint();
         }
 
-        // Play 中(と Play に入る途中)は表示モード、それ以外は編集モードにする
-        private void ApplyMode()
+        // 番号(0 から)の段階を選ぶ
+        public void SelectStage(int aIndex)
         {
-            bool isEditable = !EditorApplication.isPlayingOrWillChangePlaymode;
-            mGraphView?.SetEditable(isEditable);
-            mInspectorPanel?.SetEnabled(isEditable);
-            if (mPlayModeBox != null) mPlayModeBox.style.display = isEditable || mTarget == null ? DisplayStyle.None : DisplayStyle.Flex;
+            if (mTarget == null || aIndex < 0 || aIndex >= mTarget.Wave.Stages.Count) return;
+            mSelectedStageId = mTarget.Wave.Stages[aIndex].Id;
+            Repaint();
+        }
+
+        // 選んでいる段階の後ろに段階を足して選ぶ。選んでいる段階に行き先が無ければ、新しい段階への行き先も足す
+        public bool AddStage()
+        {
+            if (!BeginEdit(out var stages)) return false;
+            int selected = SelectedIndex;
+            int index = selected >= 0 ? selected + 1 : stages.arraySize;
+            string id = PPWaveStage.NewId();
+            stages.InsertArrayElementAtIndex(index);
+            var stage = stages.GetArrayElementAtIndex(index);
+            stage.FindPropertyRelative("mId").stringValue = id;
+            stage.FindPropertyRelative("mName").stringValue = $"段階 {stages.arraySize}";
+            stage.FindPropertyRelative("mWaitsFromBattleStart").boolValue = stages.arraySize == 1;
+            stage.FindPropertyRelative("mSpawns").ClearArray();
+            stage.FindPropertyRelative("mNexts").ClearArray();
+            var conditions = stage.FindPropertyRelative("mStartConditions");
+            conditions.ClearArray();
+            if (stages.arraySize > 1) InitializeCondition(AppendElement(conditions), PPWaveStartKind.Elapsed, null);
+            if (selected >= 0)
+            {
+                var nexts = stages.GetArrayElementAtIndex(selected).FindPropertyRelative("mNexts");
+                if (nexts.arraySize == 0) InitializeNext(AppendElement(nexts), id);
+            }
+            mSelectedStageId = id;
+            EndEdit("段階を追加");
+            return true;
+        }
+
+        // 選んでいる段階を、名前に「のコピー」を付けて後ろへ複製して選ぶ
+        public bool DuplicateStage()
+        {
+            int selected = SelectedIndex;
+            if (selected < 0 || !BeginEdit(out var stages)) return false;
+            stages.InsertArrayElementAtIndex(selected);
+            var copy = stages.GetArrayElementAtIndex(selected + 1);
+            string id = PPWaveStage.NewId();
+            copy.FindPropertyRelative("mId").stringValue = id;
+            var name = copy.FindPropertyRelative("mName");
+            name.stringValue = $"{name.stringValue} のコピー";
+            mSelectedStageId = id;
+            EndEdit("段階を複製");
+            return true;
+        }
+
+        // 選んでいる段階を消す。その段階への行き先と、その段階の全滅を待つ条件も一緒に消す
+        public bool DeleteStage()
+        {
+            int selected = SelectedIndex;
+            if (selected < 0 || !BeginEdit(out var stages)) return false;
+            string id = mSelectedStageId;
+            stages.DeleteArrayElementAtIndex(selected);
+            for (int i = 0; i < stages.arraySize; i++)
+            {
+                var stage = stages.GetArrayElementAtIndex(i);
+                RemoveWhere(stage.FindPropertyRelative("mNexts"), aNext => aNext.FindPropertyRelative("mTargetId").stringValue == id);
+                RemoveWhere(stage.FindPropertyRelative("mStartConditions"), aCondition =>
+                    aCondition.FindPropertyRelative("mKind").enumValueIndex == (int)PPWaveStartKind.StageWiped && aCondition.FindPropertyRelative("mStageId").stringValue == id);
+            }
+            int next = Mathf.Min(selected, stages.arraySize - 1);
+            mSelectedStageId = next >= 0 ? stages.GetArrayElementAtIndex(next).FindPropertyRelative("mId").stringValue : null;
+            EndEdit("段階を削除");
+            return true;
+        }
+
+        // 段階の並びを変える(一覧のドラッグと同じ)
+        public bool MoveStage(int aFrom, int aTo)
+        {
+            if (!BeginEdit(out var stages) || aFrom < 0 || aFrom >= stages.arraySize || aTo < 0 || aTo >= stages.arraySize) return false;
+            stages.MoveArrayElement(aFrom, aTo);
+            EndEdit("段階を並べ替え");
+            return true;
+        }
+
+        // 選んでいる段階の出す敵に行を足す。行があれば最後の行を写す
+        public bool AddSpawnRow()
+        {
+            if (!BeginEditSelected(out var stage)) return false;
+            var spawns = stage.FindPropertyRelative("mSpawns");
+            var row = AppendElement(spawns);
+            if (spawns.arraySize == 1)
+            {
+                row.FindPropertyRelative("mUnit").objectReferenceValue = null;
+                row.FindPropertyRelative("mCount").intValue = 5;
+                row.FindPropertyRelative("mInterval").floatValue = 3f;
+                row.FindPropertyRelative("mFirstDelay").floatValue = 0f;
+            }
+            EndEdit("敵を足す");
+            return true;
+        }
+
+        public bool RemoveSpawnRow(int aRow) => RemoveSelectedElement("mSpawns", aRow, "敵を消す");
+
+        // 選んでいる段階に始まる条件を足す。全滅の対象は 1 つ前の段階にする
+        public bool AddCondition(PPWaveStartKind aKind)
+        {
+            int selected = SelectedIndex;
+            if (!BeginEditSelected(out var stage)) return false;
+            string previousId = selected > 0 ? mTarget.Wave.Stages[selected - 1].Id : null;
+            InitializeCondition(AppendElement(stage.FindPropertyRelative("mStartConditions")), aKind, previousId);
+            EndEdit("条件を足す");
+            return true;
+        }
+
+        public bool RemoveCondition(int aIndex) => RemoveSelectedElement("mStartConditions", aIndex, "条件を消す");
+
+        // 選んでいる段階に行き先を足す。行き先は 1 つ後の段階(最後なら自分)にする
+        public bool AddNext()
+        {
+            int selected = SelectedIndex;
+            if (!BeginEditSelected(out var stage)) return false;
+            var wave = mTarget.Wave;
+            string targetId = wave.Stages[Mathf.Min(selected + 1, wave.Stages.Count - 1)].Id;
+            InitializeNext(AppendElement(stage.FindPropertyRelative("mNexts")), targetId);
+            EndEdit("行き先を足す");
+            return true;
+        }
+
+        public bool RemoveNext(int aIndex) => RemoveSelectedElement("mNexts", aIndex, "行き先を消す");
+
+        private bool RemoveSelectedElement(string aListName, int aIndex, string aUndoName)
+        {
+            if (!BeginEditSelected(out var stage)) return false;
+            var list = stage.FindPropertyRelative(aListName);
+            if (aIndex < 0 || aIndex >= list.arraySize) return false;
+            list.DeleteArrayElementAtIndex(aIndex);
+            EndEdit(aUndoName);
+            return true;
+        }
+
+        // 編集を始める。前の入力を確定させてから最新の値を読み、この操作を Undo 1 回にまとめる
+        private bool BeginEdit(out SerializedProperty aStages)
+        {
+            aStages = null;
+            if (!IsEditable || !PrepareSerializedObject()) return false;
+            mSerializedObject.ApplyModifiedProperties();
+            mSerializedObject.Update();
+            Undo.IncrementCurrentGroup();
+            aStages = mSerializedObject.FindProperty(StagesPath);
+            return true;
+        }
+
+        private bool BeginEditSelected(out SerializedProperty aStage)
+        {
+            aStage = null;
+            int selected = SelectedIndex;
+            if (selected < 0 || !BeginEdit(out var stages) || selected >= stages.arraySize) return false;
+            aStage = stages.GetArrayElementAtIndex(selected);
+            return true;
+        }
+
+        private void EndEdit(string aUndoName)
+        {
+            mSerializedObject.ApplyModifiedProperties();
+            Undo.SetCurrentGroupName(aUndoName);
+            Repaint();
+        }
+
+        /* 描画 */
+
+        private void DrawToolbar()
+        {
+            using (new EditorGUILayout.HorizontalScope(EditorStyles.toolbar))
+            {
+                GUILayout.Label("対象", GUILayout.Width(30f));
+                var target = (PPBattleDefinition)EditorGUILayout.ObjectField(mTarget, typeof(PPBattleDefinition), false, GUILayout.Width(260f));
+                if (target != mTarget) SetTarget(target);
+                GUILayout.FlexibleSpace();
+                if (mTarget == null) return;
+
+                var wave = mTarget.Wave;
+                DrawPill($"敵 {wave.CountFiniteEnemies()} 体", "各段階を 1 回ずつ出したときの敵の数(数が無限の行は数えない)", PPWaveEditorStyles.TextColor);
+                DrawPill($"長さ 約 {Mathf.RoundToInt(wave.EstimateLength())} 秒", "時間の条件だけで進んだとして、各段階を最初に 1 度出し終えるまでの秒数(全滅・被弾・HP でしか始まらない段階は数えない)", PPWaveEditorStyles.TextColor);
+                DrawPill(wave.HasInfinite() ? "無限 あり" : "無限 なし", "数が 0(無限)の敵を出す段階があるか", PPWaveEditorStyles.TextColor);
+                bool hasProblem = mProblems.Count > 0;
+                if (DrawPill(hasProblem ? $"! 誤り {mProblems.Count}" : "✓ 誤り 0", "押すと誤りの一覧を出し入れします", hasProblem ? PPWaveEditorStyles.ErrorColor : PPWaveEditorStyles.OkColor)) mShowsProblems = !mShowsProblems;
+            }
+        }
+
+        // 帯の札を 1 つ描く。押されたら true
+        private static bool DrawPill(string aText, string aTooltip, Color aColor)
+        {
+            var content = new GUIContent(aText, aTooltip);
+            var style = PPWaveEditorStyles.Pill;
+            style.normal.textColor = aColor;
+            style.hover.textColor = aColor;
+            return GUILayout.Button(content, style, GUILayout.Width(style.CalcSize(content).x + 4f));
+        }
+
+        private void DrawProblems()
+        {
+            if (!mShowsProblems || mProblems.Count == 0) return;
+            mProblemScroll = EditorGUILayout.BeginScrollView(mProblemScroll, GUILayout.MaxHeight(80f));
+            foreach (var problem in mProblems)
+            {
+                if (GUILayout.Button(problem.Message, PPWaveEditorStyles.ProblemRow) && problem.StageId != null)
+                {
+                    mSelectedStageId = problem.StageId;
+                    GUI.FocusControl(null);
+                }
+            }
+            EditorGUILayout.EndScrollView();
+        }
+
+        // 左の段階の一覧。ドラッグで並べ替え、下に追加・複製・削除
+        private void DrawStageList(SerializedProperty aStages)
+        {
+            using (new EditorGUILayout.VerticalScope(PPWaveEditorStyles.ListPane, GUILayout.Width(ListWidth), GUILayout.ExpandHeight(true)))
+            {
+                if (mStageList == null || mStageList.serializedProperty.propertyPath != aStages.propertyPath) mStageList = CreateStageList(aStages);
+                mStageList.serializedProperty = aStages;
+                mStageList.draggable = IsEditable;
+                mStageList.index = SelectedIndex;
+                mListScroll = EditorGUILayout.BeginScrollView(mListScroll);
+                mStageList.DoLayoutList();
+                EditorGUILayout.EndScrollView();
+
+                using (new EditorGUI.DisabledScope(!IsEditable))
+                using (new EditorGUILayout.HorizontalScope())
+                {
+                    if (GUILayout.Button("+ 追加")) Finish(AddStage());
+                    using (new EditorGUI.DisabledScope(SelectedIndex < 0))
+                    {
+                        if (GUILayout.Button("複製")) Finish(DuplicateStage());
+                        if (GUILayout.Button("削除")) Finish(DeleteStage());
+                    }
+                }
+                GUILayout.Label("ドラッグで並べ替え", EditorStyles.miniLabel);
+            }
+        }
+
+        private ReorderableList CreateStageList(SerializedProperty aStages)
+        {
+            var list = new ReorderableList(mSerializedObject, aStages, true, false, false, false)
+            {
+                elementHeight = StageRowHeight,
+                headerHeight = 0f,
+                footerHeight = 0f,
+                showDefaultBackground = false,
+            };
+            list.drawElementBackgroundCallback = (aRect, aIndex, aIsActive, aIsFocused) =>
+            {
+                if (Event.current.type != EventType.Repaint) return;
+                var color = aIndex == SelectedIndex ? PPWaveEditorStyles.SelectedColor : PPWaveEditorStyles.ListRowColor;
+                EditorGUI.DrawRect(aRect, color);
+                EditorGUI.DrawRect(new Rect(aRect.x, aRect.yMax - 1f, aRect.width, 1f), PPWaveEditorStyles.BorderColor);
+            };
+            list.drawElementCallback = (aRect, aIndex, aIsActive, aIsFocused) => DrawStageRow(aRect, aIndex);
+            list.onSelectCallback = aList => SelectStage(aList.index);
+            return list;
+        }
+
+        private void DrawStageRow(Rect aRect, int aIndex)
+        {
+            var wave = mTarget.Wave;
+            if (aIndex >= wave.Stages.Count) return;
+            var stage = wave.Stages[aIndex];
+            var titleRect = new Rect(aRect.x + 2f, aRect.y + 3f, aRect.width - 20f, 18f);
+            GUI.Label(titleRect, $"{aIndex + 1}   {wave.GetStageName(stage.Id)}", PPWaveEditorStyles.StageTitle);
+            GUI.Label(new Rect(aRect.x + 2f, aRect.y + 20f, aRect.width - 4f, 16f), new GUIContent(wave.DescribeStart(stage), wave.DescribeStart(stage)), PPWaveEditorStyles.StageSummary);
+            if (mProblemStageIds.Contains(stage.Id)) GUI.Label(new Rect(aRect.xMax - 16f, aRect.y + 3f, 16f, 18f), new GUIContent("!", "この段階に誤りがあります"), PPWaveEditorStyles.ErrorMark);
+        }
+
+        // 中央の欄。選んでいる段階の名前・目安・出す敵の表・始まる条件・行き先
+        private void DrawCenter(SerializedProperty aStages)
+        {
+            using (new EditorGUILayout.VerticalScope(GUILayout.ExpandWidth(true), GUILayout.ExpandHeight(true)))
+            {
+                mCenterScroll = EditorGUILayout.BeginScrollView(mCenterScroll);
+                int selected = SelectedIndex;
+                if (selected < 0 || selected >= aStages.arraySize)
+                {
+                    EditorGUILayout.HelpBox(aStages.arraySize == 0 ? "段階がありません。左の「+ 追加」で段階を足してください" : "左の一覧で段階を選んでください", MessageType.Info);
+                }
+                else
+                {
+                    using (new EditorGUI.DisabledScope(!IsEditable))
+                    {
+                        PPWaveStageEditorGUI.Draw(this, mTarget.Wave, selected, aStages.GetArrayElementAtIndex(selected));
+                    }
+                }
+                EditorGUILayout.EndScrollView();
+            }
+        }
+
+        private void DrawFlow()
+        {
+            var rect = GUILayoutUtility.GetRect(0f, FlowHeight, GUILayout.ExpandWidth(true));
+            int clicked = PPWaveFlowDiagram.Draw(rect, mTarget.Wave, SelectedIndex);
+            if (clicked >= 0)
+            {
+                SelectStage(clicked);
+                GUI.FocusControl(null);
+            }
         }
 
         /* イベントハンドラ */
 
-        private void HandleNodeSelected(string aId)
+        private void HandleUndoRedo()
         {
-            mSelectedNodeId = aId;
-            mInspectorPanel?.SetTarget(mSerializedObject, aId);
+            mSerializedObject?.Update();
+            Repaint();
         }
 
-        // ノード図での編集のあと。ノードの並びが変わったら、右の欄を出し直す(項目の場所がずれるため)
-        private void HandleGraphEdited(bool aIsNodeChanged)
-        {
-            if (aIsNodeChanged) mInspectorPanel?.SetTarget(mSerializedObject, mSelectedNodeId);
-            RefreshProblems();
-        }
-
-        // 値が変わったとき。ノード図と食い違えば組み直し、そうでなければ見出しと要約だけを直す
-        // ノードの並べ替えでは図は変わらないが、右の欄は番号で結び付いているため、番号が変わったら出し直す
-        private void HandleSerializedObjectChanged(SerializedObject aSerializedObject)
-        {
-            if (mGraphView == null || mTarget == null) return;
-            mSerializedObject.Update();
-            if (!mGraphView.IsInSync())
-            {
-                mGraphView.Rebuild();
-                mInspectorPanel?.Refresh();
-            }
-            else
-            {
-                mGraphView.RefreshAllNodes();
-                if (mInspectorPanel != null && mInspectorPanel.IsTargetMoved()) mInspectorPanel.Refresh();
-            }
-            RefreshProblems();
-        }
-
-        // Undo / Redo で戻った内容に、ノード図と右の欄を組み直す
-        private void HandleUndoRedo(in UndoRedoInfo aInfo)
-        {
-            if (mGraphView == null || mTarget == null) return;
-            mSerializedObject.Update();
-            mGraphView.Rebuild();
-            mInspectorPanel?.SetTarget(mSerializedObject, mSelectedNodeId);
-            RefreshProblems();
-        }
-
-        private void HandlePlayModeChanged(PlayModeStateChange aState) => ApplyMode();
+        private void HandlePlayModeChanged(PlayModeStateChange aState) => Repaint();
 
         /* ヘルパー */
 
@@ -229,7 +466,7 @@ namespace PPCore
             return window;
         }
 
-        // ノードエディタで開いているバトル定義か
+        // ウェーブエディタで開いているバトル定義か
         private static bool IsOpenInWindow(PPBattleDefinition aDefinition)
         {
             foreach (var window in sOpenWindows)
@@ -237,6 +474,74 @@ namespace PPCore
                 if (window != null && window.mTarget == aDefinition) return true;
             }
             return false;
+        }
+
+        // 構造を変えるボタンのあとは、古い番号で描き続けないよう、この回の描画を打ち切る
+        private static void Finish(bool aIsChanged)
+        {
+            if (aIsChanged) GUIUtility.ExitGUI();
+        }
+
+        private bool PrepareSerializedObject()
+        {
+            if (mTarget == null) return false;
+            if (mSerializedObject == null || mSerializedObject.targetObject != mTarget)
+            {
+                mSerializedObject = new SerializedObject(mTarget);
+                mStageList = null;
+            }
+            return true;
+        }
+
+        private void RefreshProblems()
+        {
+            mProblems.Clear();
+            mProblemStageIds.Clear();
+            mTarget.Wave.Validate(mProblems);
+            foreach (var problem in mProblems)
+            {
+                if (problem.StageId != null) mProblemStageIds.Add(problem.StageId);
+            }
+        }
+
+        // 選んでいる段階が無くなっていたら、近い段階を選び直す
+        private void EnsureSelection(SerializedProperty aStages)
+        {
+            if (SelectedIndex >= 0 || aStages.arraySize == 0 || mTarget.Wave.Stages.Count == 0) return;
+            mSelectedStageId = mTarget.Wave.Stages[0].Id;
+        }
+
+        private static SerializedProperty AppendElement(SerializedProperty aList)
+        {
+            aList.InsertArrayElementAtIndex(aList.arraySize);
+            return aList.GetArrayElementAtIndex(aList.arraySize - 1);
+        }
+
+        private static void RemoveWhere(SerializedProperty aList, System.Func<SerializedProperty, bool> aPredicate)
+        {
+            for (int i = aList.arraySize - 1; i >= 0; i--)
+            {
+                if (aPredicate(aList.GetArrayElementAtIndex(i))) aList.DeleteArrayElementAtIndex(i);
+            }
+        }
+
+        private static void InitializeCondition(SerializedProperty aCondition, PPWaveStartKind aKind, string aStageId)
+        {
+            aCondition.FindPropertyRelative("mKind").enumValueIndex = (int)aKind;
+            aCondition.FindPropertyRelative("mSeconds").floatValue = DefaultSeconds;
+            aCondition.FindPropertyRelative("mStageId").stringValue = aStageId ?? string.Empty;
+            aCondition.FindPropertyRelative("mSide").enumValueIndex = (int)BattleSide.Enemy;
+            aCondition.FindPropertyRelative("mPercent").floatValue = DefaultPercent;
+            aCondition.FindPropertyRelative("mIsOnce").boolValue = false;
+        }
+
+        private static void InitializeNext(SerializedProperty aNext, string aTargetId)
+        {
+            aNext.FindPropertyRelative("mTargetId").stringValue = aTargetId;
+            aNext.FindPropertyRelative("mTiming").enumValueIndex = (int)PPWaveNextTiming.Started;
+            aNext.FindPropertyRelative("mCondition").enumValueIndex = (int)PPWaveNextCondition.None;
+            aNext.FindPropertyRelative("mSide").enumValueIndex = (int)BattleSide.Enemy;
+            aNext.FindPropertyRelative("mPercent").floatValue = DefaultPercent;
         }
 
         private void SaveLastTarget()
