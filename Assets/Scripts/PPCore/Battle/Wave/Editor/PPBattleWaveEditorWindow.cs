@@ -117,7 +117,6 @@ namespace PPCore
             if (Event.current.type == EventType.Layout) RefreshProblems();
 
             if (!IsEditable) EditorGUILayout.HelpBox("Play 中は編集できません(表示だけです)。Play を止めると編集できます", MessageType.Info);
-            DrawProblems();
 
             var stages = mSerializedObject.FindProperty(StagesPath);
             EnsureSelection(stages);
@@ -126,6 +125,7 @@ namespace PPCore
                 DrawStageList(stages);
                 DrawCenter(stages);
             }
+            DrawProblems();
             DrawFlow();
 
             mSerializedObject.ApplyModifiedProperties();
@@ -168,10 +168,10 @@ namespace PPCore
             };
         }
 
-        // 画面の操作で段階を選ぶ。入力中の数値を確定させてから選ぶ
+        // 画面の操作で段階を選ぶ。入力中の数値を確定させてから選ぶ(選んでいる段階なら確定だけ)
         private void RequestSelectStage(string aStageId)
         {
-            if (string.IsNullOrEmpty(aStageId) || aStageId == mSelectedStageId) return;
+            if (string.IsNullOrEmpty(aStageId)) return;
             RunAfterCommit(() =>
             {
                 if (mTarget != null && mTarget.Wave.IndexOf(aStageId) >= 0) mSelectedStageId = aStageId;
@@ -351,7 +351,7 @@ namespace PPCore
                 DrawPill($"長さ 約 {Mathf.RoundToInt(wave.EstimateLength())} 秒", "時間の条件だけで進んだとして、各段階を最初に 1 度出し終えるまでの秒数(全滅・被弾・HP でしか始まらない段階は数えない)", PPWaveEditorStyles.TextColor);
                 DrawPill(wave.HasInfinite() ? "無限 あり" : "無限 なし", "数が 0(無限)の敵を出す段階があるか", PPWaveEditorStyles.TextColor);
                 bool hasProblem = mProblems.Count > 0;
-                if (DrawPill(hasProblem ? $"! 誤り {mProblems.Count}" : "✓ 誤り 0", "押すと誤りの一覧を出し入れします", hasProblem ? PPWaveEditorStyles.ErrorColor : PPWaveEditorStyles.OkColor)) mShowsProblems = !mShowsProblems;
+                if (DrawPill(hasProblem ? $"! 誤り {mProblems.Count}" : "✓ 誤り 0", "押すと誤りの一覧を出し入れします", hasProblem ? PPWaveEditorStyles.ErrorColor : PPWaveEditorStyles.OkColor)) RunAfterCommit(() => mShowsProblems = !mShowsProblems);
             }
         }
 
@@ -365,6 +365,7 @@ namespace PPCore
             return GUILayout.Button(content, style, GUILayout.Width(style.CalcSize(content).x + 4f));
         }
 
+        // 誤りの一覧。中央の欄より後に描き、出し入れや件数の変化で中央の欄のコントロールの ID がずれて、入力中の値が別の欄に入らないようにする
         private void DrawProblems()
         {
             if (!mShowsProblems || mProblems.Count == 0) return;

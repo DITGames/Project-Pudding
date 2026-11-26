@@ -146,7 +146,7 @@ PPCore/
 - `EditConditionAttribute` … UE5 の EditCondition/EditConditionHides 相当の条件付き表示
 - `CustomConsoleLog` + `Window > Custom Console` … タグ・拡張ログレベル（Verbose/Critical）・送信元オブジェクト付きログ。バトルのトレースはこれを使う
 - `Window > Recent Assets` … 最近開いたアセット履歴
-- `Window > Project-Pudding > ウェーブエディタ`(バトル定義のインスペクタの「ウェーブエディタで開く」でも開く)… バトル定義のウェーブを編集する(`PPBattleWaveEditorWindow`。IMGUI)。上の帯に目安(敵の数・長さ・無限・誤りの数)、左に段階の一覧(ドラッグで並べ替え・追加・複製・削除)、中央に選んだ段階の出す敵の表・始まる条件・行き先(`PPWaveStageEditorGUI`)、下に見るだけの流れの図(`PPWaveFlowDiagram`。押すとその段階を選ぶ)。Undo と保存は通常のアセット編集と同じ。誤りは `PPWaveDefinition.Validate` の結果を帯の下の一覧と段階の印で出し、開いている間はそのバトル定義の警告をコンソールに出さない。Play 中は表示だけ。バトル定義のインスペクタにはウェーブの生の一覧を出さない
+- `Window > Project-Pudding > ウェーブエディタ`(バトル定義のインスペクタの「ウェーブエディタで開く」でも開く)… バトル定義のウェーブを編集する(`PPBattleWaveEditorWindow`。IMGUI)。上の帯に目安(敵の数・長さ・無限・誤りの数)、左に段階の一覧(ドラッグで並べ替え・追加・複製・削除)、中央に選んだ段階の出す敵の表・始まる条件・行き先(`PPWaveStageEditorGUI`)、下に見るだけの流れの図(`PPWaveFlowDiagram`。押すとその段階を選ぶ)。Undo と保存は通常のアセット編集と同じ。誤りは `PPWaveDefinition.Validate` の結果を中央の欄の下の一覧(帯の「誤り」で出し入れ)と段階の印で出し、開いている間はそのバトル定義の警告をコンソールに出さない。Play 中は表示だけ。バトル定義のインスペクタにはウェーブの生の一覧を出さない
 
 ## コーディング規約
 
